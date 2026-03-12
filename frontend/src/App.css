@@ -1,0 +1,258 @@
+/* 页面整体容器 */
+.app-root {
+  min-height: 100vh;
+  padding: 24px 16px 32px;
+  background-color: #f5f5f7;
+  color: #1f2933;
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* 头部区域 */
+.app-header {
+  max-width: 1120px;
+  margin: 0 auto 24px;
+  text-align: center;
+}
+
+.app-title {
+  margin: 0 0 8px;
+  font-size: 1.8rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: #111827;
+}
+
+.app-subtitle {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #6b7280;
+}
+
+/* 主内容区域：左右两栏 */
+.app-main {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+
+/* 面板基础样式 */
+.panel {
+  flex: 1 1 0;
+  background-color: #ffffff;
+  border-radius: 14px;
+  padding: 16px 16px 12px;
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.06),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+/* 左右面板在桌面端宽度稍微不同（可选） */
+.panel-left {
+  flex: 1.1 1 0;
+}
+
+.panel-right {
+  flex: 0.9 1 0;
+}
+
+/* 面板头部：标题 + 语言选择 */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.panel-title {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* 下拉选择 */
+.select {
+  min-width: 120px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background-color: #f9fafb;
+  font-size: 0.9rem;
+  color: #111827;
+  outline: none;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.16);
+  background-color: #ffffff;
+}
+
+/* 文本输入/输出区域 */
+.textarea {
+  width: 100%;
+  min-height: 180px;
+  resize: vertical;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #111827;
+  background-color: #f9fafb;
+  outline: none;
+  box-sizing: border-box;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.16);
+  background-color: #ffffff;
+}
+
+/* 译文只读态略作区分 */
+.textarea-readonly {
+  background-color: #f3f4f6;
+}
+
+/* 面板底部：按钮区域 */
+.panel-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* 按钮基础样式 */
+.button {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 6px 14px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* 主要操作按钮：翻译 */
+.button-primary {
+  background-color: #2563eb;
+  color: #ffffff;
+  box-shadow:
+    0 8px 16px rgba(37, 99, 235, 0.24),
+    0 0 0 1px rgba(37, 99, 235, 0.3);
+}
+
+.button-primary:hover:not(:disabled) {
+  background-color: #1d4ed8;
+  box-shadow:
+    0 10px 20px rgba(37, 99, 235, 0.3),
+    0 0 0 1px rgba(37, 99, 235, 0.35);
+}
+
+/* 次级按钮：清空 / 朗读 */
+.button-ghost {
+  background-color: #ffffff;
+  color: #111827;
+  border-color: #e5e7eb;
+}
+
+.button-ghost:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+/* 按钮禁用态 */
+.button:disabled {
+  cursor: default;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+/* 错误提示条 */
+.error-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  max-width: 480px;
+  width: calc(100% - 32px);
+  padding: 10px 14px;
+  border-radius: 999px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.9rem;
+  box-shadow:
+    0 10px 20px rgba(185, 28, 28, 0.18),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* 响应式：在小屏幕上上下堆叠面板 */
+@media (max-width: 768px) {
+  .app-root {
+    padding: 16px 10px 24px;
+  }
+
+  .app-main {
+    flex-direction: column;
+  }
+
+  .panel {
+    padding: 14px 12px 10px;
+  }
+
+  .textarea {
+    min-height: 140px;
+  }
+
+  .panel-footer {
+    justify-content: flex-start;
+  }
+}
+
+/* 更窄屏幕（如小手机）下的微调 */
+@media (max-width: 480px) {
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .select {
+    width: 100%;
+  }
+
+  .panel-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .button {
+    width: 100%;
+    justify-content: center;
+  }
+}

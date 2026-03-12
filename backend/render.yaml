@@ -1,0 +1,23 @@
+# Render 一键部署：会生成固定网址 https://xxx.onrender.com
+# 在 https://render.com 连接 GitHub 仓库后，在 Dashboard 用此 Blueprint 或手动建 Web Service
+# 根目录设为 backend（若仓库为整项目）
+services:
+  - type: web
+    name: influencer-app-backend
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      # 可选：翻译/朗读（若使用）
+      - key: DEEPSEEK_API_KEY
+        sync: false
