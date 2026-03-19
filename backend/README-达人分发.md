@@ -4,7 +4,7 @@
 
 ## 阶段 1 已实现
 
-- **数据库**：SQLite（`data/app.db`），表：roles、users、point_accounts、point_ledger、audit_log、config。
+- **数据库**：Postgres（通过 `DATABASE_URL` 连接），表：roles、users、point_accounts、point_ledger、audit_log、config。
 - **鉴权**：JWT 访问令牌 + 刷新令牌，`/api/auth/login`、`/api/auth/refresh`、`/api/auth/me`。
 - **中间件**：request-id、审计日志写入、登录限流。
 - **默认账号**：首次启动自动创建管理员 `admin` / `admin123`，请上线后修改密码。
@@ -68,5 +68,5 @@ npm run dev
 ## 环境变量（可选）
 
 - `PORT`：服务端口，默认 3000。
-- `DB_PATH`：SQLite 文件路径，默认 `./data/app.db`。
+- `DATABASE_URL`：Postgres 连接串（生产环境务必设置）。
 - `JWT_SECRET`、`JWT_REFRESH_SECRET`：生产环境务必设置。

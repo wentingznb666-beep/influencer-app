@@ -34,6 +34,7 @@ export default function AdminLayout() {
           <NavLink to="/admin/submissions" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>投稿审核</NavLink>
           <NavLink to="/admin/points" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>积分与结算</NavLink>
           <NavLink to="/admin/settlement" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>结算打款</NavLink>
+          <NavLink to="/admin/withdrawals" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>提现管理</NavLink>
           <NavLink to="/admin/risk" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>防删与风控</NavLink>
         </nav>
         <Outlet />

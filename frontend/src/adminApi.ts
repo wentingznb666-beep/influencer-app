@@ -194,3 +194,24 @@ export async function getRiskAlerts() {
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
   return res.json();
 }
+
+/**
+ * 提现申请列表（管理员）。
+ */
+export async function getWithdrawals(params?: { status?: string; limit?: number }) {
+  const q = new URLSearchParams();
+  if (params?.status) q.set("status", params.status);
+  if (params?.limit != null) q.set("limit", String(params.limit));
+  const res = await fetchWithAuth(`/api/admin/withdrawals?${q}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
+/**
+ * 处理提现：标记 paid 或 rejected。
+ */
+export async function updateWithdrawal(id: number, body: { status: "paid" | "rejected"; note?: string }) {
+  const res = await fetchWithAuth(`/api/admin/withdrawals/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  return res.json();
+}

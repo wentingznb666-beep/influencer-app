@@ -1,5 +1,5 @@
 import { Router, Response } from "express";
-import { getDb } from "../db";
+import { query } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
 const router = Router();
@@ -12,30 +12,35 @@ router.use(requireRole("admin"));
  */
 router.get("/", (req: AuthRequest, res: Response) => {
   const { status, platform, type } = req.query as { status?: string; platform?: string; type?: string };
-  const database = getDb();
-  let sql = `
+  (async () => {
+    let sql = `
     SELECT t.id, t.material_id, t.type, t.platform, t.max_claim_count, t.point_reward, t.status, t.created_at,
            m.title AS material_title, m.cloud_link
     FROM tasks t
     JOIN materials m ON t.material_id = m.id
     WHERE 1=1
   `;
-  const params: (string | number)[] = [];
-  if (status === "draft" || status === "published") {
-    sql += " AND t.status = ?";
-    params.push(status);
-  }
-  if (platform && typeof platform === "string") {
-    sql += " AND t.platform = ?";
-    params.push(platform);
-  }
-  if (type === "face" || type === "explain") {
-    sql += " AND t.type = ?";
-    params.push(type);
-  }
-  sql += " ORDER BY t.id DESC";
-  const rows = database.prepare(sql).all(...params);
-  res.json({ list: rows });
+    const params: any[] = [];
+    let idx = 1;
+    if (status === "draft" || status === "published") {
+      sql += ` AND t.status = $${idx++}`;
+      params.push(status);
+    }
+    if (platform && typeof platform === "string") {
+      sql += ` AND t.platform = $${idx++}`;
+      params.push(platform);
+    }
+    if (type === "face" || type === "explain") {
+      sql += ` AND t.type = $${idx++}`;
+      params.push(type);
+    }
+    sql += " ORDER BY t.id DESC";
+    const { rows } = await query(sql, params);
+    res.json({ list: rows });
+  })().catch((e) => {
+    console.error("tasks list error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 /**
@@ -52,18 +57,21 @@ router.post("/", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_INPUT", message: "类型须为 face 或 explain。" });
     return;
   }
-  const database = getDb();
-  const mat = database.prepare("SELECT id FROM materials WHERE id = ?").get(Number(material_id)) as { id: number } | undefined;
-  if (!mat) {
-    res.status(400).json({ error: "INVALID_INPUT", message: "素材不存在。" });
-    return;
-  }
-  const result = database
-    .prepare(
-      "INSERT INTO tasks (material_id, type, platform, max_claim_count, point_reward, status) VALUES (?, ?, ?, ?, ?, 'draft')"
-    )
-    .run(Number(material_id), type, String(platform), max_claim_count != null ? Number(max_claim_count) : null, Number(point_reward));
-  res.status(201).json({ id: result.lastInsertRowid });
+  (async () => {
+    const mat = await query<{ id: number }>("SELECT id FROM materials WHERE id = $1", [Number(material_id)]);
+    if (!mat.rows[0]) {
+      res.status(400).json({ error: "INVALID_INPUT", message: "素材不存在。" });
+      return;
+    }
+    const created = await query<{ id: number }>(
+      "INSERT INTO tasks (material_id, type, platform, max_claim_count, point_reward, status) VALUES ($1, $2, $3, $4, $5, 'draft') RETURNING id",
+      [Number(material_id), type, String(platform), max_claim_count != null ? Number(max_claim_count) : null, Number(point_reward)]
+    );
+    res.status(201).json({ id: created.rows[0]!.id });
+  })().catch((e) => {
+    console.error("tasks create error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 /**
@@ -77,33 +85,38 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     return;
   }
   const { status, max_claim_count, point_reward } = req.body ?? {};
-  const database = getDb();
-  const row = database.prepare("SELECT id FROM tasks WHERE id = ?").get(id) as { id: number } | undefined;
-  if (!row) {
-    res.status(404).json({ error: "NOT_FOUND", message: "任务不存在。" });
-    return;
-  }
-  const updates: string[] = [];
-  const params: (string | number | null)[] = [];
-  if (status === "draft" || status === "published") {
-    updates.push("status = ?");
-    params.push(status);
-  }
-  if (max_claim_count !== undefined) {
-    updates.push("max_claim_count = ?");
-    params.push(max_claim_count === null ? null : Number(max_claim_count));
-  }
-  if (typeof point_reward === "number") {
-    updates.push("point_reward = ?");
-    params.push(point_reward);
-  }
-  if (updates.length === 0) {
+  (async () => {
+    const row = await query<{ id: number }>("SELECT id FROM tasks WHERE id = $1", [id]);
+    if (!row.rows[0]) {
+      res.status(404).json({ error: "NOT_FOUND", message: "任务不存在。" });
+      return;
+    }
+    const sets: string[] = [];
+    const params: any[] = [];
+    let idx = 1;
+    if (status === "draft" || status === "published") {
+      sets.push(`status = $${idx++}`);
+      params.push(status);
+    }
+    if (max_claim_count !== undefined) {
+      sets.push(`max_claim_count = $${idx++}`);
+      params.push(max_claim_count === null ? null : Number(max_claim_count));
+    }
+    if (typeof point_reward === "number") {
+      sets.push(`point_reward = $${idx++}`);
+      params.push(point_reward);
+    }
+    if (sets.length === 0) {
+      res.json({ ok: true });
+      return;
+    }
+    params.push(id);
+    await query(`UPDATE tasks SET ${sets.join(", ")} WHERE id = $${idx++}`, params);
     res.json({ ok: true });
-    return;
-  }
-  params.push(id);
-  database.prepare(`UPDATE tasks SET ${updates.join(", ")} WHERE id = ?`).run(...params);
-  res.json({ ok: true });
+  })().catch((e) => {
+    console.error("tasks patch error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 export default router;

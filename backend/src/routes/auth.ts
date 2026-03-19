@@ -1,5 +1,5 @@
 import { Router, Response } from "express";
-import { getDb } from "../db";
+import { query } from "../db";
 import {
   hashPassword,
   verifyPassword,
@@ -25,18 +25,23 @@ router.post("/login", (req, res: Response) => {
     res.status(400).json({ error: "INVALID_INPUT", message: "请提供用户名和密码。" });
     return;
   }
-  const user = findUserByUsername(username);
-  if (!user || !verifyPassword(password, user.password_hash)) {
-    res.status(401).json({ error: "LOGIN_FAILED", message: "用户名或密码错误。" });
-    return;
-  }
-  const payload: JwtPayload = { userId: user.id, username: user.username, role: user.role };
-  const accessToken = signAccessToken(payload);
-  const refreshToken = signRefreshToken(payload);
-  res.json({
-    accessToken,
-    refreshToken,
-    user: { userId: user.id, username: user.username, role: user.role },
+  (async () => {
+    const user = await findUserByUsername(username);
+    if (!user || !verifyPassword(password, user.password_hash)) {
+      res.status(401).json({ error: "LOGIN_FAILED", message: "用户名或密码错误。" });
+      return;
+    }
+    const payload: JwtPayload = { userId: user.id, username: user.username, role: user.role };
+    const accessToken = signAccessToken(payload);
+    const refreshToken = signRefreshToken(payload);
+    res.json({
+      accessToken,
+      refreshToken,
+      user: { userId: user.id, username: user.username, role: user.role },
+    });
+  })().catch((e) => {
+    console.error("Login error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   });
 });
 
@@ -84,19 +89,24 @@ router.post("/register", (req, res: Response) => {
   }
   const roleMap: Record<string, number> = { admin: 1, client: 2, influencer: 3 };
   const roleId = roleMap[role as string] ?? 2;
-  const database = getDb();
-  const existing = database.prepare("SELECT id FROM users WHERE username = ?").get(username);
-  if (existing) {
-    res.status(409).json({ error: "USER_EXISTS", message: "用户名已存在。" });
-    return;
-  }
-  const password_hash = hashPassword(password);
-  const result = database
-    .prepare("INSERT INTO users (username, password_hash, role_id) VALUES (?, ?, ?)")
-    .run(username, password_hash, roleId);
-  const userId = result.lastInsertRowid as number;
-  database.prepare("INSERT INTO point_accounts (user_id, balance) VALUES (?, 0)").run(userId);
-  res.status(201).json({ userId, username, role: role === "admin" ? "admin" : role === "influencer" ? "influencer" : "client" });
+  (async () => {
+    const existing = await query<{ id: number }>("SELECT id FROM users WHERE username = $1", [username]);
+    if (existing.rows[0]) {
+      res.status(409).json({ error: "USER_EXISTS", message: "用户名已存在。" });
+      return;
+    }
+    const password_hash = hashPassword(password);
+    const created = await query<{ id: number }>(
+      "INSERT INTO users (username, password_hash, role_id) VALUES ($1, $2, $3) RETURNING id",
+      [username, password_hash, roleId]
+    );
+    const userId = created.rows[0]!.id;
+    await query("INSERT INTO point_accounts (user_id, balance) VALUES ($1, 0) ON CONFLICT (user_id) DO NOTHING", [userId]);
+    res.status(201).json({ userId, username, role: role === "admin" ? "admin" : role === "influencer" ? "influencer" : "client" });
+  })().catch((e) => {
+    console.error("Register error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 export default router;

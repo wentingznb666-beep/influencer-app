@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
-import { getDb } from "./db";
+import { query } from "./db";
 import { AuthRequest } from "./auth";
 
 /** 内存简易限流：按 key 记录最近请求时间，超过 windowMs 内 max 次则拒绝 */
@@ -22,14 +22,8 @@ export function requestId(req: Request & { requestId?: string }, _res: Response,
  */
 export function auditLog(req: Request & { requestId?: string; user?: { userId: number } }, _res: Response, next: NextFunction): void {
   next();
-  try {
-    const database = getDb();
-    database
-      .prepare("INSERT INTO audit_log (request_id, user_id, path, method) VALUES (?, ?, ?, ?)")
-      .run(req.requestId || null, req.user?.userId ?? null, req.path, req.method);
-  } catch (e) {
-    console.error("Audit log write failed:", e);
-  }
+  query("INSERT INTO audit_log (request_id, user_id, path, method) VALUES ($1, $2, $3, $4)", [req.requestId || null, req.user?.userId ?? null, req.path, req.method])
+    .catch((e) => console.error("Audit log write failed:", e));
 }
 
 /**

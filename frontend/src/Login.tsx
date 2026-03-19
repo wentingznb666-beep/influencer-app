@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { login } from "./authApi";
 
 /**
@@ -13,6 +13,15 @@ export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const from = searchParams.get("from") || "/";
+
+  /**
+   * 快速填充演示账号，减少测试时反复输入/创建账号的成本。
+   */
+  const fillDemo = (u: string, p?: string) => {
+    setUsername(u);
+    if (typeof p === "string") setPassword(p);
+    setError(null);
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -65,9 +74,24 @@ export default function Login() {
           {loading ? "登录中…" : "登录"}
         </button>
       </form>
-      <p style={{ marginTop: 20, fontSize: 14 }}>
-        <Link to="/translate" style={{ color: "#007aff" }}>使用翻译与朗读工具（无需登录）</Link>
-      </p>
+
+      <div style={{ marginTop: 18, padding: 12, border: "1px solid #eee", borderRadius: 10, background: "#fafafa" }}>
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>演示账号（后端启动默认自动创建）</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button type="button" onClick={() => fillDemo("test-client")} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontSize: 13 }}>
+            填充客户：test-client
+          </button>
+          <button type="button" onClick={() => fillDemo("test-influencer")} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontSize: 13 }}>
+            填充达人：test-influencer
+          </button>
+          <button type="button" onClick={() => fillDemo("admin", "admin123")} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", cursor: "pointer", fontSize: 13 }}>
+            填充管理员：admin
+          </button>
+        </div>
+        <div style={{ fontSize: 12, color: "#666", marginTop: 8, lineHeight: 1.4 }}>
+          客户/达人密码取决于你的后端是否已创建或曾手动注册；若开启演示账号自动创建，默认密码通常为 `test123456`。
+        </div>
+      </div>
     </div>
   );
 }

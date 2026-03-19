@@ -11,6 +11,7 @@ import SubmissionsPage from "./admin/SubmissionsPage";
 import PointsPage from "./admin/PointsPage";
 import SettlementPage from "./admin/SettlementPage";
 import RiskPage from "./admin/RiskPage";
+import WithdrawalsPage from "./admin/WithdrawalsPage";
 import ClientLayout from "./ClientLayout";
 import RequestsPage from "./client/RequestsPage";
 import OrdersPage from "./client/OrdersPage";
@@ -20,6 +21,7 @@ import InfluencerLayout from "./InfluencerLayout";
 import TaskHallPage from "./influencer/TaskHallPage";
 import MyTasksPage from "./influencer/MyTasksPage";
 import InfluencerPointsPage from "./influencer/PointsPage";
+import WithdrawPage from "./influencer/WithdrawPage";
 import ProtectedRoute from "./ProtectedRoute";
 import App from "./App";
 
@@ -36,6 +38,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="submissions" element={<SubmissionsPage />} />
           <Route path="points" element={<PointsPage />} />
           <Route path="settlement" element={<SettlementPage />} />
+          <Route path="withdrawals" element={<WithdrawalsPage />} />
           <Route path="risk" element={<RiskPage />} />
         </Route>
         <Route path="/client" element={<ProtectedRoute roles={["client"]}><ClientLayout /></ProtectedRoute>}>
@@ -50,6 +53,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="tasks" element={<TaskHallPage />} />
           <Route path="my-tasks" element={<MyTasksPage />} />
           <Route path="points" element={<InfluencerPointsPage />} />
+          <Route path="withdraw" element={<WithdrawPage />} />
         </Route>
         <Route path="/translate" element={<App />} />
         <Route path="/" element={<Navigate to="/login" replace />} />

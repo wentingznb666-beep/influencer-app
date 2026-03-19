@@ -1,14 +1,14 @@
 import { Router, Response } from "express";
-import { getDb } from "../db";
+import { query, withTx } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
 const router = Router();
 router.use(requireAuth);
 router.use(requireRole("admin"));
 
-function getLockPeriodDays(database: ReturnType<typeof getDb>): number {
-  const row = database.prepare("SELECT value FROM config WHERE key = 'lock_period_days'").get() as { value: string } | undefined;
-  return Math.min(30, Math.max(1, Number(row?.value) || 5));
+async function getLockPeriodDays(): Promise<number> {
+  const row = await query<{ value: string }>("SELECT value FROM config WHERE key = 'lock_period_days'");
+  return Math.min(30, Math.max(1, Number(row.rows[0]?.value) || 5));
 }
 
 /**
@@ -17,8 +17,8 @@ function getLockPeriodDays(database: ReturnType<typeof getDb>): number {
  */
 router.get("/checks", (req: AuthRequest, res: Response) => {
   const { submission_id, result, limit = "100" } = req.query as { submission_id?: string; result?: string; limit?: string };
-  const database = getDb();
-  let sql = `
+  (async () => {
+    let sql = `
     SELECT c.id, c.submission_id, c.check_result, c.checked_at, c.note,
            s.work_link, s.status AS submission_status,
            tc.user_id, u.username AS influencer_username
@@ -28,19 +28,24 @@ router.get("/checks", (req: AuthRequest, res: Response) => {
     JOIN users u ON tc.user_id = u.id
     WHERE 1=1
   `;
-  const params: (string | number)[] = [];
-  if (submission_id) {
-    sql += " AND c.submission_id = ?";
-    params.push(Number(submission_id));
-  }
-  if (result === "ok" || result === "deleted" || result === "suspicious") {
-    sql += " AND c.check_result = ?";
-    params.push(result);
-  }
-  sql += " ORDER BY c.id DESC LIMIT ?";
-  params.push(Math.min(Number(limit) || 100, 500));
-  const rows = database.prepare(sql).all(...params);
-  res.json({ list: rows });
+    const params: any[] = [];
+    let idx = 1;
+    if (submission_id) {
+      sql += ` AND c.submission_id = $${idx++}`;
+      params.push(Number(submission_id));
+    }
+    if (result === "ok" || result === "deleted" || result === "suspicious") {
+      sql += ` AND c.check_result = $${idx++}`;
+      params.push(result);
+    }
+    sql += ` ORDER BY c.id DESC LIMIT $${idx++}`;
+    params.push(Math.min(Number(limit) || 100, 500));
+    const { rows } = await query(sql, params);
+    res.json({ list: rows });
+  })().catch((e) => {
+    console.error("risk checks list error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 /**
@@ -54,10 +59,11 @@ router.post("/check", async (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_ID", message: "请提供有效的 submission_id。" });
     return;
   }
-  const database = getDb();
-  const sub = database.prepare("SELECT id, work_link, status, reviewed_at FROM submissions WHERE id = ?").get(id) as
-    | { id: number; work_link: string; status: string; reviewed_at: string | null }
-    | undefined;
+  const subRes = await query<{ id: number; work_link: string; status: string; reviewed_at: string | null }>(
+    "SELECT id, work_link, status, reviewed_at FROM submissions WHERE id = $1",
+    [id]
+  );
+  const sub = subRes.rows[0];
   if (!sub) {
     res.status(404).json({ error: "NOT_FOUND", message: "投稿不存在。" });
     return;
@@ -74,35 +80,45 @@ router.post("/check", async (req: AuthRequest, res: Response) => {
     checkResult = "deleted";
     note = e instanceof Error ? e.message : "请求失败";
   }
-  database.prepare("INSERT INTO submission_checks (submission_id, check_result, note) VALUES (?, ?, ?)").run(id, checkResult, note);
+  await query("INSERT INTO submission_checks (submission_id, check_result, note) VALUES ($1, $2, $3)", [id, checkResult, note]);
 
-  const lockDays = getLockPeriodDays(database);
+  const lockDays = await getLockPeriodDays();
   const reviewedAt = sub.reviewed_at ? new Date(sub.reviewed_at) : null;
   const lockEnd = reviewedAt ? new Date(reviewedAt.getTime() + lockDays * 24 * 60 * 60 * 1000) : null;
   const now = new Date();
   const inLockPeriod = lockEnd && now < lockEnd;
   if (checkResult !== "ok" && inLockPeriod && sub.status === "approved") {
-    const tc = database.prepare("SELECT user_id FROM task_claims WHERE id = (SELECT task_claim_id FROM submissions WHERE id = ?)").get(id) as { user_id: number };
+    const tcRes = await query<{ user_id: number }>(
+      "SELECT tc.user_id FROM task_claims tc JOIN submissions s ON s.task_claim_id = tc.id WHERE s.id = $1",
+      [id]
+    );
+    const tc = tcRes.rows[0];
     if (tc) {
-      const task = database.prepare("SELECT t.point_reward FROM tasks t JOIN task_claims tc ON tc.task_id = t.id JOIN submissions s ON s.task_claim_id = tc.id WHERE s.id = ?").get(id) as { point_reward: number } | undefined;
-      const pointReward = task?.point_reward ?? 0;
-      const acc = database.prepare("SELECT id, balance FROM point_accounts WHERE user_id = ?").get(tc.user_id) as { id: number; balance: number };
-      if (acc && pointReward > 0) {
-        const deduct = Math.min(pointReward, acc.balance);
-        database.transaction(() => {
-          database.prepare("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES (?, ?, 'violation_deduct', ?)").run(acc.id, -deduct, id);
-          database.prepare("UPDATE point_accounts SET balance = balance - ?, updated_at = datetime('now') WHERE id = ?").run(deduct, acc.id);
-          database.prepare("INSERT INTO influencer_violations (user_id, submission_id, reason) VALUES (?, ?, ?)").run(tc.user_id, id, "lock_period_delete");
-          const violationCount = database.prepare("SELECT COUNT(*) AS c FROM influencer_violations WHERE user_id = ?").get(tc.user_id) as { c: number };
-          if (violationCount.c >= 3) {
-            const exists = database.prepare("SELECT 1 FROM influencer_profiles WHERE user_id = ?").get(tc.user_id);
-            if (exists) {
-              database.prepare("UPDATE influencer_profiles SET blacklisted = 1, updated_at = datetime('now') WHERE user_id = ?").run(tc.user_id);
+      const taskRes = await query<{ point_reward: number }>(
+        "SELECT t.point_reward FROM tasks t JOIN task_claims tc ON tc.task_id = t.id JOIN submissions s ON s.task_claim_id = tc.id WHERE s.id = $1",
+        [id]
+      );
+      const pointReward = taskRes.rows[0]?.point_reward ?? 0;
+      if (pointReward > 0) {
+        await withTx(async (client) => {
+          const accRes = await client.query<{ id: number; balance: number }>("SELECT id, balance FROM point_accounts WHERE user_id = $1 FOR UPDATE", [tc.user_id]);
+          const acc = accRes.rows[0];
+          if (!acc) return;
+          const deduct = Math.min(pointReward, acc.balance);
+          await client.query("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES ($1, $2, 'violation_deduct', $3)", [acc.id, -deduct, id]);
+          await client.query("UPDATE point_accounts SET balance = balance - $1, updated_at = now() WHERE id = $2", [deduct, acc.id]);
+          await client.query("INSERT INTO influencer_violations (user_id, submission_id, reason) VALUES ($1, $2, $3)", [tc.user_id, id, "lock_period_delete"]);
+          const cntRes = await client.query<{ c: string }>("SELECT COUNT(*) AS c FROM influencer_violations WHERE user_id = $1", [tc.user_id]);
+          const cnt = Number(cntRes.rows[0]?.c || 0);
+          if (cnt >= 3) {
+            const exists = await client.query("SELECT 1 FROM influencer_profiles WHERE user_id = $1", [tc.user_id]);
+            if (exists.rows[0]) {
+              await client.query("UPDATE influencer_profiles SET blacklisted = 1, updated_at = now() WHERE user_id = $1", [tc.user_id]);
             } else {
-              database.prepare("INSERT INTO influencer_profiles (user_id, show_face, blacklisted, level, updated_at) VALUES (?, 0, 1, 1, datetime('now'))").run(tc.user_id);
+              await client.query("INSERT INTO influencer_profiles (user_id, show_face, blacklisted, level, updated_at) VALUES ($1, 0, 1, 1, now())", [tc.user_id]);
             }
           }
-        })();
+        });
       }
     }
   }
@@ -116,22 +132,27 @@ router.post("/check", async (req: AuthRequest, res: Response) => {
  */
 router.get("/violations", (req: AuthRequest, res: Response) => {
   const { user_id, limit = "50" } = req.query as { user_id?: string; limit?: string };
-  const database = getDb();
-  let sql = `
+  (async () => {
+    let sql = `
     SELECT v.id, v.user_id, v.submission_id, v.reason, v.created_at, u.username
     FROM influencer_violations v
     JOIN users u ON v.user_id = u.id
     WHERE 1=1
   `;
-  const params: (string | number)[] = [];
-  if (user_id) {
-    sql += " AND v.user_id = ?";
-    params.push(Number(user_id));
-  }
-  sql += " ORDER BY v.id DESC LIMIT ?";
-  params.push(Math.min(Number(limit) || 50, 200));
-  const rows = database.prepare(sql).all(...params);
-  res.json({ list: rows });
+    const params: any[] = [];
+    let idx = 1;
+    if (user_id) {
+      sql += ` AND v.user_id = $${idx++}`;
+      params.push(Number(user_id));
+    }
+    sql += ` ORDER BY v.id DESC LIMIT $${idx++}`;
+    params.push(Math.min(Number(limit) || 50, 200));
+    const { rows } = await query(sql, params);
+    res.json({ list: rows });
+  })().catch((e) => {
+    console.error("risk violations error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 /**
@@ -139,9 +160,8 @@ router.get("/violations", (req: AuthRequest, res: Response) => {
  * 告警列表：巡检结果为 deleted/suspicious 且未处理的（可扩展为“需人工复核”）。
  */
 router.get("/alerts", (req: AuthRequest, res: Response) => {
-  const database = getDb();
-  const rows = database
-    .prepare(
+  (async () => {
+    const { rows } = await query(
       `
     SELECT c.id, c.submission_id, c.check_result, c.checked_at, c.note,
            s.work_link, tc.user_id, u.username
@@ -153,9 +173,12 @@ router.get("/alerts", (req: AuthRequest, res: Response) => {
     ORDER BY c.id DESC
     LIMIT 100
   `
-    )
-    .all();
-  res.json({ list: rows });
+    );
+    res.json({ list: rows });
+  })().catch((e) => {
+    console.error("risk alerts error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 export default router;

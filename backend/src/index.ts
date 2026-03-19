@@ -16,6 +16,8 @@ import settlementRoutes from "./routes/settlement";
 import riskControlRoutes from "./routes/riskControl";
 import influencerRoutes from "./routes/influencer";
 import clientRoutes from "./routes/client";
+import withdrawalsRoutes from "./routes/withdrawals";
+import { initDb } from "./db";
 
 dotenv.config();
 
@@ -38,6 +40,7 @@ app.use("/api/admin/points", pointsRoutes);
 app.use("/api/admin/audit", auditRoutes);
 app.use("/api/admin/settlement", settlementRoutes);
 app.use("/api/admin/risk", riskControlRoutes);
+app.use("/api/admin/withdrawals", withdrawalsRoutes);
 /** 达人端：任务大厅、领取、我的任务、投稿、积分 */
 app.use("/api/influencer", influencerRoutes);
 /** 客户端：合作意向、订单跟踪、达人作品、积分充值 */
@@ -139,11 +142,22 @@ function getLocalIp(): string | null {
   return null;
 }
 
-app.listen(Number(port), "0.0.0.0", () => {
-  const local = `http://localhost:${port}`;
-  const ip = getLocalIp();
-  const lan = ip ? `http://${ip}:${port}` : null;
-  console.log(`Backend server is running on ${local}`);
-  if (lan) console.log(`  LAN access: ${lan}`);
+/**
+ * 启动入口：先初始化 Postgres（建表/默认数据），再启动 HTTP 服务。
+ */
+async function main(): Promise<void> {
+  await initDb();
+  app.listen(Number(port), "0.0.0.0", () => {
+    const local = `http://localhost:${port}`;
+    const ip = getLocalIp();
+    const lan = ip ? `http://${ip}:${port}` : null;
+    console.log(`Backend server is running on ${local}`);
+    if (lan) console.log(`  LAN access: ${lan}`);
+  });
+}
+
+main().catch((e) => {
+  console.error("Failed to start server:", e);
+  process.exit(1);
 });
 

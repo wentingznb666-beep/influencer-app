@@ -65,3 +65,25 @@ export async function getPoints() {
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
   return res.json();
 }
+
+/**
+ * 提现记录列表（达人本人）。
+ */
+export async function getWithdrawals() {
+  const res = await fetchWithAuth("/api/influencer/withdrawals");
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
+/**
+ * 发起提现申请（策略 A：申请不扣余额，打款时扣）。
+ */
+export async function createWithdrawal(amount: number) {
+  const res = await fetchWithAuth("/api/influencer/withdrawals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ amount }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "提交失败");
+  return res.json();
+}

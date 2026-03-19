@@ -1,5 +1,5 @@
 import { Router, Response } from "express";
-import { getDb } from "../db";
+import { query, withTx } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
 const router = Router();
@@ -12,9 +12,13 @@ router.use(requireRole("client"));
  */
 router.get("/requests", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
-  const database = getDb();
-  const rows = database.prepare("SELECT id, product_info, target_platform, budget, need_face, status, created_at FROM client_requests WHERE client_id = ? ORDER BY id DESC").all(clientId);
-  res.json({ list: rows });
+  (async () => {
+    const { rows } = await query("SELECT id, product_info, target_platform, budget, need_face, status, created_at FROM client_requests WHERE client_id = $1 ORDER BY id DESC", [clientId]);
+    res.json({ list: rows });
+  })().catch((e) => {
+    console.error("client requests list error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 /**
@@ -24,19 +28,16 @@ router.get("/requests", (req: AuthRequest, res: Response) => {
 router.post("/requests", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
   const { product_info, target_platform, budget, need_face } = req.body ?? {};
-  const database = getDb();
-  const result = database
-    .prepare(
-      "INSERT INTO client_requests (client_id, product_info, target_platform, budget, need_face, status) VALUES (?, ?, ?, ?, ?, 'submitted')"
-    )
-    .run(
-      clientId,
-      product_info != null ? String(product_info) : null,
-      target_platform != null ? String(target_platform) : null,
-      budget != null ? String(budget) : null,
-      need_face ? 1 : 0
+  (async () => {
+    const created = await query<{ id: number }>(
+      "INSERT INTO client_requests (client_id, product_info, target_platform, budget, need_face, status) VALUES ($1, $2, $3, $4, $5, 'submitted') RETURNING id",
+      [clientId, product_info != null ? String(product_info) : null, target_platform != null ? String(target_platform) : null, budget != null ? String(budget) : null, need_face ? 1 : 0]
     );
-  res.status(201).json({ id: result.lastInsertRowid });
+    res.status(201).json({ id: created.rows[0]!.id });
+  })().catch((e) => {
+    console.error("client requests create error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 /**
@@ -45,20 +46,23 @@ router.post("/requests", (req: AuthRequest, res: Response) => {
  */
 router.get("/orders", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
-  const database = getDb();
-  const rows = database
-    .prepare(
+  (async () => {
+    const { rows } = await query(
       `
     SELECT o.id, o.request_id, o.status, o.note, o.created_at, o.updated_at,
            r.product_info, r.target_platform
     FROM sample_orders o
     LEFT JOIN client_requests r ON o.request_id = r.id
-    WHERE o.client_id = ?
+    WHERE o.client_id = $1
     ORDER BY o.id DESC
-  `
-    )
-    .all(clientId);
-  res.json({ list: rows });
+  `,
+      [clientId]
+    );
+    res.json({ list: rows });
+  })().catch((e) => {
+    console.error("client orders list error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 /**
@@ -68,18 +72,23 @@ router.get("/orders", (req: AuthRequest, res: Response) => {
 router.post("/orders", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
   const { request_id, note } = req.body ?? {};
-  const database = getDb();
-  if (request_id != null) {
-    const r = database.prepare("SELECT id FROM client_requests WHERE id = ? AND client_id = ?").get(Number(request_id), clientId);
-    if (!r) {
-      res.status(400).json({ error: "INVALID_REQUEST", message: "需求不存在或无权关联。" });
-      return;
+  (async () => {
+    if (request_id != null) {
+      const r = await query<{ id: number }>("SELECT id FROM client_requests WHERE id = $1 AND client_id = $2", [Number(request_id), clientId]);
+      if (!r.rows[0]) {
+        res.status(400).json({ error: "INVALID_REQUEST", message: "需求不存在或无权关联。" });
+        return;
+      }
     }
-  }
-  const result = database
-    .prepare("INSERT INTO sample_orders (client_id, request_id, status, note) VALUES (?, ?, 'pending', ?)")
-    .run(clientId, request_id != null ? Number(request_id) : null, note != null ? String(note) : null);
-  res.status(201).json({ id: result.lastInsertRowid });
+    const created = await query<{ id: number }>(
+      "INSERT INTO sample_orders (client_id, request_id, status, note) VALUES ($1, $2, 'pending', $3) RETURNING id",
+      [clientId, request_id != null ? Number(request_id) : null, note != null ? String(note) : null]
+    );
+    res.status(201).json({ id: created.rows[0]!.id });
+  })().catch((e) => {
+    console.error("client orders create error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 /**
@@ -94,28 +103,35 @@ router.patch("/orders/:id", (req: AuthRequest, res: Response) => {
     return;
   }
   const { status, note } = req.body ?? {};
-  const database = getDb();
-  const row = database.prepare("SELECT id FROM sample_orders WHERE id = ? AND client_id = ?").get(id, clientId);
-  if (!row) {
-    res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-    return;
-  }
-  const updates: string[] = [];
-  const params: (string | number)[] = [];
-  if (status === "pending" || status === "sent" || status === "received") {
-    updates.push("status = ?");
-    params.push(status);
-  }
-  if (note !== undefined) {
-    updates.push("note = ?");
-    params.push(String(note));
-  }
-  if (updates.length > 0) {
-    updates.push("updated_at = datetime('now')");
-    params.push(id);
-    database.prepare(`UPDATE sample_orders SET ${updates.join(", ")} WHERE id = ?`).run(...params);
-  }
-  res.json({ ok: true });
+  (async () => {
+    const row = await query<{ id: number }>("SELECT id FROM sample_orders WHERE id = $1 AND client_id = $2", [id, clientId]);
+    if (!row.rows[0]) {
+      res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+      return;
+    }
+
+    const sets: string[] = [];
+    const params: any[] = [];
+    let idx = 1;
+    if (status === "pending" || status === "sent" || status === "received") {
+      sets.push(`status = $${idx++}`);
+      params.push(status);
+    }
+    if (note !== undefined) {
+      sets.push(`note = $${idx++}`);
+      params.push(String(note));
+    }
+    if (sets.length > 0) {
+      sets.push(`updated_at = now()`);
+      params.push(id);
+      params.push(clientId);
+      await query(`UPDATE sample_orders SET ${sets.join(", ")} WHERE id = $${idx++} AND client_id = $${idx++}`, params);
+    }
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("client orders patch error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 /**
@@ -123,9 +139,8 @@ router.patch("/orders/:id", (req: AuthRequest, res: Response) => {
  * 达人已发布作品列表（已通过审核的投稿，含作品链接、达人、任务/素材信息）。
  */
 router.get("/works", (req: AuthRequest, res: Response) => {
-  const database = getDb();
-  const rows = database
-    .prepare(
+  (async () => {
+    const { rows } = await query(
       `
     SELECT s.id, s.work_link, s.submitted_at,
            u.username AS influencer_username,
@@ -139,10 +154,13 @@ router.get("/works", (req: AuthRequest, res: Response) => {
     WHERE s.status = 'approved'
     ORDER BY s.submitted_at DESC
   `
-    )
-    .all() as Array<Record<string, unknown> & { id: number }>;
-  const list = rows.map((r) => ({ ...r, play_count: null }));
-  res.json({ list });
+    );
+    const list = (rows as Array<Record<string, unknown> & { id: number }>).map((r) => ({ ...r, play_count: null }));
+    res.json({ list });
+  })().catch((e) => {
+    console.error("client works list error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 /**
@@ -151,16 +169,22 @@ router.get("/works", (req: AuthRequest, res: Response) => {
  */
 router.get("/points", (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
-  const database = getDb();
-  const acc = database.prepare("SELECT id, balance FROM point_accounts WHERE user_id = ?").get(userId) as { id: number; balance: number } | undefined;
-  if (!acc) {
-    res.json({ balance: 0, ledger: [] });
-    return;
-  }
-  const ledger = database
-    .prepare("SELECT id, amount, type, created_at FROM point_ledger WHERE account_id = ? ORDER BY id DESC LIMIT 50")
-    .all(acc.id) as Array<{ id: number; amount: number; type: string; created_at: string }>;
-  res.json({ balance: acc.balance, ledger });
+  (async () => {
+    const accRes = await query<{ id: number; balance: number }>("SELECT id, balance FROM point_accounts WHERE user_id = $1", [userId]);
+    const acc = accRes.rows[0];
+    if (!acc) {
+      res.json({ balance: 0, ledger: [] });
+      return;
+    }
+    const ledgerRes = await query<{ id: number; amount: number; type: string; created_at: string }>(
+      "SELECT id, amount, type, created_at FROM point_ledger WHERE account_id = $1 ORDER BY id DESC LIMIT 50",
+      [acc.id]
+    );
+    res.json({ balance: acc.balance, ledger: ledgerRes.rows });
+  })().catch((e) => {
+    console.error("client points error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 /**
@@ -175,15 +199,26 @@ router.post("/recharge", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_AMOUNT", message: "请填写有效充值积分（1–1000000）。" });
     return;
   }
-  const database = getDb();
-  let acc = database.prepare("SELECT id, balance FROM point_accounts WHERE user_id = ?").get(userId) as { id: number; balance: number } | undefined;
-  if (!acc) {
-    database.prepare("INSERT INTO point_accounts (user_id, balance) VALUES (?, 0)").run(userId);
-    acc = database.prepare("SELECT id, balance FROM point_accounts WHERE user_id = ?").get(userId) as { id: number; balance: number };
-  }
-  database.prepare("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES (?, ?, 'client_recharge', NULL)").run(acc.id, num);
-  database.prepare("UPDATE point_accounts SET balance = balance + ?, updated_at = datetime('now') WHERE id = ?").run(num, acc.id);
-  res.json({ ok: true, balance: acc.balance + num });
+  (async () => {
+    const result = await withTx(async (client) => {
+      const accRes = await client.query<{ id: number; balance: number }>("SELECT id, balance FROM point_accounts WHERE user_id = $1 FOR UPDATE", [userId]);
+      let acc = accRes.rows[0];
+      if (!acc) {
+        const created = await client.query<{ id: number; balance: number }>(
+          "INSERT INTO point_accounts (user_id, balance) VALUES ($1, 0) RETURNING id, balance",
+          [userId]
+        );
+        acc = created.rows[0]!;
+      }
+      await client.query("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES ($1, $2, 'client_recharge', NULL)", [acc.id, num]);
+      const updated = await client.query<{ balance: number }>("UPDATE point_accounts SET balance = balance + $1, updated_at = now() WHERE id = $2 RETURNING balance", [num, acc.id]);
+      return updated.rows[0]!.balance;
+    });
+    res.json({ ok: true, balance: result });
+  })().catch((e) => {
+    console.error("client recharge error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 export default router;

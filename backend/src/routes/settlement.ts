@@ -1,5 +1,5 @@
 import { Router, Response } from "express";
-import { getDb } from "../db";
+import { query } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
 const router = Router();
@@ -9,9 +9,9 @@ router.use(requireRole("admin"));
 /**
  * 获取锁定期天数配置。
  */
-function getLockPeriodDays(database: ReturnType<typeof getDb>): number {
-  const row = database.prepare("SELECT value FROM config WHERE key = 'lock_period_days'").get() as { value: string } | undefined;
-  return Math.min(30, Math.max(1, Number(row?.value) || 5));
+async function getLockPeriodDays(): Promise<number> {
+  const r = await query<{ value: string }>("SELECT value FROM config WHERE key = 'lock_period_days'");
+  return Math.min(30, Math.max(1, Number(r.rows[0]?.value) || 5));
 }
 
 /**
@@ -19,29 +19,31 @@ function getLockPeriodDays(database: ReturnType<typeof getDb>): number {
  * 可结算的周列表（基于已通过投稿的 reviewed_at）。
  */
 router.get("/weeks", (_req: AuthRequest, res: Response) => {
-  const database = getDb();
-  const lockDays = getLockPeriodDays(database);
-  const rows = database
-    .prepare(
+  (async () => {
+    const lockDays = await getLockPeriodDays();
+    const { rows } = await query<{ reviewed_date: string }>(
       `
-    SELECT DISTINCT date(s.reviewed_at) AS reviewed_date
+    SELECT DISTINCT (s.reviewed_at::date)::text AS reviewed_date
     FROM submissions s
     WHERE s.status = 'approved' AND s.reviewed_at IS NOT NULL
     ORDER BY reviewed_date DESC
     LIMIT 52
   `
-    )
-    .all() as Array<{ reviewed_date: string }>;
-  const weekSet = new Set<string>();
-  for (const r of rows) {
-    const d = new Date(r.reviewed_date + "T12:00:00Z");
-    const weekStart = new Date(d);
-    weekStart.setUTCDate(d.getUTCDate() - d.getUTCDay());
-    const weekStartStr = weekStart.toISOString().slice(0, 10);
-    weekSet.add(weekStartStr);
-  }
-  const weeks = Array.from(weekSet).sort().reverse();
-  res.json({ weeks, lock_period_days: lockDays });
+    );
+    const weekSet = new Set<string>();
+    for (const r of rows) {
+      const d = new Date(r.reviewed_date + "T12:00:00Z");
+      const weekStart = new Date(d);
+      weekStart.setUTCDate(d.getUTCDate() - d.getUTCDay());
+      const weekStartStr = weekStart.toISOString().slice(0, 10);
+      weekSet.add(weekStartStr);
+    }
+    const weeks = Array.from(weekSet).sort().reverse();
+    res.json({ weeks, lock_period_days: lockDays });
+  })().catch((e) => {
+    console.error("settlement weeks error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 /**
@@ -54,8 +56,8 @@ router.get("/summary", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_WEEK", message: "请提供 week 参数，格式 YYYY-MM-DD（周一日期）。" });
     return;
   }
-  const database = getDb();
-  const lockDays = getLockPeriodDays(database);
+  (async () => {
+  const lockDays = await getLockPeriodDays();
   const weekEnd = new Date(week + "T12:00:00Z");
   weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
   const weekEndStr = weekEnd.toISOString().slice(0, 10);
@@ -63,8 +65,7 @@ router.get("/summary", (req: AuthRequest, res: Response) => {
   lockCutoff.setUTCDate(lockCutoff.getUTCDate() + lockDays);
   const lockCutoffStr = lockCutoff.toISOString().slice(0, 10);
 
-  const rows = database
-    .prepare(
+  const rows = (await query<{ user_id: number; username: string; amount: string }>(
       `
     SELECT tc.user_id, u.username, SUM(t.point_reward) AS amount
     FROM submissions s
@@ -73,21 +74,20 @@ router.get("/summary", (req: AuthRequest, res: Response) => {
     JOIN tasks t ON tc.task_id = t.id
     WHERE s.status = 'approved'
       AND s.reviewed_at IS NOT NULL
-      AND date(s.reviewed_at) >= ? AND date(s.reviewed_at) <= ?
-      AND date(s.reviewed_at) <= ?
+      AND s.reviewed_at::date >= $1::date AND s.reviewed_at::date <= $2::date
+      AND s.reviewed_at::date <= $3::date
     GROUP BY tc.user_id
   `
-    )
-    .all(week, weekEndStr, lockCutoffStr) as Array<{ user_id: number; username: string; amount: number }>;
+    , [week, weekEndStr, lockCutoffStr])).rows;
 
-  const existing = database.prepare("SELECT id, user_id, amount, status, paid_at, note FROM settlement_records WHERE week_start = ?").all(week) as Array<{
+  const existing = (await query<{
     id: number;
     user_id: number;
     amount: number;
     status: string;
     paid_at: string | null;
     note: string | null;
-  }>;
+  }>("SELECT id, user_id, amount, status, paid_at, note FROM settlement_records WHERE week_start = $1", [week])).rows;
   const byUser = new Map(existing.map((e) => [e.user_id, e]));
 
   const list = rows.map((r) => {
@@ -96,13 +96,17 @@ router.get("/summary", (req: AuthRequest, res: Response) => {
       id: rec?.id ?? null,
       user_id: r.user_id,
       username: r.username,
-      amount: rec?.amount ?? r.amount,
+      amount: rec?.amount ?? Number(r.amount),
       status: rec?.status ?? "pending",
       paid_at: rec?.paid_at ?? null,
       note: rec?.note ?? null,
     };
   });
   res.json({ week, lock_period_days: lockDays, list });
+  })().catch((e) => {
+    console.error("settlement summary error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 /**
@@ -115,8 +119,8 @@ router.post("/generate", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_WEEK", message: "请提供 week，格式 YYYY-MM-DD。" });
     return;
   }
-  const database = getDb();
-  const lockDays = getLockPeriodDays(database);
+  (async () => {
+  const lockDays = await getLockPeriodDays();
   const weekEnd = new Date(week + "T12:00:00Z");
   weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
   const weekEndStr = weekEnd.toISOString().slice(0, 10);
@@ -124,26 +128,33 @@ router.post("/generate", (req: AuthRequest, res: Response) => {
   lockCutoff.setUTCDate(lockCutoff.getUTCDate() + lockDays);
   const lockCutoffStr = lockCutoff.toISOString().slice(0, 10);
 
-  const rows = database
-    .prepare(
+  const rows = (await query<{ user_id: number; amount: string }>(
       `
     SELECT tc.user_id, SUM(t.point_reward) AS amount
     FROM submissions s
     JOIN task_claims tc ON s.task_claim_id = tc.id
     JOIN tasks t ON tc.task_id = t.id
     WHERE s.status = 'approved' AND s.reviewed_at IS NOT NULL
-      AND date(s.reviewed_at) >= ? AND date(s.reviewed_at) <= ?
-      AND date(s.reviewed_at) <= ?
+      AND s.reviewed_at::date >= $1::date AND s.reviewed_at::date <= $2::date
+      AND s.reviewed_at::date <= $3::date
     GROUP BY tc.user_id
   `
-    )
-    .all(week, weekEndStr, lockCutoffStr) as Array<{ user_id: number; amount: number }>;
+    , [week, weekEndStr, lockCutoffStr])).rows;
 
-  const insert = database.prepare("INSERT OR IGNORE INTO settlement_records (user_id, week_start, amount, status) VALUES (?, ?, ?, 'pending')");
   for (const r of rows) {
-    if (r.amount > 0) insert.run(r.user_id, week, r.amount);
+    const amount = Number(r.amount);
+    if (amount > 0) {
+      await query(
+        "INSERT INTO settlement_records (user_id, week_start, amount, status) VALUES ($1, $2::date, $3, 'pending') ON CONFLICT (user_id, week_start) DO NOTHING",
+        [r.user_id, week, amount]
+      );
+    }
   }
   res.json({ ok: true, week, count: rows.length });
+  })().catch((e) => {
+    console.error("settlement generate error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 /**
@@ -156,24 +167,26 @@ router.get("/export", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_WEEK", message: "请提供 week 参数。" });
     return;
   }
-  const database = getDb();
-  const rows = database
-    .prepare(
+  (async () => {
+    const rows = (await query<Array<{ id: number; user_id: number; username: string; amount: number; status: string; paid_at: string | null; note: string | null; created_at: string }>>(
       `
     SELECT sr.id, sr.user_id, u.username, sr.amount, sr.status, sr.paid_at, sr.note, sr.created_at
     FROM settlement_records sr
     JOIN users u ON sr.user_id = u.id
-    WHERE sr.week_start = ?
+    WHERE sr.week_start = $1::date
     ORDER BY sr.user_id
   `
-    )
-    .all(week) as Array<{ id: number; user_id: number; username: string; amount: number; status: string; paid_at: string | null; note: string | null; created_at: string }>;
+      , [week])).rows as any;
   const header = "id,user_id,username,amount,status,paid_at,note,created_at";
-  const lines = rows.map((r) => `${r.id},${r.user_id},"${escapeCsv(r.username)}",${r.amount},${r.status},"${escapeCsv(r.paid_at || "")}","${escapeCsv(r.note || "")}",${r.created_at}`);
+  const lines = rows.map((r: { id: number; user_id: number; username: string; amount: number; status: string; paid_at: string | null; note: string | null; created_at: string }) => `${r.id},${r.user_id},"${escapeCsv(r.username)}",${r.amount},${r.status},"${escapeCsv(r.paid_at || "")}","${escapeCsv(r.note || "")}",${r.created_at}`);
   const csv = [header, ...lines].join("\n");
   res.setHeader("Content-Type", "text/csv; charset=utf-8");
   res.setHeader("Content-Disposition", `attachment; filename=settlement_${week}.csv`);
   res.send("\uFEFF" + csv);
+  })().catch((e) => {
+    console.error("settlement export error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 function escapeCsv(v: string): string {
@@ -195,16 +208,21 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_STATUS", message: "status 须为 paid 或 exception。" });
     return;
   }
-  const database = getDb();
-  const row = database.prepare("SELECT id FROM settlement_records WHERE id = ?").get(id);
-  if (!row) {
-    res.status(404).json({ error: "NOT_FOUND", message: "结算记录不存在。" });
-    return;
-  }
-  database
-    .prepare("UPDATE settlement_records SET status = ?, paid_at = CASE WHEN ? = 'paid' THEN datetime('now') ELSE paid_at END, note = COALESCE(?, note) WHERE id = ?")
-    .run(status, status, note != null ? String(note) : null, id);
-  res.json({ ok: true });
+  (async () => {
+    const row = await query<{ id: number }>("SELECT id FROM settlement_records WHERE id = $1", [id]);
+    if (!row.rows[0]) {
+      res.status(404).json({ error: "NOT_FOUND", message: "结算记录不存在。" });
+      return;
+    }
+    await query(
+      "UPDATE settlement_records SET status = $1, paid_at = CASE WHEN $1 = 'paid' THEN now() ELSE paid_at END, note = COALESCE($2, note) WHERE id = $3",
+      [status, note != null ? String(note) : null, id]
+    );
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("settlement patch error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 export default router;
