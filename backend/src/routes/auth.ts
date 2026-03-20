@@ -26,14 +26,27 @@ router.post("/login", (req, res: Response) => {
     return;
   }
   (async () => {
+    const startedAt = Date.now();
+    const dbStartedAt = Date.now();
     const user = await findUserByUsername(username);
-    if (!user || !verifyPassword(password, user.password_hash)) {
+    const dbCostMs = Date.now() - dbStartedAt;
+    if (!user) {
+      console.info(`[auth.login] username=${username} outcome=user_not_found dbMs=${dbCostMs} totalMs=${Date.now() - startedAt}`);
+      res.status(401).json({ error: "LOGIN_FAILED", message: "用户名或密码错误。" });
+      return;
+    }
+    const bcryptStartedAt = Date.now();
+    const passwordOk = await verifyPassword(password, user.password_hash);
+    const bcryptCostMs = Date.now() - bcryptStartedAt;
+    if (!passwordOk) {
+      console.info(`[auth.login] username=${username} outcome=invalid_password dbMs=${dbCostMs} bcryptMs=${bcryptCostMs} totalMs=${Date.now() - startedAt}`);
       res.status(401).json({ error: "LOGIN_FAILED", message: "用户名或密码错误。" });
       return;
     }
     const payload: JwtPayload = { userId: user.id, username: user.username, role: user.role };
     const accessToken = signAccessToken(payload);
     const refreshToken = signRefreshToken(payload);
+    console.info(`[auth.login] username=${username} outcome=ok dbMs=${dbCostMs} bcryptMs=${bcryptCostMs} totalMs=${Date.now() - startedAt}`);
     res.json({
       accessToken,
       refreshToken,
@@ -95,7 +108,7 @@ router.post("/register", (req, res: Response) => {
       res.status(409).json({ error: "USER_EXISTS", message: "用户名已存在。" });
       return;
     }
-    const password_hash = hashPassword(password);
+    const password_hash = await hashPassword(password);
     const created = await query<{ id: number }>(
       "INSERT INTO users (username, password_hash, role_id) VALUES ($1, $2, $3) RETURNING id",
       [username, password_hash, roleId]

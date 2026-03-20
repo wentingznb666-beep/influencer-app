@@ -27,15 +27,15 @@ export interface AuthRequest extends Request {
 /**
  * 使用 bcrypt 对明文密码哈希，用于注册或校验。
  */
-export function hashPassword(plain: string): string {
-  return bcrypt.hashSync(plain, 10);
+export async function hashPassword(plain: string): Promise<string> {
+  return bcrypt.hash(plain, 10);
 }
 
 /**
  * 校验明文密码与哈希是否一致。
  */
-export function verifyPassword(plain: string, hash: string): boolean {
-  return bcrypt.compareSync(plain, hash);
+export async function verifyPassword(plain: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(plain, hash);
 }
 
 /**
