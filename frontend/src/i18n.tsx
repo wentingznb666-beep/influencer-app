@@ -38,7 +38,7 @@ function persistCache(): void {
 }
 
 async function requestBatchTranslate(texts: string[], targetLang: "th"): Promise<string[]> {
-  const base = (import.meta.env.VITE_API_BASE_URL as string) || "http://localhost:3000";
+  const base = (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin;
   const res = await fetch(`${base}/api/translate/batch`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

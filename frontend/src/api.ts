@@ -20,7 +20,7 @@ export interface TtsRequestPayload {
  */
 function getApiBaseUrl(): string {
   const baseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
-  return baseUrl || "http://localhost:3000";
+  return baseUrl || window.location.origin;
 }
 
 /**

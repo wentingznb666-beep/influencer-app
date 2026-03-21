@@ -6,7 +6,7 @@ import { getAccessToken } from "./authApi";
 export type AdminCreatableRole = "admin" | "employee" | "influencer" | "client";
 
 function getBase(): string {
-  return (import.meta.env.VITE_API_BASE_URL as string) || "http://localhost:3000";
+  return (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin;
 }
 
 async function fetchWithAuth(path: string, options: RequestInit = {}): Promise<Response> {

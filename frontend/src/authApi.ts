@@ -18,7 +18,7 @@ const STORAGE_REFRESH = "influencer_app_refresh_token";
 const STORAGE_USER = "influencer_app_user";
 
 function getApiBaseUrl(): string {
-  return (import.meta.env.VITE_API_BASE_URL as string) || "http://localhost:3000";
+  return (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin;
 }
 
 /**
