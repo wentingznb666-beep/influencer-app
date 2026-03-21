@@ -277,6 +277,8 @@ export async function initDb(): Promise<void> {
     await runFullInit();
   } else {
     await runLightweightInit();
+    // lightweight 只校验少量核心表；缺 materials/tasks 等会导致素材管理 500。FULL_INIT_SQL 幂等，用于补齐整库结构。
+    await runFullInit();
   }
 
   // 旧库仅跑 lightweight 时不会执行 FULL_INIT_SQL 中的 ALTER，此处幂等补齐列，避免账号管理等接口 SQL 报错。
