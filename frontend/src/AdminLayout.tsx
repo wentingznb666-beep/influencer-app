@@ -1,5 +1,7 @@
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { getStoredUser, clearAuth } from "./authApi";
+import LanguageSwitch from "./LanguageSwitch";
+import { BrandLogo } from "./BrandLogo";
 
 const navStyle = { display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" as const };
 const linkStyle = { padding: "8px 12px", borderRadius: 8, textDecoration: "none", color: "#333" };
@@ -20,8 +22,14 @@ export default function AdminLayout() {
   return (
     <div style={{ minHeight: "100vh", background: "#f5f5f7" }}>
       <header style={{ background: "#fff", padding: "16px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ margin: 0, fontSize: 20 }}>达人分发 · 管理员端</h1>
-        <span style={{ color: "#666" }}>{user?.username}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <BrandLogo height={36} />
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>达人分发 · 管理员端</h1>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <LanguageSwitch />
+          <span style={{ color: "#666" }}>{user?.username}</span>
+        </div>
         <button type="button" onClick={handleLogout} style={{ padding: "6px 12px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
           退出
         </button>
@@ -36,6 +44,7 @@ export default function AdminLayout() {
           <NavLink to="/admin/settlement" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>结算打款</NavLink>
           <NavLink to="/admin/withdrawals" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>提现管理</NavLink>
           <NavLink to="/admin/risk" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>防删与风控</NavLink>
+          <NavLink to="/admin/users" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>账号管理</NavLink>
         </nav>
         <Outlet />
       </main>

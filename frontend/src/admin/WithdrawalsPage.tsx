@@ -6,6 +6,9 @@ type WithdrawalRow = {
   user_id: number;
   username: string;
   amount: number;
+  bank_account_name: string | null;
+  bank_name: string | null;
+  bank_account_no: string | null;
   status: "pending" | "paid" | "rejected";
   note: string | null;
   created_at: string;
@@ -71,7 +74,7 @@ export default function WithdrawalsPage() {
   return (
     <div>
       <h2 style={{ marginTop: 0 }}>提现管理</h2>
-      <p style={{ fontSize: 14, color: "#666" }}>查看达人提现申请，待处理可标记已打款或驳回（策略 A：打款时扣减达人积分并写流水）。</p>
+      <p style={{ fontSize: 14, color: "#666" }}>查看达人提现申请订单（1 积分 = 1 泰铢），待处理可标记已打款或驳回。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
       <div style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -95,6 +98,9 @@ export default function WithdrawalsPage() {
             <tr style={{ background: "#f5f5f5" }}>
               <th style={{ padding: 10, textAlign: "left" }}>ID</th>
               <th style={{ padding: 10, textAlign: "left" }}>达人</th>
+              <th style={{ padding: 10, textAlign: "left" }}>收款姓名</th>
+              <th style={{ padding: 10, textAlign: "left" }}>银行</th>
+              <th style={{ padding: 10, textAlign: "left" }}>银行账号</th>
               <th style={{ padding: 10, textAlign: "right" }}>金额</th>
               <th style={{ padding: 10, textAlign: "left" }}>状态</th>
               <th style={{ padding: 10, textAlign: "left" }}>申请时间</th>
@@ -108,6 +114,9 @@ export default function WithdrawalsPage() {
               <tr key={r.id}>
                 <td style={{ padding: 10 }}>{r.id}</td>
                 <td style={{ padding: 10 }}>{r.username}（{r.user_id}）</td>
+                <td style={{ padding: 10 }}>{r.bank_account_name || "—"}</td>
+                <td style={{ padding: 10 }}>{r.bank_name || "—"}</td>
+                <td style={{ padding: 10 }}>{r.bank_account_no || "—"}</td>
                 <td style={{ padding: 10, textAlign: "right" }}>{r.amount}</td>
                 <td style={{ padding: 10 }}>{r.status === "paid" ? "已打款" : r.status === "rejected" ? "已驳回" : "待处理"}</td>
                 <td style={{ padding: 10 }}>{r.created_at}</td>

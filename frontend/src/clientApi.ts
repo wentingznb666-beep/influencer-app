@@ -63,9 +63,30 @@ export async function getPoints() {
   return res.json();
 }
 
-/** 充值积分（模拟） */
+/** 提交充值订单（待管理员确认入账） */
 export async function recharge(amount: number) {
   const res = await fetchWithAuth("/api/client/recharge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount }) });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "充值失败");
+  return res.json();
+}
+
+/** 达人领单：我的发单列表 */
+export async function getMarketOrders() {
+  const res = await fetchWithAuth("/api/client/market-orders");
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
+/**
+ * 创建达人领单（需满足最低积分；完成后从余额扣给达人）。
+ * @param body 任务要求文案
+ */
+export async function createMarketOrder(body: { requirements: string }) {
+  const res = await fetchWithAuth("/api/client/market-orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "创建失败");
   return res.json();
 }

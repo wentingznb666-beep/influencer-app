@@ -26,7 +26,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     params.push(lim);
     const { rows } = await query(
       `
-      SELECT w.id, w.user_id, u.username, w.amount, w.status, w.note, w.created_at, w.updated_at, w.paid_at
+      SELECT w.id, w.user_id, u.username, w.amount, w.bank_account_name, w.bank_name, w.bank_account_no, w.status, w.note, w.created_at, w.updated_at, w.paid_at
       FROM withdrawal_requests w
       JOIN users u ON w.user_id = u.id
       WHERE ${where}

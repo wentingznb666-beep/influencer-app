@@ -8,7 +8,7 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "influencer-app-ref
 const ACCESS_EXP = "15m";
 const REFRESH_EXP = "7d";
 
-export type RoleName = "admin" | "client" | "influencer";
+export type RoleName = "admin" | "employee" | "client" | "influencer";
 
 export interface JwtPayload {
   userId: number;
@@ -77,9 +77,11 @@ export function verifyRefreshToken(token: string): JwtPayload | null {
 /**
  * 从 DB 根据 username 获取用户信息（含角色名），用于登录校验。
  */
-export async function findUserByUsername(username: string): Promise<{ id: number; username: string; password_hash: string; role: RoleName } | null> {
-  const res = await query<{ id: number; username: string; password_hash: string; role: string }>(
-    "SELECT u.id, u.username, u.password_hash, r.name AS role FROM users u JOIN roles r ON u.role_id = r.id WHERE u.username = $1",
+export async function findUserByUsername(
+  username: string
+): Promise<{ id: number; username: string; password_hash: string; role: RoleName; disabled: number } | null> {
+  const res = await query<{ id: number; username: string; password_hash: string; role: string; disabled: number }>(
+    "SELECT u.id, u.username, u.password_hash, r.name AS role, u.disabled FROM users u JOIN roles r ON u.role_id = r.id WHERE u.username = $1",
     [username]
   );
   const row = res.rows[0];
@@ -112,7 +114,9 @@ export function requireRole(...allowed: RoleName[]) {
     if (!req.user) {
       return next(Object.assign(new Error("UNAUTHORIZED") as Error & { statusCode?: number }, { statusCode: 401 }));
     }
-    if (!allowed.includes(req.user.role)) {
+    const role = req.user.role;
+    const isEmployeeWithAdminPermission = role === "employee" && allowed.includes("admin");
+    if (!allowed.includes(role) && !isEmployeeWithAdminPermission) {
       return next(Object.assign(new Error("FORBIDDEN") as Error & { statusCode?: number }, { statusCode: 403 }));
     }
     next();

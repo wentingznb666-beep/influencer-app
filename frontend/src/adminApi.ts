@@ -3,6 +3,8 @@
  */
 import { getAccessToken } from "./authApi";
 
+export type AdminCreatableRole = "admin" | "employee" | "influencer" | "client";
+
 function getBase(): string {
   return (import.meta.env.VITE_API_BASE_URL as string) || "http://localhost:3000";
 }
@@ -126,6 +128,36 @@ export async function getPointsLedger(params?: { user_id?: number; limit?: numbe
   return res.json();
 }
 
+/** 充值订单列表（管理员） */
+export async function getRechargeOrders(params?: { status?: string; limit?: number }) {
+  const q = new URLSearchParams();
+  if (params?.status) q.set("status", params.status);
+  if (params?.limit != null) q.set("limit", String(params.limit));
+  const res = await fetchWithAuth(`/api/admin/points/recharge-orders?${q}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
+/** 审核充值订单（approved/rejected） */
+export async function updateRechargeOrder(id: number, body: { status: "approved" | "rejected"; note?: string }) {
+  const res = await fetchWithAuth(`/api/admin/points/recharge-orders/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  return res.json();
+}
+
+/**
+ * 管理员手动充值：仅支持达人或商家账号，提交后立即入账。
+ */
+export async function manualRecharge(body: { user_id: number; amount: number; note?: string; mode?: "add" | "deduct" }) {
+  const res = await fetchWithAuth("/api/admin/points/manual-recharge", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "充值失败");
+  return res.json();
+}
+
 /** 结算周列表 */
 export async function getSettlementWeeks() {
   const res = await fetchWithAuth("/api/admin/settlement/weeks");
@@ -213,5 +245,54 @@ export async function getWithdrawals(params?: { status?: string; limit?: number 
 export async function updateWithdrawal(id: number, body: { status: "paid" | "rejected"; note?: string }) {
   const res = await fetchWithAuth(`/api/admin/withdrawals/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  return res.json();
+}
+
+/**
+ * 获取全量账号列表（管理员/员工/达人/客户端）。
+ */
+export async function getUsers(params?: { role?: string; keyword?: string; disabled?: "0" | "1" | "" }) {
+  const q = new URLSearchParams();
+  if (params?.role) q.set("role", params.role);
+  if (params?.keyword) q.set("keyword", params.keyword);
+  if (params?.disabled !== undefined && params.disabled !== "") q.set("disabled", params.disabled);
+  const queryString = q.toString();
+  const finalRes = await fetchWithAuth(queryString ? `/api/admin/users?${queryString}` : "/api/admin/users");
+  if (!finalRes.ok) throw new Error((await finalRes.json().catch(() => ({}))).message || "请求失败");
+  return finalRes.json();
+}
+
+/**
+ * 管理员开通账号。
+ */
+export async function createUserByAdmin(body: { username: string; password: string; role: AdminCreatableRole; display_name?: string }) {
+  const res = await fetchWithAuth("/api/admin/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "创建失败");
+  return res.json();
+}
+
+/**
+ * 管理员重置指定账号密码。
+ */
+export async function resetUserPassword(id: number, newPassword: string) {
+  const res = await fetchWithAuth(`/api/admin/users/${id}/password`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ new_password: newPassword }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "重置密码失败");
+  return res.json();
+}
+
+/**
+ * 管理员启用或禁用指定账号。
+ */
+export async function updateUserStatus(id: number, disabled: boolean) {
+  const res = await fetchWithAuth(`/api/admin/users/${id}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ disabled }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "更新状态失败");
   return res.json();
 }

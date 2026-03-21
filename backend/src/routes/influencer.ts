@@ -1,10 +1,70 @@
 import { Router, Response } from "express";
-import { query } from "../db";
+import { query, withTx } from "../db";
+import { ensurePointAccountLocked } from "../pointAccounts";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
 const router = Router();
 router.use(requireAuth);
 router.use(requireRole("influencer"));
+
+/**
+ * 将 client_market_orders 完成结算：客户端扣减 reward_points，达人增加同等积分（同一事务）。
+ */
+async function settleMarketOrderComplete(params: {
+  orderId: number;
+  influencerUserId: number;
+  workLink: string;
+}): Promise<
+  | { kind: "ok" }
+  | { kind: "not_found" }
+  | { kind: "bad_state" }
+  | { kind: "insufficient"; balance: number; need: number }
+> {
+  const { orderId, influencerUserId, workLink } = params;
+  return withTx(async (client) => {
+    const ordRes = await client.query<{
+      id: number;
+      client_id: number;
+      influencer_id: number | null;
+      status: string;
+      reward_points: number;
+    }>("SELECT id, client_id, influencer_id, status, reward_points FROM client_market_orders WHERE id = $1 FOR UPDATE", [orderId]);
+    const ord = ordRes.rows[0];
+    if (!ord) return { kind: "not_found" };
+    if (ord.status !== "claimed" || ord.influencer_id !== influencerUserId) {
+      return { kind: "bad_state" };
+    }
+    const clientUid = ord.client_id;
+    const infUid = influencerUserId;
+    const reward = ord.reward_points;
+    const low = Math.min(clientUid, infUid);
+    const high = Math.max(clientUid, infUid);
+    const accLow = await ensurePointAccountLocked(client, low);
+    const accHigh = await ensurePointAccountLocked(client, high);
+    const clientAcc = clientUid === low ? accLow : accHigh;
+    const infAcc = infUid === low ? accLow : accHigh;
+    if (clientAcc.balance < reward) {
+      return { kind: "insufficient", balance: clientAcc.balance, need: reward };
+    }
+    await client.query("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES ($1, $2, 'market_order_client_pay', $3)", [
+      clientAcc.id,
+      -reward,
+      orderId,
+    ]);
+    await client.query("UPDATE point_accounts SET balance = balance - $1, updated_at = now() WHERE id = $2", [reward, clientAcc.id]);
+    await client.query("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES ($1, $2, 'market_order_influencer_reward', $3)", [
+      infAcc.id,
+      reward,
+      orderId,
+    ]);
+    await client.query("UPDATE point_accounts SET balance = balance + $1, updated_at = now() WHERE id = $2", [reward, infAcc.id]);
+    await client.query(
+      `UPDATE client_market_orders SET status = 'completed', work_link = $1, updated_at = now(), completed_at = now() WHERE id = $2`,
+      [workLink, orderId]
+    );
+    return { kind: "ok" };
+  });
+}
 
 /**
  * GET /api/influencer/tasks
@@ -302,7 +362,7 @@ router.get("/withdrawals", (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   (async () => {
     const { rows } = await query(
-      "SELECT id, amount, status, note, created_at, updated_at, paid_at FROM withdrawal_requests WHERE user_id = $1 ORDER BY id DESC LIMIT 200",
+      "SELECT id, amount, bank_account_name, bank_name, bank_account_no, status, note, created_at, updated_at, paid_at FROM withdrawal_requests WHERE user_id = $1 ORDER BY id DESC LIMIT 200",
       [userId]
     );
     res.json({ list: rows });
@@ -315,14 +375,25 @@ router.get("/withdrawals", (req: AuthRequest, res: Response) => {
 /**
  * POST /api/influencer/withdrawals
  * 发起提现申请（策略 A：申请不扣余额，打款时扣）。
- * 请求体: { amount }
+ * 请求体: { amount, bank_account_name, bank_name, bank_account_no }
  */
 router.post("/withdrawals", (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
-  const { amount } = req.body ?? {};
+  const { amount, bank_account_name, bank_name, bank_account_no } = req.body ?? {};
   const num = Number(amount);
   if (!Number.isInteger(num) || num < 1 || num > 100000000) {
     res.status(400).json({ error: "INVALID_AMOUNT", message: "请填写有效提现金额（整数且大于 0）。" });
+    return;
+  }
+  if (
+    !bank_account_name ||
+    !bank_name ||
+    !bank_account_no ||
+    typeof bank_account_name !== "string" ||
+    typeof bank_name !== "string" ||
+    typeof bank_account_no !== "string"
+  ) {
+    res.status(400).json({ error: "INVALID_BANK_INFO", message: "请完整填写收款姓名、银行名称与银行账号。" });
     return;
   }
   (async () => {
@@ -333,12 +404,122 @@ router.post("/withdrawals", (req: AuthRequest, res: Response) => {
       return;
     }
     const created = await query<{ id: number }>(
-      "INSERT INTO withdrawal_requests (user_id, amount, status) VALUES ($1, $2, 'pending') RETURNING id",
-      [userId, num]
+      "INSERT INTO withdrawal_requests (user_id, amount, bank_account_name, bank_name, bank_account_no, status) VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING id",
+      [userId, num, bank_account_name.trim(), bank_name.trim(), bank_account_no.trim()]
     );
     res.status(201).json({ id: created.rows[0]!.id });
   })().catch((e) => {
     console.error("influencer withdrawals create error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * GET /api/influencer/market-orders
+ * 达人订单大厅：仅展示待领取（open）的客户端发单。
+ */
+router.get("/market-orders", (req: AuthRequest, res: Response) => {
+  (async () => {
+    const { rows } = await query(
+      `SELECT id, requirements, reward_points, status, created_at
+       FROM client_market_orders WHERE status = 'open' ORDER BY id DESC`
+    );
+    res.json({ list: rows });
+  })().catch((e) => {
+    console.error("influencer market-orders list error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * GET /api/influencer/market-orders/my
+ * 当前达人领取或已完成的客户端发单。
+ */
+router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
+  const userId = req.user!.userId;
+  (async () => {
+    const { rows } = await query(
+      `SELECT id, requirements, reward_points, status, work_link, created_at, updated_at, completed_at
+       FROM client_market_orders WHERE influencer_id = $1 ORDER BY id DESC`,
+      [userId]
+    );
+    res.json({ list: rows });
+  })().catch((e) => {
+    console.error("influencer market-orders my error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * POST /api/influencer/market-orders/:id/claim
+ * 领取一条客户端发单（先到先得）。
+ */
+router.post("/market-orders/:id/claim", (req: AuthRequest, res: Response) => {
+  const userId = req.user!.userId;
+  const orderId = Number(req.params.id);
+  if (!Number.isInteger(orderId) || orderId < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
+    return;
+  }
+  (async () => {
+    const profileRes = await query<{ blacklisted: number }>("SELECT blacklisted FROM influencer_profiles WHERE user_id = $1", [userId]);
+    if (profileRes.rows[0]?.blacklisted === 1) {
+      res.status(403).json({ error: "BLACKLISTED", message: "您已被列入黑名单，无法领取。" });
+      return;
+    }
+    const updated = await query<{ id: number }>(
+      `UPDATE client_market_orders SET status = 'claimed', influencer_id = $1, updated_at = now()
+       WHERE id = $2 AND status = 'open' RETURNING id`,
+      [userId, orderId]
+    );
+    if (!updated.rows[0]) {
+      res.status(409).json({ error: "UNAVAILABLE", message: "订单不可领取（已被领或已结束）。" });
+      return;
+    }
+    res.json({ ok: true, id: orderId });
+  })().catch((e) => {
+    console.error("influencer market-orders claim error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * POST /api/influencer/market-orders/:id/complete
+ * 提交完成与作品链接：达人获得 reward_points 积分，同时从客户端等额扣除。
+ */
+router.post("/market-orders/:id/complete", (req: AuthRequest, res: Response) => {
+  const userId = req.user!.userId;
+  const orderId = Number(req.params.id);
+  const { work_link } = req.body ?? {};
+  const link = work_link != null ? String(work_link).trim() : "";
+  if (!Number.isInteger(orderId) || orderId < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
+    return;
+  }
+  if (!link || link.length > 2000) {
+    res.status(400).json({ error: "INVALID_LINK", message: "请填写有效作品/交付链接（1–2000 字符）。" });
+    return;
+  }
+  (async () => {
+    const result = await settleMarketOrderComplete({ orderId, influencerUserId: userId, workLink: link });
+    if (result.kind === "not_found") {
+      res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+      return;
+    }
+    if (result.kind === "bad_state") {
+      res.status(409).json({ error: "BAD_STATE", message: "订单状态不允许完成，或您不是领取人。" });
+      return;
+    }
+    if (result.kind === "insufficient") {
+      res.status(409).json({
+        error: "CLIENT_INSUFFICIENT",
+        message: `客户端积分不足，无法结算（需 ${result.need}，当前 ${result.balance}）。请联系商家充值后再试。`,
+      });
+      return;
+    }
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("influencer market-orders complete error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   });
 });

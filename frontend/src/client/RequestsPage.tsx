@@ -8,6 +8,7 @@ export default function RequestsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [submitIntentHover, setSubmitIntentHover] = useState(false);
   const [form, setForm] = useState({ product_info: "", target_platform: "", budget: "", need_face: false });
 
   const load = async () => {
@@ -48,20 +49,39 @@ export default function RequestsPage() {
   const statusText: Record<string, string> = { draft: "草稿", submitted: "已提交", processing: "处理中", done: "已完成" };
 
   return (
-    <div>
-      <h2 style={{ marginTop: 0 }}>合作意向与任务需求</h2>
+    <div
+      style={{
+        background: "#fff",
+        borderRadius: 20,
+        boxShadow: "0 12px 28px rgba(15,23,42,0.08)",
+        padding: 24,
+      }}
+    >
+      <h2 style={{ marginTop: 0, marginBottom: 10 }}>合作意向与任务需求</h2>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 20 }}>
         <button
           type="button"
           onClick={() => setShowForm(!showForm)}
-          style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+          onMouseEnter={() => setSubmitIntentHover(true)}
+          onMouseLeave={() => setSubmitIntentHover(false)}
+          style={{
+            padding: "10px 18px",
+            background: submitIntentHover ? "#1e3a8a" : "#1e40af",
+            color: "#fff",
+            border: "none",
+            borderRadius: 10,
+            cursor: "pointer",
+            transform: submitIntentHover ? "scale(1.03)" : "scale(1)",
+            transition: "transform 160ms ease, background-color 160ms ease",
+            fontWeight: 600,
+          }}
         >
           {showForm ? "取消" : "提交合作意向"}
         </button>
       </div>
       {showForm && (
-        <form onSubmit={handleSubmit} style={{ marginBottom: 24, padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <form onSubmit={handleSubmit} style={{ marginBottom: 24, padding: 16, background: "#fff", borderRadius: 12, boxShadow: "0 6px 14px rgba(15,23,42,0.06)", border: "1px solid #eef2f7" }}>
           <div style={{ marginBottom: 8 }}>
             <label>产品/需求说明</label>
             <textarea
@@ -115,7 +135,15 @@ export default function RequestsPage() {
           ))}
         </div>
       )}
-      {!loading && list.length === 0 && <p style={{ color: "#666" }}>暂无合作意向</p>}
+      {!loading && list.length === 0 && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, padding: "20px 0 8px" }}>
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="#94a3b8" strokeWidth="1.5" />
+            <path d="M7 9h10M7 12h6" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
+          <p style={{ color: "#475569", fontSize: 13, margin: 0 }}>暂无合作意向</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -56,7 +56,15 @@ export default function PointsPage() {
               {ledger.map((l) => (
                 <tr key={l.id}>
                   <td style={{ padding: 10 }}>{l.created_at}</td>
-                  <td style={{ padding: 10 }}>{l.type === "task_approval" ? "任务通过" : l.type}</td>
+                  <td style={{ padding: 10 }}>
+                    {l.type === "task_approval"
+                      ? "任务通过"
+                      : l.type === "admin_manual_recharge"
+                      ? "管理员加分"
+                      : l.type === "admin_manual_deduct"
+                      ? "管理员扣分"
+                      : l.type}
+                  </td>
                   <td style={{ padding: 10, textAlign: "right" }}>{l.amount > 0 ? "+" : ""}{l.amount}</td>
                 </tr>
               ))}

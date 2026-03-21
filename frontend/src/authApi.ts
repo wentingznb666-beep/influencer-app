@@ -3,13 +3,15 @@
  * 使用 localStorage 存储 accessToken / refreshToken，请求时自动携带。
  */
 
-export type RoleName = "admin" | "client" | "influencer";
+export type RoleName = "admin" | "employee" | "client" | "influencer";
 
 export interface AuthUser {
   userId: number;
   username: string;
   role: RoleName;
 }
+
+export type PublicRegisterRole = "client" | "influencer";
 
 const STORAGE_ACCESS = "influencer_app_access_token";
 const STORAGE_REFRESH = "influencer_app_refresh_token";
@@ -107,4 +109,17 @@ export async function fetchMe(): Promise<AuthUser> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data.message as string) || "获取用户信息失败");
   return data.user as AuthUser;
+}
+
+/**
+ * 公开注册账号，仅支持客户端或达人角色。
+ */
+export async function registerAccount(username: string, password: string, role: PublicRegisterRole): Promise<void> {
+  const res = await fetch(`${getApiBaseUrl()}/api/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username, password, role }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error((data.message as string) || "注册失败");
 }

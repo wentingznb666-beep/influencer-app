@@ -2,6 +2,8 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getStoredUser, clearAuth } from "./authApi";
 import { getPoints as getClientPoints } from "./clientApi";
+import LanguageSwitch from "./LanguageSwitch";
+import { BrandLogo } from "./BrandLogo";
 
 const navStyle = { display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" as const };
 const linkStyle = { padding: "8px 12px", borderRadius: 8, textDecoration: "none", color: "#333" };
@@ -14,6 +16,7 @@ export default function ClientLayout() {
   const navigate = useNavigate();
   const user = getStoredUser();
   const [balance, setBalance] = useState<number | null>(null);
+  const [logoutHover, setLogoutHover] = useState(false);
 
   const handleLogout = () => {
     clearAuth();
@@ -37,10 +40,14 @@ export default function ClientLayout() {
   }, []);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f5f7" }}>
-      <header style={{ background: "#fff", padding: "16px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ margin: 0, fontSize: 20 }}>达人分发 · 客户端</h1>
+    <div style={{ minHeight: "100vh", background: "#f8fafc" }}>
+      <header style={{ background: "#fff", padding: "16px 24px", boxShadow: "0 1px 2px rgba(15,23,42,0.08)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <BrandLogo height={36} />
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>达人分发 · 客户端</h1>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <LanguageSwitch />
           <span style={{ color: "#666" }}>{user?.username}</span>
           <span style={{ fontSize: 13, color: "#666" }}>
             余额：<span style={{ fontWeight: 700, color: "#111" }}>{balance == null ? "—" : balance}</span>
@@ -49,14 +56,29 @@ export default function ClientLayout() {
             刷新余额
           </button>
         </div>
-        <button type="button" onClick={handleLogout} style={{ padding: "6px 12px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+        <button
+          type="button"
+          onClick={handleLogout}
+          onMouseEnter={() => setLogoutHover(true)}
+          onMouseLeave={() => setLogoutHover(false)}
+          style={{
+            padding: "6px 12px",
+            border: "1px solid #fecaca",
+            borderRadius: 8,
+            background: logoutHover ? "#fef2f2" : "#fff",
+            color: "#dc2626",
+            cursor: "pointer",
+            transition: "background-color 160ms ease",
+          }}
+        >
           退出
         </button>
       </header>
-      <main style={{ maxWidth: 900, margin: "0 auto", padding: 24 }}>
+      <main style={{ maxWidth: 1200, margin: "0 auto", padding: 24 }}>
         <nav style={navStyle}>
           <NavLink to="/client/requests" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>合作意向</NavLink>
           <NavLink to="/client/orders" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>订单跟踪</NavLink>
+          <NavLink to="/client/market-orders" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>达人领单</NavLink>
           <NavLink to="/client/works" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>达人作品</NavLink>
           <NavLink to="/client/points" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>积分充值</NavLink>
         </nav>

@@ -1,10 +1,14 @@
 import { Router, Response } from "express";
 import { query, withTx } from "../db";
+import { ensurePointAccountLocked } from "../pointAccounts";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
 const router = Router();
 router.use(requireAuth);
 router.use(requireRole("client"));
+
+/** 达人领单类订单：完成后从客户端扣积分并给达人（与 reward_points 一致，默认 10） */
+const MARKET_ORDER_DEFAULT_REWARD = 10;
 
 /**
  * GET /api/client/requests
@@ -180,7 +184,11 @@ router.get("/points", (req: AuthRequest, res: Response) => {
       "SELECT id, amount, type, created_at FROM point_ledger WHERE account_id = $1 ORDER BY id DESC LIMIT 50",
       [acc.id]
     );
-    res.json({ balance: acc.balance, ledger: ledgerRes.rows });
+    const rechargeOrderRes = await query<{ id: number; order_no: string | null; amount: number; status: string; note: string | null; created_at: string; approved_at: string | null }>(
+      "SELECT id, order_no, amount, status, note, created_at, approved_at FROM recharge_orders WHERE user_id = $1 ORDER BY id DESC LIMIT 50",
+      [userId]
+    );
+    res.json({ balance: acc.balance, ledger: ledgerRes.rows, rechargeOrders: rechargeOrderRes.rows });
   })().catch((e) => {
     console.error("client points error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
@@ -189,7 +197,7 @@ router.get("/points", (req: AuthRequest, res: Response) => {
 
 /**
  * POST /api/client/recharge
- * 充值得积分（模拟：实际应由支付回调或管理员操作写入）。
+ * 提交充值订单，待管理员确认后再入账。
  */
 router.post("/recharge", (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
@@ -200,23 +208,88 @@ router.post("/recharge", (req: AuthRequest, res: Response) => {
     return;
   }
   (async () => {
-    const result = await withTx(async (client) => {
-      const accRes = await client.query<{ id: number; balance: number }>("SELECT id, balance FROM point_accounts WHERE user_id = $1 FOR UPDATE", [userId]);
-      let acc = accRes.rows[0];
-      if (!acc) {
-        const created = await client.query<{ id: number; balance: number }>(
-          "INSERT INTO point_accounts (user_id, balance) VALUES ($1, 0) RETURNING id, balance",
-          [userId]
-        );
-        acc = created.rows[0]!;
-      }
-      await client.query("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES ($1, $2, 'client_recharge', NULL)", [acc.id, num]);
-      const updated = await client.query<{ balance: number }>("UPDATE point_accounts SET balance = balance + $1, updated_at = now() WHERE id = $2 RETURNING balance", [num, acc.id]);
-      return updated.rows[0]!.balance;
+    const created = await withTx(async (client) => {
+      const dateRes = await client.query<{ date_key: string }>("SELECT to_char((now() AT TIME ZONE 'Asia/Shanghai'), 'YYYYMMDD') AS date_key");
+      const dateKey = dateRes.rows[0]!.date_key;
+      const seqRes = await client.query<{ last_no: number }>(
+        `
+        INSERT INTO biz_order_counters (prefix, date_key, last_no)
+        VALUES ('XT', $1, 1)
+        ON CONFLICT (prefix, date_key)
+        DO UPDATE SET last_no = biz_order_counters.last_no + 1
+        RETURNING last_no
+        `,
+        [dateKey]
+      );
+      const seqNo = seqRes.rows[0]!.last_no;
+      const orderNo = `XT${dateKey}-${seqNo}`;
+      const inserted = await client.query<{ id: number; order_no: string }>(
+        "INSERT INTO recharge_orders (order_no, user_id, amount, status) VALUES ($1, $2, $3, 'pending') RETURNING id, order_no",
+        [orderNo, userId, num]
+      );
+      return inserted.rows[0]!;
     });
-    res.json({ ok: true, balance: result });
+    res.status(201).json({ id: created.id, order_no: created.order_no, status: "pending" });
   })().catch((e) => {
     console.error("client recharge error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * GET /api/client/market-orders
+ * 当前客户发布的「达人领单」订单列表（含要求、状态、奖励积分）。
+ */
+router.get("/market-orders", (req: AuthRequest, res: Response) => {
+  const clientId = req.user!.userId;
+  (async () => {
+    const { rows } = await query(
+      `SELECT id, requirements, reward_points, status, influencer_id, work_link, created_at, updated_at, completed_at
+       FROM client_market_orders WHERE client_id = $1 ORDER BY id DESC`,
+      [clientId]
+    );
+    res.json({ list: rows });
+  })().catch((e) => {
+    console.error("client market-orders list error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * POST /api/client/market-orders
+ * 创建达人可领取的订单：需填写要求；发单时积分余额须不少于约定奖励（默认 10）。
+ */
+router.post("/market-orders", (req: AuthRequest, res: Response) => {
+  const clientId = req.user!.userId;
+  const { requirements } = req.body ?? {};
+  const reqText = requirements != null ? String(requirements).trim() : "";
+  if (!reqText || reqText.length > 8000) {
+    res.status(400).json({ error: "INVALID_REQUIREMENTS", message: "请填写任务要求（1–8000 字）。" });
+    return;
+  }
+  (async () => {
+    const result = await withTx(async (client) => {
+      const acc = await ensurePointAccountLocked(client, clientId);
+      if (acc.balance < MARKET_ORDER_DEFAULT_REWARD) {
+        return { kind: "insufficient" as const, balance: acc.balance };
+      }
+      const ins = await client.query<{ id: number }>(
+        `INSERT INTO client_market_orders (client_id, requirements, reward_points, status)
+         VALUES ($1, $2, $3, 'open') RETURNING id`,
+        [clientId, reqText, MARKET_ORDER_DEFAULT_REWARD]
+      );
+      return { kind: "ok" as const, id: ins.rows[0]!.id };
+    });
+    if (result.kind === "insufficient") {
+      res.status(409).json({
+        error: "INSUFFICIENT_POINTS",
+        message: `发单需至少 ${MARKET_ORDER_DEFAULT_REWARD} 积分（完成后将从余额中扣除并结算给达人），当前余额 ${result.balance}。`,
+      });
+      return;
+    }
+    res.status(201).json({ id: result.id, reward_points: MARKET_ORDER_DEFAULT_REWARD });
+  })().catch((e) => {
+    console.error("client market-orders create error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   });
 });

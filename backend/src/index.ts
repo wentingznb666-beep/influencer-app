@@ -2,7 +2,7 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import os from "os";
-import { translateTextWithDeepseek } from "./translate";
+import { translateBatchWithDeepseek, translateTextWithDeepseek } from "./translate";
 import { synthesizeSpeechWithAzure } from "./ttsAzure";
 import { requestId, auditLog, loginRateLimit } from "./middlewares";
 import authRoutes from "./routes/auth";
@@ -17,6 +17,7 @@ import riskControlRoutes from "./routes/riskControl";
 import influencerRoutes from "./routes/influencer";
 import clientRoutes from "./routes/client";
 import withdrawalsRoutes from "./routes/withdrawals";
+import usersRoutes from "./routes/users";
 import { initDb } from "./db";
 
 dotenv.config();
@@ -41,6 +42,7 @@ app.use("/api/admin/audit", auditRoutes);
 app.use("/api/admin/settlement", settlementRoutes);
 app.use("/api/admin/risk", riskControlRoutes);
 app.use("/api/admin/withdrawals", withdrawalsRoutes);
+app.use("/api/admin/users", usersRoutes);
 /** 达人端：任务大厅、领取、我的任务、投稿、积分 */
 app.use("/api/influencer", influencerRoutes);
 /** 客户端：合作意向、订单跟踪、达人作品、积分充值 */
@@ -51,7 +53,14 @@ app.use("/api/client", clientRoutes);
  */
 function errorHandler(err: any, _req: Request, res: Response, _next: NextFunction) {
   const statusCode = (err as { statusCode?: number }).statusCode ?? 500;
-  const message = err.message === "UNAUTHORIZED" ? "未登录或令牌无效。" : err.message === "FORBIDDEN" ? "无权限访问。" : "服务器内部错误，请稍后重试。";
+  const message =
+    err.message === "UNAUTHORIZED"
+      ? "未登录或令牌无效。"
+      : err.message === "TOKEN_INVALID_OR_EXPIRED"
+      ? "登录已过期，请重新登录。"
+      : err.message === "FORBIDDEN"
+      ? "无权限访问。"
+      : "服务器内部错误，请稍后重试。";
   if (statusCode >= 500) console.error("Unexpected error:", err);
   res.status(statusCode).json({
     error: err.message || "INTERNAL_SERVER_ERROR",
@@ -91,6 +100,35 @@ app.post("/api/translate", async (req: Request, res: Response) => {
     res.status(502).json({
       error: "TRANSLATE_FAILED",
       message: "调用 DeepSeek 翻译失败，请稍后重试。",
+    });
+  }
+});
+
+/**
+ * UI 批量翻译接口：用于前端全界面国际化（如中文 -> 泰语）。
+ */
+app.post("/api/translate/batch", async (req: Request, res: Response) => {
+  const { texts, targetLang } = req.body ?? {};
+  if (!Array.isArray(texts) || texts.some((t) => typeof t !== "string")) {
+    return res.status(400).json({
+      error: "INVALID_TEXTS",
+      message: "请求参数 texts 必须为字符串数组。",
+    });
+  }
+  if (!targetLang || typeof targetLang !== "string") {
+    return res.status(400).json({
+      error: "INVALID_TARGET_LANG",
+      message: "请求参数 targetLang 不能为空，并且必须为字符串。",
+    });
+  }
+  try {
+    const translated = await translateBatchWithDeepseek(texts, targetLang);
+    res.json({ translated });
+  } catch (error: any) {
+    console.error("Batch translate error:", error?.response?.data || error);
+    res.status(502).json({
+      error: "TRANSLATE_BATCH_FAILED",
+      message: "调用 DeepSeek 批量翻译失败，请稍后重试。",
     });
   }
 });

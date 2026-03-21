@@ -66,6 +66,51 @@ export async function getPoints() {
   return res.json();
 }
 
+/** 客户端发单大厅（待领取） */
+export async function getMarketOrders() {
+  const res = await fetchWithAuth("/api/influencer/market-orders");
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
+/** 我领取的客户端发单 */
+export async function getMyMarketOrders() {
+  const res = await fetchWithAuth("/api/influencer/market-orders/my");
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
+/**
+ * 领取客户端发单。
+ * @param orderId 订单 ID
+ */
+export async function claimMarketOrder(orderId: number) {
+  const res = await fetchWithAuth(`/api/influencer/market-orders/${orderId}/claim`, { method: "POST" });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data.message as string) || "领取失败");
+  }
+  return res.json();
+}
+
+/**
+ * 提交完成与作品链接（结算积分）。
+ * @param orderId 订单 ID
+ * @param work_link 交付链接
+ */
+export async function completeMarketOrder(orderId: number, work_link: string) {
+  const res = await fetchWithAuth(`/api/influencer/market-orders/${orderId}/complete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ work_link }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data.message as string) || "提交失败");
+  }
+  return res.json();
+}
+
 /**
  * 提现记录列表（达人本人）。
  */
@@ -78,11 +123,11 @@ export async function getWithdrawals() {
 /**
  * 发起提现申请（策略 A：申请不扣余额，打款时扣）。
  */
-export async function createWithdrawal(amount: number) {
+export async function createWithdrawal(body: { amount: number; bank_account_name: string; bank_name: string; bank_account_no: string }) {
   const res = await fetchWithAuth("/api/influencer/withdrawals", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ amount }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "提交失败");
   return res.json();

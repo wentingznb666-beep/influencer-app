@@ -64,7 +64,7 @@ export async function initDb(): Promise<void> {
       id INTEGER PRIMARY KEY,
       name TEXT NOT NULL UNIQUE
     );
-    INSERT INTO roles (id, name) VALUES (1, 'admin'), (2, 'client'), (3, 'influencer')
+    INSERT INTO roles (id, name) VALUES (1, 'admin'), (2, 'client'), (3, 'influencer'), (4, 'employee')
     ON CONFLICT (id) DO NOTHING;
 
     CREATE TABLE IF NOT EXISTS users (
@@ -75,6 +75,7 @@ export async function initDb(): Promise<void> {
       display_name TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS disabled INTEGER NOT NULL DEFAULT 0;
 
     CREATE TABLE IF NOT EXISTS point_accounts (
       id SERIAL PRIMARY KEY,
@@ -219,12 +220,55 @@ export async function initDb(): Promise<void> {
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id),
       amount INTEGER NOT NULL CHECK (amount > 0),
+      bank_account_name TEXT,
+      bank_name TEXT,
+      bank_account_no TEXT,
       status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'rejected')),
       note TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       paid_at TIMESTAMPTZ
     );
+    ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS bank_account_name TEXT;
+    ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS bank_name TEXT;
+    ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS bank_account_no TEXT;
+
+    CREATE TABLE IF NOT EXISTS recharge_orders (
+      id SERIAL PRIMARY KEY,
+      order_no TEXT,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      amount INTEGER NOT NULL CHECK (amount > 0),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+      note TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      approved_at TIMESTAMPTZ
+    );
+    ALTER TABLE recharge_orders ADD COLUMN IF NOT EXISTS order_no TEXT;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_recharge_orders_order_no ON recharge_orders(order_no) WHERE order_no IS NOT NULL;
+
+    CREATE TABLE IF NOT EXISTS biz_order_counters (
+      prefix TEXT NOT NULL,
+      date_key TEXT NOT NULL,
+      last_no INTEGER NOT NULL,
+      PRIMARY KEY (prefix, date_key)
+    );
+
+    CREATE TABLE IF NOT EXISTS client_market_orders (
+      id SERIAL PRIMARY KEY,
+      client_id INTEGER NOT NULL REFERENCES users(id),
+      requirements TEXT NOT NULL,
+      reward_points INTEGER NOT NULL DEFAULT 10 CHECK (reward_points > 0),
+      status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'claimed', 'completed', 'cancelled')),
+      influencer_id INTEGER REFERENCES users(id),
+      work_link TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      completed_at TIMESTAMPTZ
+    );
+    CREATE INDEX IF NOT EXISTS idx_client_market_orders_open ON client_market_orders (id) WHERE status = 'open';
+    CREATE INDEX IF NOT EXISTS idx_client_market_orders_client ON client_market_orders (client_id);
+    CREATE INDEX IF NOT EXISTS idx_client_market_orders_influencer ON client_market_orders (influencer_id);
   `);
 
   await seedDefaultUsers();
@@ -259,11 +303,12 @@ async function ensureUserIfMissing(username: string, password: string, roleId: n
 /**
  * 创建默认账号（Postgres 版本）：
  * - 始终确保管理员存在：admin / admin123（仅在缺失时创建，不会覆盖已有密码）
- * - 可选创建演示账号（默认开启，可用环境变量关闭），避免每次手动注册 client / influencer
+ * - 可选创建演示账号（默认开启，可用环境变量关闭），避免每次手动注册 client / influencer / employee
  */
 async function seedDefaultUsers(): Promise<void> {
-  // 1=admin, 2=client, 3=influencer（见 roles 表初始化）
+  // 1=admin, 2=client, 3=influencer, 4=employee（见 roles 表初始化）
   await ensureUserIfMissing("admin", "admin123", 1);
+  await ensureUserIfMissing("employee001", "123456", 4);
 
   const seedDemo = envBool("SEED_DEMO_USERS", true);
   if (!seedDemo) return;
