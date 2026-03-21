@@ -279,6 +279,8 @@ export async function initDb(): Promise<void> {
     await runLightweightInit();
   }
 
+  // 旧库仅跑 lightweight 时不会执行 FULL_INIT_SQL 中的 ALTER，此处幂等补齐列，避免账号管理等接口 SQL 报错。
+  await applyOnlineSchemaPatches();
 
   await seedDefaultUsers();
   console.info(`[db.init] mode=${mode} costMs=${Date.now() - initStartedAt}`);
@@ -343,6 +345,14 @@ async function runLightweightInit(): Promise<void> {
     const missing = requiredTables.filter((name) => !exists.has(name));
     throw new Error(`数据库缺少关键表：${missing.join(", ")}。请在一次部署中设置 DB_INIT_MODE=full 完成初始化。`);
   }
+}
+
+/**
+ * 线上增量补丁：在 full / lightweight 之后执行，使用 IF NOT EXISTS 保证幂等。
+ * 解决合并后代码依赖 `users.disabled` 等列，而历史库从未执行对应 ALTER 的问题。
+ */
+async function applyOnlineSchemaPatches(): Promise<void> {
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS disabled INTEGER NOT NULL DEFAULT 0`);
 }
 
 /**

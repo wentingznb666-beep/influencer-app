@@ -16,6 +16,14 @@ async function fetchWithAuth(path: string, options: RequestInit = {}): Promise<R
   return fetch(`${getBase()}${path}`, { ...options, headers });
 }
 
+/**
+ * 解析失败响应中的可读文案（兼容仅有 message 或仅有 error 字段）。
+ */
+async function readErrorMessage(res: Response, fallback: string): Promise<string> {
+  const data = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+  return (typeof data.message === "string" && data.message) || (typeof data.error === "string" && data.error) || fallback;
+}
+
 /** 素材列表 */
 export async function getMaterials(params?: { status?: string; type?: string }) {
   const q = new URLSearchParams();
@@ -258,7 +266,7 @@ export async function getUsers(params?: { role?: string; keyword?: string; disab
   if (params?.disabled !== undefined && params.disabled !== "") q.set("disabled", params.disabled);
   const queryString = q.toString();
   const finalRes = await fetchWithAuth(queryString ? `/api/admin/users?${queryString}` : "/api/admin/users");
-  if (!finalRes.ok) throw new Error((await finalRes.json().catch(() => ({}))).message || "请求失败");
+  if (!finalRes.ok) throw new Error(await readErrorMessage(finalRes, "请求失败"));
   return finalRes.json();
 }
 
