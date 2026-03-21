@@ -7,13 +7,17 @@ services:
     runtime: node
     region: singapore
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 3000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: influencer-app-db
+          property: connectionString
       - key: JWT_SECRET
         sync: false
       - key: JWT_REFRESH_SECRET
@@ -21,3 +25,7 @@ services:
       # 可选：翻译/朗读（若使用）
       - key: DEEPSEEK_API_KEY
         sync: false
+
+databases:
+  - name: influencer-app-db
+    region: singapore
