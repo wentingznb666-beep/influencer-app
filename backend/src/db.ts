@@ -423,7 +423,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
       `UPDATE client_market_orders SET title = LEFT(requirements, 200) WHERE title IS NULL OR TRIM(COALESCE(title, '')) = ''`,
     );
     await query(
-      `UPDATE client_market_orders SET order_no = 'DL-LEGACY-' || id::text WHERE order_no IS NULL`,
+      `UPDATE client_market_orders SET order_no = 'XT-LEGACY-' || id::text WHERE order_no IS NULL`,
     );
     await query(
       `CREATE UNIQUE INDEX IF NOT EXISTS idx_client_market_orders_order_no ON client_market_orders(order_no) WHERE order_no IS NOT NULL`,
