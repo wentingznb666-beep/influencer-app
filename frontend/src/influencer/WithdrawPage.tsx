@@ -127,7 +127,7 @@ export default function WithdrawPage() {
             required
             style={{ width: 160, padding: "8px 10px", boxSizing: "border-box" }}
           />
-          <button type="submit" disabled={submitting} style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: submitting ? "not-allowed" : "pointer" }}>
+          <button type="submit" disabled={submitting} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: submitting ? "not-allowed" : "pointer" }}>
             {submitting ? "提交中…" : "提交申请"}
           </button>
           <button type="button" onClick={load} disabled={loading} style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>

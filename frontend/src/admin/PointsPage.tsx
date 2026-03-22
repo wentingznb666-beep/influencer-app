@@ -144,7 +144,7 @@ export default function PointsPage() {
               type="button"
               onClick={handleManualRecharge}
               disabled={manualSubmitting}
-              style={{ padding: "6px 12px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: manualSubmitting ? "not-allowed" : "pointer" }}
+              style={{ padding: "6px 12px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: manualSubmitting ? "not-allowed" : "pointer" }}
             >
               {manualSubmitting ? "提交中…" : manualMode === "deduct" ? "确认扣分" : "确认加分"}
             </button>

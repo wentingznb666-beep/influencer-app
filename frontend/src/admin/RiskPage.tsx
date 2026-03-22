@@ -61,7 +61,7 @@ export default function RiskPage() {
             onChange={(e) => setCheckSubId(e.target.value)}
             style={{ width: 100, padding: "6px 10px" }}
           />
-          <button type="button" onClick={handleTriggerCheck} disabled={checking} style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: checking ? "not-allowed" : "pointer" }}>
+          <button type="button" onClick={handleTriggerCheck} disabled={checking} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: checking ? "not-allowed" : "pointer" }}>
             {checking ? "检查中…" : "检测链接"}
           </button>
         </div>

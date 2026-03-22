@@ -97,10 +97,10 @@ export default function SettlementPage() {
             <option key={w} value={w}>{w}</option>
           ))}
         </select>
-        <button type="button" onClick={handleGenerate} disabled={generating || !selectedWeek} style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: generating ? "not-allowed" : "pointer" }}>
+        <button type="button" onClick={handleGenerate} disabled={generating || !selectedWeek} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: generating ? "not-allowed" : "pointer" }}>
           {generating ? "生成中…" : "生成结算记录"}
         </button>
-        <button type="button" onClick={handleExport} disabled={!selectedWeek} style={{ padding: "8px 16px", border: "1px solid #007aff", color: "#007aff", borderRadius: 8, cursor: "pointer", background: "#fff" }}>
+        <button type="button" onClick={handleExport} disabled={!selectedWeek} style={{ padding: "8px 16px", border: "1px solid var(--xt-accent)", color: "var(--xt-accent)", borderRadius: 8, cursor: "pointer", background: "#fff" }}>
           导出 CSV
         </button>
       </div>

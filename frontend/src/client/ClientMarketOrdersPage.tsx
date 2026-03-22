@@ -109,7 +109,7 @@ export default function ClientMarketOrdersPage() {
         <button
           type="button"
           onClick={() => setShowForm(!showForm)}
-          style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+          style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
         >
           {showForm ? "取消" : "发布新订单"}
         </button>
@@ -135,7 +135,7 @@ export default function ClientMarketOrdersPage() {
             rows={5}
             style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
           />
-          <button type="button" onClick={handleCreate} style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+          <button type="button" onClick={handleCreate} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
             发布
           </button>
         </div>

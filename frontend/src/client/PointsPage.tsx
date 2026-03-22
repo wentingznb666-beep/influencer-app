@@ -74,7 +74,7 @@ export default function ClientPointsPage() {
               required
               style={{ display: "block", marginTop: 4, marginBottom: 12, width: 120, padding: "8px 10px", boxSizing: "border-box" }}
             />
-            <button type="submit" disabled={recharging} style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: recharging ? "not-allowed" : "pointer" }}>
+            <button type="submit" disabled={recharging} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: recharging ? "not-allowed" : "pointer" }}>
               {recharging ? "提交中…" : "提交充值订单"}
             </button>
           </form>

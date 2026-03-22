@@ -73,7 +73,7 @@ export default function TasksPage() {
             setShowForm(!showForm);
             if (!showForm && materials.length > 0 && form.material_id === 0) setForm((f) => ({ ...f, material_id: materials[0].id }));
           }}
-          style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+          style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
         >
           {showForm ? "取消" : "新建任务"}
         </button>
@@ -107,7 +107,7 @@ export default function TasksPage() {
             <label>积分奖励</label>
             <input type="number" min={1} value={form.point_reward} onChange={(e) => setForm((f) => ({ ...f, point_reward: Number(e.target.value) || 1 }))} required style={{ marginLeft: 8, padding: "6px 8px", width: 80 }} />
           </div>
-          <button type="submit" style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>保存草稿</button>
+          <button type="submit" style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>保存草稿</button>
         </form>
       )}
       {showForm && materials.length === 0 && <p style={{ color: "#666" }}>请先上架至少一条素材再创建任务</p>}

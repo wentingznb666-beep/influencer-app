@@ -73,7 +73,7 @@ export default function MaterialsPage() {
           <option value="face">露脸</option>
           <option value="explain">讲解</option>
         </select>
-        <button type="button" onClick={() => setShowForm(!showForm)} style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+        <button type="button" onClick={() => setShowForm(!showForm)} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
           {showForm ? "取消" : "新增素材"}
         </button>
       </div>
@@ -102,7 +102,7 @@ export default function MaterialsPage() {
             <label>备注</label>
             <input type="text" value={form.remark} onChange={(e) => setForm((f) => ({ ...f, remark: e.target.value }))} style={{ marginLeft: 8, width: 300, padding: "6px 8px" }} />
           </div>
-          <button type="submit" style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>保存</button>
+          <button type="submit" style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>保存</button>
         </form>
       )}
       {loading ? <p>加载中…</p> : (

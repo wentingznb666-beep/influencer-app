@@ -68,7 +68,7 @@ export default function MarketOrdersPage() {
         <button
           type="button"
           onClick={() => load(searchQ)}
-          style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+          style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
         >
           搜索
         </button>

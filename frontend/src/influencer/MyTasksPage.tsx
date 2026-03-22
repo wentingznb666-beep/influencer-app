@@ -97,7 +97,7 @@ export default function MyTasksPage() {
               style={{ marginLeft: 8, width: "100%", maxWidth: 400, padding: "8px 10px", boxSizing: "border-box" }}
             />
           </div>
-          <button type="submit" style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+          <button type="submit" style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
             提交
           </button>
           <button
@@ -141,7 +141,7 @@ export default function MyTasksPage() {
                     <button
                       type="button"
                       onClick={() => setSubmitClaimId(c.claim_id)}
-                      style={{ padding: "6px 12px", background: "#007aff", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}
+                      style={{ padding: "6px 12px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}
                     >
                       提交作品
                     </button>

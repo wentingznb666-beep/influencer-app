@@ -125,7 +125,7 @@ export default function ClientOrdersHallPage() {
           placeholder="搜索订单号、标题或要求（精准）"
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 240 }}
         />
-        <button type="button" onClick={() => load(searchOpen, undefined)} style={{ padding: "6px 14px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+        <button type="button" onClick={() => load(searchOpen, undefined)} style={{ padding: "6px 14px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
           搜索
         </button>
         <button
@@ -153,7 +153,7 @@ export default function ClientOrdersHallPage() {
                 <span style={{ color: "#166534", fontWeight: 600 }}>+{o.reward_points} 积分</span>
               </div>
               <p style={{ margin: "10px 0", fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</p>
-              <button type="button" onClick={() => handleClaim(o.id)} style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+              <button type="button" onClick={() => handleClaim(o.id)} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
                 领取
               </button>
             </div>
@@ -216,7 +216,7 @@ export default function ClientOrdersHallPage() {
                         placeholder="https://..."
                         style={{ width: "100%", maxWidth: 400, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", marginRight: 8 }}
                       />
-                      <button type="button" onClick={handleComplete} style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", marginTop: 8 }}>
+                      <button type="button" onClick={handleComplete} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", marginTop: 8 }}>
                         确认提交
                       </button>
                       <button type="button" onClick={() => { setCompleteId(null); setWorkLink(""); }} style={{ marginLeft: 8, padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer", marginTop: 8 }}>

@@ -1,0 +1,112 @@
+import { useState, type CSSProperties, type ReactNode } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { getStoredUser, clearAuth } from "./authApi";
+import LanguageSwitch from "./LanguageSwitch";
+import { BrandLogo } from "./BrandLogo";
+import { xtLayout, xtOutlineBtn } from "./brandTheme";
+
+/** 侧栏导航项：路径与文案 */
+export type DashboardNavItem = { to: string; label: string };
+
+type DashboardShellProps = {
+  /** 侧栏展示的角色名称，如「管理员端」 */
+  roleTitle: string;
+  /** 侧栏菜单项 */
+  navItems: DashboardNavItem[];
+  /** 主内容区最大宽度（像素） */
+  mainMaxWidth?: number;
+  /** 顶栏右侧额外内容（如余额、刷新） */
+  headerExtra?: ReactNode;
+  /** 退出按钮样式：描边或危险红 */
+  logoutVariant?: "outline" | "danger";
+  /** 子路由出口 */
+  children: ReactNode;
+};
+
+/**
+ * 三端通用后台壳：左侧深靛蓝侧栏 + 顶栏 + 主内容区（带呼吸间距）。
+ */
+export default function DashboardShell({
+  roleTitle,
+  navItems,
+  mainMaxWidth = 1000,
+  headerExtra,
+  logoutVariant = "outline",
+  children,
+}: DashboardShellProps) {
+  const navigate = useNavigate();
+  const user = getStoredUser();
+  const [logoutHover, setLogoutHover] = useState(false);
+
+  /**
+   * 清除登录态并回到登录页。
+   */
+  const handleLogout = () => {
+    clearAuth();
+    navigate("/login", { replace: true });
+  };
+
+  const logoutBtnStyle: CSSProperties =
+    logoutVariant === "danger"
+      ? {
+          padding: "6px 12px",
+          border: "1px solid #fecaca",
+          borderRadius: 8,
+          background: logoutHover ? "#fef2f2" : "#fff",
+          color: "#dc2626",
+          cursor: "pointer",
+          fontWeight: 500,
+          transition: "background-color 160ms ease",
+        }
+      : xtOutlineBtn;
+
+  return (
+    <div style={xtLayout.dashboardShell}>
+      <aside className="xt-sidebar" style={xtLayout.sidebar}>
+        <div className="xt-sidebar-brand">
+          <div className="xt-sidebar-logo-wrap">
+            <BrandLogo height={40} />
+          </div>
+          <div className="xt-sidebar-app">达人分发</div>
+          <div className="xt-sidebar-role">{roleTitle}</div>
+        </div>
+        <nav className="xt-sidebar-nav">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) => "xt-sidebar-link" + (isActive ? " is-active" : "")}
+            >
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+      </aside>
+      <div style={xtLayout.mainColumn}>
+        <header style={xtLayout.dashboardHeader}>
+          <div style={{ flex: 1 }} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <LanguageSwitch />
+            <span style={{ color: "var(--xt-text-muted)" }}>{user?.username}</span>
+            {headerExtra}
+            <button
+              type="button"
+              onClick={handleLogout}
+              onMouseEnter={() => setLogoutHover(true)}
+              onMouseLeave={() => setLogoutHover(false)}
+              style={logoutBtnStyle}
+            >
+              退出
+            </button>
+          </div>
+        </header>
+        <main
+          className="xt-dashboard-main"
+          style={{ ...xtLayout.mainContent, maxWidth: mainMaxWidth }}
+        >
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}

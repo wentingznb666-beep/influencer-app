@@ -67,7 +67,7 @@ export default function RequestsPage() {
           onMouseLeave={() => setSubmitIntentHover(false)}
           style={{
             padding: "10px 18px",
-            background: submitIntentHover ? "#1e3a8a" : "#1e40af",
+            background: submitIntentHover ? "var(--xt-primary-soft)" : "var(--xt-primary)",
             color: "#fff",
             border: "none",
             borderRadius: 10,
@@ -117,7 +117,7 @@ export default function RequestsPage() {
               需要露脸视频
             </label>
           </div>
-          <button type="submit" style={{ padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>提交</button>
+          <button type="submit" style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>提交</button>
         </form>
       )}
       {loading ? <p>加载中…</p> : (

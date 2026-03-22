@@ -61,7 +61,7 @@ export default function WorksPage() {
                 <p style={{ margin: "4px 0 0", fontSize: 13, color: "#666" }}>提交时间：{w.submitted_at}</p>
               </div>
               <div>
-                <a href={w.work_link} target="_blank" rel="noreferrer" style={{ padding: "8px 16px", background: "#007aff", color: "#fff", borderRadius: 8, textDecoration: "none" }}>
+                <a href={w.work_link} target="_blank" rel="noreferrer" style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", borderRadius: 8, textDecoration: "none" }}>
                   打开作品
                 </a>
               </div>

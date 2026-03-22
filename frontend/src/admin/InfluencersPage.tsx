@@ -84,7 +84,7 @@ export default function InfluencersPage() {
                 <td style={{ padding: 10 }}>{row.level}</td>
                 <td style={{ padding: 10 }}>
                   {editing === row.id ? (
-                    <button type="button" onClick={saveProfile} style={{ padding: "4px 10px", background: "#007aff", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>保存</button>
+                    <button type="button" onClick={saveProfile} style={{ padding: "4px 10px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>保存</button>
                   ) : (
                     <button type="button" onClick={() => startEdit(row)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer" }}>编辑</button>
                   )}
@@ -124,7 +124,7 @@ export default function InfluencersPage() {
             <input type="number" min={1} value={form.level} onChange={(e) => setForm((f) => ({ ...f, level: Number(e.target.value) || 1 }))} style={{ marginLeft: 8, width: 60, padding: "6px 8px" }} />
           </div>
           <button type="button" onClick={() => setEditing(null)} style={{ marginRight: 8, padding: "6px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer" }}>取消</button>
-          <button type="button" onClick={saveProfile} style={{ padding: "6px 12px", background: "#007aff", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>保存</button>
+          <button type="button" onClick={saveProfile} style={{ padding: "6px 12px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>保存</button>
         </div>
       )}
       {!loading && list.length === 0 && <p style={{ color: "#666" }}>暂无达人（需先注册角色为 influencer 的用户）</p>}

@@ -102,7 +102,7 @@ export default function TaskHallPage() {
                 </p>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <span style={{ fontWeight: 600, color: "#007aff" }}>{t.point_reward} 积分</span>
+                <span style={{ fontWeight: 600, color: "var(--xt-accent)" }}>{t.point_reward} 积分</span>
                 {t.claimed ? (
                   <span style={{ color: "#666" }}>已领取</span>
                 ) : (
@@ -112,7 +112,7 @@ export default function TaskHallPage() {
                     onClick={() => handleClaim(t.id)}
                     style={{
                       padding: "8px 16px",
-                      background: "#007aff",
+                      background: "var(--xt-accent)",
                       color: "#fff",
                       border: "none",
                       borderRadius: 8,

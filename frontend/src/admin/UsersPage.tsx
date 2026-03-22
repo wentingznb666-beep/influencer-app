@@ -189,7 +189,7 @@ export default function UsersPage() {
         <button
           type="submit"
           disabled={creating}
-          style={{ marginTop: 10, padding: "8px 16px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: creating ? "not-allowed" : "pointer" }}
+          style={{ marginTop: 10, padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: creating ? "not-allowed" : "pointer" }}
         >
           {creating ? "开通中…" : "开通账号"}
         </button>

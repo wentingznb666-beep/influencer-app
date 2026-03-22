@@ -1,17 +1,131 @@
+/**
+ * 湘泰国际 · 达人分发 — 全局品牌色（深靛蓝 / 橙色点缀 / 极淡灰蓝底）
+ */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* 主色：深靛蓝 — 专业、信任 */
+  --xt-primary: #152a45;
+  --xt-primary-soft: #1e3a5c;
+  /* 点缀：橙色 — 活力、东南亚/出海 */
+  --xt-accent: #e07020;
+  --xt-accent-hover: #ea8938;
+  /* 背景：极淡灰蓝 */
+  --xt-bg: #eef2f8;
+  --xt-surface: #ffffff;
+  --xt-text: #1e293b;
+  --xt-text-muted: #64748b;
+  --xt-border: #d8e0eb;
+  --xt-border-strong: #c5d0e0;
+  /* 导航选中：浅靛蓝底 + 底边橙色条（由内联 box-shadow 实现） */
+  --xt-nav-active-bg: rgba(21, 42, 69, 0.08);
+  /* 后台侧栏：深靛蓝底 + 激活项橙色（与第一步点缀色区分时以本变量为准） */
+  --xt-sidebar-bg: #1a237e;
+  --xt-sidebar-active: #ff9800;
+  --xt-sidebar-text: #ffffff;
+  font-family: system-ui, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  color: var(--xt-text);
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #f5f5f7;
+  background-color: var(--xt-bg);
+}
+
+/* 登录页外层：轻微顶部渐变，增强品牌层次 */
+.xt-login-shell {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #e4eaf3 0%, var(--xt-bg) 32%, var(--xt-bg) 100%);
+  padding: 24px 16px 48px;
+  box-sizing: border-box;
+}
+
+/* 登录卡片：柔和多层阴影 */
+.xt-login-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 28px;
+  background: var(--xt-surface);
+  border-radius: 16px;
+  border: 1px solid var(--xt-border);
+  box-shadow:
+    0 4px 6px rgba(26, 35, 126, 0.04),
+    0 12px 40px rgba(26, 35, 126, 0.1),
+    0 24px 64px rgba(15, 23, 42, 0.06);
+}
+
+/* 后台侧栏品牌区 */
+.xt-sidebar-brand {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.xt-sidebar-logo-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.xt-sidebar-app {
+  color: var(--xt-sidebar-text);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+}
+
+.xt-sidebar-role {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
+}
+
+.xt-sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 12px 24px;
+  overflow-y: auto;
+}
+
+/* 侧栏链接：白字；激活为橙色底 */
+.xt-sidebar-link {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--xt-sidebar-text);
+  font-weight: 500;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.xt-sidebar-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.xt-sidebar-link.is-active {
+  background: var(--xt-sidebar-active);
+  color: #fff;
+  font-weight: 600;
+}
+
+.xt-sidebar-link.is-active:hover {
+  background: #f57c00;
+}
+
+/* 主内容区内子块纵向间距 */
+.xt-dashboard-main {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
 }
