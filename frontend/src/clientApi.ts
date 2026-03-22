@@ -70,18 +70,20 @@ export async function recharge(amount: number) {
   return res.json();
 }
 
-/** 达人领单：我的发单列表 */
-export async function getMarketOrders() {
-  const res = await fetchWithAuth("/api/client/market-orders");
+/** 达人领单：我的发单列表；q 为订单号/标题/要求全文精准匹配 */
+export async function getMarketOrders(params?: { q?: string }) {
+  const q = new URLSearchParams();
+  if (params?.q) q.set("q", params.q);
+  const res = await fetchWithAuth(`/api/client/market-orders?${q}`);
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
   return res.json();
 }
 
 /**
  * 创建达人领单（需满足最低积分；完成后从余额扣给达人）。
- * @param body 任务要求文案
+ * @param body 任务要求文案与可选标题
  */
-export async function createMarketOrder(body: { requirements: string }) {
+export async function createMarketOrder(body: { requirements: string; title?: string }) {
   const res = await fetchWithAuth("/api/client/market-orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

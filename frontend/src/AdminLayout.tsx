@@ -45,6 +45,7 @@ export default function AdminLayout() {
           <NavLink to="/admin/withdrawals" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>提现管理</NavLink>
           <NavLink to="/admin/risk" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>防删与风控</NavLink>
           <NavLink to="/admin/users" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>账号管理</NavLink>
+          <NavLink to="/admin/market-orders" style={({ isActive }) => (isActive ? activeStyle : linkStyle)}>达人领单</NavLink>
         </nav>
         <Outlet />
       </main>

@@ -18,6 +18,7 @@ import influencerRoutes from "./routes/influencer";
 import clientRoutes from "./routes/client";
 import withdrawalsRoutes from "./routes/withdrawals";
 import usersRoutes from "./routes/users";
+import adminMarketOrdersRoutes from "./routes/adminMarketOrders";
 import { initDb } from "./db";
 
 dotenv.config();
@@ -43,6 +44,7 @@ app.use("/api/admin/settlement", settlementRoutes);
 app.use("/api/admin/risk", riskControlRoutes);
 app.use("/api/admin/withdrawals", withdrawalsRoutes);
 app.use("/api/admin/users", usersRoutes);
+app.use("/api/admin/market-orders", adminMarketOrdersRoutes);
 /** 达人端：任务大厅、领取、我的任务、投稿、积分 */
 app.use("/api/influencer", influencerRoutes);
 /** 客户端：合作意向、订单跟踪、达人作品、积分充值 */

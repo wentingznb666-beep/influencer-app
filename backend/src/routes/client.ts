@@ -1,6 +1,7 @@
 import { Router, Response } from "express";
 import { query, withTx } from "../db";
 import { ensurePointAccountLocked } from "../pointAccounts";
+import { allocateMarketOrderNo } from "../marketOrderNo";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
 const router = Router();
@@ -242,12 +243,17 @@ router.post("/recharge", (req: AuthRequest, res: Response) => {
  */
 router.get("/market-orders", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
+  const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
   (async () => {
-    const { rows } = await query(
-      `SELECT id, requirements, reward_points, status, influencer_id, work_link, created_at, updated_at, completed_at
-       FROM client_market_orders WHERE client_id = $1 ORDER BY id DESC`,
-      [clientId]
-    );
+    let sql = `SELECT id, order_no, title, requirements, reward_points, status, influencer_id, work_link, created_at, updated_at, completed_at
+       FROM client_market_orders WHERE client_id = $1`;
+    const params: unknown[] = [clientId];
+    if (rawQ) {
+      sql += ` AND (order_no = $2 OR title = $2 OR requirements = $2)`;
+      params.push(rawQ);
+    }
+    sql += ` ORDER BY id DESC`;
+    const { rows } = await query(sql, params);
     res.json({ list: rows });
   })().catch((e) => {
     console.error("client market-orders list error:", e);
@@ -261,11 +267,19 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
  */
 router.post("/market-orders", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
-  const { requirements } = req.body ?? {};
+  const { requirements, title } = req.body ?? {};
   const reqText = requirements != null ? String(requirements).trim() : "";
   if (!reqText || reqText.length > 8000) {
     res.status(400).json({ error: "INVALID_REQUIREMENTS", message: "请填写任务要求（1–8000 字）。" });
     return;
+  }
+  let titleText = title != null ? String(title).trim() : "";
+  if (titleText.length > 200) {
+    res.status(400).json({ error: "INVALID_TITLE", message: "订单标题最长 200 字。" });
+    return;
+  }
+  if (!titleText) {
+    titleText = reqText.length > 200 ? reqText.slice(0, 200) : reqText;
   }
   (async () => {
     const result = await withTx(async (client) => {
@@ -273,12 +287,13 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
       if (acc.balance < MARKET_ORDER_DEFAULT_REWARD) {
         return { kind: "insufficient" as const, balance: acc.balance };
       }
-      const ins = await client.query<{ id: number }>(
-        `INSERT INTO client_market_orders (client_id, requirements, reward_points, status)
-         VALUES ($1, $2, $3, 'open') RETURNING id`,
-        [clientId, reqText, MARKET_ORDER_DEFAULT_REWARD]
+      const orderNo = await allocateMarketOrderNo(client);
+      const ins = await client.query<{ id: number; order_no: string }>(
+        `INSERT INTO client_market_orders (client_id, order_no, title, requirements, reward_points, status)
+         VALUES ($1, $2, $3, $4, $5, 'open') RETURNING id, order_no`,
+        [clientId, orderNo, titleText, reqText, MARKET_ORDER_DEFAULT_REWARD]
       );
-      return { kind: "ok" as const, id: ins.rows[0]!.id };
+      return { kind: "ok" as const, id: ins.rows[0]!.id, order_no: ins.rows[0]!.order_no };
     });
     if (result.kind === "insufficient") {
       res.status(409).json({
@@ -287,7 +302,7 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
       });
       return;
     }
-    res.status(201).json({ id: result.id, reward_points: MARKET_ORDER_DEFAULT_REWARD });
+    res.status(201).json({ id: result.id, order_no: result.order_no, reward_points: MARKET_ORDER_DEFAULT_REWARD });
   })().catch((e) => {
     console.error("client market-orders create error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });

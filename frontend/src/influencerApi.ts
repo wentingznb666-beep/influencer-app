@@ -66,16 +66,20 @@ export async function getPoints() {
   return res.json();
 }
 
-/** 客户端发单大厅（待领取） */
-export async function getMarketOrders() {
-  const res = await fetchWithAuth("/api/influencer/market-orders");
+/** 客户端发单大厅（待领取）；q 为订单号/标题/要求全文精准匹配 */
+export async function getMarketOrders(params?: { q?: string }) {
+  const q = new URLSearchParams();
+  if (params?.q) q.set("q", params.q);
+  const res = await fetchWithAuth(`/api/influencer/market-orders?${q}`);
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
   return res.json();
 }
 
-/** 我领取的客户端发单 */
-export async function getMyMarketOrders() {
-  const res = await fetchWithAuth("/api/influencer/market-orders/my");
+/** 我领取的客户端发单；q 为订单号/标题/要求全文精准匹配 */
+export async function getMyMarketOrders(params?: { q?: string }) {
+  const q = new URLSearchParams();
+  if (params?.q) q.set("q", params.q);
+  const res = await fetchWithAuth(`/api/influencer/market-orders/my?${q}`);
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
   return res.json();
 }

@@ -419,11 +419,17 @@ router.post("/withdrawals", (req: AuthRequest, res: Response) => {
  * 达人订单大厅：仅展示待领取（open）的客户端发单。
  */
 router.get("/market-orders", (req: AuthRequest, res: Response) => {
+  const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
   (async () => {
-    const { rows } = await query(
-      `SELECT id, requirements, reward_points, status, created_at
-       FROM client_market_orders WHERE status = 'open' ORDER BY id DESC`
-    );
+    let sql = `SELECT id, order_no, title, requirements, reward_points, status, created_at
+       FROM client_market_orders WHERE status = 'open'`;
+    const params: unknown[] = [];
+    if (rawQ) {
+      sql += ` AND (order_no = $1 OR title = $1 OR requirements = $1)`;
+      params.push(rawQ);
+    }
+    sql += ` ORDER BY id DESC`;
+    const { rows } = await query(sql, params);
     res.json({ list: rows });
   })().catch((e) => {
     console.error("influencer market-orders list error:", e);
@@ -437,12 +443,17 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
  */
 router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
+  const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
   (async () => {
-    const { rows } = await query(
-      `SELECT id, requirements, reward_points, status, work_link, created_at, updated_at, completed_at
-       FROM client_market_orders WHERE influencer_id = $1 ORDER BY id DESC`,
-      [userId]
-    );
+    let sql = `SELECT id, order_no, title, requirements, reward_points, status, work_link, created_at, updated_at, completed_at
+       FROM client_market_orders WHERE influencer_id = $1`;
+    const params: unknown[] = [userId];
+    if (rawQ) {
+      sql += ` AND (order_no = $2 OR title = $2 OR requirements = $2)`;
+      params.push(rawQ);
+    }
+    sql += ` ORDER BY id DESC`;
+    const { rows } = await query(sql, params);
     res.json({ list: rows });
   })().catch((e) => {
     console.error("influencer market-orders my error:", e);

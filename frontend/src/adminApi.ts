@@ -257,6 +257,17 @@ export async function updateWithdrawal(id: number, body: { status: "paid" | "rej
 }
 
 /**
+ * 达人领单订单列表（全量）；q 为订单号/标题/要求全文精准匹配。
+ */
+export async function getAdminMarketOrders(params?: { q?: string }) {
+  const q = new URLSearchParams();
+  if (params?.q) q.set("q", params.q);
+  const res = await fetchWithAuth(`/api/admin/market-orders?${q}`);
+  if (!res.ok) throw new Error(await readErrorMessage(res, "请求失败"));
+  return res.json();
+}
+
+/**
  * 获取全量账号列表（管理员/员工/达人/客户端）。
  */
 export async function getUsers(params?: { role?: string; keyword?: string; disabled?: "0" | "1" | "" }) {

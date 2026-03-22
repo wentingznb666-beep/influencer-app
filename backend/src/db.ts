@@ -202,6 +202,8 @@ const FULL_INIT_SQL = `
   CREATE TABLE IF NOT EXISTS client_market_orders (
     id SERIAL PRIMARY KEY,
     client_id INTEGER NOT NULL REFERENCES users(id),
+    order_no TEXT,
+    title TEXT,
     requirements TEXT NOT NULL,
     reward_points INTEGER NOT NULL DEFAULT 10 CHECK (reward_points > 0),
     status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'claimed', 'completed', 'cancelled')),
@@ -214,6 +216,7 @@ const FULL_INIT_SQL = `
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_open ON client_market_orders (id) WHERE status = 'open';
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_client ON client_market_orders (client_id);
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_influencer ON client_market_orders (influencer_id);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_client_market_orders_order_no ON client_market_orders(order_no) WHERE order_no IS NOT NULL;
 `;
 
 /**
@@ -408,6 +411,17 @@ async function runLightweightInit(): Promise<void> {
  */
 async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS disabled INTEGER NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS order_no TEXT`);
+  await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS title TEXT`);
+  await query(
+    `UPDATE client_market_orders SET title = LEFT(requirements, 200) WHERE title IS NULL OR TRIM(COALESCE(title, '')) = ''`,
+  );
+  await query(
+    `UPDATE client_market_orders SET order_no = 'DL-LEGACY-' || id::text WHERE order_no IS NULL`,
+  );
+  await query(
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_client_market_orders_order_no ON client_market_orders(order_no) WHERE order_no IS NOT NULL`,
+  );
 }
 
 /**

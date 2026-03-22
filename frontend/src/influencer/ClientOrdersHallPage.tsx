@@ -3,6 +3,8 @@ import * as api from "../influencerApi";
 
 type OpenOrder = {
   id: number;
+  order_no: string | null;
+  title: string | null;
   requirements: string;
   reward_points: number;
   status: string;
@@ -11,6 +13,8 @@ type OpenOrder = {
 
 type MyOrder = {
   id: number;
+  order_no: string | null;
+  title: string | null;
   requirements: string;
   reward_points: number;
   status: string;
@@ -21,7 +25,7 @@ type MyOrder = {
 };
 
 /**
- * 达人端：客户端发单大厅与我的领单，支持领取与提交完成链接。
+ * 达人端：客户端发单大厅与我的领单，展示订单号/标题，支持按订单号或标题或要求精准搜索。
  */
 export default function ClientOrdersHallPage() {
   const [openList, setOpenList] = useState<OpenOrder[]>([]);
@@ -30,15 +34,22 @@ export default function ClientOrdersHallPage() {
   const [error, setError] = useState<string | null>(null);
   const [completeId, setCompleteId] = useState<number | null>(null);
   const [workLink, setWorkLink] = useState("");
+  const [searchOpen, setSearchOpen] = useState("");
+  const [searchMy, setSearchMy] = useState("");
 
   /**
    * 加载大厅与我的订单。
    */
-  const load = async () => {
+  const load = async (qOpen?: string, qMy?: string) => {
     setLoading(true);
     setError(null);
     try {
-      const [openRes, myRes] = await Promise.all([api.getMarketOrders(), api.getMyMarketOrders()]);
+      const oq = qOpen !== undefined ? qOpen : searchOpen;
+      const mq = qMy !== undefined ? qMy : searchMy;
+      const [openRes, myRes] = await Promise.all([
+        api.getMarketOrders(oq.trim() ? { q: oq.trim() } : undefined),
+        api.getMyMarketOrders(mq.trim() ? { q: mq.trim() } : undefined),
+      ]);
       setOpenList(openRes.list || []);
       setMyList(myRes.list || []);
     } catch (e) {
@@ -98,22 +109,47 @@ export default function ClientOrdersHallPage() {
     <div>
       <h2 style={{ marginTop: 0 }}>客户端发单</h2>
       <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16 }}>
-        领取商家发布的任务，完成后提交交付链接即可获得约定积分（由商家账户扣除）。
+        领取商家发布的任务，完成后提交交付链接即可获得约定积分（由商家账户扣除）。订单号与标题可用于精准搜索。
       </p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
-      <button type="button" onClick={load} style={{ marginBottom: 16, padding: "6px 12px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
-        刷新
+      <button type="button" onClick={() => load()} style={{ marginBottom: 16, padding: "6px 12px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+        刷新全部
       </button>
 
       <h3 style={{ fontSize: 16 }}>待领取</h3>
+      <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <input
+          type="text"
+          value={searchOpen}
+          onChange={(e) => setSearchOpen(e.target.value)}
+          placeholder="搜索订单号、标题或要求（精准）"
+          style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 240 }}
+        />
+        <button type="button" onClick={() => load(searchOpen, undefined)} style={{ padding: "6px 14px", background: "#007aff", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+          搜索
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setSearchOpen("");
+            load("", undefined);
+          }}
+          style={{ padding: "6px 14px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+        >
+          清空
+        </button>
+      </div>
       {loading ? (
         <p>加载中…</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 28 }}>
           {openList.map((o) => (
             <div key={o.id} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                <span style={{ fontWeight: 600 }}>#{o.id}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>订单号：{o.order_no || `#${o.id}`}</div>
+                  {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>}
+                </div>
                 <span style={{ color: "#166534", fontWeight: 600 }}>+{o.reward_points} 积分</span>
               </div>
               <p style={{ margin: "10px 0", fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</p>
@@ -127,12 +163,37 @@ export default function ClientOrdersHallPage() {
       )}
 
       <h3 style={{ fontSize: 16 }}>我的领单</h3>
+      <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <input
+          type="text"
+          value={searchMy}
+          onChange={(e) => setSearchMy(e.target.value)}
+          placeholder="搜索订单号、标题或要求（精准）"
+          style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 240 }}
+        />
+        <button type="button" onClick={() => load(undefined, searchMy)} style={{ padding: "6px 14px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+          搜索
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setSearchMy("");
+            load(undefined, "");
+          }}
+          style={{ padding: "6px 14px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+        >
+          清空
+        </button>
+      </div>
       {!loading && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {myList.map((o) => (
             <div key={o.id} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-                <span style={{ fontWeight: 600 }}>#{o.id}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>订单号：{o.order_no || `#${o.id}`}</div>
+                  {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>}
+                </div>
                 <span style={{ color: "#666" }}>{statusText[o.status] ?? o.status}</span>
               </div>
               <p style={{ margin: "10px 0", fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</p>

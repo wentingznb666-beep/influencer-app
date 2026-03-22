@@ -13,6 +13,7 @@ import SettlementPage from "./admin/SettlementPage";
 import RiskPage from "./admin/RiskPage";
 import WithdrawalsPage from "./admin/WithdrawalsPage";
 import UsersPage from "./admin/UsersPage";
+import MarketOrdersPage from "./admin/MarketOrdersPage";
 import ClientLayout from "./ClientLayout";
 import RequestsPage from "./client/RequestsPage";
 import OrdersPage from "./client/OrdersPage";
@@ -46,6 +47,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="withdrawals" element={<WithdrawalsPage />} />
             <Route path="risk" element={<RiskPage />} />
             <Route path="users" element={<UsersPage />} />
+            <Route path="market-orders" element={<MarketOrdersPage />} />
           </Route>
           <Route path="/client" element={<ProtectedRoute roles={["client"]}><ClientLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/client/requests" replace />} />
