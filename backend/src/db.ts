@@ -283,9 +283,62 @@ export async function initDb(): Promise<void> {
 
   // 旧库仅跑 lightweight 时不会执行 FULL_INIT_SQL 中的 ALTER，此处幂等补齐列，避免账号管理等接口 SQL 报错。
   await applyOnlineSchemaPatches();
-
+  await ensureOptionalTables();
   await seedDefaultUsers();
   console.info(`[db.init] mode=${mode} costMs=${Date.now() - initStartedAt}`);
+}
+
+/**
+ * 轻量初始化场景下补建后续版本增加的表，避免结算等接口因 relation does not exist 报 500。
+ */
+async function ensureOptionalTables(): Promise<void> {
+  await query(`
+    CREATE TABLE IF NOT EXISTS settlement_records (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      week_start DATE NOT NULL,
+      amount INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'exception')),
+      paid_at TIMESTAMPTZ,
+      note TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      UNIQUE(user_id, week_start)
+    )
+  `);
+  await query(`
+    CREATE TABLE IF NOT EXISTS withdrawal_requests (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      amount INTEGER NOT NULL CHECK (amount > 0),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'rejected')),
+      note TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      paid_at TIMESTAMPTZ
+    )
+  `);
+  try {
+    await query(`
+      CREATE TABLE IF NOT EXISTS submission_checks (
+        id SERIAL PRIMARY KEY,
+        submission_id INTEGER NOT NULL REFERENCES submissions(id),
+        check_result TEXT NOT NULL CHECK (check_result IN ('ok', 'deleted', 'suspicious')),
+        checked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        note TEXT
+      )
+    `);
+    await query(`
+      CREATE TABLE IF NOT EXISTS influencer_violations (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        submission_id INTEGER REFERENCES submissions(id),
+        reason TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `);
+  } catch (e) {
+    console.warn("[db.init] optional tables submission_checks / influencer_violations skipped:", e);
+  }
 }
 
 /**

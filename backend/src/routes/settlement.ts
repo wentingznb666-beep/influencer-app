@@ -15,24 +15,56 @@ async function getLockPeriodDays(): Promise<number> {
 }
 
 /**
+ * 校验 YYYY-MM-DD 是否为合法公历日（UTC），避免无效日期导致 Date 运算抛错。
+ */
+function isValidCalendarDateUtc(week: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(week);
+  if (!m) return false;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === mo - 1 && dt.getUTCDate() === d;
+}
+
+/**
+ * 根据周起始日与锁定期天数，计算该周结束日、锁定期截止日（字符串 YYYY-MM-DD，UTC）。
+ */
+function computeWeekBounds(week: string, lockDays: number): { weekEndStr: string; lockCutoffStr: string } | null {
+  if (!isValidCalendarDateUtc(week)) return null;
+  const weekEnd = new Date(`${week}T12:00:00Z`);
+  weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
+  const weekEndStr = weekEnd.toISOString().slice(0, 10);
+  const lockCutoff = new Date(`${weekEndStr}T23:59:59Z`);
+  lockCutoff.setUTCDate(lockCutoff.getUTCDate() + lockDays);
+  const lockCutoffStr = lockCutoff.toISOString().slice(0, 10);
+  if (Number.isNaN(lockCutoff.getTime())) return null;
+  return { weekEndStr, lockCutoffStr };
+}
+
+/**
  * GET /api/admin/settlement/weeks
  * 可结算的周列表（基于已通过投稿的 reviewed_at）。
  */
 router.get("/weeks", (_req: AuthRequest, res: Response) => {
   (async () => {
     const lockDays = await getLockPeriodDays();
-    const { rows } = await query<{ reviewed_date: string }>(
+    const { rows } = await query<{ reviewed_date: string | null }>(
       `
     SELECT DISTINCT (s.reviewed_at::date)::text AS reviewed_date
     FROM submissions s
-    WHERE s.status = 'approved' AND s.reviewed_at IS NOT NULL
+    WHERE s.status = 'approved'
+      AND s.reviewed_at IS NOT NULL
+      AND (s.reviewed_at::date) IS NOT NULL
     ORDER BY reviewed_date DESC
     LIMIT 52
   `
     );
     const weekSet = new Set<string>();
     for (const r of rows) {
-      const d = new Date(r.reviewed_date + "T12:00:00Z");
+      if (r.reviewed_date == null || !/^\d{4}-\d{2}-\d{2}$/.test(String(r.reviewed_date))) continue;
+      const d = new Date(`${r.reviewed_date}T12:00:00Z`);
+      if (Number.isNaN(d.getTime())) continue;
       const weekStart = new Date(d);
       weekStart.setUTCDate(d.getUTCDate() - d.getUTCDay());
       const weekStartStr = weekStart.toISOString().slice(0, 10);
@@ -58,12 +90,12 @@ router.get("/summary", (req: AuthRequest, res: Response) => {
   }
   (async () => {
   const lockDays = await getLockPeriodDays();
-  const weekEnd = new Date(week + "T12:00:00Z");
-  weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
-  const weekEndStr = weekEnd.toISOString().slice(0, 10);
-  const lockCutoff = new Date(weekEndStr + "T23:59:59Z");
-  lockCutoff.setUTCDate(lockCutoff.getUTCDate() + lockDays);
-  const lockCutoffStr = lockCutoff.toISOString().slice(0, 10);
+  const bounds = computeWeekBounds(week, lockDays);
+  if (!bounds) {
+    res.status(400).json({ error: "INVALID_WEEK", message: "week 不是合法日期。" });
+    return;
+  }
+  const { weekEndStr, lockCutoffStr } = bounds;
 
   const rows = (await query<{ user_id: number; username: string; amount: string }>(
       `
@@ -74,9 +106,10 @@ router.get("/summary", (req: AuthRequest, res: Response) => {
     JOIN tasks t ON tc.task_id = t.id
     WHERE s.status = 'approved'
       AND s.reviewed_at IS NOT NULL
+      AND (s.reviewed_at::date) IS NOT NULL
       AND s.reviewed_at::date >= $1::date AND s.reviewed_at::date <= $2::date
       AND s.reviewed_at::date <= $3::date
-    GROUP BY tc.user_id
+    GROUP BY tc.user_id, u.username
   `
     , [week, weekEndStr, lockCutoffStr])).rows;
 
@@ -121,12 +154,12 @@ router.post("/generate", (req: AuthRequest, res: Response) => {
   }
   (async () => {
   const lockDays = await getLockPeriodDays();
-  const weekEnd = new Date(week + "T12:00:00Z");
-  weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);
-  const weekEndStr = weekEnd.toISOString().slice(0, 10);
-  const lockCutoff = new Date(weekEndStr + "T23:59:59Z");
-  lockCutoff.setUTCDate(lockCutoff.getUTCDate() + lockDays);
-  const lockCutoffStr = lockCutoff.toISOString().slice(0, 10);
+  const bounds = computeWeekBounds(week, lockDays);
+  if (!bounds) {
+    res.status(400).json({ error: "INVALID_WEEK", message: "week 不是合法日期。" });
+    return;
+  }
+  const { weekEndStr, lockCutoffStr } = bounds;
 
   const rows = (await query<{ user_id: number; amount: string }>(
       `
@@ -134,7 +167,9 @@ router.post("/generate", (req: AuthRequest, res: Response) => {
     FROM submissions s
     JOIN task_claims tc ON s.task_claim_id = tc.id
     JOIN tasks t ON tc.task_id = t.id
-    WHERE s.status = 'approved' AND s.reviewed_at IS NOT NULL
+    WHERE s.status = 'approved'
+      AND s.reviewed_at IS NOT NULL
+      AND (s.reviewed_at::date) IS NOT NULL
       AND s.reviewed_at::date >= $1::date AND s.reviewed_at::date <= $2::date
       AND s.reviewed_at::date <= $3::date
     GROUP BY tc.user_id

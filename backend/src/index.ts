@@ -105,22 +105,49 @@ app.post("/api/translate", async (req: Request, res: Response) => {
 });
 
 /**
- * UI 批量翻译接口：用于前端全界面国际化（如中文 -> 泰语）。
+ * UI 批量翻译：与 frontend/src/i18n.tsx 一致，请求体 `{ texts: string[], targetLang }`，响应 `{ translated: string[] }`。
+ * 可选 `items` 为 `{ text: string }[]` 或字符串数组，与 `texts` 二选一。
  */
 app.post("/api/translate/batch", async (req: Request, res: Response) => {
-  const { texts, targetLang } = req.body ?? {};
-  if (!Array.isArray(texts) || texts.some((t) => typeof t !== "string")) {
-    return res.status(400).json({
-      error: "INVALID_TEXTS",
-      message: "请求参数 texts 必须为字符串数组。",
-    });
-  }
+  const body = req.body ?? {};
+  const targetLang = body.targetLang;
   if (!targetLang || typeof targetLang !== "string") {
     return res.status(400).json({
       error: "INVALID_TARGET_LANG",
       message: "请求参数 targetLang 不能为空，并且必须为字符串。",
     });
   }
+
+  let texts: string[] = [];
+  if (Array.isArray(body.texts) && body.texts.every((t: unknown) => typeof t === "string")) {
+    texts = body.texts as string[];
+  } else if (Array.isArray(body.items)) {
+    for (const raw of body.items) {
+      if (typeof raw === "string") texts.push(raw);
+      else if (raw && typeof raw === "object" && typeof (raw as { text?: unknown }).text === "string") {
+        texts.push((raw as { text: string }).text);
+      }
+    }
+  } else {
+    return res.status(400).json({
+      error: "INVALID_TEXTS",
+      message: "请求参数 texts 必须为字符串数组，或使用 items 数组。",
+    });
+  }
+
+  if (texts.length === 0) {
+    return res.json({ translated: [] });
+  }
+  if (texts.length > 50) {
+    return res.status(400).json({ error: "TOO_MANY_ITEMS", message: "单次最多 50 条。" });
+  }
+  if (texts.some((t) => typeof t !== "string")) {
+    return res.status(400).json({
+      error: "INVALID_TEXTS",
+      message: "texts 每项须为字符串。",
+    });
+  }
+
   try {
     const translated = await translateBatchWithDeepseek(texts, targetLang);
     res.json({ translated });
