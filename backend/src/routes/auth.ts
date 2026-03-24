@@ -125,14 +125,24 @@ router.post("/register", (req, res: Response) => {
       res.status(409).json({ error: "USER_EXISTS", message: "用户名已存在。" });
       return;
     }
+    /**
+     * 达人账号需管理员审核：注册后先置为禁用态，管理员启用后才可登录。
+     */
+    const requiresApproval = roleName === "influencer";
     const password_hash = await hashPassword(password);
     const created = await query<{ id: number }>(
-      "INSERT INTO users (username, password_hash, role_id) VALUES ($1, $2, $3) RETURNING id",
-      [username, password_hash, roleId]
+      "INSERT INTO users (username, password_hash, role_id, disabled) VALUES ($1, $2, $3, $4) RETURNING id",
+      [username, password_hash, roleId, requiresApproval ? 1 : 0]
     );
     const userId = created.rows[0]!.id;
     await query("INSERT INTO point_accounts (user_id, balance) VALUES ($1, 0) ON CONFLICT (user_id) DO NOTHING", [userId]);
-    res.status(201).json({ userId, username, role: roleName });
+    res.status(201).json({
+      userId,
+      username,
+      role: roleName,
+      requiresApproval,
+      message: requiresApproval ? "达人账号已提交，需管理员审核通过后方可登录。" : "注册成功，请登录。",
+    });
   })().catch((e) => {
     console.error("Register error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });

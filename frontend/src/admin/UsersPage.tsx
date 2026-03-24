@@ -30,6 +30,7 @@ export default function UsersPage() {
   const [keyword, setKeyword] = useState("");
   const [roleFilter, setRoleFilter] = useState<"" | UserRole>("");
   const [disabledFilter, setDisabledFilter] = useState<"" | "0" | "1">("");
+  const [onlyPendingInfluencer, setOnlyPendingInfluencer] = useState(false);
   const [resetPassword, setResetPassword] = useState("");
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
   const [form, setForm] = useState({
@@ -118,9 +119,35 @@ export default function UsersPage() {
     }
   };
 
+  /**
+   * 计算页面最终展示列表：
+   * - 默认展示后端返回结果；
+   * - 开启“待审核达人”开关后，仅显示达人且禁用态账号（即待管理员同意）。
+   */
+  const displayList = onlyPendingInfluencer
+    ? list.filter((item) => item.role === "influencer" && item.disabled === 1)
+    : list;
+  const pendingInfluencerCount = list.filter((item) => item.role === "influencer" && item.disabled === 1).length;
+
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>账号管理</h2>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+        <h2 style={{ marginTop: 0, marginBottom: 0 }}>账号管理</h2>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            padding: "2px 10px",
+            borderRadius: 999,
+            background: pendingInfluencerCount > 0 ? "rgba(255, 152, 0, 0.15)" : "var(--xt-nav-active-bg)",
+            color: pendingInfluencerCount > 0 ? "#b45309" : "var(--xt-text-muted)",
+            fontSize: 12,
+            fontWeight: 600,
+          }}
+        >
+          待审核达人：{pendingInfluencerCount}
+        </span>
+      </div>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       <div style={{ marginBottom: 12, padding: 12, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 8 }}>
         <input
@@ -148,6 +175,24 @@ export default function UsersPage() {
           onChange={(e) => setResetPassword(e.target.value)}
           style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
         />
+        <label
+          style={{
+            gridColumn: "1 / -1",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            color: "var(--xt-text)",
+            fontSize: 14,
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={onlyPendingInfluencer}
+            onChange={(e) => setOnlyPendingInfluencer(e.target.checked)}
+          />
+          仅看待审核达人（注册后待管理员同意）
+        </label>
       </div>
       <form
         onSubmit={handleCreate}
@@ -211,13 +256,15 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {list.map((item) => (
+              {displayList.map((item) => (
                 <tr key={item.id}>
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{item.id}</td>
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{item.username}</td>
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{item.display_name || "—"}</td>
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{roleTextMap[item.role] ?? item.role}</td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1", color: item.disabled ? "#c00" : "#0a7a2a" }}>{item.disabled ? "已禁用" : "启用中"}</td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1", color: item.disabled ? "#c00" : "#0a7a2a" }}>
+                    {item.role === "influencer" && item.disabled === 1 ? "待审核" : item.disabled ? "已禁用" : "启用中"}
+                  </td>
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{item.created_at}</td>
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1", whiteSpace: "nowrap" }}>
                     <button
@@ -234,11 +281,18 @@ export default function UsersPage() {
                       disabled={actionLoadingId === item.id}
                       style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
                     >
-                      {item.disabled ? "启用" : "禁用"}
+                      {item.role === "influencer" && item.disabled === 1 ? "同意注册" : item.disabled ? "启用" : "禁用"}
                     </button>
                   </td>
                 </tr>
               ))}
+              {!displayList.length && (
+                <tr>
+                  <td colSpan={7} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
+                    暂无符合条件的账号
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

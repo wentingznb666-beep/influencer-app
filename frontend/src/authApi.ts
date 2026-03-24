@@ -12,6 +12,10 @@ export interface AuthUser {
 }
 
 export type PublicRegisterRole = "client" | "influencer";
+export type RegisterAccountResult = {
+  requiresApproval: boolean;
+  message: string;
+};
 
 const STORAGE_ACCESS = "influencer_app_access_token";
 const STORAGE_REFRESH = "influencer_app_refresh_token";
@@ -114,7 +118,7 @@ export async function fetchMe(): Promise<AuthUser> {
 /**
  * 公开注册账号，仅支持客户端或达人角色。
  */
-export async function registerAccount(username: string, password: string, role: PublicRegisterRole): Promise<void> {
+export async function registerAccount(username: string, password: string, role: PublicRegisterRole): Promise<RegisterAccountResult> {
   const res = await fetch(`${getApiBaseUrl()}/api/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -122,4 +126,8 @@ export async function registerAccount(username: string, password: string, role: 
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data.message as string) || "注册失败");
+  return {
+    requiresApproval: Boolean(data.requiresApproval),
+    message: (data.message as string) || "注册成功，请登录。",
+  };
 }

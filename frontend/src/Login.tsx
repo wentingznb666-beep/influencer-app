@@ -104,8 +104,8 @@ export default function Login() {
     setRegisterSuccess(null);
     setLoadingRegister(true);
     try {
-      await registerAccount(registerUsername.trim(), registerPassword, registerRole);
-      setRegisterSuccess("注册成功，请使用新账号登录。");
+      const result = await registerAccount(registerUsername.trim(), registerPassword, registerRole);
+      setRegisterSuccess(result.message);
       setUsername(registerUsername.trim());
       setPassword(registerPassword);
       setRegisterUsername("");
