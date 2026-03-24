@@ -1,9 +1,10 @@
-import { useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { getStoredUser, clearAuth } from "./authApi";
 import LanguageSwitch from "./LanguageSwitch";
 import { BrandLogo } from "./BrandLogo";
 import { xtLayout, xtOutlineBtn } from "./brandTheme";
+import { DeferredBlock, useDeferredInCompact, useResponsive } from "./responsive";
 
 /** 侧栏导航项：路径与文案 */
 export type DashboardNavItem = { to: string; label: string };
@@ -37,6 +38,22 @@ export default function DashboardShell({
   const navigate = useNavigate();
   const user = getStoredUser();
   const [logoutHover, setLogoutHover] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isCompact } = useResponsive();
+  const headerExtrasReady = useDeferredInCompact(isCompact, 280);
+
+  useEffect(() => {
+    if (!isCompact) setSidebarOpen(false);
+  }, [isCompact]);
+
+  useEffect(() => {
+    if (!isCompact || !sidebarOpen) return;
+    const origin = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = origin;
+    };
+  }, [isCompact, sidebarOpen]);
 
   /**
    * 清除登录态并回到登录页。
@@ -44,6 +61,13 @@ export default function DashboardShell({
   const handleLogout = () => {
     clearAuth();
     navigate("/login", { replace: true });
+  };
+
+  /**
+   * 点击菜单后自动关闭小屏抽屉，避免遮挡主内容。
+   */
+  const handleNavClick = () => {
+    if (isCompact) setSidebarOpen(false);
   };
 
   const logoutBtnStyle: CSSProperties =
@@ -62,7 +86,19 @@ export default function DashboardShell({
 
   return (
     <div style={xtLayout.dashboardShell}>
-      <aside className="xt-sidebar" style={xtLayout.sidebar}>
+      {isCompact && sidebarOpen && (
+        <button
+          type="button"
+          aria-label="关闭菜单遮罩"
+          className="xt-sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+      <aside
+        className={"xt-sidebar" + (isCompact ? " is-compact" : "") + (sidebarOpen ? " is-open" : "")}
+        style={xtLayout.sidebar}
+        aria-hidden={isCompact ? !sidebarOpen : false}
+      >
         <div className="xt-sidebar-brand">
           <div className="xt-sidebar-logo-wrap">
             <BrandLogo height={40} />
@@ -76,6 +112,7 @@ export default function DashboardShell({
               key={item.to}
               to={item.to}
               className={({ isActive }) => "xt-sidebar-link" + (isActive ? " is-active" : "")}
+              onClick={handleNavClick}
             >
               {item.label}
             </NavLink>
@@ -84,11 +121,23 @@ export default function DashboardShell({
       </aside>
       <div style={xtLayout.mainColumn}>
         <header style={xtLayout.dashboardHeader}>
-          <div style={{ flex: 1 }} />
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
+            {isCompact && (
+              <button
+                type="button"
+                aria-label={sidebarOpen ? "收起导航菜单" : "展开导航菜单"}
+                aria-expanded={sidebarOpen}
+                className="xt-hamburger-btn"
+                onClick={() => setSidebarOpen((v) => !v)}
+              >
+                {sidebarOpen ? "✕" : "☰"}
+              </button>
+            )}
+          </div>
+          <div className="xt-header-actions" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <LanguageSwitch />
             <span style={{ color: "var(--xt-text-muted)" }}>{user?.username}</span>
-            {headerExtra}
+            <DeferredBlock ready={headerExtrasReady}>{headerExtra}</DeferredBlock>
             <button
               type="button"
               onClick={handleLogout}

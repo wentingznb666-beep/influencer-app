@@ -46,7 +46,7 @@ export const xtLayout = {
   /** 顶栏（白底） */
   dashboardHeader: {
     background: "var(--xt-surface)",
-    padding: "18px 28px",
+    padding: "var(--xt-header-padding)",
     boxShadow: "0 1px 0 rgba(21, 42, 69, 0.06)",
     borderBottom: "1px solid var(--xt-border)",
     display: "flex",
@@ -58,7 +58,7 @@ export const xtLayout = {
   /** 主内容区内边距（与卡片、表格留白） */
   mainContent: {
     flex: 1,
-    padding: "32px 36px",
+    padding: "var(--xt-main-padding)",
     margin: "0 auto",
     width: "100%",
     boxSizing: "border-box" as const,
