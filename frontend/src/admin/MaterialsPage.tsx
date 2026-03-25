@@ -1,7 +1,70 @@
-import { useState, useEffect, type FormEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent as ReactPointerEvent } from "react";
 import * as api from "../adminApi";
 
 type Material = { id: number; title: string; type: string; cloud_link: string; platforms: string | null; remark: string | null; status: string; created_at: string };
+type FilterOption = { value: string; label: string };
+
+type FilterDropdownProps = {
+  label: string;
+  value: string;
+  options: FilterOption[];
+  onChange: (value: string) => void;
+};
+
+/**
+ * 自定义筛选下拉：支持展开/收起高度过渡与选项 hover 背景。
+ */
+function FilterDropdown({ label, value, options, onChange }: FilterDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+
+  /**
+   * 点击外部时收起下拉面板，保证交互一致。
+   */
+  const handleDocumentPointerDown = (event: PointerEvent) => {
+    const root = wrapRef.current;
+    if (!root) return;
+    if (!root.contains(event.target as Node)) setOpen(false);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    document.addEventListener("pointerdown", handleDocumentPointerDown, { passive: true });
+    return () => document.removeEventListener("pointerdown", handleDocumentPointerDown);
+  }, [open]);
+
+  return (
+    <div className="xt-dd" ref={wrapRef}>
+      <button
+        type="button"
+        className="xt-dd-trigger"
+        aria-label={label}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className="xt-dd-current">{options.find((o) => o.value === value)?.label ?? label}</span>
+        <span className="xt-dd-caret" aria-hidden>{open ? "▲" : "▼"}</span>
+      </button>
+      <ul className={"xt-dd-panel" + (open ? " is-open" : "")} role="listbox" aria-label={label}>
+        {options.map((option) => (
+          <li
+            key={option.value || "__all__"}
+            className="xt-dd-option"
+            role="option"
+            aria-selected={value === option.value}
+            onClick={() => {
+              onChange(option.value);
+              setOpen(false);
+            }}
+          >
+            {option.label}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export default function MaterialsPage() {
   const [list, setList] = useState<Material[]>([]);
@@ -11,7 +74,23 @@ export default function MaterialsPage() {
   const [filterType, setFilterType] = useState<string>("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: "", type: "explain", cloud_link: "", platforms: "", remark: "" });
+  const [animSeed, setAnimSeed] = useState(0);
+  const [ripple, setRipple] = useState<{ rowId: number; x: number; y: number; key: number } | null>(null);
+  const rippleTimerRef = useRef<number | null>(null);
+  const statusFilterOptions: FilterOption[] = [
+    { value: "", label: "全部状态" },
+    { value: "online", label: "上架" },
+    { value: "offline", label: "下架" },
+  ];
+  const typeFilterOptions: FilterOption[] = [
+    { value: "", label: "全部类型" },
+    { value: "face", label: "露脸" },
+    { value: "explain", label: "讲解" },
+  ];
 
+  /**
+   * 按筛选条件加载素材列表。
+   */
   const load = async () => {
     setLoading(true);
     setError(null);
@@ -29,6 +108,16 @@ export default function MaterialsPage() {
     load();
   }, [filterStatus, filterType]);
 
+  /**
+   * 列表刷新后重置动画种子，用于逐项淡入动画重新触发。
+   */
+  useEffect(() => {
+    if (!loading) setAnimSeed((v) => v + 1);
+  }, [loading, list.length]);
+
+  /**
+   * 提交新增素材表单并刷新列表。
+   */
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.title.trim() || !form.cloud_link.trim()) return;
@@ -49,6 +138,9 @@ export default function MaterialsPage() {
     }
   };
 
+  /**
+   * 切换素材上/下架状态。
+   */
   const toggleStatus = async (id: number, current: string) => {
     try {
       await api.updateMaterial(id, { status: current === "online" ? "offline" : "online" });
@@ -58,80 +150,101 @@ export default function MaterialsPage() {
     }
   };
 
+  /**
+   * 行点击水波纹：按点击坐标绘制扩散动画。
+   */
+  const handleRowPointerDown = (id: number, event: ReactPointerEvent<HTMLTableRowElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    if (rippleTimerRef.current) window.clearTimeout(rippleTimerRef.current);
+    const key = Date.now();
+    setRipple({ rowId: id, x, y, key });
+    rippleTimerRef.current = window.setTimeout(() => setRipple(null), 700);
+  };
+
   return (
-    <div>
-      <h2 style={{ marginTop: 0 }}>素材管理</h2>
+    <div className="xt-mp-root">
+      <h2 className="xt-mp-title">素材管理</h2>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
-      <div style={{ marginBottom: 16, display: "flex", gap: 8, alignItems: "center" }}>
-        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ padding: "6px 10px" }}>
-          <option value="">全部状态</option>
-          <option value="online">上架</option>
-          <option value="offline">下架</option>
-        </select>
-        <select value={filterType} onChange={(e) => setFilterType(e.target.value)} style={{ padding: "6px 10px" }}>
-          <option value="">全部类型</option>
-          <option value="face">露脸</option>
-          <option value="explain">讲解</option>
-        </select>
-        <button type="button" onClick={() => setShowForm(!showForm)} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+      <div className="xt-actions-row">
+        <FilterDropdown label="全部状态" value={filterStatus} options={statusFilterOptions} onChange={setFilterStatus} />
+        <FilterDropdown label="全部类型" value={filterType} options={typeFilterOptions} onChange={setFilterType} />
+        <button type="button" onClick={() => setShowForm(!showForm)} className="xt-accent-btn">
           {showForm ? "取消" : "新增素材"}
         </button>
       </div>
-      {showForm && (
-        <form onSubmit={handleSubmit} style={{ marginBottom: 24, padding: 16, background: "#fff", borderRadius: 8 }}>
-          <div style={{ marginBottom: 8 }}>
-            <label>标题</label>
-            <input type="text" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required style={{ marginLeft: 8, width: 300, padding: "6px 8px" }} />
+      <div className={"xt-collapse" + (showForm ? " is-open" : "")}>
+        {showForm && (
+        <form onSubmit={handleSubmit} className="xt-form">
+          <div className="xt-field">
+            <label className="xt-label">标题</label>
+            <input className="xt-input" type="text" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} required />
           </div>
-          <div style={{ marginBottom: 8 }}>
-            <label>类型</label>
-            <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} style={{ marginLeft: 8, padding: "6px 8px" }}>
+          <div className="xt-field">
+            <label className="xt-label">类型</label>
+            <select className="xt-select" value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}>
               <option value="face">露脸</option>
               <option value="explain">讲解</option>
             </select>
           </div>
-          <div style={{ marginBottom: 8 }}>
-            <label>云盘链接</label>
-            <input type="url" value={form.cloud_link} onChange={(e) => setForm((f) => ({ ...f, cloud_link: e.target.value }))} required style={{ marginLeft: 8, width: 400, padding: "6px 8px" }} />
+          <div className="xt-field">
+            <label className="xt-label">云盘链接</label>
+            <input className="xt-input" type="url" value={form.cloud_link} onChange={(e) => setForm((f) => ({ ...f, cloud_link: e.target.value }))} required />
           </div>
-          <div style={{ marginBottom: 8 }}>
-            <label>适合平台</label>
-            <input type="text" value={form.platforms} onChange={(e) => setForm((f) => ({ ...f, platforms: e.target.value }))} placeholder="抖音/小红书" style={{ marginLeft: 8, width: 200, padding: "6px 8px" }} />
+          <div className="xt-field">
+            <label className="xt-label">适合平台</label>
+            <input className="xt-input" type="text" value={form.platforms} onChange={(e) => setForm((f) => ({ ...f, platforms: e.target.value }))} placeholder="抖音/小红书" />
           </div>
-          <div style={{ marginBottom: 8 }}>
-            <label>备注</label>
-            <input type="text" value={form.remark} onChange={(e) => setForm((f) => ({ ...f, remark: e.target.value }))} style={{ marginLeft: 8, width: 300, padding: "6px 8px" }} />
+          <div className="xt-field">
+            <label className="xt-label">备注</label>
+            <input className="xt-input" type="text" value={form.remark} onChange={(e) => setForm((f) => ({ ...f, remark: e.target.value }))} />
           </div>
-          <button type="submit" style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>保存</button>
+          <button type="submit" className="xt-accent-btn">保存</button>
         </form>
       )}
+      </div>
       {loading ? <p>加载中…</p> : (
-        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 8, overflow: "hidden" }}>
+        <div className="xt-card">
+        <table className="xt-table">
           <thead>
-            <tr style={{ background: "#f5f5f5" }}>
-              <th style={{ padding: 10, textAlign: "left" }}>ID</th>
-              <th style={{ padding: 10, textAlign: "left" }}>标题</th>
-              <th style={{ padding: 10, textAlign: "left" }}>类型</th>
-              <th style={{ padding: 10, textAlign: "left" }}>链接</th>
-              <th style={{ padding: 10, textAlign: "left" }}>状态</th>
-              <th style={{ padding: 10 }}>操作</th>
+            <tr>
+              <th>ID</th>
+              <th>标题</th>
+              <th>类型</th>
+              <th>链接</th>
+              <th>状态</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
-            {list.map((m) => (
-              <tr key={m.id}>
-                <td style={{ padding: 10 }}>{m.id}</td>
-                <td style={{ padding: 10 }}>{m.title}</td>
-                <td style={{ padding: 10 }}>{m.type === "face" ? "露脸" : "讲解"}</td>
-                <td style={{ padding: 10, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis" }}><a href={m.cloud_link} target="_blank" rel="noreferrer">打开</a></td>
-                <td style={{ padding: 10 }}>{m.status === "online" ? "上架" : "下架"}</td>
-                <td style={{ padding: 10 }}>
-                  <button type="button" onClick={() => toggleStatus(m.id, m.status)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer" }}>{m.status === "online" ? "下架" : "上架"}</button>
+            {list.map((m, idx) => (
+              <tr
+                key={`${animSeed}-${m.id}`}
+                className="xt-row xt-item-anim"
+                style={{ animationDelay: `${idx * 0.1}s` }}
+                onPointerDown={(event) => handleRowPointerDown(m.id, event)}
+              >
+                {ripple?.rowId === m.id && (
+                  <span
+                    key={ripple.key}
+                    className="xt-ripple"
+                    style={{ ["--rx" as any]: ripple.x, ["--ry" as any]: ripple.y } as CSSProperties}
+                  />
+                )}
+                <td>{m.id}</td>
+                <td>{m.title}</td>
+                <td>{m.type === "face" ? "露脸" : "讲解"}</td>
+                <td className="xt-link-cell"><a className="xt-open-link" href={m.cloud_link} target="_blank" rel="noreferrer">打开</a></td>
+                <td>{m.status === "online" ? "上架" : "下架"}</td>
+                <td>
+                  <button type="button" onClick={() => toggleStatus(m.id, m.status)} className="xt-inline-btn">{m.status === "online" ? "下架" : "上架"}</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       )}
       {!loading && list.length === 0 && <p style={{ color: "#666" }}>暂无素材</p>}
     </div>
