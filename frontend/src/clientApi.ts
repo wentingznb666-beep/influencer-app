@@ -83,7 +83,7 @@ export async function getMarketOrders(params?: { q?: string }) {
  * 创建达人领单（需满足最低积分；完成后从余额扣给达人）。
  * @param body 任务要求文案与可选标题
  */
-export async function createMarketOrder(body: { requirements: string; title?: string }) {
+export async function createMarketOrder(body: { requirements: string; title?: string; tier?: "A" | "B" | "C"; voice_link?: string; voice_note?: string }) {
   const res = await fetchWithAuth("/api/client/market-orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

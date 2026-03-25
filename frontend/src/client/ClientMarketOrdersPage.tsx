@@ -22,9 +22,13 @@ export default function ClientMarketOrdersPage() {
   const [list, setList] = useState<MarketOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [requirements, setRequirements] = useState("");
   const [title, setTitle] = useState("");
+  const [tier, setTier] = useState<"C" | "B" | "A">("C");
+  const [voiceLink, setVoiceLink] = useState("");
+  const [voiceNote, setVoiceNote] = useState("");
   const [searchQ, setSearchQ] = useState("");
 
   /**
@@ -48,6 +52,25 @@ export default function ClientMarketOrdersPage() {
   }, []);
 
   /**
+   * 拉取当前积分余额，用于下单前校验与展示。
+   */
+  const loadBalance = async () => {
+    try {
+      const data = await api.getPoints();
+      setBalance(typeof data?.balance === "number" ? data.balance : 0);
+    } catch {
+      setBalance(null);
+    }
+  };
+
+  useEffect(() => {
+    loadBalance();
+  }, []);
+
+  const consumePoints = tier === "A" ? 60 : tier === "B" ? 40 : 20;
+  const canAfford = balance == null ? true : balance >= consumePoints;
+
+  /**
    * 提交新订单（需账户至少有约定奖励积分）。
    */
   const handleCreate = async () => {
@@ -57,11 +80,25 @@ export default function ClientMarketOrdersPage() {
       setError("请填写任务要求。");
       return;
     }
+    if (balance != null && balance < consumePoints) {
+      setError(`积分余额不足：本次将消耗 ${consumePoints} 积分，当前余额 ${balance}。`);
+      return;
+    }
     try {
-      await api.createMarketOrder({ requirements: text, title: title.trim() || undefined });
+      await api.createMarketOrder({
+        requirements: text,
+        title: title.trim() || undefined,
+        tier,
+        voice_link: tier === "A" ? (voiceLink.trim() || undefined) : undefined,
+        voice_note: tier === "A" ? (voiceNote.trim() || undefined) : undefined,
+      });
       setShowForm(false);
       setRequirements("");
       setTitle("");
+      setTier("C");
+      setVoiceLink("");
+      setVoiceNote("");
+      loadBalance();
       load(searchQ);
     } catch (e) {
       setError(e instanceof Error ? e.message : "创建失败");
@@ -79,8 +116,8 @@ export default function ClientMarketOrdersPage() {
     <div>
       <h2 style={{ marginTop: 0 }}>达人领单</h2>
       <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16 }}>
-        填写任务要求后发布订单，系统将生成唯一订单号；达人领取并在完成后上传交付链接。完成后将从您的积分余额中扣除{" "}
-        <strong>10</strong> 积分并结算给达人（发单前需至少 10 积分）。
+        填写任务要求后发布订单，系统将生成唯一订单号；达人领取并在完成后上传交付链接。发单时将从您的积分余额中扣除{" "}
+        <strong>20/40/60</strong> 积分（按订单档位 C/B/A）。
       </p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       <div style={{ marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -135,9 +172,68 @@ export default function ClientMarketOrdersPage() {
             rows={5}
             style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
           />
-          <button type="button" onClick={handleCreate} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
-            发布
-          </button>
+          <label htmlFor="tier">订单档位（决定扣除积分）</label>
+          <select
+            id="tier"
+            value={tier}
+            onChange={(e) => setTier(e.target.value as "C" | "B" | "A")}
+            style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
+          >
+            <option value="C">C 类：消耗 20 积分（基础功能：背景音乐、文字贴纸）</option>
+            <option value="B">B 类：消耗 40 积分（含 C 类功能 + 场景切换 + 特效转场）</option>
+            <option value="A">A 类：消耗 60 积分（含 B 类功能 + 配音服务）</option>
+          </select>
+          {tier === "A" && (
+            <>
+              <label htmlFor="voiceLink">配音素材下载链接（可选）</label>
+              <input
+                id="voiceLink"
+                type="url"
+                value={voiceLink}
+                onChange={(e) => setVoiceLink(e.target.value)}
+                placeholder="https://..."
+                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+              />
+              <label htmlFor="voiceNote">配音要求备注（可选）</label>
+              <textarea
+                id="voiceNote"
+                value={voiceNote}
+                onChange={(e) => setVoiceNote(e.target.value)}
+                placeholder="如：语速/情绪/关键词/禁用词等"
+                rows={3}
+                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+              />
+            </>
+          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={handleCreate}
+              disabled={!canAfford}
+              style={{
+                padding: "8px 16px",
+                background: "var(--xt-accent)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                cursor: !canAfford ? "not-allowed" : "pointer",
+                opacity: !canAfford ? 0.6 : 1,
+              }}
+            >
+              发布
+            </button>
+            <span style={{ fontSize: 13, color: canAfford ? "#64748b" : "#c00" }}>
+              本次将消耗 <strong>{consumePoints}</strong> 积分
+              {balance != null ? `（当前余额 ${balance}）` : ""}
+            </span>
+            <button
+              type="button"
+              onClick={loadBalance}
+              style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+            >
+              刷新余额
+            </button>
+          </div>
         </div>
       )}
       {loading ? (

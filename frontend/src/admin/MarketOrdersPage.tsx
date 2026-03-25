@@ -6,7 +6,10 @@ type Row = {
   order_no: string | null;
   title: string | null;
   requirements: string;
-  reward_points: number;
+  tier: "A" | "B" | "C" | string;
+  client_pay_points: number;
+  creator_reward_points: number;
+  platform_profit_points: number;
   status: string;
   client_username: string;
   influencer_username: string | null;
@@ -95,7 +98,7 @@ export default function MarketOrdersPage() {
                   {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>}
                 </div>
                 <span style={{ color: "#666" }}>
-                  {statusText[o.status] ?? o.status} · 奖励 {o.reward_points} 分
+                  {statusText[o.status] ?? o.status} · 档位 {o.tier} · 客户支付 {o.client_pay_points} · 达人收益 {o.creator_reward_points} · 平台利润 {o.platform_profit_points}
                 </span>
               </div>
               <p style={{ margin: "10px 0 0", fontSize: 13, color: "#64748b" }}>

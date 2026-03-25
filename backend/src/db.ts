@@ -205,10 +205,25 @@ const FULL_INIT_SQL = `
     order_no TEXT,
     title TEXT,
     requirements TEXT NOT NULL,
+    /**
+     * 客户支付积分（历史字段沿用 reward_points），用于平台利润计算与后台报表。
+     */
     reward_points INTEGER NOT NULL DEFAULT 10 CHECK (reward_points > 0),
+    /** 订单档位：C/B/A（默认 C） */
+    tier TEXT NOT NULL DEFAULT 'C' CHECK (tier IN ('C', 'B', 'A')),
+    /** 达人收益：硬编码固定 5 */
+    creator_reward_points INTEGER NOT NULL DEFAULT 5 CHECK (creator_reward_points > 0),
+    /** 平台利润：客户支付 - 达人收益 */
+    platform_profit_points INTEGER NOT NULL DEFAULT 0,
+    /** 是否已从客户扣除支付积分（1=已扣，0=未扣；兼容历史订单） */
+    pay_deducted INTEGER NOT NULL DEFAULT 0 CHECK (pay_deducted IN (0, 1)),
     status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'claimed', 'completed', 'cancelled')),
     influencer_id INTEGER REFERENCES users(id),
     work_link TEXT,
+    /** A 类可选：配音素材下载链接 */
+    voice_link TEXT,
+    /** A 类可选：配音要求备注 */
+    voice_note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     completed_at TIMESTAMPTZ
@@ -419,11 +434,22 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   if (mo.rows[0]?.exists) {
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS order_no TEXT`);
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS title TEXT`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS tier TEXT NOT NULL DEFAULT 'C'`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS creator_reward_points INTEGER NOT NULL DEFAULT 5`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS platform_profit_points INTEGER NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS pay_deducted INTEGER NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS voice_link TEXT`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS voice_note TEXT`);
     await query(
       `UPDATE client_market_orders SET title = LEFT(requirements, 200) WHERE title IS NULL OR TRIM(COALESCE(title, '')) = ''`,
     );
     await query(
       `UPDATE client_market_orders SET order_no = 'XT-LEGACY-' || id::text WHERE order_no IS NULL`,
+    );
+    await query(
+      `UPDATE client_market_orders
+         SET platform_profit_points = GREATEST(reward_points - creator_reward_points, 0)
+       WHERE (platform_profit_points IS NULL OR platform_profit_points = 0) AND reward_points IS NOT NULL`,
     );
     await query(
       `CREATE UNIQUE INDEX IF NOT EXISTS idx_client_market_orders_order_no ON client_market_orders(order_no) WHERE order_no IS NOT NULL`,

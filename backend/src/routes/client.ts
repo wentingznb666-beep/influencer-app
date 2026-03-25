@@ -8,8 +8,21 @@ const router = Router();
 router.use(requireAuth);
 router.use(requireRole("client"));
 
-/** 达人领单类订单：完成后从客户端扣积分并给达人（与 reward_points 一致，默认 10） */
-const MARKET_ORDER_DEFAULT_REWARD = 10;
+/**
+ * 达人领单类订单积分规则：
+ * - 客户发单即扣积分（按档位 A/B/C：60/40/20）
+ * - 订单完成后，达人收益固定为 5（不随客户支付变化）
+ */
+const MARKET_ORDER_CREATOR_REWARD = 5;
+
+/**
+ * 将档位映射为客户支付积分。
+ */
+function resolveMarketOrderPayPoints(tier: string): { tier: "A" | "B" | "C"; payPoints: number } {
+  if (tier === "A") return { tier: "A", payPoints: 60 };
+  if (tier === "B") return { tier: "B", payPoints: 40 };
+  return { tier: "C", payPoints: 20 };
+}
 
 /**
  * GET /api/client/requests
@@ -263,11 +276,11 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
 
 /**
  * POST /api/client/market-orders
- * 创建达人可领取的订单：需填写要求；发单时积分余额须不少于约定奖励（默认 10）。
+ * 创建达人可领取的订单：发单时按档位扣积分（C=20 / B=40 / A=60）。
  */
 router.post("/market-orders", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
-  const { requirements, title } = req.body ?? {};
+  const { requirements, title, tier, voice_link, voice_note } = req.body ?? {};
   const reqText = requirements != null ? String(requirements).trim() : "";
   if (!reqText || reqText.length > 8000) {
     res.status(400).json({ error: "INVALID_REQUIREMENTS", message: "请填写任务要求（1–8000 字）。" });
@@ -284,25 +297,66 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
   (async () => {
     const result = await withTx(async (client) => {
       const acc = await ensurePointAccountLocked(client, clientId);
-      if (acc.balance < MARKET_ORDER_DEFAULT_REWARD) {
-        return { kind: "insufficient" as const, balance: acc.balance };
+      const resolved = resolveMarketOrderPayPoints(typeof tier === "string" ? tier.trim().toUpperCase() : "");
+      const payPoints = resolved.payPoints;
+      const platformProfit = Math.max(payPoints - MARKET_ORDER_CREATOR_REWARD, 0);
+      if (acc.balance < payPoints) {
+        return { kind: "insufficient" as const, balance: acc.balance, need: payPoints };
+      }
+      const voiceLink = voice_link != null ? String(voice_link).trim() : "";
+      const voiceNote = voice_note != null ? String(voice_note).trim() : "";
+      if (resolved.tier === "A") {
+        if (voiceLink.length > 2000) {
+          return { kind: "bad_voice" as const, message: "配音素材链接最长 2000 字符。" };
+        }
+        if (voiceNote.length > 2000) {
+          return { kind: "bad_voice" as const, message: "配音要求备注最长 2000 字符。" };
+        }
       }
       const orderNo = await allocateMarketOrderNo(client);
       const ins = await client.query<{ id: number; order_no: string }>(
-        `INSERT INTO client_market_orders (client_id, order_no, title, requirements, reward_points, status)
-         VALUES ($1, $2, $3, $4, $5, 'open') RETURNING id, order_no`,
-        [clientId, orderNo, titleText, reqText, MARKET_ORDER_DEFAULT_REWARD]
+        `INSERT INTO client_market_orders
+           (client_id, order_no, title, requirements, reward_points, tier, creator_reward_points, platform_profit_points, pay_deducted, voice_link, voice_note, status)
+         VALUES
+           ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9, $10, 'open')
+         RETURNING id, order_no`,
+        [
+          clientId,
+          orderNo,
+          titleText,
+          reqText,
+          payPoints,
+          resolved.tier,
+          MARKET_ORDER_CREATOR_REWARD,
+          platformProfit,
+          resolved.tier === "A" ? (voiceLink || null) : null,
+          resolved.tier === "A" ? (voiceNote || null) : null,
+        ]
       );
+      const orderId = ins.rows[0]!.id;
+      // 发单即扣积分（入账到流水），并标记 pay_deducted=1，避免完单重复扣款
+      await client.query("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES ($1, $2, 'market_order_client_pay', $3)", [
+        acc.id,
+        -payPoints,
+        orderId,
+      ]);
+      await client.query("UPDATE point_accounts SET balance = balance - $1, updated_at = now() WHERE id = $2", [payPoints, acc.id]);
+      await client.query("UPDATE client_market_orders SET pay_deducted = 1, updated_at = now() WHERE id = $1", [orderId]);
       return { kind: "ok" as const, id: ins.rows[0]!.id, order_no: ins.rows[0]!.order_no };
     });
+    if (result.kind === "bad_voice") {
+      res.status(400).json({ error: "INVALID_VOICE", message: result.message });
+      return;
+    }
     if (result.kind === "insufficient") {
       res.status(409).json({
         error: "INSUFFICIENT_POINTS",
-        message: `发单需至少 ${MARKET_ORDER_DEFAULT_REWARD} 积分（完成后将从余额中扣除并结算给达人），当前余额 ${result.balance}。`,
+        message: `发单积分不足（需 ${result.need}），当前余额 ${result.balance}。`,
       });
       return;
     }
-    res.status(201).json({ id: result.id, order_no: result.order_no, reward_points: MARKET_ORDER_DEFAULT_REWARD });
+    // 返回给客户端：显示其支付积分（reward_points 字段历史沿用）
+    res.status(201).json({ id: result.id, order_no: result.order_no });
   })().catch((e) => {
     console.error("client market-orders create error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });

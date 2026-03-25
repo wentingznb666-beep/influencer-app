@@ -14,7 +14,12 @@ router.get("/", (req: AuthRequest, res: Response) => {
   const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
   (async () => {
     let sql = `
-      SELECT mo.id, mo.order_no, mo.title, mo.requirements, mo.reward_points, mo.status,
+      SELECT mo.id, mo.order_no, mo.title, mo.requirements,
+             mo.reward_points AS client_pay_points,
+             mo.creator_reward_points AS creator_reward_points,
+             mo.platform_profit_points AS platform_profit_points,
+             mo.tier,
+             mo.status,
              mo.client_id, uc.username AS client_username,
              mo.influencer_id, ui.username AS influencer_username,
              mo.work_link, mo.created_at, mo.updated_at, mo.completed_at

@@ -8,7 +8,10 @@ router.use(requireAuth);
 router.use(requireRole("influencer"));
 
 /**
- * 将 client_market_orders 完成结算：客户端扣减 reward_points，达人增加同等积分（同一事务）。
+ * 将 client_market_orders 完成结算：
+ * - 若发单时尚未扣款（历史订单 pay_deducted=0），则先从客户端扣除客户支付积分（reward_points）
+ * - 达人收益固定为 5（creator_reward_points）
+ * - 平台利润记录为（客户支付 - 5）
  */
 async function settleMarketOrderComplete(params: {
   orderId: number;
@@ -28,7 +31,13 @@ async function settleMarketOrderComplete(params: {
       influencer_id: number | null;
       status: string;
       reward_points: number;
-    }>("SELECT id, client_id, influencer_id, status, reward_points FROM client_market_orders WHERE id = $1 FOR UPDATE", [orderId]);
+      creator_reward_points: number;
+      platform_profit_points: number;
+      pay_deducted: number;
+    }>(
+      "SELECT id, client_id, influencer_id, status, reward_points, creator_reward_points, platform_profit_points, pay_deducted FROM client_market_orders WHERE id = $1 FOR UPDATE",
+      [orderId]
+    );
     const ord = ordRes.rows[0];
     if (!ord) return { kind: "not_found" };
     if (ord.status !== "claimed" || ord.influencer_id !== influencerUserId) {
@@ -36,28 +45,35 @@ async function settleMarketOrderComplete(params: {
     }
     const clientUid = ord.client_id;
     const infUid = influencerUserId;
-    const reward = ord.reward_points;
+    const clientPay = ord.reward_points;
+    const creatorReward = Number(ord.creator_reward_points) > 0 ? Number(ord.creator_reward_points) : 5;
+    const platformProfit = Math.max(clientPay - creatorReward, 0);
     const low = Math.min(clientUid, infUid);
     const high = Math.max(clientUid, infUid);
     const accLow = await ensurePointAccountLocked(client, low);
     const accHigh = await ensurePointAccountLocked(client, high);
     const clientAcc = clientUid === low ? accLow : accHigh;
     const infAcc = infUid === low ? accLow : accHigh;
-    if (clientAcc.balance < reward) {
-      return { kind: "insufficient", balance: clientAcc.balance, need: reward };
+    // 兼容历史：若未在发单时扣款，则在完单时扣除客户支付积分
+    if (Number(ord.pay_deducted) !== 1) {
+      if (clientAcc.balance < clientPay) {
+        return { kind: "insufficient", balance: clientAcc.balance, need: clientPay };
+      }
+      await client.query("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES ($1, $2, 'market_order_client_pay', $3)", [
+        clientAcc.id,
+        -clientPay,
+        orderId,
+      ]);
+      await client.query("UPDATE point_accounts SET balance = balance - $1, updated_at = now() WHERE id = $2", [clientPay, clientAcc.id]);
+      await client.query("UPDATE client_market_orders SET pay_deducted = 1 WHERE id = $1", [orderId]);
     }
-    await client.query("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES ($1, $2, 'market_order_client_pay', $3)", [
-      clientAcc.id,
-      -reward,
-      orderId,
-    ]);
-    await client.query("UPDATE point_accounts SET balance = balance - $1, updated_at = now() WHERE id = $2", [reward, clientAcc.id]);
     await client.query("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES ($1, $2, 'market_order_influencer_reward', $3)", [
       infAcc.id,
-      reward,
+      creatorReward,
       orderId,
     ]);
-    await client.query("UPDATE point_accounts SET balance = balance + $1, updated_at = now() WHERE id = $2", [reward, infAcc.id]);
+    await client.query("UPDATE point_accounts SET balance = balance + $1, updated_at = now() WHERE id = $2", [creatorReward, infAcc.id]);
+    await client.query("UPDATE client_market_orders SET platform_profit_points = $1 WHERE id = $2", [platformProfit, orderId]);
     await client.query(
       `UPDATE client_market_orders SET status = 'completed', work_link = $1, updated_at = now(), completed_at = now() WHERE id = $2`,
       [workLink, orderId]
@@ -421,7 +437,9 @@ router.post("/withdrawals", (req: AuthRequest, res: Response) => {
 router.get("/market-orders", (req: AuthRequest, res: Response) => {
   const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
   (async () => {
-    let sql = `SELECT id, order_no, title, requirements, reward_points, status, created_at
+    // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
+    // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
+    let sql = `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, creator_reward_points AS reward_points, status, created_at
        FROM client_market_orders WHERE status = 'open'`;
     const params: unknown[] = [];
     if (rawQ) {
@@ -445,7 +463,9 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
   (async () => {
-    let sql = `SELECT id, order_no, title, requirements, reward_points, status, work_link, created_at, updated_at, completed_at
+    // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
+    // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
+    let sql = `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, creator_reward_points AS reward_points, status, work_link, created_at, updated_at, completed_at
        FROM client_market_orders WHERE influencer_id = $1`;
     const params: unknown[] = [userId];
     if (rawQ) {
