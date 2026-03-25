@@ -17,6 +17,7 @@ export default function PointsPage() {
   const [week, setWeek] = useState("");
   const [ledgerUserId, setLedgerUserId] = useState<string>("");
   const [manualUserId, setManualUserId] = useState<string>("");
+  const [manualUserSearch, setManualUserSearch] = useState<string>("");
   const [manualAmount, setManualAmount] = useState<string>("");
   const [manualNote, setManualNote] = useState<string>("");
   const [manualMode, setManualMode] = useState<"add" | "deduct">("add");
@@ -116,6 +117,18 @@ export default function PointsPage() {
   };
 
   const rechargeTargets = accounts.filter((a) => a.role === "influencer" || a.role === "client");
+  const normalizedManualSearch = manualUserSearch.trim().toLowerCase();
+  const filteredRechargeTargets = normalizedManualSearch
+    ? rechargeTargets.filter((u) => {
+        const idText = String(u.user_id);
+        const nameText = String(u.username || "");
+        return idText.toLowerCase().includes(normalizedManualSearch) || nameText.toLowerCase().includes(normalizedManualSearch);
+      })
+    : rechargeTargets;
+  const selectedTarget = manualUserId ? rechargeTargets.find((u) => String(u.user_id) === String(manualUserId)) : undefined;
+  const displayRechargeTargets = selectedTarget && !filteredRechargeTargets.some((u) => u.user_id === selectedTarget.user_id)
+    ? [selectedTarget, ...filteredRechargeTargets]
+    : filteredRechargeTargets;
 
   return (
     <div>
@@ -130,13 +143,32 @@ export default function PointsPage() {
               <option value="add">加分</option>
               <option value="deduct">扣分（仅达人）</option>
             </select>
-            <select value={manualUserId} onChange={(e) => setManualUserId(e.target.value)} style={{ padding: "6px 8px", minWidth: 220 }}>
+            {/* 关键修改 1：搜索输入框（实时过滤用户名/ID） */}
+            <input
+              type="text"
+              value={manualUserSearch}
+              onChange={(e) => setManualUserSearch(e.target.value)}
+              placeholder="搜索用户名或ID"
+              style={{ padding: "6px 8px", minWidth: 220 }}
+            />
+            {/* 关键修改 2：下拉选中/回显/提交逻辑保持不变，仅替换 options 来源为过滤后的列表 */}
+            <select
+              value={manualUserId}
+              onChange={(e) => setManualUserId(e.target.value)}
+              style={{ padding: "6px 8px", minWidth: 260 }}
+            >
               <option value="">选择充值对象</option>
-              {rechargeTargets.map((u) => (
-                <option key={u.user_id} value={u.user_id}>
-                  {u.username}（{u.role === "influencer" ? "达人" : "商家"} / ID:{u.user_id}）
+              {displayRechargeTargets.length === 0 ? (
+                <option value="" disabled>
+                  无匹配结果
                 </option>
-              ))}
+              ) : (
+                displayRechargeTargets.map((u) => (
+                  <option key={u.user_id} value={u.user_id}>
+                    {u.username}（{u.role === "influencer" ? "达人" : "商家"} / ID:{u.user_id}）
+                  </option>
+                ))
+              )}
             </select>
             <input type="number" min={1} value={manualAmount} onChange={(e) => setManualAmount(e.target.value)} placeholder="充值积分" style={{ padding: "6px 8px", width: 120 }} />
             <input type="text" value={manualNote} onChange={(e) => setManualNote(e.target.value)} placeholder="备注（可选）" style={{ padding: "6px 8px", width: 220 }} />

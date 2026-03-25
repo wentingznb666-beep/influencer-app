@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
+import { TH_UI_DICT } from "./locales/th";
 
 type Lang = "zh" | "th";
 
@@ -13,6 +14,20 @@ const LangContext = createContext<LangContextValue | null>(null);
 const TEXT_CACHE_KEY = "influencer_app_i18n_th_cache_v1";
 const translatedCache = new Map<string, string>();
 const originalTextByNode = new WeakMap<Text, string>();
+
+/**
+ * 将固定词典注入到翻译缓存中：
+ * - 优先使用人工校对的泰语翻译，避免自动翻译不稳定或遗漏。
+ * - 不影响原有缓存机制：缓存仍可覆盖未命中的文本节点。
+ */
+function seedThaiDictionary(): void {
+  Object.keys(TH_UI_DICT).forEach((k) => {
+    const v = TH_UI_DICT[k];
+    if (typeof k !== "string" || !k.trim()) return;
+    if (typeof v !== "string" || !v.trim()) return;
+    translatedCache.set(k, v);
+  });
+}
 
 function loadCache(): void {
   try {
@@ -80,6 +95,7 @@ function UiAutoTranslator({ lang }: { lang: Lang }) {
 
   useEffect(() => {
     loadCache();
+    seedThaiDictionary();
   }, []);
 
   useEffect(() => {

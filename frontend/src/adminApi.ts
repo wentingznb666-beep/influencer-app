@@ -268,6 +268,19 @@ export async function getAdminMarketOrders(params?: { q?: string }) {
 }
 
 /**
+ * 管理员：客户订单列表（sample_orders）。
+ * 支持按订单号/用户名/备注搜索，按状态筛选。
+ */
+export async function getAdminOrders(params?: { q?: string; status?: "pending" | "sent" | "received" | "" }) {
+  const q = new URLSearchParams();
+  if (params?.q) q.set("q", params.q);
+  if (params?.status) q.set("status", params.status);
+  const res = await fetchWithAuth(`/api/admin/orders?${q}`);
+  if (!res.ok) throw new Error(await readErrorMessage(res, "请求失败"));
+  return res.json();
+}
+
+/**
  * 获取全量账号列表（管理员/员工/达人/客户端）。
  */
 export async function getUsers(params?: { role?: string; keyword?: string; disabled?: "0" | "1" | "" }) {
