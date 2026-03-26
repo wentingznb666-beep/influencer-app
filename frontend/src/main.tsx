@@ -69,7 +69,6 @@ createRoot(document.getElementById("root")!).render(
           </Route>
           <Route path="/client" element={<ProtectedRoute roles={["client"]}><ClientLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/client/market-orders" replace />} />
-            {/* 客户端禁用：合作意向/订单跟踪（保持路由存在但不可访问，避免直连进入） */}
             <Route path="requests" element={<Navigate to="/client/market-orders" replace />} />
             <Route path="requests/:id/edit" element={<Navigate to="/client/market-orders" replace />} />
             <Route path="orders" element={<Navigate to="/client/market-orders" replace />} />
