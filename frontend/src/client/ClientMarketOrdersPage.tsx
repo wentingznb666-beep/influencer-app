@@ -14,6 +14,8 @@ type MarketOrder = {
   sku_images?: string[] | null;
   status: string;
   influencer_id: number | null;
+  influencer_username?: string | null;
+  influencer_display_name?: string | null;
   work_link: string | null;
   created_at: string;
   updated_at: string;
@@ -26,6 +28,17 @@ type SkuItem = {
   sku_name: string | null;
   sku_images: string[] | null;
 };
+
+/**
+ * 将后端时间统一格式化为“年-月-日 时分秒”。
+ */
+function formatDateTime(value?: string | null): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
 
 /**
  * 客户端「达人领单」页面：发布要求、查看订单号与标题、搜索、查看状态与交付链接。
@@ -68,6 +81,13 @@ export default function ClientMarketOrdersPage() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      load(searchQ);
+    }, 8000);
+    return () => window.clearInterval(timer);
+  }, [searchQ]);
 
   /**
    * 拉取当前积分余额，用于下单前校验与展示。
@@ -391,6 +411,11 @@ export default function ClientMarketOrdersPage() {
                 </div>
               </div>
               <p style={{ margin: "10px 0 0", fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</p>
+              {o.status === "claimed" && (
+                <p style={{ margin: "8px 0 0", fontSize: 14, fontWeight: 600, color: "#0f766e" }}>
+                  领取达人账号昵称：{o.influencer_username || "—"}{o.influencer_display_name ? ` / ${o.influencer_display_name}` : ""}
+                </p>
+              )}
               {!!o.tiktok_link && (
                 <p style={{ margin: "8px 0 0", fontSize: 13 }}>
                   TikTok：
@@ -425,8 +450,8 @@ export default function ClientMarketOrdersPage() {
                 </p>
               )}
               <p style={{ margin: "8px 0 0", fontSize: 12, color: "#999" }}>
-                创建：{o.created_at}
-                {o.completed_at ? ` · 完成：${o.completed_at}` : ""}
+                创建：{formatDateTime(o.created_at)}
+                {o.completed_at ? ` · 完成：${formatDateTime(o.completed_at)}` : ""}
               </p>
             </div>
           ))}

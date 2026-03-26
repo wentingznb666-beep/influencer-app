@@ -272,10 +272,10 @@ export async function getAdminMarketOrders(params?: { q?: string }) {
 }
 
 /**
- * 管理员：客户订单列表（sample_orders）。
- * 支持按订单号/用户名/备注搜索，按状态筛选。
+ * 管理员：客户订单列表（达人领单订单）。
+ * 支持按订单号/标题/要求/客户/达人搜索，按状态筛选。
  */
-export async function getAdminOrders(params?: { q?: string; status?: "pending" | "sent" | "received" | "" }) {
+export async function getAdminOrders(params?: { q?: string; status?: "open" | "claimed" | "completed" | "cancelled" | "" }) {
   const q = new URLSearchParams();
   if (params?.q) q.set("q", params.q);
   if (params?.status) q.set("status", params.status);

@@ -665,14 +665,18 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
   const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
   (async () => {
-    let sql = `SELECT id, order_no, title, requirements, reward_points, tier, tiktok_link, product_images, sku_codes, sku_images, sku_ids, status, influencer_id, work_link, created_at, updated_at, completed_at
-       FROM client_market_orders WHERE client_id = $1 AND is_deleted = 0`;
+    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.requirements, mo.reward_points, mo.tier, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images, mo.sku_ids, mo.status, mo.influencer_id, mo.work_link, mo.created_at, mo.updated_at, mo.completed_at,
+                      ui.username AS influencer_username,
+                      COALESCE(NULLIF(ui.display_name, ''), ui.username) AS influencer_display_name
+       FROM client_market_orders mo
+       LEFT JOIN users ui ON mo.influencer_id = ui.id
+      WHERE mo.client_id = $1 AND mo.is_deleted = 0`;
     const params: unknown[] = [clientId];
     if (rawQ) {
-      sql += ` AND (order_no = $2 OR title = $2 OR requirements = $2)`;
+      sql += ` AND (mo.order_no = $2 OR mo.title = $2 OR mo.requirements = $2)`;
       params.push(rawQ);
     }
-    sql += ` ORDER BY id DESC`;
+    sql += ` ORDER BY mo.id DESC`;
     const { rows } = await query(sql, params);
     res.json({ list: rows });
   })().catch((e) => {

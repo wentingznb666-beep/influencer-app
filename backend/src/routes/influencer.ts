@@ -449,14 +449,18 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
   (async () => {
     // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
-    let sql = `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, creator_reward_points AS reward_points, status, created_at
-       FROM client_market_orders WHERE status = 'open' AND is_deleted = 0`;
+    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.requirements, mo.tier, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images,
+                      mo.creator_reward_points AS reward_points, mo.status, mo.created_at,
+                      mo.client_id, u.username AS client_username, COALESCE(NULLIF(u.display_name, ''), u.username) AS client_display_name
+       FROM client_market_orders mo
+       JOIN users u ON mo.client_id = u.id
+      WHERE mo.status = 'open' AND mo.is_deleted = 0`;
     const params: unknown[] = [];
     if (rawQ) {
-      sql += ` AND (order_no = $1 OR title = $1 OR requirements = $1)`;
+      sql += ` AND (mo.order_no = $1 OR mo.title = $1 OR mo.requirements = $1 OR u.username = $1 OR COALESCE(u.display_name, '') = $1)`;
       params.push(rawQ);
     }
-    sql += ` ORDER BY id DESC`;
+    sql += ` ORDER BY mo.id DESC`;
     const { rows } = await query(sql, params);
     res.json({ list: rows });
   })().catch((e) => {
@@ -475,14 +479,18 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
   (async () => {
     // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
-    let sql = `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, creator_reward_points AS reward_points, status, work_link, created_at, updated_at, completed_at
-       FROM client_market_orders WHERE influencer_id = $1 AND is_deleted = 0`;
+    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.requirements, mo.tier, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images,
+                      mo.creator_reward_points AS reward_points, mo.status, mo.work_link, mo.created_at, mo.updated_at, mo.completed_at,
+                      mo.client_id, u.username AS client_username, COALESCE(NULLIF(u.display_name, ''), u.username) AS client_display_name
+       FROM client_market_orders mo
+       JOIN users u ON mo.client_id = u.id
+      WHERE mo.influencer_id = $1 AND mo.is_deleted = 0`;
     const params: unknown[] = [userId];
     if (rawQ) {
-      sql += ` AND (order_no = $2 OR title = $2 OR requirements = $2)`;
+      sql += ` AND (mo.order_no = $2 OR mo.title = $2 OR mo.requirements = $2 OR u.username = $2 OR COALESCE(u.display_name, '') = $2)`;
       params.push(rawQ);
     }
-    sql += ` ORDER BY id DESC`;
+    sql += ` ORDER BY mo.id DESC`;
     const { rows } = await query(sql, params);
     res.json({ list: rows });
   })().catch((e) => {

@@ -1,33 +1,58 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import * as api from "../adminApi";
 
 type Row = {
   id: number;
+  order_no: string | null;
+  title: string | null;
+  requirements: string;
   client_id: number;
   client_username: string;
-  request_id: number | null;
-  product_info: string | null;
-  target_platform: string | null;
-  status: "pending" | "sent" | "received" | string;
-  note: string | null;
+  client_display_name: string;
+  influencer_id: number | null;
+  influencer_username: string | null;
+  influencer_display_name: string | null;
+  client_pay_points: number;
+  creator_reward_points: number;
+  platform_profit_points: number;
+  tier: "A" | "B" | "C" | string;
+  status: "open" | "claimed" | "completed" | "cancelled" | string;
+  work_link: string | null;
   created_at: string;
   updated_at: string;
+  completed_at: string | null;
 };
 
 /**
- * 管理员端：客户订单列表（sample_orders），支持搜索与状态筛选。
+ * 将后端时间统一格式化为“年-月-日 时分秒”。
+ */
+function formatDateTime(value?: string | null): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+/**
+ * 管理员端：客户订单列表（达人领单），支持搜索与状态筛选，并与客户端/达人端订单实时同步。
  */
 export default function OrdersPage() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [list, setList] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
-  const [status, setStatus] = useState<"" | "pending" | "sent" | "received">("");
+  const [status, setStatus] = useState<"" | "open" | "claimed" | "completed" | "cancelled">("");
+  const [detailOrder, setDetailOrder] = useState<Row | null>(null);
+  const [copyMsg, setCopyMsg] = useState<string | null>(null);
 
   /**
    * 拉取订单列表（支持条件查询）。
    */
-  const load = async (nextQ?: string, nextStatus?: "" | "pending" | "sent" | "received") => {
+  const load = async (nextQ?: string, nextStatus?: "" | "open" | "claimed" | "completed" | "cancelled") => {
     setLoading(true);
     setError(null);
     try {
@@ -44,20 +69,58 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
-    load();
+    const qFromUrl = searchParams.get("q") || "";
+    const statusFromUrl = (searchParams.get("status") || "") as "" | "open" | "claimed" | "completed" | "cancelled";
+    setQ(qFromUrl);
+    setStatus(statusFromUrl);
+    load(qFromUrl, statusFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      load(q, status);
+    }, 8000);
+    return () => window.clearInterval(timer);
+  }, [q, status]);
+
   const statusText: Record<string, string> = {
-    pending: "待寄送",
-    sent: "已寄出",
-    received: "已收货",
+    open: "待领取",
+    claimed: "已领取",
+    completed: "已完成",
+    cancelled: "已取消",
+  };
+
+  /**
+   * 同步筛选条件到 URL，便于从其他页面按订单号跳转定位。
+   */
+  const syncFiltersToUrl = (nextQ: string, nextStatus: "" | "open" | "claimed" | "completed" | "cancelled") => {
+    const params = new URLSearchParams();
+    if (nextQ.trim()) params.set("q", nextQ.trim());
+    if (nextStatus) params.set("status", nextStatus);
+    setSearchParams(params, { replace: true });
+  };
+
+  /**
+   * 复制文本到剪贴板，并在抽屉顶部显示反馈。
+   */
+  const copyText = async (text: string, successLabel: string) => {
+    try {
+      if (!text) {
+        setCopyMsg("无可复制内容");
+        return;
+      }
+      await navigator.clipboard.writeText(text);
+      setCopyMsg(`已复制：${successLabel}`);
+    } catch {
+      setCopyMsg("复制失败，请检查浏览器权限");
+    }
   };
 
   return (
     <div>
       <h2 style={{ marginTop: 0 }}>客户订单列表</h2>
-      <p style={{ fontSize: 14, color: "#64748b" }}>展示所有客户提交的样品寄送/订单跟踪记录；支持按订单号、用户名或备注搜索。</p>
+      <p style={{ fontSize: 14, color: "#64748b" }}>展示客户端发布的所有达人任务订单，状态与领取达人信息与客户端/达人端实时互通。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
       <div style={{ marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
@@ -65,16 +128,24 @@ export default function OrdersPage() {
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="搜索：订单号(数字)、用户名或备注（模糊）"
+          placeholder="搜索：订单号/标题/要求/客户/达人（模糊）"
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 280 }}
         />
         <select value={status} onChange={(e) => setStatus(e.target.value as any)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", minWidth: 140 }}>
           <option value="">全部状态</option>
-          <option value="pending">待寄送</option>
-          <option value="sent">已寄出</option>
-          <option value="received">已收货</option>
+          <option value="open">待领取</option>
+          <option value="claimed">已领取</option>
+          <option value="completed">已完成</option>
+          <option value="cancelled">已取消</option>
         </select>
-        <button type="button" onClick={() => load(q, status)} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+        <button
+          type="button"
+          onClick={() => {
+            syncFiltersToUrl(q, status);
+            load(q, status);
+          }}
+          style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+        >
           搜索
         </button>
         <button
@@ -82,6 +153,7 @@ export default function OrdersPage() {
           onClick={() => {
             setQ("");
             setStatus("");
+            syncFiltersToUrl("", "");
             load("", "");
           }}
           style={{ padding: "8px 16px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}
@@ -94,47 +166,146 @@ export default function OrdersPage() {
         <p>加载中…</p>
       ) : (
         <div style={{ overflowX: "auto", background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 860 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1380 }}>
             <thead>
               <tr style={{ background: "#f5f5f5" }}>
                 <th style={{ padding: 10, textAlign: "left" }}>订单号</th>
-                <th style={{ padding: 10, textAlign: "left" }}>客户</th>
+                <th style={{ padding: 10, textAlign: "left" }}>客户账号/名称</th>
+                <th style={{ padding: 10, textAlign: "left" }}>领取达人</th>
                 <th style={{ padding: 10, textAlign: "left" }}>状态</th>
-                <th style={{ padding: 10, textAlign: "left" }}>关联需求</th>
-                <th style={{ padding: 10, textAlign: "left" }}>备注</th>
+                <th style={{ padding: 10, textAlign: "left" }}>金额</th>
+                <th style={{ padding: 10, textAlign: "left" }}>订单详情</th>
+                <th style={{ padding: 10, textAlign: "left" }}>交付链接</th>
+                <th style={{ padding: 10, textAlign: "left" }}>快速跳转</th>
                 <th style={{ padding: 10, textAlign: "left" }}>创建时间</th>
-                <th style={{ padding: 10, textAlign: "left" }}>更新时间</th>
+                <th style={{ padding: 10, textAlign: "left" }}>完成时间</th>
               </tr>
             </thead>
             <tbody>
               {list.map((o) => (
                 <tr key={o.id}>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>#{o.id}</td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>
-                    {o.client_username} (ID:{o.client_id})
+                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => setDetailOrder(o)}
+                      style={{ padding: 0, border: "none", background: "transparent", color: "var(--xt-accent)", cursor: "pointer", textDecoration: "underline" }}
+                    >
+                      {o.order_no || `#${o.id}`}
+                    </button>
                   </td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{statusText[o.status] ?? o.status}</td>
                   <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>
-                    {o.product_info ? (
-                      <span>{o.product_info}{o.target_platform ? ` · ${o.target_platform}` : ""}</span>
+                    {o.client_username}
+                    <br />
+                    <span style={{ color: "#64748b" }}>{o.client_display_name}（ID:{o.client_id}）</span>
+                  </td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>
+                    {o.influencer_username ? (
+                      <span>
+                        {o.influencer_username}
+                        <br />
+                        <span style={{ color: "#64748b" }}>{o.influencer_display_name || "—"}（ID:{o.influencer_id}）</span>
+                      </span>
                     ) : (
                       <span style={{ color: "#94a3b8" }}>—</span>
                     )}
                   </td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{o.note || <span style={{ color: "#94a3b8" }}>—</span>}</td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>{o.created_at}</td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>{o.updated_at}</td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>
+                    <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 12, background: o.status === "open" ? "#ffedd5" : o.status === "claimed" ? "#dbeafe" : "#dcfce7", color: "#334155" }}>
+                      {statusText[o.status] ?? o.status}
+                    </span>
+                  </td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>
+                    客户支付：{o.client_pay_points}
+                    <br />
+                    达人收益：{o.creator_reward_points}
+                  </td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", maxWidth: 380 }}>
+                    <div style={{ fontWeight: 600 }}>{o.title || "未命名订单"}</div>
+                    <div style={{ marginTop: 4, color: "#64748b", fontSize: 13 }}>档位：{o.tier}</div>
+                    <div style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>{o.requirements}</div>
+                  </td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", maxWidth: 220 }}>
+                    {o.work_link ? (
+                      <a href={o.work_link} target="_blank" rel="noreferrer">
+                        {o.work_link}
+                      </a>
+                    ) : (
+                      <span style={{ color: "#94a3b8" }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/admin/market-orders?q=${encodeURIComponent(o.order_no || String(o.id))}`)}
+                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                    >
+                      到达人领单页
+                    </button>
+                  </td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>{formatDateTime(o.created_at)}</td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>{formatDateTime(o.completed_at)}</td>
                 </tr>
               ))}
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={7} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
+                  <td colSpan={10} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
                     暂无订单
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+        </div>
+      )}
+      {detailOrder && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "flex", justifyContent: "flex-end", zIndex: 80 }} onClick={() => setDetailOrder(null)}>
+          <div
+            style={{ width: "min(680px, 100vw)", height: "100%", background: "#fff", boxShadow: "-6px 0 24px rgba(15,23,42,0.2)", padding: 20, overflowY: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <h3 style={{ margin: 0 }}>订单详情：{detailOrder.order_no || `#${detailOrder.id}`}</h3>
+              <button type="button" onClick={() => setDetailOrder(null)} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+                关闭
+              </button>
+            </div>
+            <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <button type="button" onClick={() => copyText(String(detailOrder.id), `订单ID ${detailOrder.id}`)} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+                复制订单ID
+              </button>
+              <button type="button" onClick={() => copyText(detailOrder.order_no || "", `订单号 ${detailOrder.order_no || ""}`)} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+                复制订单号
+              </button>
+              <button type="button" onClick={() => copyText(detailOrder.client_username || "", "客户账号")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+                复制客户账号
+              </button>
+              <button type="button" onClick={() => copyText(detailOrder.influencer_username || "", "达人账号")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+                复制达人账号
+              </button>
+              <button type="button" onClick={() => copyText(detailOrder.work_link || "", "交付链接")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+                复制交付链接
+              </button>
+              {copyMsg && <span style={{ color: "#0f766e", fontSize: 13 }}>{copyMsg}</span>}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 10, alignItems: "start", fontSize: 14 }}>
+              <div style={{ color: "#64748b" }}>订单ID</div><div>{detailOrder.id}</div>
+              <div style={{ color: "#64748b" }}>订单号</div><div>{detailOrder.order_no || "—"}</div>
+              <div style={{ color: "#64748b" }}>客户账号/名称</div><div>{detailOrder.client_username} / {detailOrder.client_display_name}</div>
+              <div style={{ color: "#64748b" }}>领取达人</div><div>{detailOrder.influencer_username ? `${detailOrder.influencer_username} / ${detailOrder.influencer_display_name || "—"}` : "—"}</div>
+              <div style={{ color: "#64748b" }}>状态</div><div>{statusText[detailOrder.status] ?? detailOrder.status}</div>
+              <div style={{ color: "#64748b" }}>档位</div><div>{detailOrder.tier}</div>
+              <div style={{ color: "#64748b" }}>客户支付</div><div>{detailOrder.client_pay_points}</div>
+              <div style={{ color: "#64748b" }}>达人收益</div><div>{detailOrder.creator_reward_points}</div>
+              <div style={{ color: "#64748b" }}>平台利润</div><div>{detailOrder.platform_profit_points}</div>
+              <div style={{ color: "#64748b" }}>标题</div><div>{detailOrder.title || "未命名订单"}</div>
+              <div style={{ color: "#64748b" }}>任务要求</div><div style={{ whiteSpace: "pre-wrap" }}>{detailOrder.requirements}</div>
+              <div style={{ color: "#64748b" }}>交付链接</div>
+              <div>{detailOrder.work_link ? <a href={detailOrder.work_link} target="_blank" rel="noreferrer">{detailOrder.work_link}</a> : "—"}</div>
+              <div style={{ color: "#64748b" }}>创建时间</div><div>{formatDateTime(detailOrder.created_at)}</div>
+              <div style={{ color: "#64748b" }}>更新时间</div><div>{formatDateTime(detailOrder.updated_at)}</div>
+              <div style={{ color: "#64748b" }}>完成时间</div><div>{formatDateTime(detailOrder.completed_at)}</div>
+            </div>
+          </div>
         </div>
       )}
     </div>

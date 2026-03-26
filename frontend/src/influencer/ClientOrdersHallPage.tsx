@@ -12,6 +12,9 @@ type OpenOrder = {
   voice_note?: string | null;
   sku_codes?: string[] | null;
   sku_images?: string[] | null;
+  client_id: number;
+  client_username: string;
+  client_display_name: string;
   status: string;
   created_at: string;
 };
@@ -27,12 +30,26 @@ type MyOrder = {
   voice_note?: string | null;
   sku_codes?: string[] | null;
   sku_images?: string[] | null;
+  client_id: number;
+  client_username: string;
+  client_display_name: string;
   status: string;
   work_link: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
 };
+
+/**
+ * 将后端时间统一格式化为“年-月-日 时分秒”。
+ */
+function formatDateTime(value?: string | null): string {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
 
 /**
  * 按订单级别生成制作标准提示文案。
@@ -161,6 +178,13 @@ export default function ClientOrdersHallPage() {
     load();
   }, []);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      load();
+    }, 8000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   /**
    * 领取一条待处理订单。
    * @param orderId 订单 ID
@@ -207,7 +231,7 @@ export default function ClientOrdersHallPage() {
     <div>
       <h2 style={{ marginTop: 0 }}>客户端发单</h2>
       <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16 }}>
-        领取商家发布的任务，完成后提交交付链接即可获得固定 <strong>5</strong> 积分收益。订单号与标题可用于精准搜索。
+        领取商家发布的任务，完成后提交交付链接即可获得固定 <strong>5</strong> 积分收益。列表会自动刷新，确保与客户端发单实时同步。
       </p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       <button type="button" onClick={() => load()} style={{ marginBottom: 16, padding: "6px 12px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
@@ -247,10 +271,23 @@ export default function ClientOrdersHallPage() {
                 <div>
                   <div style={{ fontWeight: 600 }}>订单号：{o.order_no || `#${o.id}`}</div>
                   {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>}
+                  <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
+                    下单客户账号：{o.client_username} ｜ 客户名称：{o.client_display_name}
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>订单创建日期：{formatDateTime(o.created_at)}</div>
                 </div>
                 <span style={{ color: "#166534", fontWeight: 600 }}>+{o.reward_points} 积分</span>
               </div>
-              <p style={{ margin: "10px 0", fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</p>
+              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "130px 1fr", gap: 8, alignItems: "start" }}>
+                <div style={{ color: "#64748b", fontSize: 13 }}>完整订单详情</div>
+                <div style={{ fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>状态</div>
+                <div style={{ fontSize: 14 }}>{statusText[o.status] ?? o.status}</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>金额</div>
+                <div style={{ fontSize: 14 }}>{o.reward_points} 积分</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>备注</div>
+                <div style={{ fontSize: 14 }}>{o.voice_note?.trim() ? o.voice_note : "—"}</div>
+              </div>
               {renderSkuInfo(o)}
               {renderTierStandards(String(o.tier || ""))}
               {renderVoiceEntry(o)}
@@ -294,10 +331,23 @@ export default function ClientOrdersHallPage() {
                 <div>
                   <div style={{ fontWeight: 600 }}>订单号：{o.order_no || `#${o.id}`}</div>
                   {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>}
+                  <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
+                    下单客户账号：{o.client_username} ｜ 客户名称：{o.client_display_name}
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>订单创建日期：{formatDateTime(o.created_at)}</div>
                 </div>
                 <span style={{ color: "#666" }}>{statusText[o.status] ?? o.status}</span>
               </div>
-              <p style={{ margin: "10px 0", fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</p>
+              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "130px 1fr", gap: 8, alignItems: "start" }}>
+                <div style={{ color: "#64748b", fontSize: 13 }}>完整订单详情</div>
+                <div style={{ fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>状态</div>
+                <div style={{ fontSize: 14 }}>{statusText[o.status] ?? o.status}</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>金额</div>
+                <div style={{ fontSize: 14 }}>{o.reward_points} 积分</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>备注</div>
+                <div style={{ fontSize: 14 }}>{o.voice_note?.trim() ? o.voice_note : "—"}</div>
+              </div>
               {renderSkuInfo(o)}
               {renderTierStandards(String(o.tier || ""))}
               {renderVoiceEntry(o)}
