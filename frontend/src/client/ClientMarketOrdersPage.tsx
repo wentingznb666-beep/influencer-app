@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import * as api from "../clientApi";
 
@@ -61,6 +61,9 @@ export default function ClientMarketOrdersPage() {
   const [skuKeyword, setSkuKeyword] = useState("");
   const [taskCount, setTaskCount] = useState(1);
   const [searchQ, setSearchQ] = useState("");
+  const hasInitLoadedRef = useRef(false);
+  const hasInitBalanceRef = useRef(false);
+  const hasInitSkusRef = useRef(false);
 
   /**
    * 拉取当前用户的发单列表。
@@ -79,15 +82,11 @@ export default function ClientMarketOrdersPage() {
   };
 
   useEffect(() => {
+    // React StrictMode 开发模式会重复执行 effect，这里确保初始化请求只触发一次。
+    if (hasInitLoadedRef.current) return;
+    hasInitLoadedRef.current = true;
     load();
   }, []);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      load(searchQ);
-    }, 8000);
-    return () => window.clearInterval(timer);
-  }, [searchQ]);
 
   /**
    * 拉取当前积分余额，用于下单前校验与展示。
@@ -102,6 +101,9 @@ export default function ClientMarketOrdersPage() {
   };
 
   useEffect(() => {
+    // React StrictMode 下避免余额初始化重复请求。
+    if (hasInitBalanceRef.current) return;
+    hasInitBalanceRef.current = true;
     loadBalance();
   }, []);
 
@@ -118,6 +120,9 @@ export default function ClientMarketOrdersPage() {
   };
 
   useEffect(() => {
+    // React StrictMode 下避免 SKU 初始化重复请求。
+    if (hasInitSkusRef.current) return;
+    hasInitSkusRef.current = true;
     loadSkus();
   }, []);
 

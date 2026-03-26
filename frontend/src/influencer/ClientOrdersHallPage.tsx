@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as api from "../influencerApi";
 
 type OpenOrder = {
@@ -151,6 +151,7 @@ export default function ClientOrdersHallPage() {
   const [workLink, setWorkLink] = useState("");
   const [searchOpen, setSearchOpen] = useState("");
   const [searchMy, setSearchMy] = useState("");
+  const hasInitLoadedRef = useRef(false);
 
   /**
    * 加载大厅与我的订单。
@@ -175,14 +176,10 @@ export default function ClientOrdersHallPage() {
   };
 
   useEffect(() => {
+    // React StrictMode 开发模式会重复执行 effect，这里确保初始化请求只触发一次。
+    if (hasInitLoadedRef.current) return;
+    hasInitLoadedRef.current = true;
     load();
-  }, []);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      load();
-    }, 8000);
-    return () => window.clearInterval(timer);
   }, []);
 
   /**
@@ -231,7 +228,7 @@ export default function ClientOrdersHallPage() {
     <div>
       <h2 style={{ marginTop: 0 }}>客户端发单</h2>
       <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16 }}>
-        领取商家发布的任务，完成后提交交付链接即可获得固定 <strong>5</strong> 积分收益。列表会自动刷新，确保与客户端发单实时同步。
+        领取商家发布的任务，完成后提交交付链接即可获得固定 <strong>5</strong> 积分收益。可使用搜索或手动刷新保持最新数据。
       </p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       <button type="button" onClick={() => load()} style={{ marginBottom: 16, padding: "6px 12px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import * as api from "../adminApi";
 
@@ -45,6 +45,7 @@ export default function MarketOrdersPage() {
   const [searchQ, setSearchQ] = useState("");
   const [detailOrder, setDetailOrder] = useState<Row | null>(null);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
+  const hasInitLoadedRef = useRef(false);
 
   /**
    * 拉取列表（可选搜索关键词）。
@@ -63,17 +64,13 @@ export default function MarketOrdersPage() {
   };
 
   useEffect(() => {
+    // React StrictMode 开发模式会重复执行 effect，这里确保初始化请求只触发一次。
+    if (hasInitLoadedRef.current) return;
+    hasInitLoadedRef.current = true;
     const qFromUrl = searchParams.get("q") || "";
     setSearchQ(qFromUrl);
     load(qFromUrl);
   }, []);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      load(searchQ);
-    }, 8000);
-    return () => window.clearInterval(timer);
-  }, [searchQ]);
 
   const statusText: Record<string, string> = {
     open: "待领取",

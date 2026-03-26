@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import * as api from "../adminApi";
 
@@ -48,6 +48,7 @@ export default function OrdersPage() {
   const [status, setStatus] = useState<"" | "open" | "claimed" | "completed" | "cancelled">("");
   const [detailOrder, setDetailOrder] = useState<Row | null>(null);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
+  const hasInitLoadedRef = useRef(false);
 
   /**
    * 拉取订单列表（支持条件查询）。
@@ -69,6 +70,9 @@ export default function OrdersPage() {
   };
 
   useEffect(() => {
+    // React StrictMode 开发模式会重复执行 effect，这里确保初始化请求只触发一次。
+    if (hasInitLoadedRef.current) return;
+    hasInitLoadedRef.current = true;
     const qFromUrl = searchParams.get("q") || "";
     const statusFromUrl = (searchParams.get("status") || "") as "" | "open" | "claimed" | "completed" | "cancelled";
     setQ(qFromUrl);
@@ -76,13 +80,6 @@ export default function OrdersPage() {
     load(qFromUrl, statusFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      load(q, status);
-    }, 8000);
-    return () => window.clearInterval(timer);
-  }, [q, status]);
 
   const statusText: Record<string, string> = {
     open: "待领取",
