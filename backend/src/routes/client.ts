@@ -4,10 +4,20 @@ import { ensurePointAccountLocked } from "../pointAccounts";
 import { allocateMarketOrderNo } from "../marketOrderNo";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 import { recordOperationLogTx } from "../operationLog";
+import multer from "multer";
+import path from "path";
+import fs from "fs/promises";
 
 const router = Router();
 router.use(requireAuth);
 router.use(requireRole("client"));
+
+const SKU_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+const ALLOWED_SKU_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
+const skuUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: SKU_UPLOAD_MAX_BYTES, files: 20 },
+});
 
 /**
  * 达人领单类订单积分规则：
@@ -15,6 +25,25 @@ router.use(requireRole("client"));
  * - 订单完成后，达人收益固定为 5（不随客户支付变化）
  */
 const MARKET_ORDER_CREATOR_REWARD = 5;
+
+/**
+ * 获取可用于外部访问的文件 URL 根路径。
+ */
+function getPublicBaseUrl(req: AuthRequest): string {
+  const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "http";
+  const host = req.get("host") || "localhost:3000";
+  return `${proto}://${host}`;
+}
+
+/**
+ * 按 MIME 推断文件扩展名。
+ */
+function extByMime(mime: string): string | null {
+  if (mime === "image/jpeg") return ".jpg";
+  if (mime === "image/png") return ".png";
+  if (mime === "image/webp") return ".webp";
+  return null;
+}
 
 /**
  * 将档位映射为客户支付积分。
@@ -239,6 +268,56 @@ router.delete("/requests/:id", (req: AuthRequest, res: Response) => {
   })().catch((e) => {
     console.error("client requests delete error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * POST /api/client/skus/upload
+ * 本地图片上传：multipart/form-data，字段名 files，返回可访问 URL。
+ */
+router.post("/skus/upload", (req: AuthRequest, res: Response) => {
+  skuUpload.array("files", 20)(req as any, res as any, (uploadErr: unknown) => {
+    if (uploadErr) {
+      const msg = uploadErr instanceof Error ? uploadErr.message : "上传失败";
+      const isSize = msg.toLowerCase().includes("file too large");
+      res.status(400).json({ error: isSize ? "IMAGE_TOO_LARGE" : "INVALID_UPLOAD", message: isSize ? "单张图片不能超过 5MB。" : msg });
+      return;
+    }
+    const clientId = req.user!.userId;
+    (async () => {
+      const files = (req.files || []) as Express.Multer.File[];
+      if (files.length === 0) {
+        res.status(400).json({ error: "INVALID_INPUT", message: "请至少上传一张图片。" });
+        return;
+      }
+      const uploadDir = path.resolve(process.cwd(), "uploads", "skus", String(clientId));
+      await fs.mkdir(uploadDir, { recursive: true });
+      const urls: string[] = [];
+      const base = getPublicBaseUrl(req);
+      for (const file of files) {
+        if (!ALLOWED_SKU_IMAGE_MIME.has(file.mimetype)) {
+          res.status(400).json({ error: "INVALID_IMAGE_TYPE", message: "仅支持 jpg/png/webp 图片。" });
+          return;
+        }
+        if (file.size > SKU_UPLOAD_MAX_BYTES) {
+          res.status(400).json({ error: "IMAGE_TOO_LARGE", message: "单张图片不能超过 5MB。" });
+          return;
+        }
+        const ext = extByMime(file.mimetype);
+        if (!ext) {
+          res.status(400).json({ error: "INVALID_IMAGE_TYPE", message: "图片格式不支持。" });
+          return;
+        }
+        const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`;
+        const filepath = path.join(uploadDir, filename);
+        await fs.writeFile(filepath, file.buffer);
+        urls.push(`${base}/uploads/skus/${clientId}/${filename}`);
+      }
+      res.status(201).json({ urls });
+    })().catch((e) => {
+      console.error("client skus upload error:", e);
+      res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    });
   });
 });
 

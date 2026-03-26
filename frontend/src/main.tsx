@@ -17,9 +17,6 @@ import MarketOrdersPage from "./admin/MarketOrdersPage";
 import AdminOrdersPage from "./admin/OrdersPage";
 import AdminSkusPage from "./admin/SkusPage";
 import ClientLayout from "./ClientLayout";
-import RequestsPage from "./client/RequestsPage";
-import RequestEditPage from "./client/RequestEditPage";
-import OrdersPage from "./client/OrdersPage";
 import ClientMarketOrdersPage from "./client/ClientMarketOrdersPage";
 import MarketOrderEditPage from "./client/MarketOrderEditPage";
 import ClientSkusPage from "./client/SkusPage";
@@ -71,10 +68,11 @@ createRoot(document.getElementById("root")!).render(
             <Route path="op-logs" element={<OperationLogsPage />} />
           </Route>
           <Route path="/client" element={<ProtectedRoute roles={["client"]}><ClientLayout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/client/requests" replace />} />
-            <Route path="requests" element={<RequestsPage />} />
-            <Route path="requests/:id/edit" element={<RequestEditPage />} />
-            <Route path="orders" element={<OrdersPage />} />
+            <Route index element={<Navigate to="/client/market-orders" replace />} />
+            {/* 客户端禁用：合作意向/订单跟踪（保持路由存在但不可访问，避免直连进入） */}
+            <Route path="requests" element={<Navigate to="/client/market-orders" replace />} />
+            <Route path="requests/:id/edit" element={<Navigate to="/client/market-orders" replace />} />
+            <Route path="orders" element={<Navigate to="/client/market-orders" replace />} />
             <Route path="market-orders" element={<ClientMarketOrdersPage />} />
             <Route path="skus" element={<ClientSkusPage />} />
             <Route path="market-orders/:id/edit" element={<MarketOrderEditPage />} />

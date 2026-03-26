@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import os from "os";
+import path from "path";
 import { translateBatchWithDeepseek, translateTextWithDeepseek } from "./translate";
 import { synthesizeSpeechWithAzure } from "./ttsAzure";
 import { requestId, auditLog, loginRateLimit } from "./middlewares";
@@ -31,6 +32,7 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(cors({ origin: "*" }));
+app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
 app.use(requestId);
 app.use(auditLog);
 

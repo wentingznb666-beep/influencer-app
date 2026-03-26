@@ -2,6 +2,7 @@
  * 客户端 API：合作意向、订单、达人作品、积分与充值。
  */
 import { fetchWithAuth } from "./fetchWithAuth";
+import { getAccessToken, refreshAccessToken } from "./authApi";
 
 // fetchWithAuth 已统一封装在 src/fetchWithAuth.ts（含 401 自动刷新一次）
 
@@ -66,6 +67,57 @@ export async function deleteSku(id: number) {
   const res = await fetchWithAuth(`/api/client/skus/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "删除失败");
   return res.json();
+}
+
+/**
+ * 上传 SKU 图片（本地文件），支持进度回调。
+ */
+export async function uploadSkuImages(files: File[], onProgress?: (percent: number) => void): Promise<string[]> {
+  if (files.length === 0) return [];
+  /** 读取 API 基础地址。 */
+  const getBase = () => ((import.meta.env.VITE_API_BASE_URL as string) || window.location.origin);
+  /** 发送一次上传请求。 */
+  const doUpload = (token: string | null) =>
+    new Promise<{ status: number; body: any }>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${getBase()}/api/client/skus/upload`);
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      xhr.upload.onprogress = (evt) => {
+        if (!onProgress) return;
+        if (!evt.lengthComputable) return;
+        onProgress(Math.min(100, Math.round((evt.loaded / evt.total) * 100)));
+      };
+      xhr.onerror = () => reject(new Error("上传失败"));
+      xhr.onload = () => {
+        let body: any = {};
+        try {
+          body = JSON.parse(xhr.responseText || "{}");
+        } catch {
+          body = {};
+        }
+        resolve({ status: xhr.status, body });
+      };
+      const fd = new FormData();
+      files.forEach((f) => fd.append("files", f));
+      xhr.send(fd);
+    });
+
+  let token = getAccessToken();
+  let first = await doUpload(token);
+  if (first.status === 401) {
+    try {
+      await refreshAccessToken();
+      token = getAccessToken();
+      first = await doUpload(token);
+    } catch {
+      throw new Error("登录已过期，请重新登录");
+    }
+  }
+  if (first.status < 200 || first.status >= 300) {
+    throw new Error((first.body?.message as string) || "上传失败");
+  }
+  const urls = Array.isArray(first.body?.urls) ? (first.body.urls as string[]) : [];
+  return urls;
 }
 
 /** 订单列表 */
