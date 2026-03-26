@@ -43,7 +43,6 @@ export default function ClientMarketOrdersPage() {
   const [voiceLink, setVoiceLink] = useState("");
   const [voiceNote, setVoiceNote] = useState("");
   const [tiktokLink, setTiktokLink] = useState("");
-  const [productImagesText, setProductImagesText] = useState("");
   const [selectedSkuIds, setSelectedSkuIds] = useState<number[]>([]);
   const [skuList, setSkuList] = useState<SkuItem[]>([]);
   const [skuKeyword, setSkuKeyword] = useState("");
@@ -133,11 +132,6 @@ export default function ClientMarketOrdersPage() {
       return;
     }
     try {
-      const productImages = productImagesText
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .slice(0, 20);
       const chosen = skuList.filter((s) => selectedSkuIds.includes(s.id));
       const skuCodes = chosen.map((s) => (s.sku_name ? `${s.sku_code} / ${s.sku_name}` : s.sku_code));
       const skuImages = chosen.flatMap((s) => (Array.isArray(s.sku_images) ? s.sku_images : [])).slice(0, 100);
@@ -148,7 +142,7 @@ export default function ClientMarketOrdersPage() {
         voice_link: tier === "A" ? (voiceLink.trim() || undefined) : undefined,
         voice_note: tier === "A" ? (voiceNote.trim() || undefined) : undefined,
         tiktok_link: tiktokLink.trim() || undefined,
-        product_images: productImages,
+        product_images: [],
         sku_ids: selectedSkuIds,
         sku_codes: skuCodes,
         sku_images: skuImages,
@@ -161,7 +155,6 @@ export default function ClientMarketOrdersPage() {
       setVoiceLink("");
       setVoiceNote("");
       setTiktokLink("");
-      setProductImagesText("");
       setSelectedSkuIds([]);
       setTaskCount(1);
       loadBalance();
@@ -303,15 +296,6 @@ export default function ClientMarketOrdersPage() {
             value={tiktokLink}
             onChange={(e) => setTiktokLink(e.target.value)}
             placeholder="https://www.tiktok.com/..."
-            style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
-          />
-          <label htmlFor="productImages">SKU 图片上传（多图，每行一个链接，可选）</label>
-          <textarea
-            id="productImages"
-            value={productImagesText}
-            onChange={(e) => setProductImagesText(e.target.value)}
-            placeholder={"https://img1...\nhttps://img2..."}
-            rows={4}
             style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
           />
           <div style={{ marginBottom: 12 }}>
