@@ -1,7 +1,22 @@
 import { useState, useEffect, type FormEvent } from "react";
 import * as api from "../adminApi";
 
-type Task = { id: number; material_id: number; material_title: string; type: string; platform: string; max_claim_count: number | null; point_reward: number; status: string; created_at: string };
+type Task = {
+  id: number;
+  material_id: number;
+  material_title: string;
+  type: string;
+  platform: string;
+  max_claim_count: number | null;
+  point_reward: number;
+  status: string;
+  biz_status?: "open" | "in_progress" | "done" | string;
+  claimed_count?: number;
+  fulfilled_count?: number;
+  tiktok_link?: string | null;
+  product_images?: string[] | null;
+  created_at: string;
+};
 type Material = { id: number; title: string; type: string; status: string };
 
 export default function TasksPage() {
@@ -11,7 +26,23 @@ export default function TasksPage() {
   const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ material_id: 0, type: "explain", platform: "抖音", max_claim_count: "" as number | "", point_reward: 10 });
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editForm, setEditForm] = useState({
+    biz_status: "open" as "open" | "in_progress" | "done",
+    tiktok_link: "",
+    product_images_text: "",
+  });
+  const [form, setForm] = useState({
+    material_id: 0,
+    type: "explain",
+    platform: "抖音",
+    max_claim_count: "" as number | "",
+    point_reward: 10,
+    task_count: 1,
+    tiktok_link: "",
+    product_images_text: "",
+  });
 
   const loadTasks = async () => {
     const data = await api.getTasks({ status: filterStatus || undefined });
@@ -33,15 +64,36 @@ export default function TasksPage() {
     if (!form.material_id || form.point_reward < 1) return;
     setError(null);
     try {
+      /**
+       * 多图输入：每行一个 URL，提交给后端 product_images 字段。
+       * 不改变上传流程，仅补充字段能力。
+       */
+      const productImages = form.product_images_text
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 20);
       await api.createTask({
         material_id: form.material_id,
         type: form.type,
         platform: form.platform,
         max_claim_count: form.max_claim_count === "" ? undefined : Number(form.max_claim_count),
         point_reward: form.point_reward,
+        task_count: form.task_count,
+        tiktok_link: form.tiktok_link.trim() || undefined,
+        product_images: productImages,
       });
       setShowForm(false);
-      setForm({ material_id: materials[0]?.id ?? 0, type: "explain", platform: "抖音", max_claim_count: "", point_reward: 10 });
+      setForm({
+        material_id: materials[0]?.id ?? 0,
+        type: "explain",
+        platform: "抖音",
+        max_claim_count: "",
+        point_reward: 10,
+        task_count: 1,
+        tiktok_link: "",
+        product_images_text: "",
+      });
       loadTasks();
     } catch (e) {
       setError(e instanceof Error ? e.message : "创建失败");
@@ -55,6 +107,56 @@ export default function TasksPage() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "发布失败");
     }
+  };
+
+  /**
+   * 打开编辑面板并回填当前任务增强字段。
+   */
+  const openEdit = (task: Task) => {
+    setEditingId(task.id);
+    setEditForm({
+      biz_status:
+        String(task.biz_status || "open") === "done"
+          ? "done"
+          : String(task.biz_status || "open") === "in_progress"
+          ? "in_progress"
+          : "open",
+      tiktok_link: (task.tiktok_link || "") as string,
+      product_images_text: Array.isArray(task.product_images) ? task.product_images.join("\n") : "",
+    });
+  };
+
+  /**
+   * 保存任务增强字段（业务状态/TikTok链接/多图）。
+   */
+  const saveEdit = async () => {
+    if (editingId == null || savingEdit) return;
+    setSavingEdit(true);
+    setError(null);
+    try {
+      const productImages = editForm.product_images_text
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 20);
+      await api.updateTask(editingId, {
+        biz_status: editForm.biz_status,
+        tiktok_link: editForm.tiktok_link.trim() || undefined,
+        product_images: productImages,
+      });
+      setEditingId(null);
+      await loadTasks();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "保存失败");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const bizStatusText: Record<string, string> = {
+    open: "待领取",
+    in_progress: "进行中",
+    done: "已完成",
   };
 
   return (
@@ -107,6 +209,24 @@ export default function TasksPage() {
             <label>积分奖励</label>
             <input type="number" min={1} value={form.point_reward} onChange={(e) => setForm((f) => ({ ...f, point_reward: Number(e.target.value) || 1 }))} required style={{ marginLeft: 8, padding: "6px 8px", width: 80 }} />
           </div>
+          <div style={{ marginBottom: 8 }}>
+            <label>批量发布数量</label>
+            <input type="number" min={1} max={200} value={form.task_count} onChange={(e) => setForm((f) => ({ ...f, task_count: Math.max(1, Math.min(200, Number(e.target.value) || 1)) }))} style={{ marginLeft: 8, padding: "6px 8px", width: 100 }} />
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label>TikTok 链接</label>
+            <input type="url" value={form.tiktok_link} onChange={(e) => setForm((f) => ({ ...f, tiktok_link: e.target.value }))} placeholder="https://www.tiktok.com/..." style={{ marginLeft: 8, padding: "6px 8px", width: 360, maxWidth: "100%" }} />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label>商品图片（多图，每行一个链接）</label>
+            <textarea
+              rows={4}
+              value={form.product_images_text}
+              onChange={(e) => setForm((f) => ({ ...f, product_images_text: e.target.value }))}
+              placeholder={"https://img1...\nhttps://img2..."}
+              style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box" }}
+            />
+          </div>
           <button type="submit" style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>保存草稿</button>
         </form>
       )}
@@ -119,6 +239,8 @@ export default function TasksPage() {
               <th style={{ padding: 10, textAlign: "left" }}>素材</th>
               <th style={{ padding: 10, textAlign: "left" }}>平台</th>
               <th style={{ padding: 10, textAlign: "left" }}>积分</th>
+              <th style={{ padding: 10, textAlign: "left" }}>业务状态</th>
+              <th style={{ padding: 10, textAlign: "left" }}>领取/履约</th>
               <th style={{ padding: 10, textAlign: "left" }}>状态</th>
               <th style={{ padding: 10 }}>操作</th>
             </tr>
@@ -130,16 +252,86 @@ export default function TasksPage() {
                 <td style={{ padding: 10 }}>{t.material_title}</td>
                 <td style={{ padding: 10 }}>{t.platform}</td>
                 <td style={{ padding: 10 }}>{t.point_reward}</td>
+                <td style={{ padding: 10 }}>{bizStatusText[String(t.biz_status || "open")] ?? String(t.biz_status || "open")}</td>
+                <td style={{ padding: 10 }}>
+                  {Number(t.claimed_count || 0)} / {Number(t.fulfilled_count || 0)}
+                </td>
                 <td style={{ padding: 10 }}>{t.status === "published" ? "已发布" : "草稿"}</td>
                 <td style={{ padding: 10 }}>
-                  {t.status === "draft" && (
-                    <button type="button" onClick={() => publish(t.id)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer" }}>发布</button>
-                  )}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                    {t.status === "draft" && (
+                      <button type="button" onClick={() => publish(t.id)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer" }}>
+                        发布
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => openEdit(t)}
+                      style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}
+                    >
+                      编辑
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+      )}
+      {editingId != null && (
+        <div style={{ marginTop: 16, padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+          <h3 style={{ marginTop: 0, marginBottom: 12, fontSize: 16 }}>编辑任务增强字段（ID: {editingId}）</h3>
+          <div style={{ marginBottom: 8 }}>
+            <label>业务状态</label>
+            <select
+              value={editForm.biz_status}
+              onChange={(e) => setEditForm((f) => ({ ...f, biz_status: e.target.value as "open" | "in_progress" | "done" }))}
+              style={{ marginLeft: 8, padding: "6px 8px" }}
+            >
+              <option value="open">待领取</option>
+              <option value="in_progress">进行中</option>
+              <option value="done">已完成</option>
+            </select>
+          </div>
+          <div style={{ marginBottom: 8 }}>
+            <label>TikTok 链接</label>
+            <input
+              type="url"
+              value={editForm.tiktok_link}
+              onChange={(e) => setEditForm((f) => ({ ...f, tiktok_link: e.target.value }))}
+              placeholder="https://www.tiktok.com/..."
+              style={{ marginLeft: 8, padding: "6px 8px", width: 360, maxWidth: "100%" }}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label>商品图片（每行一个链接）</label>
+            <textarea
+              rows={4}
+              value={editForm.product_images_text}
+              onChange={(e) => setEditForm((f) => ({ ...f, product_images_text: e.target.value }))}
+              placeholder={"https://img1...\nhttps://img2..."}
+              style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box" }}
+            />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              type="button"
+              onClick={saveEdit}
+              disabled={savingEdit}
+              style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: savingEdit ? "not-allowed" : "pointer", opacity: savingEdit ? 0.75 : 1 }}
+            >
+              {savingEdit ? "保存中…" : "保存"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditingId(null)}
+              disabled={savingEdit}
+              style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: savingEdit ? "not-allowed" : "pointer" }}
+            >
+              取消
+            </button>
+          </div>
+        </div>
       )}
       {!loading && list.length === 0 && <p style={{ color: "#666" }}>暂无任务</p>}
     </div>

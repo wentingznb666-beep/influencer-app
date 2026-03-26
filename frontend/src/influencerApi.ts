@@ -1,18 +1,9 @@
 /**
  * 达人端 API：任务大厅、领取、我的任务、投稿、积分。
  */
-import { getAccessToken } from "./authApi";
+import { fetchWithAuth } from "./fetchWithAuth";
 
-function getBase(): string {
-  return (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin;
-}
-
-async function fetchWithAuth(path: string, options: RequestInit = {}): Promise<Response> {
-  const token = getAccessToken();
-  const headers = new Headers(options.headers);
-  if (token) headers.set("Authorization", `Bearer ${token}`);
-  return fetch(`${getBase()}${path}`, { ...options, headers });
-}
+// fetchWithAuth 已统一封装在 src/fetchWithAuth.ts（含 401 自动刷新一次）
 
 /** 任务大厅 */
 export async function getTasks(params?: { platform?: string; type?: string }) {

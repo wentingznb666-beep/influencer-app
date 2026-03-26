@@ -20,6 +20,7 @@ import withdrawalsRoutes from "./routes/withdrawals";
 import usersRoutes from "./routes/users";
 import adminMarketOrdersRoutes from "./routes/adminMarketOrders";
 import adminOrdersRoutes from "./routes/adminOrders";
+import operationLogsRoutes from "./routes/operationLogs";
 import { initDb } from "./db";
 
 dotenv.config();
@@ -51,6 +52,8 @@ app.use("/api/admin/orders", adminOrdersRoutes);
 app.use("/api/influencer", influencerRoutes);
 /** 客户端：合作意向、订单跟踪、达人作品、积分充值 */
 app.use("/api/client", clientRoutes);
+/** 通用：我的操作日志 */
+app.use("/api/operation-logs", operationLogsRoutes);
 
 /**
  * 统一错误处理中间件，确保接口返回结构化错误信息。

@@ -1,18 +1,9 @@
 /**
  * 客户端 API：合作意向、订单、达人作品、积分与充值。
  */
-import { getAccessToken } from "./authApi";
+import { fetchWithAuth } from "./fetchWithAuth";
 
-function getBase(): string {
-  return (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin;
-}
-
-async function fetchWithAuth(path: string, options: RequestInit = {}): Promise<Response> {
-  const token = getAccessToken();
-  const headers = new Headers(options.headers);
-  if (token) headers.set("Authorization", `Bearer ${token}`);
-  return fetch(`${getBase()}${path}`, { ...options, headers });
-}
+// fetchWithAuth 已统一封装在 src/fetchWithAuth.ts（含 401 自动刷新一次）
 
 /** 合作意向列表 */
 export async function getRequests() {
@@ -21,10 +12,31 @@ export async function getRequests() {
   return res.json();
 }
 
+/** 合作意向详情 */
+export async function getRequestDetail(id: number) {
+  const res = await fetchWithAuth(`/api/client/requests/${id}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
 /** 提交合作意向 */
 export async function createRequest(body: { product_info?: string; target_platform?: string; budget?: string; need_face?: boolean }) {
   const res = await fetchWithAuth("/api/client/requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "提交失败");
+  return res.json();
+}
+
+/** 编辑合作意向 */
+export async function updateRequest(id: number, body: { product_info?: string; target_platform?: string; budget?: string; need_face?: boolean; status?: string }) {
+  const res = await fetchWithAuth(`/api/client/requests/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "更新失败");
+  return res.json();
+}
+
+/** 删除合作意向（软删） */
+export async function deleteRequest(id: number) {
+  const res = await fetchWithAuth(`/api/client/requests/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "删除失败");
   return res.json();
 }
 
@@ -79,6 +91,13 @@ export async function getMarketOrders(params?: { q?: string }) {
   return res.json();
 }
 
+/** 发单详情 */
+export async function getMarketOrderDetail(id: number) {
+  const res = await fetchWithAuth(`/api/client/market-orders/${id}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
 /**
  * 创建达人领单（需满足最低积分；完成后从余额扣给达人）。
  * @param body 任务要求文案与可选标题
@@ -90,5 +109,19 @@ export async function createMarketOrder(body: { requirements: string; title?: st
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "创建失败");
+  return res.json();
+}
+
+/** 编辑发单（仅 open 可编辑） */
+export async function updateMarketOrder(id: number, body: { title?: string; requirements?: string; tier?: "A" | "B" | "C"; voice_link?: string; voice_note?: string }) {
+  const res = await fetchWithAuth(`/api/client/market-orders/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "更新失败");
+  return res.json();
+}
+
+/** 删除发单（软删，仅 open 可删） */
+export async function deleteMarketOrder(id: number) {
+  const res = await fetchWithAuth(`/api/client/market-orders/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "删除失败");
   return res.json();
 }

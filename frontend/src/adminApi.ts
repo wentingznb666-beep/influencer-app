@@ -2,19 +2,9 @@
  * 管理员端 API 请求封装：自动携带 JWT，统一 base URL。
  */
 import { getAccessToken } from "./authApi";
+import { fetchWithAuth } from "./fetchWithAuth";
 
 export type AdminCreatableRole = "admin" | "employee" | "influencer" | "client";
-
-function getBase(): string {
-  return (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin;
-}
-
-async function fetchWithAuth(path: string, options: RequestInit = {}): Promise<Response> {
-  const token = getAccessToken();
-  const headers = new Headers(options.headers);
-  if (token) headers.set("Authorization", `Bearer ${token}`);
-  return fetch(`${getBase()}${path}`, { ...options, headers });
-}
 
 /**
  * 解析失败响应中的可读文案（兼容仅有 message 或仅有 error 字段）。
@@ -67,14 +57,26 @@ export async function getTasks(params?: { status?: string; platform?: string; ty
 }
 
 /** 创建任务 */
-export async function createTask(body: { material_id: number; type: string; platform: string; max_claim_count?: number; point_reward: number }) {
+export async function createTask(body: {
+  material_id: number;
+  type: string;
+  platform: string;
+  max_claim_count?: number;
+  point_reward: number;
+  task_count?: number;
+  tiktok_link?: string;
+  product_images?: string[];
+}) {
   const res = await fetchWithAuth("/api/admin/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "创建失败");
   return res.json();
 }
 
 /** 更新任务（含发布） */
-export async function updateTask(id: number, body: { status?: string; max_claim_count?: number; point_reward?: number }) {
+export async function updateTask(
+  id: number,
+  body: { status?: string; biz_status?: "open" | "in_progress" | "done"; max_claim_count?: number; point_reward?: number; tiktok_link?: string; product_images?: string[] }
+) {
   const res = await fetchWithAuth(`/api/admin/tasks/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "更新失败");
   return res.json();

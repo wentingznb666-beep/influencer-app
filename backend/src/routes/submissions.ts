@@ -1,6 +1,7 @@
 import { Router, Response } from "express";
 import { query, withTx } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
+import { recordOperationLogTx } from "../operationLog";
 
 const router = Router();
 router.use(requireAuth);
@@ -86,6 +87,20 @@ router.post("/:id/approve", (req: AuthRequest, res: Response) => {
       await client.query("UPDATE point_accounts SET balance = balance + $1, updated_at = now() WHERE id = $2", [task.point_reward, acc.id]);
       await client.query("UPDATE submissions SET status = 'approved', reviewed_at = now() WHERE id = $1", [id]);
       await client.query("UPDATE task_claims SET status = 'approved' WHERE id = $1", [sub.task_claim_id]);
+      // 履约计数 + 业务状态推进（不影响原有结算逻辑，仅增加可视化字段）
+      await client.query(
+        `
+        UPDATE tasks
+           SET fulfilled_count = fulfilled_count + 1,
+               biz_status = CASE
+                 WHEN max_claim_count IS NOT NULL AND (fulfilled_count + 1) >= max_claim_count THEN 'done'
+                 ELSE biz_status
+               END
+         WHERE id = $1
+        `,
+        [tc.task_id]
+      );
+      await recordOperationLogTx(client, { userId: req.user!.userId, actionType: "edit", targetType: "task", targetId: tc.task_id });
     });
 
     res.json({ ok: true, point_reward: task.point_reward });

@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
@@ -17,19 +17,34 @@ import MarketOrdersPage from "./admin/MarketOrdersPage";
 import AdminOrdersPage from "./admin/OrdersPage";
 import ClientLayout from "./ClientLayout";
 import RequestsPage from "./client/RequestsPage";
+import RequestEditPage from "./client/RequestEditPage";
 import OrdersPage from "./client/OrdersPage";
 import ClientMarketOrdersPage from "./client/ClientMarketOrdersPage";
+import MarketOrderEditPage from "./client/MarketOrderEditPage";
 import WorksPage from "./client/WorksPage";
 import ClientPointsPage from "./client/PointsPage";
 import InfluencerLayout from "./InfluencerLayout";
-import TaskHallPage from "./influencer/TaskHallPage";
-import MyTasksPage from "./influencer/MyTasksPage";
-import InfluencerPointsPage from "./influencer/PointsPage";
-import WithdrawPage from "./influencer/WithdrawPage";
-import ClientOrdersHallPage from "./influencer/ClientOrdersHallPage";
+/**
+ * 性能优化（仅生产环境）：达人端路由懒加载，减小登录后首屏 JS 体积。
+ * - 仅影响加载时机，不改变任何业务逻辑与页面布局。
+ */
+import TaskHallPageDev from "./influencer/TaskHallPage";
+import ClientOrdersHallPageDev from "./influencer/ClientOrdersHallPage";
+import MyTasksPageDev from "./influencer/MyTasksPage";
+import InfluencerPointsPageDev from "./influencer/PointsPage";
+import WithdrawPageDev from "./influencer/WithdrawPage";
+
+const TaskHallPage = import.meta.env.PROD ? lazy(() => import("./influencer/TaskHallPage")) : TaskHallPageDev;
+const ClientOrdersHallPage = import.meta.env.PROD
+  ? lazy(() => import("./influencer/ClientOrdersHallPage"))
+  : ClientOrdersHallPageDev;
+const MyTasksPage = import.meta.env.PROD ? lazy(() => import("./influencer/MyTasksPage")) : MyTasksPageDev;
+const InfluencerPointsPage = import.meta.env.PROD ? lazy(() => import("./influencer/PointsPage")) : InfluencerPointsPageDev;
+const WithdrawPage = import.meta.env.PROD ? lazy(() => import("./influencer/WithdrawPage")) : WithdrawPageDev;
 import ProtectedRoute from "./ProtectedRoute";
 import App from "./App";
 import { LanguageProvider } from "./i18n";
+import OperationLogsPage from "./OperationLogsPage";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -50,22 +65,27 @@ createRoot(document.getElementById("root")!).render(
             <Route path="users" element={<UsersPage />} />
             <Route path="market-orders" element={<MarketOrdersPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="op-logs" element={<OperationLogsPage />} />
           </Route>
           <Route path="/client" element={<ProtectedRoute roles={["client"]}><ClientLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/client/requests" replace />} />
             <Route path="requests" element={<RequestsPage />} />
+            <Route path="requests/:id/edit" element={<RequestEditPage />} />
             <Route path="orders" element={<OrdersPage />} />
             <Route path="market-orders" element={<ClientMarketOrdersPage />} />
+            <Route path="market-orders/:id/edit" element={<MarketOrderEditPage />} />
             <Route path="works" element={<WorksPage />} />
             <Route path="points" element={<ClientPointsPage />} />
+            <Route path="op-logs" element={<OperationLogsPage />} />
           </Route>
           <Route path="/influencer" element={<ProtectedRoute roles={["influencer"]}><InfluencerLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/influencer/tasks" replace />} />
-            <Route path="tasks" element={<TaskHallPage />} />
-            <Route path="client-orders" element={<ClientOrdersHallPage />} />
-            <Route path="my-tasks" element={<MyTasksPage />} />
-            <Route path="points" element={<InfluencerPointsPage />} />
-            <Route path="withdraw" element={<WithdrawPage />} />
+            <Route path="tasks" element={<Suspense fallback={<p>加载中…</p>}><TaskHallPage /></Suspense>} />
+            <Route path="client-orders" element={<Suspense fallback={<p>加载中…</p>}><ClientOrdersHallPage /></Suspense>} />
+            <Route path="my-tasks" element={<Suspense fallback={<p>加载中…</p>}><MyTasksPage /></Suspense>} />
+            <Route path="points" element={<Suspense fallback={<p>加载中…</p>}><InfluencerPointsPage /></Suspense>} />
+            <Route path="withdraw" element={<Suspense fallback={<p>加载中…</p>}><WithdrawPage /></Suspense>} />
+            <Route path="op-logs" element={<OperationLogsPage />} />
           </Route>
           <Route path="/translate" element={<App />} />
           <Route path="/" element={<Navigate to="/login" replace />} />

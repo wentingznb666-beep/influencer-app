@@ -3,6 +3,7 @@ import { query, withTx } from "../db";
 import { ensurePointAccountLocked } from "../pointAccounts";
 import { allocateMarketOrderNo } from "../marketOrderNo";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
+import { recordOperationLogTx } from "../operationLog";
 
 const router = Router();
 router.use(requireAuth);
@@ -31,10 +32,41 @@ function resolveMarketOrderPayPoints(tier: string): { tier: "A" | "B" | "C"; pay
 router.get("/requests", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
   (async () => {
-    const { rows } = await query("SELECT id, product_info, target_platform, budget, need_face, status, created_at FROM client_requests WHERE client_id = $1 ORDER BY id DESC", [clientId]);
+    const { rows } = await query(
+      "SELECT id, product_info, target_platform, budget, need_face, status, created_at FROM client_requests WHERE client_id = $1 AND is_deleted = 0 ORDER BY id DESC",
+      [clientId]
+    );
     res.json({ list: rows });
   })().catch((e) => {
     console.error("client requests list error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * GET /api/client/requests/:id
+ * 获取单条合作意向（用于编辑页回显）。
+ */
+router.get("/requests/:id", (req: AuthRequest, res: Response) => {
+  const clientId = req.user!.userId;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的需求 ID。" });
+    return;
+  }
+  (async () => {
+    const { rows } = await query(
+      "SELECT id, product_info, target_platform, budget, need_face, status, created_at FROM client_requests WHERE id = $1 AND client_id = $2 AND is_deleted = 0",
+      [id, clientId]
+    );
+    const row = rows[0];
+    if (!row) {
+      res.status(404).json({ error: "NOT_FOUND", message: "需求不存在。" });
+      return;
+    }
+    res.json({ item: row });
+  })().catch((e) => {
+    console.error("client requests detail error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   });
 });
@@ -47,13 +79,109 @@ router.post("/requests", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
   const { product_info, target_platform, budget, need_face } = req.body ?? {};
   (async () => {
-    const created = await query<{ id: number }>(
-      "INSERT INTO client_requests (client_id, product_info, target_platform, budget, need_face, status) VALUES ($1, $2, $3, $4, $5, 'submitted') RETURNING id",
-      [clientId, product_info != null ? String(product_info) : null, target_platform != null ? String(target_platform) : null, budget != null ? String(budget) : null, need_face ? 1 : 0]
-    );
-    res.status(201).json({ id: created.rows[0]!.id });
+    const created = await withTx(async (client) => {
+      const ins = await client.query<{ id: number }>(
+        "INSERT INTO client_requests (client_id, product_info, target_platform, budget, need_face, status) VALUES ($1, $2, $3, $4, $5, 'submitted') RETURNING id",
+        [clientId, product_info != null ? String(product_info) : null, target_platform != null ? String(target_platform) : null, budget != null ? String(budget) : null, need_face ? 1 : 0]
+      );
+      const id = ins.rows[0]!.id;
+      await recordOperationLogTx(client, { userId: clientId, actionType: "create", targetType: "intent", targetId: id });
+      return { id };
+    });
+    res.status(201).json({ id: created.id });
   })().catch((e) => {
     console.error("client requests create error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * PATCH /api/client/requests/:id
+ * 编辑合作意向（仅允许编辑自己的记录；软删除的不允许编辑）。
+ */
+router.patch("/requests/:id", (req: AuthRequest, res: Response) => {
+  const clientId = req.user!.userId;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的需求 ID。" });
+    return;
+  }
+  const { product_info, target_platform, budget, need_face, status } = req.body ?? {};
+  (async () => {
+    const row = await query<{ id: number }>(
+      "SELECT id FROM client_requests WHERE id = $1 AND client_id = $2 AND is_deleted = 0",
+      [id, clientId]
+    );
+    if (!row.rows[0]) {
+      res.status(404).json({ error: "NOT_FOUND", message: "需求不存在。" });
+      return;
+    }
+    const sets: string[] = [];
+    const params: any[] = [];
+    let idx = 1;
+    if (product_info !== undefined) {
+      sets.push(`product_info = $${idx++}`);
+      params.push(product_info == null ? null : String(product_info));
+    }
+    if (target_platform !== undefined) {
+      sets.push(`target_platform = $${idx++}`);
+      params.push(target_platform == null ? null : String(target_platform));
+    }
+    if (budget !== undefined) {
+      sets.push(`budget = $${idx++}`);
+      params.push(budget == null ? null : String(budget));
+    }
+    if (need_face !== undefined) {
+      sets.push(`need_face = $${idx++}`);
+      params.push(need_face ? 1 : 0);
+    }
+    if (status === "draft" || status === "submitted" || status === "processing" || status === "done") {
+      sets.push(`status = $${idx++}`);
+      params.push(status);
+    }
+    if (sets.length === 0) {
+      res.json({ ok: true });
+      return;
+    }
+    await withTx(async (client) => {
+      params.push(id);
+      params.push(clientId);
+      await client.query(`UPDATE client_requests SET ${sets.join(", ")} WHERE id = $${idx++} AND client_id = $${idx++}`, params);
+      await recordOperationLogTx(client, { userId: clientId, actionType: "edit", targetType: "intent", targetId: id });
+    });
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("client requests patch error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * DELETE /api/client/requests/:id
+ * 软删除合作意向。
+ */
+router.delete("/requests/:id", (req: AuthRequest, res: Response) => {
+  const clientId = req.user!.userId;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的需求 ID。" });
+    return;
+  }
+  (async () => {
+    await withTx(async (client) => {
+      const updated = await client.query<{ id: number }>(
+        "UPDATE client_requests SET is_deleted = 1, deleted_at = now() WHERE id = $1 AND client_id = $2 AND is_deleted = 0 RETURNING id",
+        [id, clientId]
+      );
+      if (!updated.rows[0]) {
+        res.status(404).json({ error: "NOT_FOUND", message: "需求不存在。" });
+        return;
+      }
+      await recordOperationLogTx(client, { userId: clientId, actionType: "delete", targetType: "intent", targetId: id });
+      res.json({ ok: true });
+    });
+  })().catch((e) => {
+    console.error("client requests delete error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   });
 });
@@ -259,7 +387,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
   const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
   (async () => {
     let sql = `SELECT id, order_no, title, requirements, reward_points, status, influencer_id, work_link, created_at, updated_at, completed_at
-       FROM client_market_orders WHERE client_id = $1`;
+       FROM client_market_orders WHERE client_id = $1 AND is_deleted = 0`;
     const params: unknown[] = [clientId];
     if (rawQ) {
       sql += ` AND (order_no = $2 OR title = $2 OR requirements = $2)`;
@@ -270,6 +398,35 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
     res.json({ list: rows });
   })().catch((e) => {
     console.error("client market-orders list error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * GET /api/client/market-orders/:id
+ * 获取单条发单（用于编辑页回显）。
+ */
+router.get("/market-orders/:id", (req: AuthRequest, res: Response) => {
+  const clientId = req.user!.userId;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
+    return;
+  }
+  (async () => {
+    const { rows } = await query(
+      `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, reward_points, status, influencer_id, work_link, created_at, updated_at, completed_at
+         FROM client_market_orders WHERE id = $1 AND client_id = $2 AND is_deleted = 0`,
+      [id, clientId]
+    );
+    const row = rows[0];
+    if (!row) {
+      res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+      return;
+    }
+    res.json({ item: row });
+  })().catch((e) => {
+    console.error("client market-orders detail error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   });
 });
@@ -342,6 +499,7 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
       ]);
       await client.query("UPDATE point_accounts SET balance = balance - $1, updated_at = now() WHERE id = $2", [payPoints, acc.id]);
       await client.query("UPDATE client_market_orders SET pay_deducted = 1, updated_at = now() WHERE id = $1", [orderId]);
+      await recordOperationLogTx(client, { userId: clientId, actionType: "create", targetType: "order", targetId: orderId });
       return { kind: "ok" as const, id: ins.rows[0]!.id, order_no: ins.rows[0]!.order_no };
     });
     if (result.kind === "bad_voice") {
@@ -359,6 +517,138 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
     res.status(201).json({ id: result.id, order_no: result.order_no });
   })().catch((e) => {
     console.error("client market-orders create error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * PATCH /api/client/market-orders/:id
+ * 编辑订单：仅允许编辑自己的 open 状态订单（软删除的不允许编辑）。
+ */
+router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
+  const clientId = req.user!.userId;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
+    return;
+  }
+  const { title, requirements, tier, voice_link, voice_note } = req.body ?? {};
+  const nextTitle = title !== undefined ? String(title ?? "").trim() : undefined;
+  const nextReq = requirements !== undefined ? String(requirements ?? "").trim() : undefined;
+  const nextTier = typeof tier === "string" ? tier.trim().toUpperCase() : undefined;
+  const voiceLink = voice_link !== undefined ? String(voice_link ?? "").trim() : undefined;
+  const voiceNote = voice_note !== undefined ? String(voice_note ?? "").trim() : undefined;
+  if (nextTitle !== undefined && nextTitle.length > 200) {
+    res.status(400).json({ error: "INVALID_TITLE", message: "订单标题最长 200 字。" });
+    return;
+  }
+  if (nextReq !== undefined && (!nextReq || nextReq.length > 8000)) {
+    res.status(400).json({ error: "INVALID_REQUIREMENTS", message: "请填写任务要求（1–8000 字）。" });
+    return;
+  }
+  if (voiceLink !== undefined && voiceLink.length > 2000) {
+    res.status(400).json({ error: "INVALID_VOICE", message: "配音素材链接最长 2000 字符。" });
+    return;
+  }
+  if (voiceNote !== undefined && voiceNote.length > 2000) {
+    res.status(400).json({ error: "INVALID_VOICE", message: "配音要求备注最长 2000 字符。" });
+    return;
+  }
+  (async () => {
+    const row = await query<{ id: number; status: string; tier: string }>(
+      "SELECT id, status, tier FROM client_market_orders WHERE id = $1 AND client_id = $2 AND is_deleted = 0",
+      [id, clientId]
+    );
+    const ord = row.rows[0];
+    if (!ord) {
+      res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+      return;
+    }
+    if (ord.status !== "open") {
+      res.status(409).json({ error: "BAD_STATE", message: "仅支持编辑待领取的订单。" });
+      return;
+    }
+    const sets: string[] = [];
+    const params: any[] = [];
+    let idx = 1;
+    if (nextTitle !== undefined) {
+      sets.push(`title = $${idx++}`);
+      params.push(nextTitle || null);
+    }
+    if (nextReq !== undefined) {
+      sets.push(`requirements = $${idx++}`);
+      params.push(nextReq);
+    }
+    if (nextTier === "A" || nextTier === "B" || nextTier === "C") {
+      sets.push(`tier = $${idx++}`);
+      params.push(nextTier);
+      // A 类才保留配音字段；否则清空
+      sets.push(`voice_link = $${idx++}`);
+      params.push(nextTier === "A" ? (voiceLink ? voiceLink : null) : null);
+      sets.push(`voice_note = $${idx++}`);
+      params.push(nextTier === "A" ? (voiceNote ? voiceNote : null) : null);
+    } else if (voiceLink !== undefined || voiceNote !== undefined) {
+      // 档位未变更时：仅当当前为 A 才允许写配音字段
+      if (String(ord.tier || "") !== "A") {
+        res.status(400).json({ error: "INVALID_VOICE", message: "仅 A 类订单支持配音信息。" });
+        return;
+      }
+      if (voiceLink !== undefined) {
+        sets.push(`voice_link = $${idx++}`);
+        params.push(voiceLink ? voiceLink : null);
+      }
+      if (voiceNote !== undefined) {
+        sets.push(`voice_note = $${idx++}`);
+        params.push(voiceNote ? voiceNote : null);
+      }
+    }
+    if (sets.length === 0) {
+      res.json({ ok: true });
+      return;
+    }
+    await withTx(async (client) => {
+      sets.push(`updated_at = now()`);
+      params.push(id);
+      params.push(clientId);
+      await client.query(
+        `UPDATE client_market_orders SET ${sets.join(", ")} WHERE id = $${idx++} AND client_id = $${idx++} AND status = 'open' AND is_deleted = 0`,
+        params
+      );
+      await recordOperationLogTx(client, { userId: clientId, actionType: "edit", targetType: "order", targetId: id });
+    });
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("client market-orders patch error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * DELETE /api/client/market-orders/:id
+ * 软删除订单：仅允许删除自己的 open 状态订单。
+ */
+router.delete("/market-orders/:id", (req: AuthRequest, res: Response) => {
+  const clientId = req.user!.userId;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
+    return;
+  }
+  (async () => {
+    await withTx(async (client) => {
+      const updated = await client.query<{ id: number }>(
+        "UPDATE client_market_orders SET is_deleted = 1, deleted_at = now(), updated_at = now() WHERE id = $1 AND client_id = $2 AND status = 'open' AND is_deleted = 0 RETURNING id",
+        [id, clientId]
+      );
+      if (!updated.rows[0]) {
+        res.status(404).json({ error: "NOT_FOUND", message: "订单不存在或不可删除。" });
+        return;
+      }
+      await recordOperationLogTx(client, { userId: clientId, actionType: "delete", targetType: "order", targetId: id });
+      res.json({ ok: true });
+    });
+  })().catch((e) => {
+    console.error("client market-orders delete error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   });
 });

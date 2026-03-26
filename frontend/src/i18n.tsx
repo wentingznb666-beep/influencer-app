@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { TH_UI_DICT } from "./locales/th";
 
@@ -16,13 +16,25 @@ const translatedCache = new Map<string, string>();
 const originalTextByNode = new WeakMap<Text, string>();
 
 /**
+ * 判断是否为低端设备：
+ * - 低端设备上 useLayoutEffect 可能阻塞首屏绘制，故降级为 useEffect。
+ * - 仅用于“泰语自动翻译”的性能优化，不影响业务逻辑。
+ */
+function isLowEndDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const anyNav = navigator as any;
+  const cores = typeof anyNav.hardwareConcurrency === "number" ? anyNav.hardwareConcurrency : 8;
+  const mem = typeof anyNav.deviceMemory === "number" ? anyNav.deviceMemory : 8;
+  return cores <= 2 || mem <= 2;
+}
+
+/**
  * 将固定词典注入到翻译缓存中：
  * - 优先使用人工校对的泰语翻译，避免自动翻译不稳定或遗漏。
  * - 不影响原有缓存机制：缓存仍可覆盖未命中的文本节点。
  */
 function seedThaiDictionary(): void {
-  Object.keys(TH_UI_DICT).forEach((k) => {
-    const v = TH_UI_DICT[k];
+  Object.entries(TH_UI_DICT).forEach(([k, v]) => {
     if (typeof k !== "string" || !k.trim()) return;
     if (typeof v !== "string" || !v.trim()) return;
     translatedCache.set(k, v);
@@ -51,6 +63,23 @@ function persistCache(): void {
     // ignore storage errors
   }
 }
+
+/**
+ * 仅泰语模式下预热缓存（生产环境生效）：
+ * - 在首次渲染前让 translatedCache 就绪，避免泰语模式出现“先中文后泰语”的闪烁。
+ * - 优先注入 TH_UI_DICT，减少首屏触发网络翻译请求。
+ */
+function bootstrapThaiCacheIfNeeded(): void {
+  if (typeof window === "undefined") return;
+  if (!import.meta.env.PROD) return;
+  const currentLang = localStorage.getItem("influencer_app_lang");
+  if (currentLang !== "th") return;
+  // 先载入历史缓存，再注入固定词典（固定词典优先级更高）
+  loadCache();
+  seedThaiDictionary();
+}
+
+bootstrapThaiCacheIfNeeded();
 
 async function requestBatchTranslate(texts: string[], targetLang: "th"): Promise<string[]> {
   const base = (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin;
@@ -93,12 +122,14 @@ function collectTextNodes(root: HTMLElement): Text[] {
 function UiAutoTranslator({ lang }: { lang: Lang }) {
   const location = useLocation();
 
-  useEffect(() => {
-    loadCache();
-    seedThaiDictionary();
-  }, []);
+  /**
+   * 泰语翻译的渲染时机优化（仅生产环境）：
+   * - 默认用 useLayoutEffect 在绘制前替换文本，避免闪烁；
+   * - 低端设备降级为 useEffect，避免阻塞首屏。
+   */
+  const useTranslatorEffect = import.meta.env.PROD && isLowEndDevice() ? useEffect : useLayoutEffect;
 
-  useEffect(() => {
+  useTranslatorEffect(() => {
     const root = document.getElementById("root");
     if (!root) return;
 
@@ -114,6 +145,9 @@ function UiAutoTranslator({ lang }: { lang: Lang }) {
         });
         return;
       }
+
+      // 仅泰语模式下确保字典优先级（避免首屏依赖网络翻译）
+      if (import.meta.env.PROD) seedThaiDictionary();
 
       const pendingTexts: string[] = [];
       const seen = new Set<string>();

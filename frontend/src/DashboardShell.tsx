@@ -6,8 +6,8 @@ import { BrandLogo } from "./BrandLogo";
 import { xtLayout, xtOutlineBtn } from "./brandTheme";
 import { DeferredBlock, useDeferredInCompact, useResponsive } from "./responsive";
 
-/** 侧栏导航项：路径与文案 */
-export type DashboardNavItem = { to: string; label: string };
+/** 侧栏导航项：路径与文案（可选 hover 预加载） */
+export type DashboardNavItem = { to: string; label: string; preload?: () => void };
 
 type DashboardShellProps = {
   /** 侧栏展示的角色名称，如「管理员端」 */
@@ -113,6 +113,7 @@ export default function DashboardShell({
               to={item.to}
               className={({ isActive }) => "xt-sidebar-link" + (isActive ? " is-active" : "")}
               onClick={handleNavClick}
+              onMouseEnter={() => item.preload?.()}
             >
               {item.label}
             </NavLink>

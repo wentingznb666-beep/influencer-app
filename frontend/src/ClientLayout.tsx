@@ -10,6 +10,7 @@ const CLIENT_NAV = [
   { to: "/client/market-orders", label: "达人领单" },
   { to: "/client/works", label: "达人作品" },
   { to: "/client/points", label: "积分充值" },
+  { to: "/client/op-logs", label: "我的操作日志" },
 ];
 
 /**
@@ -17,6 +18,7 @@ const CLIENT_NAV = [
  */
 export default function ClientLayout() {
   const [balance, setBalance] = useState<number | null>(null);
+  const balanceTimerRef = useState<{ id: number | null; fired: boolean }>({ id: null, fired: false })[0];
 
   /**
    * 加载客户端当前积分余额，用于在导航顶部展示。
@@ -31,7 +33,30 @@ export default function ClientLayout() {
   };
 
   useEffect(() => {
-    loadBalance();
+    /**
+     * 性能优化（仅生产环境）：登录跳转到客户端首屏时，余额请求延后 200ms，
+     * 避免与首屏资源/路由渲染竞争；若用户在 200ms 内发生交互，则立即触发请求。
+     */
+    /** 触发余额请求（确保只触发一次）。 */
+    const fire = () => {
+      if (balanceTimerRef.fired) return;
+      balanceTimerRef.fired = true;
+      loadBalance();
+    };
+    if (!import.meta.env.PROD) {
+      fire();
+      return;
+    }
+    /** 用户意图触发：在用户交互前置拉取余额，避免感知延迟。 */
+    const onUserIntent = () => fire();
+    window.addEventListener("pointerdown", onUserIntent, { passive: true, once: true });
+    window.addEventListener("keydown", onUserIntent, { passive: true, once: true } as any);
+    balanceTimerRef.id = window.setTimeout(fire, 200) as unknown as number;
+    return () => {
+      window.removeEventListener("pointerdown", onUserIntent as any);
+      window.removeEventListener("keydown", onUserIntent as any);
+      if (balanceTimerRef.id != null) window.clearTimeout(balanceTimerRef.id);
+    };
   }, []);
 
   return (

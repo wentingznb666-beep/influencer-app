@@ -2,6 +2,7 @@ import { Router, Response } from "express";
 import { query, withTx } from "../db";
 import { ensurePointAccountLocked } from "../pointAccounts";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
+import { recordOperationLogTx } from "../operationLog";
 
 const router = Router();
 router.use(requireAuth);
@@ -207,11 +208,20 @@ router.post("/tasks/:taskId/claim", (req: AuthRequest, res: Response) => {
     }
 
     try {
-      const created = await query<{ id: number }>(
-        "INSERT INTO task_claims (task_id, user_id, status) VALUES ($1, $2, 'pending') RETURNING id",
-        [taskId, userId]
-      );
-      res.status(201).json({ id: created.rows[0]!.id, task_id: taskId });
+      const created = await withTx(async (client) => {
+        const ins = await client.query<{ id: number }>(
+          "INSERT INTO task_claims (task_id, user_id, status) VALUES ($1, $2, 'pending') RETURNING id",
+          [taskId, userId]
+        );
+        // 领取计数 + 业务状态推进（不影响原有领取逻辑，仅增加可视化字段）
+        await client.query(
+          "UPDATE tasks SET claimed_count = claimed_count + 1, biz_status = CASE WHEN biz_status = 'open' THEN 'in_progress' ELSE biz_status END WHERE id = $1",
+          [taskId]
+        );
+        await recordOperationLogTx(client, { userId, actionType: "edit", targetType: "task", targetId: taskId });
+        return ins.rows[0]!;
+      });
+      res.status(201).json({ id: created.id, task_id: taskId });
     } catch (e: any) {
       if (e?.code === "23505") {
         res.status(409).json({ error: "ALREADY_CLAIMED", message: "您已领取过该任务。" });
@@ -440,7 +450,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
     // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
     let sql = `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, creator_reward_points AS reward_points, status, created_at
-       FROM client_market_orders WHERE status = 'open'`;
+       FROM client_market_orders WHERE status = 'open' AND is_deleted = 0`;
     const params: unknown[] = [];
     if (rawQ) {
       sql += ` AND (order_no = $1 OR title = $1 OR requirements = $1)`;
@@ -466,7 +476,7 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
     // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
     let sql = `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, creator_reward_points AS reward_points, status, work_link, created_at, updated_at, completed_at
-       FROM client_market_orders WHERE influencer_id = $1`;
+       FROM client_market_orders WHERE influencer_id = $1 AND is_deleted = 0`;
     const params: unknown[] = [userId];
     if (rawQ) {
       sql += ` AND (order_no = $2 OR title = $2 OR requirements = $2)`;
@@ -498,12 +508,19 @@ router.post("/market-orders/:id/claim", (req: AuthRequest, res: Response) => {
       res.status(403).json({ error: "BLACKLISTED", message: "您已被列入黑名单，无法领取。" });
       return;
     }
-    const updated = await query<{ id: number }>(
-      `UPDATE client_market_orders SET status = 'claimed', influencer_id = $1, updated_at = now()
-       WHERE id = $2 AND status = 'open' RETURNING id`,
-      [userId, orderId]
-    );
-    if (!updated.rows[0]) {
+    const updated = await withTx(async (client) => {
+      const u = await client.query<{ id: number }>(
+        `UPDATE client_market_orders SET status = 'claimed', influencer_id = $1, updated_at = now()
+         WHERE id = $2 AND status = 'open' AND is_deleted = 0 RETURNING id`,
+        [userId, orderId]
+      );
+      const ok = u.rows[0];
+      if (ok) {
+        await recordOperationLogTx(client, { userId, actionType: "edit", targetType: "order", targetId: orderId });
+      }
+      return ok;
+    });
+    if (!updated) {
       res.status(409).json({ error: "UNAVAILABLE", message: "订单不可领取（已被领或已结束）。" });
       return;
     }

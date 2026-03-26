@@ -13,6 +13,7 @@ const ADMIN_NAV = [
   { to: "/admin/risk", label: "防删与风控" },
   { to: "/admin/users", label: "账号管理" },
   { to: "/admin/market-orders", label: "达人领单" },
+  { to: "/admin/op-logs", label: "我的操作日志" },
 ];
 
 /**

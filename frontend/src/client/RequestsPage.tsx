@@ -1,9 +1,11 @@
 import { useState, useEffect, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import * as api from "../clientApi";
 
 type Request = { id: number; product_info: string | null; target_platform: string | null; budget: string | null; need_face: number; status: string; created_at: string };
 
 export default function RequestsPage() {
+  const nav = useNavigate();
   const [list, setList] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +49,21 @@ export default function RequestsPage() {
   };
 
   const statusText: Record<string, string> = { draft: "草稿", submitted: "已提交", processing: "处理中", done: "已完成" };
+
+  /**
+   * 软删除：弹出确认框，确认后调用删除接口并刷新列表。
+   */
+  const handleDelete = async (id: number) => {
+    const ok = window.confirm("确认删除该合作意向？删除后将不再展示（软删除）。");
+    if (!ok) return;
+    setError(null);
+    try {
+      await api.deleteRequest(id);
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "删除失败");
+    }
+  };
 
   return (
     <div
@@ -126,7 +143,23 @@ export default function RequestsPage() {
             <div key={r.id} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 600 }}>#{r.id}</span>
-                <span style={{ color: "#666" }}>{statusText[r.status] ?? r.status}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <span style={{ color: "#666" }}>{statusText[r.status] ?? r.status}</span>
+                  <button
+                    type="button"
+                    onClick={() => nav(`/client/requests/${r.id}/edit`)}
+                    style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                  >
+                    编辑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(r.id)}
+                    style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: "pointer" }}
+                  >
+                    删除
+                  </button>
+                </div>
               </div>
               <p style={{ margin: "8px 0 0", fontSize: 14 }}>{r.product_info || "—"}</p>
               <p style={{ margin: "4px 0 0", fontSize: 13, color: "#666" }}>平台：{r.target_platform || "—"} · 预算：{r.budget || "—"} · {r.need_face ? "露脸" : "讲解"}</p>

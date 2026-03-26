@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import * as api from "../clientApi";
 
 type MarketOrder = {
@@ -19,6 +20,7 @@ type MarketOrder = {
  * 客户端「达人领单」页面：发布要求、查看订单号与标题、搜索、查看状态与交付链接。
  */
 export default function ClientMarketOrdersPage() {
+  const nav = useNavigate();
   const [list, setList] = useState<MarketOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -110,6 +112,21 @@ export default function ClientMarketOrdersPage() {
     claimed: "已领取/进行中",
     completed: "已完成",
     cancelled: "已取消",
+  };
+
+  /**
+   * 软删除订单：仅 open 状态可删（后端会校验）。
+   */
+  const handleDelete = async (id: number) => {
+    const ok = window.confirm("确认删除该订单？仅“待领取”状态可删除。");
+    if (!ok) return;
+    setError(null);
+    try {
+      await api.deleteMarketOrder(id);
+      load(searchQ);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "删除失败");
+    }
   };
 
   return (
@@ -247,9 +264,29 @@ export default function ClientMarketOrdersPage() {
                   <div style={{ fontWeight: 600 }}>订单号：{o.order_no || `（内部ID ${o.id}）`}</div>
                   {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>}
                 </div>
-                <span style={{ color: "#666" }}>
-                  {statusText[o.status] ?? o.status} · 奖励 {o.reward_points} 分
-                </span>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <span style={{ color: "#666" }}>
+                    {statusText[o.status] ?? o.status} · 奖励 {o.reward_points} 分
+                  </span>
+                  {o.status === "open" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => nav(`/client/market-orders/${o.id}/edit`)}
+                        style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                      >
+                        编辑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(o.id)}
+                        style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: "pointer" }}
+                      >
+                        删除
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
               <p style={{ margin: "10px 0 0", fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</p>
               {o.work_link && (

@@ -68,6 +68,8 @@ const FULL_INIT_SQL = `
     platforms TEXT,
     remark TEXT,
     status TEXT NOT NULL DEFAULT 'online' CHECK (status IN ('online', 'offline')),
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
 
@@ -79,6 +81,13 @@ const FULL_INIT_SQL = `
     max_claim_count INTEGER,
     point_reward INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
+    biz_status TEXT NOT NULL DEFAULT 'open' CHECK (biz_status IN ('open', 'in_progress', 'done')),
+    claimed_count INTEGER NOT NULL DEFAULT 0,
+    fulfilled_count INTEGER NOT NULL DEFAULT 0,
+    tiktok_link TEXT,
+    product_images JSONB NOT NULL DEFAULT '[]'::jsonb,
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
 
@@ -99,6 +108,8 @@ const FULL_INIT_SQL = `
     user_id INTEGER NOT NULL REFERENCES users(id),
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'submitted', 'approved', 'rejected', 'locked', 'settled')),
     claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ,
     UNIQUE(task_id, user_id)
   );
 
@@ -109,7 +120,9 @@ const FULL_INIT_SQL = `
     note TEXT,
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
     submitted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    reviewed_at TIMESTAMPTZ
+    reviewed_at TIMESTAMPTZ,
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ
   );
 
   CREATE TABLE IF NOT EXISTS client_requests (
@@ -120,6 +133,8 @@ const FULL_INIT_SQL = `
     budget TEXT,
     need_face INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'submitted', 'processing', 'done')),
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
 
@@ -130,7 +145,9 @@ const FULL_INIT_SQL = `
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'received')),
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ
   );
 
   CREATE TABLE IF NOT EXISTS settlement_records (
@@ -142,6 +159,8 @@ const FULL_INIT_SQL = `
     paid_at TIMESTAMPTZ,
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ,
     UNIQUE(user_id, week_start)
   );
 
@@ -150,7 +169,9 @@ const FULL_INIT_SQL = `
     submission_id INTEGER NOT NULL REFERENCES submissions(id),
     check_result TEXT NOT NULL CHECK (check_result IN ('ok', 'deleted', 'suspicious')),
     checked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    note TEXT
+    note TEXT,
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ
   );
 
   CREATE TABLE IF NOT EXISTS influencer_violations (
@@ -158,7 +179,9 @@ const FULL_INIT_SQL = `
     user_id INTEGER NOT NULL REFERENCES users(id),
     submission_id INTEGER REFERENCES submissions(id),
     reason TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ
   );
 
   CREATE TABLE IF NOT EXISTS withdrawal_requests (
@@ -172,7 +195,9 @@ const FULL_INIT_SQL = `
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    paid_at TIMESTAMPTZ
+    paid_at TIMESTAMPTZ,
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ
   );
   ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS bank_account_name TEXT;
   ALTER TABLE withdrawal_requests ADD COLUMN IF NOT EXISTS bank_name TEXT;
@@ -187,7 +212,9 @@ const FULL_INIT_SQL = `
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    approved_at TIMESTAMPTZ
+    approved_at TIMESTAMPTZ,
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ
   );
   ALTER TABLE recharge_orders ADD COLUMN IF NOT EXISTS order_no TEXT;
   CREATE UNIQUE INDEX IF NOT EXISTS idx_recharge_orders_order_no ON recharge_orders(order_no) WHERE order_no IS NOT NULL;
@@ -226,11 +253,23 @@ const FULL_INIT_SQL = `
     voice_note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    completed_at TIMESTAMPTZ
+    completed_at TIMESTAMPTZ,
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ
   );
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_open ON client_market_orders (id) WHERE status = 'open';
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_client ON client_market_orders (client_id);
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_influencer ON client_market_orders (influencer_id);
+
+  CREATE TABLE IF NOT EXISTS operation_log (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    action_type TEXT NOT NULL CHECK (action_type IN ('create', 'edit', 'delete')),
+    target_type TEXT NOT NULL CHECK (target_type IN ('intent', 'order', 'task')),
+    target_id INTEGER NOT NULL,
+    create_time TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS idx_operation_log_user_time ON operation_log (user_id, create_time DESC);
 `;
 
 /**
@@ -425,6 +464,44 @@ async function runLightweightInit(): Promise<void> {
  */
 async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS disabled INTEGER NOT NULL DEFAULT 0`);
+  // 操作日志（幂等）
+  await query(`CREATE TABLE IF NOT EXISTS operation_log (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    action_type TEXT NOT NULL CHECK (action_type IN ('create', 'edit', 'delete')),
+    target_type TEXT NOT NULL CHECK (target_type IN ('intent', 'order', 'task')),
+    target_id INTEGER NOT NULL,
+    create_time TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_operation_log_user_time ON operation_log (user_id, create_time DESC)`);
+
+  // 软删除字段（幂等）
+  const softDeleteTables = [
+    "materials",
+    "tasks",
+    "task_claims",
+    "submissions",
+    "client_requests",
+    "sample_orders",
+    "settlement_records",
+    "submission_checks",
+    "influencer_violations",
+    "withdrawal_requests",
+    "recharge_orders",
+    "client_market_orders",
+  ];
+  for (const t of softDeleteTables) {
+    await query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS is_deleted INTEGER NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`);
+  }
+
+  // tasks：发布增强与计数/状态字段（幂等）
+  await query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS biz_status TEXT NOT NULL DEFAULT 'open'`);
+  await query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS claimed_count INTEGER NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fulfilled_count INTEGER NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS tiktok_link TEXT`);
+  await query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS product_images JSONB NOT NULL DEFAULT '[]'::jsonb`);
+
   const mo = await query<{ exists: boolean }>(
     `SELECT EXISTS (
       SELECT 1 FROM information_schema.tables
