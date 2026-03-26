@@ -8,6 +8,9 @@ type MarketOrder = {
   title: string | null;
   requirements: string;
   reward_points: number;
+  tier?: "A" | "B" | "C" | string;
+  tiktok_link?: string | null;
+  product_images?: string[] | null;
   status: string;
   influencer_id: number | null;
   work_link: string | null;
@@ -31,6 +34,9 @@ export default function ClientMarketOrdersPage() {
   const [tier, setTier] = useState<"C" | "B" | "A">("C");
   const [voiceLink, setVoiceLink] = useState("");
   const [voiceNote, setVoiceNote] = useState("");
+  const [tiktokLink, setTiktokLink] = useState("");
+  const [productImagesText, setProductImagesText] = useState("");
+  const [taskCount, setTaskCount] = useState(1);
   const [searchQ, setSearchQ] = useState("");
 
   /**
@@ -70,7 +76,8 @@ export default function ClientMarketOrdersPage() {
   }, []);
 
   const consumePoints = tier === "A" ? 60 : tier === "B" ? 40 : 20;
-  const canAfford = balance == null ? true : balance >= consumePoints;
+  const totalConsumePoints = consumePoints * taskCount;
+  const canAfford = balance == null ? true : balance >= totalConsumePoints;
 
   /**
    * 提交新订单（需账户至少有约定奖励积分）。
@@ -83,16 +90,24 @@ export default function ClientMarketOrdersPage() {
       return;
     }
     if (balance != null && balance < consumePoints) {
-      setError(`积分余额不足：本次将消耗 ${consumePoints} 积分，当前余额 ${balance}。`);
+      setError(`积分余额不足：本次将消耗 ${totalConsumePoints} 积分，当前余额 ${balance}。`);
       return;
     }
     try {
+      const productImages = productImagesText
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 20);
       await api.createMarketOrder({
         requirements: text,
         title: title.trim() || undefined,
         tier,
         voice_link: tier === "A" ? (voiceLink.trim() || undefined) : undefined,
         voice_note: tier === "A" ? (voiceNote.trim() || undefined) : undefined,
+        tiktok_link: tiktokLink.trim() || undefined,
+        product_images: productImages,
+        task_count: taskCount,
       });
       setShowForm(false);
       setRequirements("");
@@ -100,6 +115,9 @@ export default function ClientMarketOrdersPage() {
       setTier("C");
       setVoiceLink("");
       setVoiceNote("");
+      setTiktokLink("");
+      setProductImagesText("");
+      setTaskCount(1);
       loadBalance();
       load(searchQ);
     } catch (e) {
@@ -222,6 +240,34 @@ export default function ClientMarketOrdersPage() {
               />
             </>
           )}
+          <label htmlFor="taskCount">发布数量（批量创建）</label>
+          <input
+            id="taskCount"
+            type="number"
+            min={1}
+            max={100}
+            value={taskCount}
+            onChange={(e) => setTaskCount(Math.max(1, Math.min(100, Number(e.target.value) || 1)))}
+            style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 180, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+          />
+          <label htmlFor="tiktokLink">TikTok 链接（可选）</label>
+          <input
+            id="tiktokLink"
+            type="url"
+            value={tiktokLink}
+            onChange={(e) => setTiktokLink(e.target.value)}
+            placeholder="https://www.tiktok.com/..."
+            style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+          />
+          <label htmlFor="productImages">商品图片（多图，每行一个链接，可选）</label>
+          <textarea
+            id="productImages"
+            value={productImagesText}
+            onChange={(e) => setProductImagesText(e.target.value)}
+            placeholder={"https://img1...\nhttps://img2..."}
+            rows={4}
+            style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+          />
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <button
               type="button"
@@ -240,7 +286,7 @@ export default function ClientMarketOrdersPage() {
               发布
             </button>
             <span style={{ fontSize: 13, color: canAfford ? "#64748b" : "#c00" }}>
-              本次将消耗 <strong>{consumePoints}</strong> 积分
+              本次将消耗 <strong>{totalConsumePoints}</strong> 积分（{consumePoints} × {taskCount}）
               {balance != null ? `（当前余额 ${balance}）` : ""}
             </span>
             <button
@@ -289,6 +335,17 @@ export default function ClientMarketOrdersPage() {
                 </div>
               </div>
               <p style={{ margin: "10px 0 0", fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</p>
+              {!!o.tiktok_link && (
+                <p style={{ margin: "8px 0 0", fontSize: 13 }}>
+                  TikTok：
+                  <a href={o.tiktok_link} target="_blank" rel="noreferrer">
+                    {o.tiktok_link}
+                  </a>
+                </p>
+              )}
+              {Array.isArray(o.product_images) && o.product_images.length > 0 && (
+                <p style={{ margin: "6px 0 0", fontSize: 13, color: "#475569" }}>商品图片：{o.product_images.length} 张</p>
+              )}
               {o.work_link && (
                 <p style={{ margin: "8px 0 0", fontSize: 14 }}>
                   交付链接：

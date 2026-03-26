@@ -10,6 +10,8 @@ type MarketOrderItem = {
   tier: "A" | "B" | "C" | string;
   voice_link?: string | null;
   voice_note?: string | null;
+  tiktok_link?: string | null;
+  product_images?: string[] | null;
   status: string;
   created_at: string;
 };
@@ -25,7 +27,15 @@ export default function MarketOrderEditPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [item, setItem] = useState<MarketOrderItem | null>(null);
-  const [form, setForm] = useState({ title: "", requirements: "", tier: "C" as "C" | "B" | "A", voice_link: "", voice_note: "" });
+  const [form, setForm] = useState({
+    title: "",
+    requirements: "",
+    tier: "C" as "C" | "B" | "A",
+    voice_link: "",
+    voice_note: "",
+    tiktok_link: "",
+    product_images_text: "",
+  });
 
   useEffect(() => {
     if (!Number.isInteger(orderId) || orderId < 1) {
@@ -46,6 +56,8 @@ export default function MarketOrderEditPage() {
         tier: (String(it.tier || "C").toUpperCase() as any) === "A" ? "A" : (String(it.tier || "C").toUpperCase() as any) === "B" ? "B" : "C",
         voice_link: (it.voice_link || "") as any,
         voice_note: (it.voice_note || "") as any,
+        tiktok_link: (it.tiktok_link || "") as any,
+        product_images_text: Array.isArray(it.product_images) ? it.product_images.join("\n") : "",
       });
     })()
       .catch((e) => setError(e instanceof Error ? e.message : "加载失败"))
@@ -66,6 +78,12 @@ export default function MarketOrderEditPage() {
         tier: form.tier,
         voice_link: form.tier === "A" ? (form.voice_link.trim() || undefined) : undefined,
         voice_note: form.tier === "A" ? (form.voice_note.trim() || undefined) : undefined,
+        tiktok_link: form.tiktok_link.trim() || undefined,
+        product_images: form.product_images_text
+          .split("\n")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .slice(0, 20),
       });
       nav("/client/market-orders", { replace: true });
     } catch (e) {
@@ -114,6 +132,20 @@ export default function MarketOrderEditPage() {
               </div>
             </>
           )}
+          <div style={{ marginBottom: 10 }}>
+            <label>TikTok 链接（可选）</label>
+            <input value={form.tiktok_link} onChange={(e) => setForm((f) => ({ ...f, tiktok_link: e.target.value }))} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <label>商品图片（多图，每行一个链接）</label>
+            <textarea
+              rows={4}
+              value={form.product_images_text}
+              onChange={(e) => setForm((f) => ({ ...f, product_images_text: e.target.value }))}
+              placeholder={"https://img1...\nhttps://img2..."}
+              style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }}
+            />
+          </div>
           <button type="submit" style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: "var(--xt-accent)", color: "#fff", cursor: "pointer", fontWeight: 700 }}>
             保存
           </button>

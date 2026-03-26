@@ -26,6 +26,18 @@ function resolveMarketOrderPayPoints(tier: string): { tier: "A" | "B" | "C"; pay
 }
 
 /**
+ * 解析多图字段：支持字符串数组，最多 20 条，每条去空白后入库。
+ */
+function normalizeProductImages(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .filter((x) => typeof x === "string")
+    .map((x) => String(x).trim())
+    .filter(Boolean)
+    .slice(0, 20);
+}
+
+/**
  * GET /api/client/requests
  * 当前客户的需求/合作意向列表。
  */
@@ -386,7 +398,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
   const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
   (async () => {
-    let sql = `SELECT id, order_no, title, requirements, reward_points, status, influencer_id, work_link, created_at, updated_at, completed_at
+    let sql = `SELECT id, order_no, title, requirements, reward_points, tier, tiktok_link, product_images, status, influencer_id, work_link, created_at, updated_at, completed_at
        FROM client_market_orders WHERE client_id = $1 AND is_deleted = 0`;
     const params: unknown[] = [clientId];
     if (rawQ) {
@@ -415,7 +427,7 @@ router.get("/market-orders/:id", (req: AuthRequest, res: Response) => {
   }
   (async () => {
     const { rows } = await query(
-      `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, reward_points, status, influencer_id, work_link, created_at, updated_at, completed_at
+      `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, tiktok_link, product_images, reward_points, status, influencer_id, work_link, created_at, updated_at, completed_at
          FROM client_market_orders WHERE id = $1 AND client_id = $2 AND is_deleted = 0`,
       [id, clientId]
     );
@@ -437,10 +449,14 @@ router.get("/market-orders/:id", (req: AuthRequest, res: Response) => {
  */
 router.post("/market-orders", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
-  const { requirements, title, tier, voice_link, voice_note } = req.body ?? {};
+  const { requirements, title, tier, voice_link, voice_note, tiktok_link, product_images, task_count } = req.body ?? {};
   const reqText = requirements != null ? String(requirements).trim() : "";
   if (!reqText || reqText.length > 8000) {
     res.status(400).json({ error: "INVALID_REQUIREMENTS", message: "请填写任务要求（1–8000 字）。" });
+    return;
+  }
+  if (typeof tiktok_link === "string" && tiktok_link.trim().length > 2000) {
+    res.status(400).json({ error: "INVALID_TIKTOK", message: "TikTok 链接最长 2000 字符。" });
     return;
   }
   let titleText = title != null ? String(title).trim() : "";
@@ -457,11 +473,16 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
       const resolved = resolveMarketOrderPayPoints(typeof tier === "string" ? tier.trim().toUpperCase() : "");
       const payPoints = resolved.payPoints;
       const platformProfit = Math.max(payPoints - MARKET_ORDER_CREATOR_REWARD, 0);
-      if (acc.balance < payPoints) {
-        return { kind: "insufficient" as const, balance: acc.balance, need: payPoints };
+      const countRaw = task_count == null ? 1 : Number(task_count);
+      const taskCount = Number.isInteger(countRaw) ? Math.min(Math.max(countRaw, 1), 100) : 1;
+      const totalPayPoints = payPoints * taskCount;
+      if (acc.balance < totalPayPoints) {
+        return { kind: "insufficient" as const, balance: acc.balance, need: totalPayPoints };
       }
       const voiceLink = voice_link != null ? String(voice_link).trim() : "";
       const voiceNote = voice_note != null ? String(voice_note).trim() : "";
+      const tiktokLink = tiktok_link != null ? String(tiktok_link).trim() : "";
+      const productImages = normalizeProductImages(product_images);
       if (resolved.tier === "A") {
         if (voiceLink.length > 2000) {
           return { kind: "bad_voice" as const, message: "配音素材链接最长 2000 字符。" };
@@ -470,37 +491,45 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
           return { kind: "bad_voice" as const, message: "配音要求备注最长 2000 字符。" };
         }
       }
-      const orderNo = await allocateMarketOrderNo(client);
-      const ins = await client.query<{ id: number; order_no: string }>(
-        `INSERT INTO client_market_orders
-           (client_id, order_no, title, requirements, reward_points, tier, creator_reward_points, platform_profit_points, pay_deducted, voice_link, voice_note, status)
-         VALUES
-           ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9, $10, 'open')
-         RETURNING id, order_no`,
-        [
-          clientId,
-          orderNo,
-          titleText,
-          reqText,
-          payPoints,
-          resolved.tier,
-          MARKET_ORDER_CREATOR_REWARD,
-          platformProfit,
-          resolved.tier === "A" ? (voiceLink || null) : null,
-          resolved.tier === "A" ? (voiceNote || null) : null,
-        ]
-      );
-      const orderId = ins.rows[0]!.id;
-      // 发单即扣积分（入账到流水），并标记 pay_deducted=1，避免完单重复扣款
+      const createdIds: number[] = [];
+      const createdNos: string[] = [];
+      for (let i = 0; i < taskCount; i++) {
+        const orderNo = await allocateMarketOrderNo(client);
+        const ins = await client.query<{ id: number; order_no: string }>(
+          `INSERT INTO client_market_orders
+             (client_id, order_no, title, requirements, reward_points, tier, creator_reward_points, platform_profit_points, pay_deducted, voice_link, voice_note, tiktok_link, product_images, status)
+           VALUES
+             ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9, $10, $11, $12::jsonb, 'open')
+           RETURNING id, order_no`,
+          [
+            clientId,
+            orderNo,
+            titleText,
+            reqText,
+            payPoints,
+            resolved.tier,
+            MARKET_ORDER_CREATOR_REWARD,
+            platformProfit,
+            resolved.tier === "A" ? (voiceLink || null) : null,
+            resolved.tier === "A" ? (voiceNote || null) : null,
+            tiktokLink || null,
+            JSON.stringify(productImages),
+          ]
+        );
+        const orderId = ins.rows[0]!.id;
+        createdIds.push(orderId);
+        createdNos.push(ins.rows[0]!.order_no);
+        await recordOperationLogTx(client, { userId: clientId, actionType: "create", targetType: "order", targetId: orderId });
+      }
+      // 批量发单一次性扣总积分，减少流水噪音
       await client.query("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES ($1, $2, 'market_order_client_pay', $3)", [
         acc.id,
-        -payPoints,
-        orderId,
+        -totalPayPoints,
+        createdIds[0],
       ]);
-      await client.query("UPDATE point_accounts SET balance = balance - $1, updated_at = now() WHERE id = $2", [payPoints, acc.id]);
-      await client.query("UPDATE client_market_orders SET pay_deducted = 1, updated_at = now() WHERE id = $1", [orderId]);
-      await recordOperationLogTx(client, { userId: clientId, actionType: "create", targetType: "order", targetId: orderId });
-      return { kind: "ok" as const, id: ins.rows[0]!.id, order_no: ins.rows[0]!.order_no };
+      await client.query("UPDATE point_accounts SET balance = balance - $1, updated_at = now() WHERE id = $2", [totalPayPoints, acc.id]);
+      await client.query("UPDATE client_market_orders SET pay_deducted = 1, updated_at = now() WHERE id = ANY($1::int[])", [createdIds]);
+      return { kind: "ok" as const, id: createdIds[0], order_no: createdNos[0], created_count: taskCount };
     });
     if (result.kind === "bad_voice") {
       res.status(400).json({ error: "INVALID_VOICE", message: result.message });
@@ -514,7 +543,7 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
       return;
     }
     // 返回给客户端：显示其支付积分（reward_points 字段历史沿用）
-    res.status(201).json({ id: result.id, order_no: result.order_no });
+    res.status(201).json({ id: result.id, order_no: result.order_no, created_count: result.created_count });
   })().catch((e) => {
     console.error("client market-orders create error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
@@ -532,12 +561,14 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
     return;
   }
-  const { title, requirements, tier, voice_link, voice_note } = req.body ?? {};
+  const { title, requirements, tier, voice_link, voice_note, tiktok_link, product_images } = req.body ?? {};
   const nextTitle = title !== undefined ? String(title ?? "").trim() : undefined;
   const nextReq = requirements !== undefined ? String(requirements ?? "").trim() : undefined;
   const nextTier = typeof tier === "string" ? tier.trim().toUpperCase() : undefined;
   const voiceLink = voice_link !== undefined ? String(voice_link ?? "").trim() : undefined;
   const voiceNote = voice_note !== undefined ? String(voice_note ?? "").trim() : undefined;
+  const tiktokLink = tiktok_link !== undefined ? String(tiktok_link ?? "").trim() : undefined;
+  const productImages = product_images !== undefined ? normalizeProductImages(product_images) : undefined;
   if (nextTitle !== undefined && nextTitle.length > 200) {
     res.status(400).json({ error: "INVALID_TITLE", message: "订单标题最长 200 字。" });
     return;
@@ -554,6 +585,10 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_VOICE", message: "配音要求备注最长 2000 字符。" });
     return;
   }
+    if (tiktokLink !== undefined && tiktokLink.length > 2000) {
+      res.status(400).json({ error: "INVALID_TIKTOK", message: "TikTok 链接最长 2000 字符。" });
+      return;
+    }
   (async () => {
     const row = await query<{ id: number; status: string; tier: string }>(
       "SELECT id, status, tier FROM client_market_orders WHERE id = $1 AND client_id = $2 AND is_deleted = 0",
@@ -578,6 +613,14 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
     if (nextReq !== undefined) {
       sets.push(`requirements = $${idx++}`);
       params.push(nextReq);
+    }
+    if (tiktokLink !== undefined) {
+      sets.push(`tiktok_link = $${idx++}`);
+      params.push(tiktokLink || null);
+    }
+    if (productImages !== undefined) {
+      sets.push(`product_images = $${idx++}::jsonb`);
+      params.push(JSON.stringify(productImages));
     }
     if (nextTier === "A" || nextTier === "B" || nextTier === "C") {
       sets.push(`tier = $${idx++}`);

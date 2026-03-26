@@ -251,6 +251,10 @@ const FULL_INIT_SQL = `
     voice_link TEXT,
     /** A 类可选：配音要求备注 */
     voice_note TEXT,
+    /** 可选：TikTok 参考链接 */
+    tiktok_link TEXT,
+    /** 可选：商品图片 URL 列表 */
+    product_images JSONB NOT NULL DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     completed_at TIMESTAMPTZ,
@@ -517,6 +521,8 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS pay_deducted INTEGER NOT NULL DEFAULT 0`);
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS voice_link TEXT`);
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS voice_note TEXT`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS tiktok_link TEXT`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS product_images JSONB NOT NULL DEFAULT '[]'::jsonb`);
     await query(
       `UPDATE client_market_orders SET title = LEFT(requirements, 200) WHERE title IS NULL OR TRIM(COALESCE(title, '')) = ''`,
     );

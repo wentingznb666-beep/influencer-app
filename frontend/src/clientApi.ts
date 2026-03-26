@@ -102,7 +102,16 @@ export async function getMarketOrderDetail(id: number) {
  * 创建达人领单（需满足最低积分；完成后从余额扣给达人）。
  * @param body 任务要求文案与可选标题
  */
-export async function createMarketOrder(body: { requirements: string; title?: string; tier?: "A" | "B" | "C"; voice_link?: string; voice_note?: string }) {
+export async function createMarketOrder(body: {
+  requirements: string;
+  title?: string;
+  tier?: "A" | "B" | "C";
+  voice_link?: string;
+  voice_note?: string;
+  tiktok_link?: string;
+  product_images?: string[];
+  task_count?: number;
+}) {
   const res = await fetchWithAuth("/api/client/market-orders", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -113,7 +122,18 @@ export async function createMarketOrder(body: { requirements: string; title?: st
 }
 
 /** 编辑发单（仅 open 可编辑） */
-export async function updateMarketOrder(id: number, body: { title?: string; requirements?: string; tier?: "A" | "B" | "C"; voice_link?: string; voice_note?: string }) {
+export async function updateMarketOrder(
+  id: number,
+  body: {
+    title?: string;
+    requirements?: string;
+    tier?: "A" | "B" | "C";
+    voice_link?: string;
+    voice_note?: string;
+    tiktok_link?: string;
+    product_images?: string[];
+  }
+) {
   const res = await fetchWithAuth(`/api/client/market-orders/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "更新失败");
   return res.json();
