@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import * as api from "../clientApi";
 
@@ -10,13 +10,21 @@ type MarketOrder = {
   reward_points: number;
   tier?: "A" | "B" | "C" | string;
   tiktok_link?: string | null;
-  product_images?: string[] | null;
+  sku_codes?: string[] | null;
+  sku_images?: string[] | null;
   status: string;
   influencer_id: number | null;
   work_link: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+};
+
+type SkuItem = {
+  id: number;
+  sku_code: string;
+  sku_name: string | null;
+  sku_images: string[] | null;
 };
 
 /**
@@ -36,6 +44,9 @@ export default function ClientMarketOrdersPage() {
   const [voiceNote, setVoiceNote] = useState("");
   const [tiktokLink, setTiktokLink] = useState("");
   const [productImagesText, setProductImagesText] = useState("");
+  const [selectedSkuIds, setSelectedSkuIds] = useState<number[]>([]);
+  const [skuList, setSkuList] = useState<SkuItem[]>([]);
+  const [skuKeyword, setSkuKeyword] = useState("");
   const [taskCount, setTaskCount] = useState(1);
   const [searchQ, setSearchQ] = useState("");
 
@@ -75,6 +86,34 @@ export default function ClientMarketOrdersPage() {
     loadBalance();
   }, []);
 
+  /**
+   * 加载客户维护的 SKU 列表，供发单时勾选。
+   */
+  const loadSkus = async () => {
+    try {
+      const data = await api.getSkus();
+      setSkuList((data.list || []) as SkuItem[]);
+    } catch {
+      setSkuList([]);
+    }
+  };
+
+  useEffect(() => {
+    loadSkus();
+  }, []);
+
+  /**
+   * 根据关键词过滤 SKU 勾选列表，支持 SKU 编码/名称模糊匹配。
+   */
+  const filteredSkuList = useMemo(() => {
+    const keyword = skuKeyword.trim().toLowerCase();
+    if (!keyword) return skuList;
+    return skuList.filter((s) => {
+      const text = `${s.sku_code} ${s.sku_name || ""}`.toLowerCase();
+      return text.includes(keyword);
+    });
+  }, [skuKeyword, skuList]);
+
   const consumePoints = tier === "A" ? 60 : tier === "B" ? 40 : 20;
   const totalConsumePoints = consumePoints * taskCount;
   const canAfford = balance == null ? true : balance >= totalConsumePoints;
@@ -99,6 +138,9 @@ export default function ClientMarketOrdersPage() {
         .map((s) => s.trim())
         .filter(Boolean)
         .slice(0, 20);
+      const chosen = skuList.filter((s) => selectedSkuIds.includes(s.id));
+      const skuCodes = chosen.map((s) => (s.sku_name ? `${s.sku_code} / ${s.sku_name}` : s.sku_code));
+      const skuImages = chosen.flatMap((s) => (Array.isArray(s.sku_images) ? s.sku_images : [])).slice(0, 100);
       await api.createMarketOrder({
         requirements: text,
         title: title.trim() || undefined,
@@ -107,6 +149,9 @@ export default function ClientMarketOrdersPage() {
         voice_note: tier === "A" ? (voiceNote.trim() || undefined) : undefined,
         tiktok_link: tiktokLink.trim() || undefined,
         product_images: productImages,
+        sku_ids: selectedSkuIds,
+        sku_codes: skuCodes,
+        sku_images: skuImages,
         task_count: taskCount,
       });
       setShowForm(false);
@@ -117,6 +162,7 @@ export default function ClientMarketOrdersPage() {
       setVoiceNote("");
       setTiktokLink("");
       setProductImagesText("");
+      setSelectedSkuIds([]);
       setTaskCount(1);
       loadBalance();
       load(searchQ);
@@ -259,7 +305,7 @@ export default function ClientMarketOrdersPage() {
             placeholder="https://www.tiktok.com/..."
             style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
           />
-          <label htmlFor="productImages">商品图片（多图，每行一个链接，可选）</label>
+          <label htmlFor="productImages">SKU 图片上传（多图，每行一个链接，可选）</label>
           <textarea
             id="productImages"
             value={productImagesText}
@@ -268,6 +314,32 @@ export default function ClientMarketOrdersPage() {
             rows={4}
             style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
           />
+          <div style={{ marginBottom: 12 }}>
+            <label>SKU 信息（从 SKU 列表勾选）</label>
+            <input
+              value={skuKeyword}
+              onChange={(e) => setSkuKeyword(e.target.value)}
+              placeholder="搜索 SKU 编码/名称"
+              style={{ display: "block", marginTop: 8, marginBottom: 8, width: "100%", maxWidth: 420, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+            />
+            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+              {filteredSkuList.map((s) => (
+                <label key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedSkuIds.includes(s.id)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setSelectedSkuIds((prev) => (checked ? Array.from(new Set([...prev, s.id])) : prev.filter((id) => id !== s.id)));
+                    }}
+                  />
+                  <span>{s.sku_name ? `${s.sku_code} / ${s.sku_name}` : s.sku_code}</span>
+                </label>
+              ))}
+              {skuList.length === 0 && <span style={{ color: "#64748b", fontSize: 13 }}>暂无 SKU，可先前往「SKU 列表」维护。</span>}
+              {skuList.length > 0 && filteredSkuList.length === 0 && <span style={{ color: "#64748b", fontSize: 13 }}>无匹配 SKU</span>}
+            </div>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <button
               type="button"
@@ -343,9 +415,23 @@ export default function ClientMarketOrdersPage() {
                   </a>
                 </p>
               )}
-              {Array.isArray(o.product_images) && o.product_images.length > 0 && (
-                <p style={{ margin: "6px 0 0", fontSize: 13, color: "#475569" }}>商品图片：{o.product_images.length} 张</p>
-              )}
+              {(Array.isArray(o.sku_codes) && o.sku_codes.length > 0) || (Array.isArray(o.sku_images) && o.sku_images.length > 0) ? (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: 13, color: "#475569" }}>SKU 信息</div>
+                  {Array.isArray(o.sku_codes) && o.sku_codes.length > 0 && (
+                    <div style={{ marginTop: 4, fontSize: 13, color: "#334155" }}>{o.sku_codes.join("，")}</div>
+                  )}
+                  {Array.isArray(o.sku_images) && o.sku_images.length > 0 && (
+                    <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                      {o.sku_images.slice(0, 6).map((url, i) => (
+                        <a key={`${o.id}-sku-${i}`} href={url} target="_blank" rel="noreferrer">
+                          <img src={url} alt={`sku-${o.id}-${i}`} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 6, border: "1px solid #eee" }} />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
               {o.work_link && (
                 <p style={{ margin: "8px 0 0", fontSize: 14 }}>
                   交付链接：

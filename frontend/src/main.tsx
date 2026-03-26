@@ -15,12 +15,14 @@ import WithdrawalsPage from "./admin/WithdrawalsPage";
 import UsersPage from "./admin/UsersPage";
 import MarketOrdersPage from "./admin/MarketOrdersPage";
 import AdminOrdersPage from "./admin/OrdersPage";
+import AdminSkusPage from "./admin/SkusPage";
 import ClientLayout from "./ClientLayout";
 import RequestsPage from "./client/RequestsPage";
 import RequestEditPage from "./client/RequestEditPage";
 import OrdersPage from "./client/OrdersPage";
 import ClientMarketOrdersPage from "./client/ClientMarketOrdersPage";
 import MarketOrderEditPage from "./client/MarketOrderEditPage";
+import ClientSkusPage from "./client/SkusPage";
 import WorksPage from "./client/WorksPage";
 import ClientPointsPage from "./client/PointsPage";
 import InfluencerLayout from "./InfluencerLayout";
@@ -65,6 +67,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="users" element={<UsersPage />} />
             <Route path="market-orders" element={<MarketOrdersPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="skus" element={<AdminSkusPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
           </Route>
           <Route path="/client" element={<ProtectedRoute roles={["client"]}><ClientLayout /></ProtectedRoute>}>
@@ -73,6 +76,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="requests/:id/edit" element={<RequestEditPage />} />
             <Route path="orders" element={<OrdersPage />} />
             <Route path="market-orders" element={<ClientMarketOrdersPage />} />
+            <Route path="skus" element={<ClientSkusPage />} />
             <Route path="market-orders/:id/edit" element={<MarketOrderEditPage />} />
             <Route path="works" element={<WorksPage />} />
             <Route path="points" element={<ClientPointsPage />} />

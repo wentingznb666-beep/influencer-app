@@ -38,6 +38,50 @@ function normalizeProductImages(input: unknown): string[] {
 }
 
 /**
+ * 解析 SKU 编码/名称数组：支持字符串数组，最多 100 条。
+ */
+function normalizeSkuCodes(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  return input
+    .filter((x) => typeof x === "string")
+    .map((x) => String(x).trim())
+    .filter(Boolean)
+    .slice(0, 100);
+}
+
+/**
+ * 解析 SKU ID 列表：仅保留正整数，最多 100 条。
+ */
+function normalizeSkuIds(input: unknown): number[] {
+  if (!Array.isArray(input)) return [];
+  const out: number[] = [];
+  for (const v of input) {
+    const n = Number(v);
+    if (Number.isInteger(n) && n > 0) out.push(n);
+    if (out.length >= 100) break;
+  }
+  return out;
+}
+
+/**
+ * 根据 SKU ID 列表读取当前客户 SKU（用于发单时快照）。
+ */
+async function resolveSkuSnapshotByIds(clientId: number, skuIds: number[]): Promise<{ ids: number[]; codes: string[]; images: string[] }> {
+  if (skuIds.length === 0) return { ids: [], codes: [], images: [] };
+  const { rows } = await query<{ id: number; sku_code: string; sku_name: string | null; sku_images: string[] }>(
+    `SELECT id, sku_code, sku_name, sku_images
+       FROM client_skus
+      WHERE client_id = $1 AND is_deleted = 0 AND id = ANY($2::int[])
+      ORDER BY id DESC`,
+    [clientId, skuIds]
+  );
+  const ids = rows.map((r) => r.id);
+  const codes = rows.map((r) => (r.sku_name ? `${r.sku_code} / ${r.sku_name}` : r.sku_code));
+  const images = rows.flatMap((r) => (Array.isArray(r.sku_images) ? r.sku_images : [])).slice(0, 200);
+  return { ids, codes, images };
+}
+
+/**
  * GET /api/client/requests
  * 当前客户的需求/合作意向列表。
  */
@@ -194,6 +238,150 @@ router.delete("/requests/:id", (req: AuthRequest, res: Response) => {
     });
   })().catch((e) => {
     console.error("client requests delete error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * GET /api/client/skus
+ * 当前客户的 SKU 列表。
+ */
+router.get("/skus", (req: AuthRequest, res: Response) => {
+  const clientId = req.user!.userId;
+  (async () => {
+    const { rows } = await query(
+      `SELECT id, sku_code, sku_name, sku_images, created_at, updated_at
+         FROM client_skus
+        WHERE client_id = $1 AND is_deleted = 0
+        ORDER BY id DESC`,
+      [clientId]
+    );
+    res.json({ list: rows });
+  })().catch((e) => {
+    console.error("client skus list error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * POST /api/client/skus
+ * 新增 SKU。
+ */
+router.post("/skus", (req: AuthRequest, res: Response) => {
+  const clientId = req.user!.userId;
+  const { sku_code, sku_name, sku_images } = req.body ?? {};
+  const skuCode = sku_code != null ? String(sku_code).trim() : "";
+  const skuName = sku_name != null ? String(sku_name).trim() : "";
+  const images = normalizeProductImages(sku_images);
+  if (!skuCode || skuCode.length > 120) {
+    res.status(400).json({ error: "INVALID_SKU", message: "请填写有效 SKU 编码（1-120）。" });
+    return;
+  }
+  (async () => {
+    const created = await withTx(async (client) => {
+      const ins = await client.query<{ id: number }>(
+        `INSERT INTO client_skus (client_id, sku_code, sku_name, sku_images)
+         VALUES ($1, $2, $3, $4::jsonb) RETURNING id`,
+        [clientId, skuCode, skuName || null, JSON.stringify(images)]
+      );
+      await recordOperationLogTx(client, { userId: clientId, actionType: "create", targetType: "task", targetId: ins.rows[0]!.id });
+      return ins.rows[0]!.id;
+    });
+    res.status(201).json({ id: created });
+  })().catch((e) => {
+    console.error("client skus create error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * PATCH /api/client/skus/:id
+ * 编辑 SKU。
+ */
+router.patch("/skus/:id", (req: AuthRequest, res: Response) => {
+  const clientId = req.user!.userId;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的 SKU ID。" });
+    return;
+  }
+  const { sku_code, sku_name, sku_images } = req.body ?? {};
+  const sets: string[] = [];
+  const params: any[] = [];
+  let idx = 1;
+  if (sku_code !== undefined) {
+    const skuCode = String(sku_code ?? "").trim();
+    if (!skuCode || skuCode.length > 120) {
+      res.status(400).json({ error: "INVALID_SKU", message: "请填写有效 SKU 编码（1-120）。" });
+      return;
+    }
+    sets.push(`sku_code = $${idx++}`);
+    params.push(skuCode);
+  }
+  if (sku_name !== undefined) {
+    const skuName = String(sku_name ?? "").trim();
+    sets.push(`sku_name = $${idx++}`);
+    params.push(skuName || null);
+  }
+  if (sku_images !== undefined) {
+    sets.push(`sku_images = $${idx++}::jsonb`);
+    params.push(JSON.stringify(normalizeProductImages(sku_images)));
+  }
+  if (sets.length === 0) {
+    res.json({ ok: true });
+    return;
+  }
+  (async () => {
+    await withTx(async (client) => {
+      sets.push(`updated_at = now()`);
+      params.push(id, clientId);
+      const updated = await client.query<{ id: number }>(
+        `UPDATE client_skus SET ${sets.join(", ")}
+         WHERE id = $${idx++} AND client_id = $${idx++} AND is_deleted = 0 RETURNING id`,
+        params
+      );
+      if (!updated.rows[0]) {
+        res.status(404).json({ error: "NOT_FOUND", message: "SKU 不存在。" });
+        return;
+      }
+      await recordOperationLogTx(client, { userId: clientId, actionType: "edit", targetType: "task", targetId: id });
+      res.json({ ok: true });
+    });
+  })().catch((e) => {
+    console.error("client skus patch error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * DELETE /api/client/skus/:id
+ * 软删除 SKU。
+ */
+router.delete("/skus/:id", (req: AuthRequest, res: Response) => {
+  const clientId = req.user!.userId;
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的 SKU ID。" });
+    return;
+  }
+  (async () => {
+    await withTx(async (client) => {
+      const updated = await client.query<{ id: number }>(
+        `UPDATE client_skus
+            SET is_deleted = 1, deleted_at = now(), updated_at = now()
+          WHERE id = $1 AND client_id = $2 AND is_deleted = 0
+          RETURNING id`,
+        [id, clientId]
+      );
+      if (!updated.rows[0]) {
+        res.status(404).json({ error: "NOT_FOUND", message: "SKU 不存在。" });
+        return;
+      }
+      await recordOperationLogTx(client, { userId: clientId, actionType: "delete", targetType: "task", targetId: id });
+      res.json({ ok: true });
+    });
+  })().catch((e) => {
+    console.error("client skus delete error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   });
 });
@@ -398,7 +586,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
   const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
   (async () => {
-    let sql = `SELECT id, order_no, title, requirements, reward_points, tier, tiktok_link, product_images, status, influencer_id, work_link, created_at, updated_at, completed_at
+    let sql = `SELECT id, order_no, title, requirements, reward_points, tier, tiktok_link, product_images, sku_codes, sku_images, sku_ids, status, influencer_id, work_link, created_at, updated_at, completed_at
        FROM client_market_orders WHERE client_id = $1 AND is_deleted = 0`;
     const params: unknown[] = [clientId];
     if (rawQ) {
@@ -427,7 +615,7 @@ router.get("/market-orders/:id", (req: AuthRequest, res: Response) => {
   }
   (async () => {
     const { rows } = await query(
-      `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, tiktok_link, product_images, reward_points, status, influencer_id, work_link, created_at, updated_at, completed_at
+      `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, reward_points, status, influencer_id, work_link, created_at, updated_at, completed_at
          FROM client_market_orders WHERE id = $1 AND client_id = $2 AND is_deleted = 0`,
       [id, clientId]
     );
@@ -449,7 +637,7 @@ router.get("/market-orders/:id", (req: AuthRequest, res: Response) => {
  */
 router.post("/market-orders", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
-  const { requirements, title, tier, voice_link, voice_note, tiktok_link, product_images, task_count } = req.body ?? {};
+  const { requirements, title, tier, voice_link, voice_note, tiktok_link, product_images, task_count, sku_codes, sku_images, sku_ids } = req.body ?? {};
   const reqText = requirements != null ? String(requirements).trim() : "";
   if (!reqText || reqText.length > 8000) {
     res.status(400).json({ error: "INVALID_REQUIREMENTS", message: "请填写任务要求（1–8000 字）。" });
@@ -483,6 +671,13 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
       const voiceNote = voice_note != null ? String(voice_note).trim() : "";
       const tiktokLink = tiktok_link != null ? String(tiktok_link).trim() : "";
       const productImages = normalizeProductImages(product_images);
+      const inputSkuCodes = normalizeSkuCodes(sku_codes);
+      const inputSkuImages = normalizeProductImages(sku_images);
+      const inputSkuIds = normalizeSkuIds(sku_ids);
+      const snapshot = await resolveSkuSnapshotByIds(clientId, inputSkuIds);
+      const finalSkuIds = snapshot.ids.length > 0 ? snapshot.ids : inputSkuIds;
+      const finalSkuCodes = snapshot.codes.length > 0 ? snapshot.codes : inputSkuCodes;
+      const finalSkuImages = snapshot.images.length > 0 ? snapshot.images : inputSkuImages;
       if (resolved.tier === "A") {
         if (voiceLink.length > 2000) {
           return { kind: "bad_voice" as const, message: "配音素材链接最长 2000 字符。" };
@@ -497,9 +692,9 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
         const orderNo = await allocateMarketOrderNo(client);
         const ins = await client.query<{ id: number; order_no: string }>(
           `INSERT INTO client_market_orders
-             (client_id, order_no, title, requirements, reward_points, tier, creator_reward_points, platform_profit_points, pay_deducted, voice_link, voice_note, tiktok_link, product_images, status)
+             (client_id, order_no, title, requirements, reward_points, tier, creator_reward_points, platform_profit_points, pay_deducted, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, status)
            VALUES
-             ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9, $10, $11, $12::jsonb, 'open')
+             ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9, $10, $11, $12::jsonb, $13::jsonb, $14::jsonb, $15::jsonb, 'open')
            RETURNING id, order_no`,
           [
             clientId,
@@ -514,6 +709,9 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
             resolved.tier === "A" ? (voiceNote || null) : null,
             tiktokLink || null,
             JSON.stringify(productImages),
+            JSON.stringify(finalSkuCodes),
+            JSON.stringify(finalSkuImages),
+            JSON.stringify(finalSkuIds),
           ]
         );
         const orderId = ins.rows[0]!.id;
@@ -561,7 +759,7 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
     return;
   }
-  const { title, requirements, tier, voice_link, voice_note, tiktok_link, product_images } = req.body ?? {};
+  const { title, requirements, tier, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids } = req.body ?? {};
   const nextTitle = title !== undefined ? String(title ?? "").trim() : undefined;
   const nextReq = requirements !== undefined ? String(requirements ?? "").trim() : undefined;
   const nextTier = typeof tier === "string" ? tier.trim().toUpperCase() : undefined;
@@ -569,6 +767,9 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
   const voiceNote = voice_note !== undefined ? String(voice_note ?? "").trim() : undefined;
   const tiktokLink = tiktok_link !== undefined ? String(tiktok_link ?? "").trim() : undefined;
   const productImages = product_images !== undefined ? normalizeProductImages(product_images) : undefined;
+  const nextSkuCodes = sku_codes !== undefined ? normalizeSkuCodes(sku_codes) : undefined;
+  const nextSkuImages = sku_images !== undefined ? normalizeProductImages(sku_images) : undefined;
+  const nextSkuIds = sku_ids !== undefined ? normalizeSkuIds(sku_ids) : undefined;
   if (nextTitle !== undefined && nextTitle.length > 200) {
     res.status(400).json({ error: "INVALID_TITLE", message: "订单标题最长 200 字。" });
     return;
@@ -621,6 +822,27 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
     if (productImages !== undefined) {
       sets.push(`product_images = $${idx++}::jsonb`);
       params.push(JSON.stringify(productImages));
+    }
+    if (nextSkuCodes !== undefined) {
+      sets.push(`sku_codes = $${idx++}::jsonb`);
+      params.push(JSON.stringify(nextSkuCodes));
+    }
+    if (nextSkuImages !== undefined) {
+      sets.push(`sku_images = $${idx++}::jsonb`);
+      params.push(JSON.stringify(nextSkuImages));
+    }
+    if (nextSkuIds !== undefined) {
+      const snapshot = await resolveSkuSnapshotByIds(clientId, nextSkuIds);
+      sets.push(`sku_ids = $${idx++}::jsonb`);
+      params.push(JSON.stringify(snapshot.ids.length > 0 ? snapshot.ids : nextSkuIds));
+      if (snapshot.codes.length > 0) {
+        sets.push(`sku_codes = $${idx++}::jsonb`);
+        params.push(JSON.stringify(snapshot.codes));
+      }
+      if (snapshot.images.length > 0) {
+        sets.push(`sku_images = $${idx++}::jsonb`);
+        params.push(JSON.stringify(snapshot.images));
+      }
     }
     if (nextTier === "A" || nextTier === "B" || nextTier === "C") {
       sets.push(`tier = $${idx++}`);

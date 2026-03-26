@@ -10,6 +10,8 @@ type OpenOrder = {
   tier: "A" | "B" | "C" | string;
   voice_link?: string | null;
   voice_note?: string | null;
+  sku_codes?: string[] | null;
+  sku_images?: string[] | null;
   status: string;
   created_at: string;
 };
@@ -23,6 +25,8 @@ type MyOrder = {
   tier: "A" | "B" | "C" | string;
   voice_link?: string | null;
   voice_note?: string | null;
+  sku_codes?: string[] | null;
+  sku_images?: string[] | null;
   status: string;
   work_link: string | null;
   created_at: string;
@@ -91,6 +95,28 @@ function renderVoiceEntry(o: { tier: string; voice_link?: string | null; voice_n
         <div style={{ marginTop: 8, fontSize: 13, color: "#334155", whiteSpace: "pre-wrap" }}>{note}</div>
       ) : (
         <div style={{ marginTop: 8, fontSize: 13, color: "#64748b" }}>（未提供配音要求备注）</div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 渲染订单 SKU 信息（编码/名称 + 缩略图）。
+ */
+function renderSkuInfo(o: { id: number; sku_codes?: string[] | null; sku_images?: string[] | null }) {
+  if ((!Array.isArray(o.sku_codes) || o.sku_codes.length === 0) && (!Array.isArray(o.sku_images) || o.sku_images.length === 0)) return null;
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{ fontSize: 13, color: "#475569" }}>SKU 信息</div>
+      {Array.isArray(o.sku_codes) && o.sku_codes.length > 0 && <div style={{ marginTop: 4, fontSize: 13, color: "#334155" }}>{o.sku_codes.join("，")}</div>}
+      {Array.isArray(o.sku_images) && o.sku_images.length > 0 && (
+        <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {o.sku_images.slice(0, 6).map((url, idx) => (
+            <a key={`${o.id}-sku-${idx}`} href={url} target="_blank" rel="noreferrer">
+              <img src={url} alt={`sku-${o.id}-${idx}`} style={{ width: 48, height: 48, borderRadius: 6, objectFit: "cover", border: "1px solid #eee" }} />
+            </a>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -225,6 +251,7 @@ export default function ClientOrdersHallPage() {
                 <span style={{ color: "#166534", fontWeight: 600 }}>+{o.reward_points} 积分</span>
               </div>
               <p style={{ margin: "10px 0", fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</p>
+              {renderSkuInfo(o)}
               {renderTierStandards(String(o.tier || ""))}
               {renderVoiceEntry(o)}
               <button type="button" onClick={() => handleClaim(o.id)} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
@@ -271,6 +298,7 @@ export default function ClientOrdersHallPage() {
                 <span style={{ color: "#666" }}>{statusText[o.status] ?? o.status}</span>
               </div>
               <p style={{ margin: "10px 0", fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</p>
+              {renderSkuInfo(o)}
               {renderTierStandards(String(o.tier || ""))}
               {renderVoiceEntry(o)}
               {o.work_link && (

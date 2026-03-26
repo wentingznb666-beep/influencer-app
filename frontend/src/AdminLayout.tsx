@@ -7,6 +7,7 @@ const ADMIN_NAV = [
   { to: "/admin/influencers", label: "达人管理" },
   { to: "/admin/submissions", label: "投稿审核" },
   { to: "/admin/orders", label: "客户订单" },
+  { to: "/admin/skus", label: "SKU 列表" },
   { to: "/admin/points", label: "积分与结算" },
   { to: "/admin/settlement", label: "结算打款" },
   { to: "/admin/withdrawals", label: "提现管理" },

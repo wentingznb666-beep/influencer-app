@@ -15,6 +15,8 @@ type Task = {
   fulfilled_count?: number;
   tiktok_link?: string | null;
   product_images?: string[] | null;
+  sku_codes?: string[] | null;
+  sku_images?: string[] | null;
   created_at: string;
 };
 type Material = { id: number; title: string; type: string; status: string };
@@ -31,7 +33,8 @@ export default function TasksPage() {
   const [editForm, setEditForm] = useState({
     biz_status: "open" as "open" | "in_progress" | "done",
     tiktok_link: "",
-    product_images_text: "",
+    sku_images_text: "",
+    sku_codes_text: "",
   });
   const [form, setForm] = useState({
     material_id: 0,
@@ -41,7 +44,8 @@ export default function TasksPage() {
     point_reward: 10,
     task_count: 1,
     tiktok_link: "",
-    product_images_text: "",
+    sku_images_text: "",
+    sku_codes_text: "",
   });
 
   const loadTasks = async () => {
@@ -68,11 +72,16 @@ export default function TasksPage() {
        * 多图输入：每行一个 URL，提交给后端 product_images 字段。
        * 不改变上传流程，仅补充字段能力。
        */
-      const productImages = form.product_images_text
+      const productImages = form.sku_images_text
         .split("\n")
         .map((s) => s.trim())
         .filter(Boolean)
         .slice(0, 20);
+      const skuCodes = form.sku_codes_text
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 100);
       await api.createTask({
         material_id: form.material_id,
         type: form.type,
@@ -82,6 +91,8 @@ export default function TasksPage() {
         task_count: form.task_count,
         tiktok_link: form.tiktok_link.trim() || undefined,
         product_images: productImages,
+        sku_images: productImages,
+        sku_codes: skuCodes,
       });
       setShowForm(false);
       setForm({
@@ -92,7 +103,8 @@ export default function TasksPage() {
         point_reward: 10,
         task_count: 1,
         tiktok_link: "",
-        product_images_text: "",
+        sku_images_text: "",
+        sku_codes_text: "",
       });
       loadTasks();
     } catch (e) {
@@ -122,7 +134,8 @@ export default function TasksPage() {
           ? "in_progress"
           : "open",
       tiktok_link: (task.tiktok_link || "") as string,
-      product_images_text: Array.isArray(task.product_images) ? task.product_images.join("\n") : "",
+      sku_images_text: Array.isArray(task.sku_images) ? task.sku_images.join("\n") : "",
+      sku_codes_text: Array.isArray(task.sku_codes) ? task.sku_codes.join("\n") : "",
     });
   };
 
@@ -134,15 +147,22 @@ export default function TasksPage() {
     setSavingEdit(true);
     setError(null);
     try {
-      const productImages = editForm.product_images_text
+      const productImages = editForm.sku_images_text
         .split("\n")
         .map((s) => s.trim())
         .filter(Boolean)
         .slice(0, 20);
+      const skuCodes = editForm.sku_codes_text
+        .split("\n")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .slice(0, 100);
       await api.updateTask(editingId, {
         biz_status: editForm.biz_status,
         tiktok_link: editForm.tiktok_link.trim() || undefined,
         product_images: productImages,
+        sku_images: productImages,
+        sku_codes: skuCodes,
       });
       setEditingId(null);
       await loadTasks();
@@ -218,12 +238,22 @@ export default function TasksPage() {
             <input type="url" value={form.tiktok_link} onChange={(e) => setForm((f) => ({ ...f, tiktok_link: e.target.value }))} placeholder="https://www.tiktok.com/..." style={{ marginLeft: 8, padding: "6px 8px", width: 360, maxWidth: "100%" }} />
           </div>
           <div style={{ marginBottom: 12 }}>
-            <label>商品图片（多图，每行一个链接）</label>
+            <label>SKU 图片上传（多图，每行一个链接）</label>
             <textarea
               rows={4}
-              value={form.product_images_text}
-              onChange={(e) => setForm((f) => ({ ...f, product_images_text: e.target.value }))}
+              value={form.sku_images_text}
+              onChange={(e) => setForm((f) => ({ ...f, sku_images_text: e.target.value }))}
               placeholder={"https://img1...\nhttps://img2..."}
+              style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box" }}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label>SKU 编码/名称（每行一个）</label>
+            <textarea
+              rows={4}
+              value={form.sku_codes_text}
+              onChange={(e) => setForm((f) => ({ ...f, sku_codes_text: e.target.value }))}
+              placeholder={"SKU001 / 黑色\nSKU002 / 白色"}
               style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box" }}
             />
           </div>
@@ -304,12 +334,22 @@ export default function TasksPage() {
             />
           </div>
           <div style={{ marginBottom: 12 }}>
-            <label>商品图片（每行一个链接）</label>
+            <label>SKU 图片（每行一个链接）</label>
             <textarea
               rows={4}
-              value={editForm.product_images_text}
-              onChange={(e) => setEditForm((f) => ({ ...f, product_images_text: e.target.value }))}
+              value={editForm.sku_images_text}
+              onChange={(e) => setEditForm((f) => ({ ...f, sku_images_text: e.target.value }))}
               placeholder={"https://img1...\nhttps://img2..."}
+              style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box" }}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label>SKU 编码/名称（每行一个）</label>
+            <textarea
+              rows={4}
+              value={editForm.sku_codes_text}
+              onChange={(e) => setEditForm((f) => ({ ...f, sku_codes_text: e.target.value }))}
+              placeholder={"SKU001 / 黑色\nSKU002 / 白色"}
               style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box" }}
             />
           </div>

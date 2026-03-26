@@ -86,6 +86,8 @@ const FULL_INIT_SQL = `
     fulfilled_count INTEGER NOT NULL DEFAULT 0,
     tiktok_link TEXT,
     product_images JSONB NOT NULL DEFAULT '[]'::jsonb,
+    sku_codes JSONB NOT NULL DEFAULT '[]'::jsonb,
+    sku_images JSONB NOT NULL DEFAULT '[]'::jsonb,
     is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
     deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -255,6 +257,12 @@ const FULL_INIT_SQL = `
     tiktok_link TEXT,
     /** 可选：商品图片 URL 列表 */
     product_images JSONB NOT NULL DEFAULT '[]'::jsonb,
+    /** 可选：SKU 编码/名称列表 */
+    sku_codes JSONB NOT NULL DEFAULT '[]'::jsonb,
+    /** 可选：SKU 图片列表 */
+    sku_images JSONB NOT NULL DEFAULT '[]'::jsonb,
+    /** 可选：关联 SKU ID 列表 */
+    sku_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     completed_at TIMESTAMPTZ,
@@ -274,6 +282,25 @@ const FULL_INIT_SQL = `
     create_time TIMESTAMPTZ NOT NULL DEFAULT now()
   );
   CREATE INDEX IF NOT EXISTS idx_operation_log_user_time ON operation_log (user_id, create_time DESC);
+
+  /**
+   * 客户 SKU 列表：客户可维护自己的 SKU 编码/名称与图片。
+   */
+  CREATE TABLE IF NOT EXISTS client_skus (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES users(id),
+    sku_code TEXT NOT NULL,
+    sku_name TEXT,
+    sku_images JSONB NOT NULL DEFAULT '[]'::jsonb,
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS idx_client_skus_client ON client_skus (client_id, id DESC);
+  CREATE INDEX IF NOT EXISTS idx_client_skus_active_client ON client_skus (client_id, id DESC) WHERE is_deleted = 0;
+  CREATE INDEX IF NOT EXISTS idx_client_skus_code ON client_skus (sku_code);
+  CREATE INDEX IF NOT EXISTS idx_client_skus_name ON client_skus (sku_name);
 `;
 
 /**
@@ -505,6 +532,8 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fulfilled_count INTEGER NOT NULL DEFAULT 0`);
   await query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS tiktok_link TEXT`);
   await query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS product_images JSONB NOT NULL DEFAULT '[]'::jsonb`);
+  await query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS sku_codes JSONB NOT NULL DEFAULT '[]'::jsonb`);
+  await query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS sku_images JSONB NOT NULL DEFAULT '[]'::jsonb`);
 
   const mo = await query<{ exists: boolean }>(
     `SELECT EXISTS (
@@ -523,6 +552,9 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS voice_note TEXT`);
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS tiktok_link TEXT`);
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS product_images JSONB NOT NULL DEFAULT '[]'::jsonb`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS sku_codes JSONB NOT NULL DEFAULT '[]'::jsonb`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS sku_images JSONB NOT NULL DEFAULT '[]'::jsonb`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS sku_ids JSONB NOT NULL DEFAULT '[]'::jsonb`);
     await query(
       `UPDATE client_market_orders SET title = LEFT(requirements, 200) WHERE title IS NULL OR TRIM(COALESCE(title, '')) = ''`,
     );
@@ -538,6 +570,21 @@ async function applyOnlineSchemaPatches(): Promise<void> {
       `CREATE UNIQUE INDEX IF NOT EXISTS idx_client_market_orders_order_no ON client_market_orders(order_no) WHERE order_no IS NOT NULL`,
     );
   }
+  await query(`CREATE TABLE IF NOT EXISTS client_skus (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES users(id),
+    sku_code TEXT NOT NULL,
+    sku_name TEXT,
+    sku_images JSONB NOT NULL DEFAULT '[]'::jsonb,
+    is_deleted INTEGER NOT NULL DEFAULT 0,
+    deleted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_client_skus_client ON client_skus (client_id, id DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_client_skus_active_client ON client_skus (client_id, id DESC) WHERE is_deleted = 0`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_client_skus_code ON client_skus (sku_code)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_client_skus_name ON client_skus (sku_name)`);
 }
 
 /**

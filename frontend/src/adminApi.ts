@@ -66,6 +66,8 @@ export async function createTask(body: {
   task_count?: number;
   tiktok_link?: string;
   product_images?: string[];
+  sku_codes?: string[];
+  sku_images?: string[];
 }) {
   const res = await fetchWithAuth("/api/admin/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "创建失败");
@@ -75,7 +77,7 @@ export async function createTask(body: {
 /** 更新任务（含发布） */
 export async function updateTask(
   id: number,
-  body: { status?: string; biz_status?: "open" | "in_progress" | "done"; max_claim_count?: number; point_reward?: number; tiktok_link?: string; product_images?: string[] }
+  body: { status?: string; biz_status?: "open" | "in_progress" | "done"; max_claim_count?: number; point_reward?: number; tiktok_link?: string; product_images?: string[]; sku_codes?: string[]; sku_images?: string[] }
 ) {
   const res = await fetchWithAuth(`/api/admin/tasks/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "更新失败");
@@ -328,5 +330,26 @@ export async function updateUserStatus(id: number, disabled: boolean) {
     body: JSON.stringify({ disabled }),
   });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "更新状态失败");
+  return res.json();
+}
+
+/**
+ * 管理员/员工：客户 SKU 列表，支持关键词与客户 ID 搜索。
+ */
+export async function getAdminSkus(params?: { q?: string; client_id?: number }) {
+  const q = new URLSearchParams();
+  if (params?.q) q.set("q", params.q);
+  if (params?.client_id != null) q.set("client_id", String(params.client_id));
+  const res = await fetchWithAuth(`/api/admin/skus?${q}`);
+  if (!res.ok) throw new Error(await readErrorMessage(res, "请求失败"));
+  return res.json();
+}
+
+/**
+ * 管理员/员工：拉取客户下拉选项（用于 SKU 精准筛选）。
+ */
+export async function getAdminSkuClients() {
+  const res = await fetchWithAuth("/api/admin/skus/clients");
+  if (!res.ok) throw new Error(await readErrorMessage(res, "请求失败"));
   return res.json();
 }

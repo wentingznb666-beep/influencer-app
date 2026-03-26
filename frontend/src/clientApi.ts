@@ -40,6 +40,34 @@ export async function deleteRequest(id: number) {
   return res.json();
 }
 
+/** 客户 SKU 列表 */
+export async function getSkus() {
+  const res = await fetchWithAuth("/api/client/skus");
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
+/** 新增 SKU */
+export async function createSku(body: { sku_code: string; sku_name?: string; sku_images?: string[] }) {
+  const res = await fetchWithAuth("/api/client/skus", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "创建失败");
+  return res.json();
+}
+
+/** 编辑 SKU */
+export async function updateSku(id: number, body: { sku_code?: string; sku_name?: string; sku_images?: string[] }) {
+  const res = await fetchWithAuth(`/api/client/skus/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "更新失败");
+  return res.json();
+}
+
+/** 删除 SKU（软删） */
+export async function deleteSku(id: number) {
+  const res = await fetchWithAuth(`/api/client/skus/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "删除失败");
+  return res.json();
+}
+
 /** 订单列表 */
 export async function getOrders() {
   const res = await fetchWithAuth("/api/client/orders");
@@ -110,6 +138,9 @@ export async function createMarketOrder(body: {
   voice_note?: string;
   tiktok_link?: string;
   product_images?: string[];
+  sku_codes?: string[];
+  sku_images?: string[];
+  sku_ids?: number[];
   task_count?: number;
 }) {
   const res = await fetchWithAuth("/api/client/market-orders", {
@@ -132,6 +163,9 @@ export async function updateMarketOrder(
     voice_note?: string;
     tiktok_link?: string;
     product_images?: string[];
+    sku_codes?: string[];
+    sku_images?: string[];
+    sku_ids?: number[];
   }
 ) {
   const res = await fetchWithAuth(`/api/client/market-orders/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });

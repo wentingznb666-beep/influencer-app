@@ -8,6 +8,7 @@ const CLIENT_NAV = [
   { to: "/client/requests", label: "合作意向" },
   { to: "/client/orders", label: "订单跟踪" },
   { to: "/client/market-orders", label: "达人领单" },
+  { to: "/client/skus", label: "SKU 列表" },
   { to: "/client/works", label: "达人作品" },
   { to: "/client/points", label: "积分充值" },
   { to: "/client/op-logs", label: "我的操作日志" },

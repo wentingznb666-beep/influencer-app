@@ -20,6 +20,7 @@ import withdrawalsRoutes from "./routes/withdrawals";
 import usersRoutes from "./routes/users";
 import adminMarketOrdersRoutes from "./routes/adminMarketOrders";
 import adminOrdersRoutes from "./routes/adminOrders";
+import adminSkusRoutes from "./routes/adminSkus";
 import operationLogsRoutes from "./routes/operationLogs";
 import { initDb } from "./db";
 
@@ -48,6 +49,7 @@ app.use("/api/admin/withdrawals", withdrawalsRoutes);
 app.use("/api/admin/users", usersRoutes);
 app.use("/api/admin/market-orders", adminMarketOrdersRoutes);
 app.use("/api/admin/orders", adminOrdersRoutes);
+app.use("/api/admin/skus", adminSkusRoutes);
 /** 达人端：任务大厅、领取、我的任务、投稿、积分 */
 app.use("/api/influencer", influencerRoutes);
 /** 客户端：合作意向、订单跟踪、达人作品、积分充值 */

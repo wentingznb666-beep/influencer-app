@@ -16,7 +16,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
   (async () => {
     let sql = `
     SELECT t.id, t.material_id, t.type, t.platform, t.max_claim_count, t.point_reward, t.status,
-           t.biz_status, t.claimed_count, t.fulfilled_count, t.tiktok_link, t.product_images,
+           t.biz_status, t.claimed_count, t.fulfilled_count, t.tiktok_link, t.product_images, t.sku_codes, t.sku_images,
            t.created_at,
            m.title AS material_title, m.cloud_link
     FROM tasks t
@@ -51,7 +51,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
  * 创建任务。
  */
 router.post("/", (req: AuthRequest, res: Response) => {
-  const { material_id, type, platform, max_claim_count, point_reward, tiktok_link, product_images, task_count } = req.body ?? {};
+  const { material_id, type, platform, max_claim_count, point_reward, tiktok_link, product_images, sku_codes, sku_images, task_count } = req.body ?? {};
   if (!material_id || !type || !platform || typeof point_reward !== "number") {
     res.status(400).json({ error: "INVALID_INPUT", message: "素材 ID、类型、平台、积分奖励为必填。" });
     return;
@@ -72,19 +72,27 @@ router.post("/", (req: AuthRequest, res: Response) => {
       Array.isArray(product_images) && product_images.every((x: unknown) => typeof x === "string")
         ? (product_images as string[]).map((s) => s.trim()).filter(Boolean).slice(0, 20)
         : [];
+    const skuCodes =
+      Array.isArray(sku_codes) && sku_codes.every((x: unknown) => typeof x === "string")
+        ? (sku_codes as string[]).map((s) => s.trim()).filter(Boolean).slice(0, 100)
+        : [];
+    const skuImages =
+      Array.isArray(sku_images) && sku_images.every((x: unknown) => typeof x === "string")
+        ? (sku_images as string[]).map((s) => s.trim()).filter(Boolean).slice(0, 100)
+        : [];
     const tiktok = tiktok_link != null ? String(tiktok_link).trim() : null;
     const ids = await withTx(async (client) => {
       const inserted = await client.query<{ id: number }>(
         `
         WITH ins AS (
-          INSERT INTO tasks (material_id, type, platform, max_claim_count, point_reward, status, biz_status, claimed_count, fulfilled_count, tiktok_link, product_images)
-          SELECT $1, $2, $3, $4, $5, 'draft', 'open', 0, 0, $6, $7::jsonb
-          FROM generate_series(1, $8)
+          INSERT INTO tasks (material_id, type, platform, max_claim_count, point_reward, status, biz_status, claimed_count, fulfilled_count, tiktok_link, product_images, sku_codes, sku_images)
+          SELECT $1, $2, $3, $4, $5, 'draft', 'open', 0, 0, $6, $7::jsonb, $8::jsonb, $9::jsonb
+          FROM generate_series(1, $10)
           RETURNING id
         )
         SELECT id FROM ins
         `,
-        [Number(material_id), type, String(platform), max_claim_count != null ? Number(max_claim_count) : null, Number(point_reward), tiktok, JSON.stringify(images), count]
+        [Number(material_id), type, String(platform), max_claim_count != null ? Number(max_claim_count) : null, Number(point_reward), tiktok, JSON.stringify(images), JSON.stringify(skuCodes), JSON.stringify(skuImages), count]
       );
       const idList = inserted.rows.map((r) => r.id);
       for (const id of idList) {
@@ -124,7 +132,7 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
       sets.push(`status = $${idx++}`);
       params.push(status);
     }
-    const { biz_status, tiktok_link, product_images } = req.body ?? {};
+    const { biz_status, tiktok_link, product_images, sku_codes, sku_images } = req.body ?? {};
     if (biz_status === "open" || biz_status === "in_progress" || biz_status === "done") {
       sets.push(`biz_status = $${idx++}`);
       params.push(biz_status);
@@ -140,6 +148,22 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
           : [];
       sets.push(`product_images = $${idx++}::jsonb`);
       params.push(JSON.stringify(images));
+    }
+    if (sku_codes !== undefined) {
+      const skuCodes =
+        Array.isArray(sku_codes) && sku_codes.every((x: unknown) => typeof x === "string")
+          ? (sku_codes as string[]).map((s) => s.trim()).filter(Boolean).slice(0, 100)
+          : [];
+      sets.push(`sku_codes = $${idx++}::jsonb`);
+      params.push(JSON.stringify(skuCodes));
+    }
+    if (sku_images !== undefined) {
+      const skuImages =
+        Array.isArray(sku_images) && sku_images.every((x: unknown) => typeof x === "string")
+          ? (sku_images as string[]).map((s) => s.trim()).filter(Boolean).slice(0, 100)
+          : [];
+      sets.push(`sku_images = $${idx++}::jsonb`);
+      params.push(JSON.stringify(skuImages));
     }
     if (max_claim_count !== undefined) {
       sets.push(`max_claim_count = $${idx++}`);

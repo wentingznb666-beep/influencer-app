@@ -449,7 +449,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
   (async () => {
     // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
-    let sql = `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, tiktok_link, product_images, creator_reward_points AS reward_points, status, created_at
+    let sql = `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, creator_reward_points AS reward_points, status, created_at
        FROM client_market_orders WHERE status = 'open' AND is_deleted = 0`;
     const params: unknown[] = [];
     if (rawQ) {
@@ -475,7 +475,7 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
   (async () => {
     // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
-    let sql = `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, tiktok_link, product_images, creator_reward_points AS reward_points, status, work_link, created_at, updated_at, completed_at
+    let sql = `SELECT id, order_no, title, requirements, tier, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, creator_reward_points AS reward_points, status, work_link, created_at, updated_at, completed_at
        FROM client_market_orders WHERE influencer_id = $1 AND is_deleted = 0`;
     const params: unknown[] = [userId];
     if (rawQ) {
