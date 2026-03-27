@@ -115,8 +115,7 @@ export function requireRole(...allowed: RoleName[]) {
       return next(Object.assign(new Error("UNAUTHORIZED") as Error & { statusCode?: number }, { statusCode: 401 }));
     }
     const role = req.user.role;
-    const isEmployeeWithAdminPermission = role === "employee" && allowed.includes("admin");
-    if (!allowed.includes(role) && !isEmployeeWithAdminPermission) {
+    if (!allowed.includes(role)) {
       return next(Object.assign(new Error("FORBIDDEN") as Error & { statusCode?: number }, { statusCode: 403 }));
     }
     next();

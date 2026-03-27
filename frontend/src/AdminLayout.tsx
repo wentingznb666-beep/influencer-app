@@ -2,7 +2,7 @@ import { Outlet } from "react-router-dom";
 import DashboardShell from "./DashboardShell";
 import { getStoredUser } from "./authApi";
 
-const BASE_ADMIN_NAV = [
+export const BASE_ADMIN_NAV = [
   { to: "/admin/influencers", label: "达人管理" },
   { to: "/admin/orders", label: "客户订单" },
   { to: "/admin/market-orders", label: "达人领单" },

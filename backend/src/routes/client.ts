@@ -109,6 +109,16 @@ function normalizeClientGroupChat(input: unknown): string {
 }
 
 /**
+ * 解析日期参数（YYYY-MM-DD），非法时返回空字符串。
+ */
+function normalizeDateOnly(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const v = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return "";
+  return v;
+}
+
+/**
  * 根据 SKU ID 列表读取当前客户 SKU（用于发单时快照）。
  */
 async function resolveSkuSnapshotByIds(clientId: number, skuIds: number[]): Promise<{ ids: number[]; codes: string[]; images: string[] }> {
@@ -680,6 +690,8 @@ router.post("/recharge", (req: AuthRequest, res: Response) => {
 router.get("/market-orders", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
   const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const startDate = normalizeDateOnly(req.query.start_date);
+  const endDate = normalizeDateOnly(req.query.end_date);
   (async () => {
     let sql = `SELECT mo.id, mo.order_no, mo.title, mo.requirements, mo.reward_points, mo.tier, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images, mo.sku_ids, mo.status, mo.influencer_id, mo.work_link, mo.client_shop_name, mo.client_group_chat, mo.created_at, mo.updated_at, mo.completed_at,
                       ui.username AS influencer_username,
@@ -688,9 +700,20 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
        LEFT JOIN users ui ON mo.influencer_id = ui.id
       WHERE mo.client_id = $1 AND mo.is_deleted = 0`;
     const params: unknown[] = [clientId];
+    let idx = 2;
     if (rawQ) {
-      sql += ` AND (mo.order_no = $2 OR mo.title = $2 OR mo.requirements = $2)`;
+      sql += ` AND (mo.order_no = $${idx} OR mo.title = $${idx} OR mo.requirements = $${idx})`;
       params.push(rawQ);
+      idx += 1;
+    }
+    if (startDate) {
+      sql += ` AND mo.created_at::date >= $${idx}::date`;
+      params.push(startDate);
+      idx += 1;
+    }
+    if (endDate) {
+      sql += ` AND mo.created_at::date <= $${idx}::date`;
+      params.push(endDate);
     }
     sql += ` ORDER BY mo.id DESC`;
     const { rows } = await query(sql, params);

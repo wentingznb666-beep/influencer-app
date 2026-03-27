@@ -261,11 +261,15 @@ export async function updateWithdrawal(id: number, body: { status: "paid" | "rej
 }
 
 /**
- * 达人领单订单列表（全量）；q 为订单号/标题/要求全文精准匹配。
+ * 达人领单订单列表（全量）：
+ * - q：订单号/标题/要求全文精准匹配
+ * - start_date/end_date：创建日期筛选（YYYY-MM-DD）
  */
-export async function getAdminMarketOrders(params?: { q?: string }) {
+export async function getAdminMarketOrders(params?: { q?: string; start_date?: string; end_date?: string }) {
   const q = new URLSearchParams();
   if (params?.q) q.set("q", params.q);
+  if (params?.start_date) q.set("start_date", params.start_date);
+  if (params?.end_date) q.set("end_date", params.end_date);
   const res = await fetchWithAuth(`/api/admin/market-orders?${q}`);
   if (!res.ok) throw new Error(await readErrorMessage(res, "请求失败"));
   return res.json();

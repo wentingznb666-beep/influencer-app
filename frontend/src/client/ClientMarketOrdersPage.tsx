@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import * as api from "../clientApi";
+import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFilter";
 
 type MarketOrder = {
   id: number;
@@ -65,18 +66,37 @@ export default function ClientMarketOrdersPage() {
   const [skuKeyword, setSkuKeyword] = useState("");
   const [taskCount, setTaskCount] = useState(1);
   const [searchQ, setSearchQ] = useState("");
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
   const hasInitLoadedRef = useRef(false);
   const hasInitBalanceRef = useRef(false);
   const hasInitSkusRef = useRef(false);
 
   /**
+   * 将日期筛选状态转换为接口查询参数。
+   */
+  const resolveDateQuery = (filter: DateFilterState): { start_date?: string; end_date?: string } => {
+    if (filter.mode === "day" && filter.day) return { start_date: filter.day, end_date: filter.day };
+    if (filter.mode === "range") {
+      const out: { start_date?: string; end_date?: string } = {};
+      if (filter.startDate) out.start_date = filter.startDate;
+      if (filter.endDate) out.end_date = filter.endDate;
+      return out;
+    }
+    return {};
+  };
+
+  /**
    * 拉取当前用户的发单列表。
    */
-  const load = async (q?: string) => {
+  const load = async (q?: string, filter?: DateFilterState) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.getMarketOrders(q?.trim() ? { q: q.trim() } : undefined);
+      const query = {
+        ...(q?.trim() ? { q: q.trim() } : {}),
+        ...resolveDateQuery(filter ?? dateFilter),
+      };
+      const data = await api.getMarketOrders(Object.keys(query).length > 0 ? query : undefined);
       setList(data.list || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
@@ -200,7 +220,7 @@ export default function ClientMarketOrdersPage() {
       setSelectedSkuIds([]);
       setTaskCount(1);
       loadBalance();
-      load(searchQ);
+      load(searchQ, dateFilter);
     } catch (e) {
       setError(e instanceof Error ? e.message : "创建失败");
     }
@@ -244,19 +264,22 @@ export default function ClientMarketOrdersPage() {
           placeholder="搜索：订单号、标题或要求全文（精准）"
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 260 }}
         />
-        <button type="button" onClick={() => load(searchQ)} style={{ padding: "8px 16px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+        <button type="button" onClick={() => load(searchQ, dateFilter)} style={{ padding: "8px 16px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
           搜索
         </button>
         <button
           type="button"
           onClick={() => {
             setSearchQ("");
-            load();
+            const emptyFilter: DateFilterState = { mode: "all", day: "", startDate: "", endDate: "" };
+            setDateFilter(emptyFilter);
+            load("", emptyFilter);
           }}
           style={{ padding: "8px 16px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}
         >
           清空
         </button>
+        <OrderDateFilter value={dateFilter} onChange={setDateFilter} />
       </div>
       <div style={{ marginBottom: 16 }}>
         <button
@@ -425,6 +448,9 @@ export default function ClientMarketOrdersPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {list.map((o) => (
             <div key={o.id} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+              <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 8, background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: 13 }}>
+                订单日期：{formatDateTime(o.created_at)}
+              </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
                 <div>
                   <div style={{ fontWeight: 600 }}>订单号：{o.order_no || `（内部ID ${o.id}）`}</div>
@@ -497,8 +523,7 @@ export default function ClientMarketOrdersPage() {
                 </p>
               )}
               <p style={{ margin: "8px 0 0", fontSize: 12, color: "#999" }}>
-                创建：{formatDateTime(o.created_at)}
-                {o.completed_at ? ` · 完成：${formatDateTime(o.completed_at)}` : ""}
+                {o.completed_at ? `完成：${formatDateTime(o.completed_at)}` : "完成：—"}
               </p>
             </div>
           ))}

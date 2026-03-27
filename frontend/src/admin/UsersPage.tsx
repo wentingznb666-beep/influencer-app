@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import * as api from "../adminApi";
+import { getStoredUser } from "../authApi";
 
 type UserRole = "admin" | "employee" | "influencer" | "client";
 
@@ -23,6 +24,8 @@ const roleTextMap: Record<UserRole, string> = {
  * 管理员账号管理页：展示全量账号并可开通新账号。
  */
 export default function UsersPage() {
+  const user = getStoredUser();
+  const isEmployee = user?.role === "employee";
   const [list, setList] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +67,10 @@ export default function UsersPage() {
    * 提交管理员开通账号请求，成功后刷新列表。
    */
   const handleCreate = async (e: FormEvent) => {
+    if (isEmployee) {
+      setError("员工无创建账号权限。");
+      return;
+    }
     e.preventDefault();
     setError(null);
     setCreating(true);
@@ -87,6 +94,10 @@ export default function UsersPage() {
    * 重置指定账号密码，输入框留空时直接拦截。
    */
   const handleResetPassword = async (id: number) => {
+    if (isEmployee) {
+      setError("员工无账号编辑权限。");
+      return;
+    }
     if (!resetPassword.trim()) {
       setError("请先在“重置密码输入框”填写新密码。");
       return;
@@ -107,6 +118,10 @@ export default function UsersPage() {
    * 切换账号禁用状态（禁用/启用）。
    */
   const handleToggleDisabled = async (item: UserItem) => {
+    if (isEmployee) {
+      setError("员工无账号编辑权限。");
+      return;
+    }
     setError(null);
     setActionLoadingId(item.id);
     try {
@@ -194,51 +209,53 @@ export default function UsersPage() {
           仅看待审核达人（注册后待管理员同意）
         </label>
       </div>
-      <form
-        onSubmit={handleCreate}
-        style={{ marginBottom: 20, padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
-      >
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
-          <input
-            placeholder="用户名"
-            value={form.username}
-            onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
-            required
-            style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
-          />
-          <input
-            type="password"
-            placeholder="密码"
-            value={form.password}
-            onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-            required
-            style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
-          />
-          <select
-            value={form.role}
-            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as UserRole }))}
-            style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
-          >
-            <option value="employee">员工</option>
-            <option value="admin">管理员</option>
-            <option value="influencer">达人</option>
-            <option value="client">商家</option>
-          </select>
-          <input
-            placeholder="显示名（可选）"
-            value={form.display_name}
-            onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
-            style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={creating}
-          style={{ marginTop: 10, padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: creating ? "not-allowed" : "pointer" }}
+      {!isEmployee && (
+        <form
+          onSubmit={handleCreate}
+          style={{ marginBottom: 20, padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
         >
-          {creating ? "开通中…" : "开通账号"}
-        </button>
-      </form>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
+            <input
+              placeholder="用户名"
+              value={form.username}
+              onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
+              required
+              style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+            />
+            <input
+              type="password"
+              placeholder="密码"
+              value={form.password}
+              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+              required
+              style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+            />
+            <select
+              value={form.role}
+              onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as UserRole }))}
+              style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
+            >
+              <option value="employee">员工</option>
+              <option value="admin">管理员</option>
+              <option value="influencer">达人</option>
+              <option value="client">商家</option>
+            </select>
+            <input
+              placeholder="显示名（可选）"
+              value={form.display_name}
+              onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
+              style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={creating}
+            style={{ marginTop: 10, padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: creating ? "not-allowed" : "pointer" }}
+          >
+            {creating ? "开通中…" : "开通账号"}
+          </button>
+        </form>
+      )}
       {loading ? (
         <p>加载中…</p>
       ) : (
@@ -252,7 +269,7 @@ export default function UsersPage() {
                 <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>账号类型</th>
                 <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>状态</th>
                 <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>创建时间</th>
-                <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>操作</th>
+                {!isEmployee && <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>操作</th>}
               </tr>
             </thead>
             <tbody>
@@ -266,29 +283,31 @@ export default function UsersPage() {
                     {item.role === "influencer" && item.disabled === 1 ? "待审核" : item.disabled ? "已禁用" : "启用中"}
                   </td>
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{item.created_at}</td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1", whiteSpace: "nowrap" }}>
-                    <button
-                      type="button"
-                      onClick={() => handleResetPassword(item.id)}
-                      disabled={actionLoadingId === item.id}
-                      style={{ marginRight: 8, padding: "6px 10px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
-                    >
-                      重置密码
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleDisabled(item)}
-                      disabled={actionLoadingId === item.id}
-                      style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
-                    >
-                      {item.role === "influencer" && item.disabled === 1 ? "同意注册" : item.disabled ? "启用" : "禁用"}
-                    </button>
-                  </td>
+                  {!isEmployee && (
+                    <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1", whiteSpace: "nowrap" }}>
+                      <button
+                        type="button"
+                        onClick={() => handleResetPassword(item.id)}
+                        disabled={actionLoadingId === item.id}
+                        style={{ marginRight: 8, padding: "6px 10px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
+                      >
+                        重置密码
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleDisabled(item)}
+                        disabled={actionLoadingId === item.id}
+                        style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
+                      >
+                        {item.role === "influencer" && item.disabled === 1 ? "同意注册" : item.disabled ? "启用" : "禁用"}
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
               {!displayList.length && (
                 <tr>
-                  <td colSpan={7} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
+                  <td colSpan={isEmployee ? 6 : 7} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
                     暂无符合条件的账号
                   </td>
                 </tr>

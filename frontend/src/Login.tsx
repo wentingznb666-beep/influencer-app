@@ -72,7 +72,8 @@ export default function Login() {
    * 根据登录用户角色决定默认跳转页面。
    */
   function resolveRolePath(role: string): string {
-    if (role === "admin" || role === "employee") return "/admin";
+    if (role === "admin") return "/admin";
+    if (role === "employee") return "/employee";
     if (role === "influencer") return "/influencer";
     return "/client";
   }
@@ -87,7 +88,12 @@ export default function Login() {
     try {
       const user = await login(username.trim(), password);
       const rolePath = resolveRolePath(user.role);
-      navigate(from.startsWith("/admin") || from.startsWith("/client") || from.startsWith("/influencer") ? from : rolePath, { replace: true });
+      navigate(
+        from.startsWith("/admin") || from.startsWith("/employee") || from.startsWith("/client") || from.startsWith("/influencer")
+          ? from
+          : rolePath,
+        { replace: true }
+      );
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "登录失败");
     } finally {

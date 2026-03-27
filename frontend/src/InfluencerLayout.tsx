@@ -11,7 +11,6 @@ function preloadInfluencerRoutes(): Record<string, () => void> {
   if (!import.meta.env.PROD) return {};
   return {
     "/influencer/client-orders": () => import("./influencer/ClientOrdersHallPage"),
-    "/influencer/my-tasks": () => import("./influencer/MyTasksPage"),
     "/influencer/points": () => import("./influencer/PointsPage"),
     "/influencer/withdraw": () => import("./influencer/WithdrawPage"),
   };
@@ -69,7 +68,6 @@ export default function InfluencerLayout() {
       roleTitle="达人端"
       navItems={[
         { to: "/influencer/client-orders", label: "客户端发单", preload: preloadMap["/influencer/client-orders"] },
-        { to: "/influencer/my-tasks", label: "我的任务", preload: preloadMap["/influencer/my-tasks"] },
         { to: "/influencer/points", label: "积分与收益", preload: preloadMap["/influencer/points"] },
         { to: "/influencer/withdraw", label: "申请提现", preload: preloadMap["/influencer/withdraw"] },
         { to: "/influencer/op-logs", label: "我的操作日志" },

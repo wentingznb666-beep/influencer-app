@@ -20,7 +20,7 @@ export default function ProtectedRoute({ children, roles }: ProtectedRouteProps)
   }
 
   if (roles && roles.length > 0 && !roles.includes(user.role)) {
-    const rolePath = user.role === "admin" || user.role === "employee" ? "/admin" : user.role === "influencer" ? "/influencer" : "/client";
+    const rolePath = user.role === "admin" ? "/admin" : user.role === "employee" ? "/employee" : user.role === "influencer" ? "/influencer" : "/client";
     return <Navigate to={rolePath} replace />;
   }
 

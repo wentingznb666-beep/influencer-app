@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import * as api from "../adminApi";
+import { getStoredUser } from "../authApi";
 
 type Row = {
   id: number;
@@ -49,6 +50,8 @@ function isHttpUrl(value?: string | null): boolean {
  * 管理员端：客户订单列表（达人领单），支持搜索与状态筛选，并与客户端/达人端订单实时同步。
  */
 export default function OrdersPage() {
+  const user = getStoredUser();
+  const basePath = user?.role === "employee" ? "/employee" : "/admin";
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [list, setList] = useState<Row[]>([]);
@@ -285,7 +288,7 @@ export default function OrdersPage() {
                   <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>
                     <button
                       type="button"
-                      onClick={() => navigate(`/admin/market-orders?q=${encodeURIComponent(o.order_no || String(o.id))}`)}
+                      onClick={() => navigate(`${basePath}/market-orders?q=${encodeURIComponent(o.order_no || String(o.id))}`)}
                       style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
                     >
                       到达人领单页

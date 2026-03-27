@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import * as api from "../adminApi";
+import { getStoredUser } from "../authApi";
 
 type Account = { id: number; user_id: number; balance: number; updated_at: string; username: string; role: string };
 type WeekRow = { user_id: number; username: string; role: string; total_added: number };
@@ -7,6 +8,8 @@ type LedgerRow = { id: number; account_id: number; amount: number; type: string;
 type RechargeOrderRow = { id: number; order_no: string | null; user_id: number; username: string; amount: number; status: "pending" | "approved" | "rejected"; note: string | null; created_at: string; updated_at: string; approved_at: string | null };
 
 export default function PointsPage() {
+  const user = getStoredUser();
+  const isEmployee = user?.role === "employee";
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [weekSummary, setWeekSummary] = useState<WeekRow[]>([]);
   const [ledger, setLedger] = useState<LedgerRow[]>([]);
@@ -91,6 +94,10 @@ export default function PointsPage() {
    * 管理员手动充值：为达人/商家直接加积分。
    */
   const handleManualRecharge = async () => {
+    if (isEmployee) {
+      setError("员工无直接充值权限。");
+      return;
+    }
     const uid = Number(manualUserId);
     const amt = Number(manualAmount);
     if (!Number.isInteger(uid) || uid < 1) {
@@ -136,52 +143,54 @@ export default function PointsPage() {
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       <section style={{ marginBottom: 32 }}>
         <h3>积分汇总</h3>
-        <div style={{ marginBottom: 12, padding: 12, background: "#fff", borderRadius: 8 }}>
-          <div style={{ marginBottom: 8, fontWeight: 600 }}>管理员积分调整（加分/扣分）</div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-            <select value={manualMode} onChange={(e) => setManualMode(e.target.value as "add" | "deduct")} style={{ padding: "6px 8px", minWidth: 120 }}>
-              <option value="add">加分</option>
-              <option value="deduct">扣分（仅达人）</option>
-            </select>
-            {/* 关键修改 1：搜索输入框（实时过滤用户名/ID） */}
-            <input
-              type="text"
-              value={manualUserSearch}
-              onChange={(e) => setManualUserSearch(e.target.value)}
-              placeholder="搜索用户名或ID"
-              style={{ padding: "6px 8px", minWidth: 220 }}
-            />
-            {/* 关键修改 2：下拉选中/回显/提交逻辑保持不变，仅替换 options 来源为过滤后的列表 */}
-            <select
-              value={manualUserId}
-              onChange={(e) => setManualUserId(e.target.value)}
-              style={{ padding: "6px 8px", minWidth: 260 }}
-            >
-              <option value="">选择充值对象</option>
-              {displayRechargeTargets.length === 0 ? (
-                <option value="" disabled>
-                  无匹配结果
-                </option>
-              ) : (
-                displayRechargeTargets.map((u) => (
-                  <option key={u.user_id} value={u.user_id}>
-                    {u.username}（{u.role === "influencer" ? "达人" : "商家"} / ID:{u.user_id}）
+        {!isEmployee && (
+          <div style={{ marginBottom: 12, padding: 12, background: "#fff", borderRadius: 8 }}>
+            <div style={{ marginBottom: 8, fontWeight: 600 }}>管理员积分调整（加分/扣分）</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <select value={manualMode} onChange={(e) => setManualMode(e.target.value as "add" | "deduct")} style={{ padding: "6px 8px", minWidth: 120 }}>
+                <option value="add">加分</option>
+                <option value="deduct">扣分（仅达人）</option>
+              </select>
+              {/* 关键修改 1：搜索输入框（实时过滤用户名/ID） */}
+              <input
+                type="text"
+                value={manualUserSearch}
+                onChange={(e) => setManualUserSearch(e.target.value)}
+                placeholder="搜索用户名或ID"
+                style={{ padding: "6px 8px", minWidth: 220 }}
+              />
+              {/* 关键修改 2：下拉选中/回显/提交逻辑保持不变，仅替换 options 来源为过滤后的列表 */}
+              <select
+                value={manualUserId}
+                onChange={(e) => setManualUserId(e.target.value)}
+                style={{ padding: "6px 8px", minWidth: 260 }}
+              >
+                <option value="">选择充值对象</option>
+                {displayRechargeTargets.length === 0 ? (
+                  <option value="" disabled>
+                    无匹配结果
                   </option>
-                ))
-              )}
-            </select>
-            <input type="number" min={1} value={manualAmount} onChange={(e) => setManualAmount(e.target.value)} placeholder="充值积分" style={{ padding: "6px 8px", width: 120 }} />
-            <input type="text" value={manualNote} onChange={(e) => setManualNote(e.target.value)} placeholder="备注（可选）" style={{ padding: "6px 8px", width: 220 }} />
-            <button
-              type="button"
-              onClick={handleManualRecharge}
-              disabled={manualSubmitting}
-              style={{ padding: "6px 12px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: manualSubmitting ? "not-allowed" : "pointer" }}
-            >
-              {manualSubmitting ? "提交中…" : manualMode === "deduct" ? "确认扣分" : "确认加分"}
-            </button>
+                ) : (
+                  displayRechargeTargets.map((u) => (
+                    <option key={u.user_id} value={u.user_id}>
+                      {u.username}（{u.role === "influencer" ? "达人" : "商家"} / ID:{u.user_id}）
+                    </option>
+                  ))
+                )}
+              </select>
+              <input type="number" min={1} value={manualAmount} onChange={(e) => setManualAmount(e.target.value)} placeholder="充值积分" style={{ padding: "6px 8px", width: 120 }} />
+              <input type="text" value={manualNote} onChange={(e) => setManualNote(e.target.value)} placeholder="备注（可选）" style={{ padding: "6px 8px", width: 220 }} />
+              <button
+                type="button"
+                onClick={handleManualRecharge}
+                disabled={manualSubmitting}
+                style={{ padding: "6px 12px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: manualSubmitting ? "not-allowed" : "pointer" }}
+              >
+                {manualSubmitting ? "提交中…" : manualMode === "deduct" ? "确认扣分" : "确认加分"}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
         <div style={{ marginBottom: 8 }}>
           <label>按周统计（年-周，如 2025-12）</label>
           <input type="text" value={week} onChange={(e) => setWeek(e.target.value)} placeholder="留空为全部" style={{ marginLeft: 8, padding: "6px 8px", width: 100 }} />

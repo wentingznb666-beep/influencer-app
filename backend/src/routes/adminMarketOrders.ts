@@ -7,11 +7,23 @@ router.use(requireAuth);
 router.use(requireRole("admin", "employee"));
 
 /**
+ * 解析日期参数（YYYY-MM-DD），非法时返回空字符串。
+ */
+function normalizeDateOnly(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const v = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return "";
+  return v;
+}
+
+/**
  * GET /api/admin/market-orders
- * 全量达人领单列表；可选 q 对订单号、标题、要求全文做精准匹配。
+ * 全量达人领单列表；支持订单号精准搜索 + 创建日期（单日/区间）筛选。
  */
 router.get("/", (req: AuthRequest, res: Response) => {
   const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const startDate = normalizeDateOnly(req.query.start_date);
+  const endDate = normalizeDateOnly(req.query.end_date);
   (async () => {
     let sql = `
       SELECT mo.id, mo.order_no, mo.title, mo.requirements,
@@ -29,9 +41,25 @@ router.get("/", (req: AuthRequest, res: Response) => {
       LEFT JOIN users ui ON mo.influencer_id = ui.id
     `;
     const params: unknown[] = [];
+    const where: string[] = [];
+    let idx = 1;
     if (rawQ) {
-      sql += ` WHERE (mo.order_no = $1 OR mo.title = $1 OR mo.requirements = $1)`;
+      where.push(`(mo.order_no = $${idx} OR mo.title = $${idx} OR mo.requirements = $${idx})`);
       params.push(rawQ);
+      idx += 1;
+    }
+    if (startDate) {
+      where.push(`mo.created_at::date >= $${idx}::date`);
+      params.push(startDate);
+      idx += 1;
+    }
+    if (endDate) {
+      where.push(`mo.created_at::date <= $${idx}::date`);
+      params.push(endDate);
+      idx += 1;
+    }
+    if (where.length > 0) {
+      sql += ` WHERE ${where.join(" AND ")}`;
     }
     sql += ` ORDER BY mo.id DESC LIMIT 500`;
     const { rows } = await query(sql, params);

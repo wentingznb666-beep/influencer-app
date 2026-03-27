@@ -9,6 +9,16 @@ router.use(requireAuth);
 router.use(requireRole("influencer"));
 
 /**
+ * 解析日期参数（YYYY-MM-DD），非法时返回空字符串。
+ */
+function normalizeDateOnly(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const v = value.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return "";
+  return v;
+}
+
+/**
  * 将 client_market_orders 完成结算：
  * - 若发单时尚未扣款（历史订单 pay_deducted=0），则先从客户端扣除客户支付积分（reward_points）
  * - 达人收益固定为 5（creator_reward_points）
@@ -244,6 +254,8 @@ router.post("/tasks/:taskId/claim", (req: AuthRequest, res: Response) => {
  * 我的任务列表：已领取任务及投稿状态。
  */
 router.get("/my-claims", (req: AuthRequest, res: Response) => {
+  res.status(410).json({ error: "MODULE_DISABLED", message: "我的任务板块已下线。" });
+  return;
   const userId = req.user!.userId;
   (async () => {
     const { rows } = await query(
@@ -273,6 +285,8 @@ router.get("/my-claims", (req: AuthRequest, res: Response) => {
  * 单条领取详情（含下载链接），用于复制/打开云盘。
  */
 router.get("/my-claims/:claimId", (req: AuthRequest, res: Response) => {
+  res.status(410).json({ error: "MODULE_DISABLED", message: "我的任务板块已下线。" });
+  return;
   const userId = req.user!.userId;
   const claimId = Number(req.params.claimId);
   if (!Number.isInteger(claimId) || claimId < 1) {
@@ -308,6 +322,8 @@ router.get("/my-claims/:claimId", (req: AuthRequest, res: Response) => {
  * 投稿：提交作品链接，创建 submission 并更新 task_claim 为 submitted。
  */
 router.post("/submissions", (req: AuthRequest, res: Response) => {
+  res.status(410).json({ error: "MODULE_DISABLED", message: "我的任务板块已下线。" });
+  return;
   const userId = req.user!.userId;
   const { task_claim_id, work_link, note } = req.body ?? {};
   if (!task_claim_id || !work_link || typeof work_link !== "string" || !work_link.trim()) {
@@ -450,6 +466,8 @@ router.post("/withdrawals", (req: AuthRequest, res: Response) => {
  */
 router.get("/market-orders", (req: AuthRequest, res: Response) => {
   const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const startDate = normalizeDateOnly(req.query.start_date);
+  const endDate = normalizeDateOnly(req.query.end_date);
   (async () => {
     // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
@@ -461,9 +479,20 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
        JOIN users u ON mo.client_id = u.id
       WHERE mo.status = 'open' AND mo.is_deleted = 0`;
     const params: unknown[] = [];
+    let idx = 1;
     if (rawQ) {
-      sql += ` AND (mo.order_no = $1 OR mo.title = $1 OR mo.requirements = $1 OR u.username = $1 OR COALESCE(u.display_name, '') = $1)`;
+      sql += ` AND (mo.order_no = $${idx} OR mo.title = $${idx} OR mo.requirements = $${idx} OR u.username = $${idx} OR COALESCE(u.display_name, '') = $${idx})`;
       params.push(rawQ);
+      idx += 1;
+    }
+    if (startDate) {
+      sql += ` AND mo.created_at::date >= $${idx}::date`;
+      params.push(startDate);
+      idx += 1;
+    }
+    if (endDate) {
+      sql += ` AND mo.created_at::date <= $${idx}::date`;
+      params.push(endDate);
     }
     sql += ` ORDER BY mo.id DESC`;
     const { rows } = await query(sql, params);
@@ -481,6 +510,8 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
 router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const startDate = normalizeDateOnly(req.query.start_date);
+  const endDate = normalizeDateOnly(req.query.end_date);
   (async () => {
     // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
@@ -492,9 +523,20 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
        JOIN users u ON mo.client_id = u.id
       WHERE mo.influencer_id = $1 AND mo.is_deleted = 0`;
     const params: unknown[] = [userId];
+    let idx = 2;
     if (rawQ) {
-      sql += ` AND (mo.order_no = $2 OR mo.title = $2 OR mo.requirements = $2 OR u.username = $2 OR COALESCE(u.display_name, '') = $2)`;
+      sql += ` AND (mo.order_no = $${idx} OR mo.title = $${idx} OR mo.requirements = $${idx} OR u.username = $${idx} OR COALESCE(u.display_name, '') = $${idx})`;
       params.push(rawQ);
+      idx += 1;
+    }
+    if (startDate) {
+      sql += ` AND mo.created_at::date >= $${idx}::date`;
+      params.push(startDate);
+      idx += 1;
+    }
+    if (endDate) {
+      sql += ` AND mo.created_at::date <= $${idx}::date`;
+      params.push(endDate);
     }
     sql += ` ORDER BY mo.id DESC`;
     const { rows } = await query(sql, params);

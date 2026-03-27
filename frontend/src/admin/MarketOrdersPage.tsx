@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import * as api from "../adminApi";
+import { getStoredUser } from "../authApi";
+import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFilter";
 
 type Row = {
   id: number;
@@ -47,25 +49,46 @@ function isHttpUrl(value?: string | null): boolean {
  * 管理员端：达人领单全量列表，采用与客户订单一致的表格风格。
  */
 export default function MarketOrdersPage() {
+  const user = getStoredUser();
+  const basePath = user?.role === "employee" ? "/employee" : "/admin";
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [list, setList] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQ, setSearchQ] = useState("");
+  const [dateFilter, setDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
   const [detailOrder, setDetailOrder] = useState<Row | null>(null);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
   const [savingClientInfo, setSavingClientInfo] = useState(false);
   const hasInitLoadedRef = useRef(false);
 
   /**
+   * 将日期筛选状态转换为接口查询参数。
+   */
+  const resolveDateQuery = (filter: DateFilterState): { start_date?: string; end_date?: string } => {
+    if (filter.mode === "day" && filter.day) return { start_date: filter.day, end_date: filter.day };
+    if (filter.mode === "range") {
+      const out: { start_date?: string; end_date?: string } = {};
+      if (filter.startDate) out.start_date = filter.startDate;
+      if (filter.endDate) out.end_date = filter.endDate;
+      return out;
+    }
+    return {};
+  };
+
+  /**
    * 拉取列表（可选搜索关键词）。
    */
-  const load = async (q?: string) => {
+  const load = async (q?: string, filter?: DateFilterState) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.getAdminMarketOrders(q?.trim() ? { q: q.trim() } : undefined);
+      const query = {
+        ...(q?.trim() ? { q: q.trim() } : {}),
+        ...resolveDateQuery(filter ?? dateFilter),
+      };
+      const data = await api.getAdminMarketOrders(Object.keys(query).length > 0 ? query : undefined);
       setList((data.list as Row[]) || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
@@ -79,8 +102,13 @@ export default function MarketOrdersPage() {
     if (hasInitLoadedRef.current) return;
     hasInitLoadedRef.current = true;
     const qFromUrl = searchParams.get("q") || "";
+    const startDate = searchParams.get("start_date") || "";
+    const endDate = searchParams.get("end_date") || "";
+    const mode: DateFilterState["mode"] = startDate && endDate && startDate === endDate ? "day" : startDate || endDate ? "range" : "all";
+    const initFilter: DateFilterState = { mode, day: mode === "day" ? startDate : "", startDate: mode === "range" ? startDate : "", endDate: mode === "range" ? endDate : "" };
     setSearchQ(qFromUrl);
-    load(qFromUrl);
+    setDateFilter(initFilter);
+    load(qFromUrl, initFilter);
   }, []);
 
   const statusText: Record<string, string> = {
@@ -93,9 +121,12 @@ export default function MarketOrdersPage() {
   /**
    * 同步搜索词到 URL，支持按订单号深链定位。
    */
-  const syncQToUrl = (nextQ: string) => {
+  const syncQToUrl = (nextQ: string, filter: DateFilterState) => {
     const params = new URLSearchParams();
     if (nextQ.trim()) params.set("q", nextQ.trim());
+    const dateQuery = resolveDateQuery(filter);
+    if (dateQuery.start_date) params.set("start_date", dateQuery.start_date);
+    if (dateQuery.end_date) params.set("end_date", dateQuery.end_date);
     setSearchParams(params, { replace: true });
   };
 
@@ -159,8 +190,8 @@ export default function MarketOrdersPage() {
         <button
           type="button"
           onClick={() => {
-            syncQToUrl(searchQ);
-            load(searchQ);
+            syncQToUrl(searchQ, dateFilter);
+            load(searchQ, dateFilter);
           }}
           style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
         >
@@ -170,13 +201,16 @@ export default function MarketOrdersPage() {
           type="button"
           onClick={() => {
             setSearchQ("");
-            syncQToUrl("");
-            load();
+            const emptyFilter: DateFilterState = { mode: "all", day: "", startDate: "", endDate: "" };
+            setDateFilter(emptyFilter);
+            syncQToUrl("", emptyFilter);
+            load("", emptyFilter);
           }}
           style={{ padding: "8px 16px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}
         >
           清空
         </button>
+        <OrderDateFilter value={dateFilter} onChange={setDateFilter} />
       </div>
       {loading ? (
         <p>加载中…</p>
@@ -265,7 +299,7 @@ export default function MarketOrdersPage() {
                   <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>
                     <button
                       type="button"
-                      onClick={() => navigate(`/admin/orders?q=${encodeURIComponent(o.order_no || String(o.id))}`)}
+                      onClick={() => navigate(`${basePath}/orders?q=${encodeURIComponent(o.order_no || String(o.id))}`)}
                       style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
                     >
                       到客户订单页

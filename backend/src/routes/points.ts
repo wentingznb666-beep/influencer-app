@@ -4,7 +4,7 @@ import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
 const router = Router();
 router.use(requireAuth);
-router.use(requireRole("admin"));
+router.use(requireRole("admin", "employee"));
 
 /**
  * GET /api/admin/points/summary
@@ -204,6 +204,10 @@ router.patch("/recharge-orders/:id", (req: AuthRequest, res: Response) => {
  * - mode=deduct：仅可扣减达人积分
  */
 router.post("/manual-recharge", (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "admin") {
+    res.status(403).json({ error: "FORBIDDEN", message: "员工无直接充值权限。" });
+    return;
+  }
   const { user_id, amount, note, mode } = req.body ?? {};
   const userId = Number(user_id);
   const num = Number(amount);

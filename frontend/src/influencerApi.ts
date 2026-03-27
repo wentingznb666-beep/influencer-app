@@ -25,31 +25,6 @@ export async function claimTask(taskId: number) {
   return res.json();
 }
 
-/** 我的任务列表 */
-export async function getMyClaims() {
-  const res = await fetchWithAuth("/api/influencer/my-claims");
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
-  return res.json();
-}
-
-/** 单条领取详情（含下载链接） */
-export async function getMyClaimDetail(claimId: number) {
-  const res = await fetchWithAuth(`/api/influencer/my-claims/${claimId}`);
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
-  return res.json();
-}
-
-/** 投稿 */
-export async function submitWork(body: { task_claim_id: number; work_link: string; note?: string }) {
-  const res = await fetchWithAuth("/api/influencer/submissions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "提交失败");
-  return res.json();
-}
-
 /** 积分与本周预计、流水 */
 export async function getPoints() {
   const res = await fetchWithAuth("/api/influencer/points");
@@ -57,19 +32,31 @@ export async function getPoints() {
   return res.json();
 }
 
-/** 客户端发单大厅（待领取）；q 为订单号/标题/要求全文精准匹配 */
-export async function getMarketOrders(params?: { q?: string }) {
+/**
+ * 客户端发单大厅（待领取）。
+ * - q：订单号/标题/要求全文精准匹配
+ * - start_date/end_date：创建日期筛选（YYYY-MM-DD）
+ */
+export async function getMarketOrders(params?: { q?: string; start_date?: string; end_date?: string }) {
   const q = new URLSearchParams();
   if (params?.q) q.set("q", params.q);
+  if (params?.start_date) q.set("start_date", params.start_date);
+  if (params?.end_date) q.set("end_date", params.end_date);
   const res = await fetchWithAuth(`/api/influencer/market-orders?${q}`);
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
   return res.json();
 }
 
-/** 我领取的客户端发单；q 为订单号/标题/要求全文精准匹配 */
-export async function getMyMarketOrders(params?: { q?: string }) {
+/**
+ * 我领取的客户端发单。
+ * - q：订单号/标题/要求全文精准匹配
+ * - start_date/end_date：创建日期筛选（YYYY-MM-DD）
+ */
+export async function getMyMarketOrders(params?: { q?: string; start_date?: string; end_date?: string }) {
   const q = new URLSearchParams();
   if (params?.q) q.set("q", params.q);
+  if (params?.start_date) q.set("start_date", params.start_date);
+  if (params?.end_date) q.set("end_date", params.end_date);
   const res = await fetchWithAuth(`/api/influencer/market-orders/my?${q}`);
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
   return res.json();

@@ -4,7 +4,7 @@ import { hashPassword, requireAuth, requireRole, type AuthRequest } from "../aut
 
 const router = Router();
 router.use(requireAuth);
-router.use(requireRole("admin"));
+router.use(requireRole("admin", "employee"));
 
 type UserRole = "admin" | "employee" | "influencer" | "client";
 
@@ -67,6 +67,10 @@ function normalizeRole(value: string): UserRole | null {
  * 管理员开通账号（可创建管理员/员工/达人/客户端）。
  */
 router.post("/", (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "admin") {
+    res.status(403).json({ error: "FORBIDDEN", message: "员工无账号创建权限。" });
+    return;
+  }
   const { username, password, role, display_name } = req.body ?? {};
   if (!username || !password || typeof username !== "string" || typeof password !== "string") {
     res.status(400).json({ error: "INVALID_INPUT", message: "请提供用户名和密码。" });
@@ -107,6 +111,10 @@ router.post("/", (req: AuthRequest, res: Response) => {
  * 管理员重置账号密码。
  */
 router.patch("/:id/password", (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "admin") {
+    res.status(403).json({ error: "FORBIDDEN", message: "员工无账号编辑权限。" });
+    return;
+  }
   const id = Number(req.params.id);
   const { new_password } = req.body ?? {};
   if (!Number.isInteger(id) || id < 1) {
@@ -136,6 +144,10 @@ router.patch("/:id/password", (req: AuthRequest, res: Response) => {
  * 管理员启用/禁用账号（禁止禁用自己，防止误锁）。
  */
 router.patch("/:id/status", (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "admin") {
+    res.status(403).json({ error: "FORBIDDEN", message: "员工无账号编辑权限。" });
+    return;
+  }
   const id = Number(req.params.id);
   const { disabled } = req.body ?? {};
   if (!Number.isInteger(id) || id < 1) {

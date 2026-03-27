@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import * as api from "../influencerApi";
+import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFilter";
 
 type OpenOrder = {
   id: number;
@@ -151,20 +152,44 @@ export default function ClientOrdersHallPage() {
   const [workLink, setWorkLink] = useState("");
   const [searchOpen, setSearchOpen] = useState("");
   const [searchMy, setSearchMy] = useState("");
+  const [openDateFilter, setOpenDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
+  const [myDateFilter, setMyDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
   const hasInitLoadedRef = useRef(false);
+
+  /**
+   * 将日期筛选状态转换为接口查询参数。
+   */
+  function resolveDateQuery(filter: DateFilterState): { start_date?: string; end_date?: string } {
+    if (filter.mode === "day" && filter.day) return { start_date: filter.day, end_date: filter.day };
+    if (filter.mode === "range") {
+      const out: { start_date?: string; end_date?: string } = {};
+      if (filter.startDate) out.start_date = filter.startDate;
+      if (filter.endDate) out.end_date = filter.endDate;
+      return out;
+    }
+    return {};
+  }
 
   /**
    * 加载大厅与我的订单。
    */
-  const load = async (qOpen?: string, qMy?: string) => {
+  const load = async (qOpen?: string, qMy?: string, nextOpenDateFilter?: DateFilterState, nextMyDateFilter?: DateFilterState) => {
     setLoading(true);
     setError(null);
     try {
       const oq = qOpen !== undefined ? qOpen : searchOpen;
       const mq = qMy !== undefined ? qMy : searchMy;
+      const openDate = nextOpenDateFilter ?? openDateFilter;
+      const myDate = nextMyDateFilter ?? myDateFilter;
       const [openRes, myRes] = await Promise.all([
-        api.getMarketOrders(oq.trim() ? { q: oq.trim() } : undefined),
-        api.getMyMarketOrders(mq.trim() ? { q: mq.trim() } : undefined),
+        api.getMarketOrders({
+          ...(oq.trim() ? { q: oq.trim() } : {}),
+          ...resolveDateQuery(openDate),
+        }),
+        api.getMyMarketOrders({
+          ...(mq.trim() ? { q: mq.trim() } : {}),
+          ...resolveDateQuery(myDate),
+        }),
       ]);
       setOpenList(openRes.list || []);
       setMyList(myRes.list || []);
@@ -244,19 +269,22 @@ export default function ClientOrdersHallPage() {
           placeholder="搜索订单号、标题或要求（精准）"
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 240 }}
         />
-        <button type="button" onClick={() => load(searchOpen, undefined)} style={{ padding: "6px 14px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+        <button type="button" onClick={() => load(searchOpen, undefined, openDateFilter, undefined)} style={{ padding: "6px 14px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
           搜索
         </button>
         <button
           type="button"
           onClick={() => {
             setSearchOpen("");
-            load("", undefined);
+            const emptyFilter: DateFilterState = { mode: "all", day: "", startDate: "", endDate: "" };
+            setOpenDateFilter(emptyFilter);
+            load("", undefined, emptyFilter, undefined);
           }}
           style={{ padding: "6px 14px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}
         >
           清空
         </button>
+        <OrderDateFilter value={openDateFilter} onChange={setOpenDateFilter} />
       </div>
       {loading ? (
         <p>加载中…</p>
@@ -264,6 +292,9 @@ export default function ClientOrdersHallPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 28 }}>
           {openList.map((o) => (
             <div key={o.id} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+              <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 8, background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: 13 }}>
+                订单日期：{formatDateTime(o.created_at)}
+              </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
                 <div>
                   <div style={{ fontWeight: 600 }}>订单号：{o.order_no || `#${o.id}`}</div>
@@ -306,24 +337,30 @@ export default function ClientOrdersHallPage() {
           placeholder="搜索订单号、标题或要求（精准）"
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 240 }}
         />
-        <button type="button" onClick={() => load(undefined, searchMy)} style={{ padding: "6px 14px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+        <button type="button" onClick={() => load(undefined, searchMy, undefined, myDateFilter)} style={{ padding: "6px 14px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
           搜索
         </button>
         <button
           type="button"
           onClick={() => {
             setSearchMy("");
-            load(undefined, "");
+            const emptyFilter: DateFilterState = { mode: "all", day: "", startDate: "", endDate: "" };
+            setMyDateFilter(emptyFilter);
+            load(undefined, "", undefined, emptyFilter);
           }}
           style={{ padding: "6px 14px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}
         >
           清空
         </button>
+        <OrderDateFilter value={myDateFilter} onChange={setMyDateFilter} />
       </div>
       {!loading && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {myList.map((o) => (
             <div key={o.id} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+              <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 8, background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: 13 }}>
+                订单日期：{formatDateTime(o.created_at)}
+              </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
                 <div>
                   <div style={{ fontWeight: 600 }}>订单号：{o.order_no || `#${o.id}`}</div>

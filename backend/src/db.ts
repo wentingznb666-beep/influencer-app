@@ -276,6 +276,9 @@ const FULL_INIT_SQL = `
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_open ON client_market_orders (id) WHERE status = 'open';
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_client ON client_market_orders (client_id);
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_influencer ON client_market_orders (influencer_id);
+  CREATE INDEX IF NOT EXISTS idx_client_market_orders_created_at ON client_market_orders (created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_client_market_orders_client_created ON client_market_orders (client_id, created_at DESC) WHERE is_deleted = 0;
+  CREATE INDEX IF NOT EXISTS idx_client_market_orders_influencer_created ON client_market_orders (influencer_id, created_at DESC) WHERE is_deleted = 0;
 
   CREATE TABLE IF NOT EXISTS operation_log (
     id SERIAL PRIMARY KEY,
@@ -585,6 +588,9 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     await query(
       `CREATE UNIQUE INDEX IF NOT EXISTS idx_client_market_orders_order_no ON client_market_orders(order_no) WHERE order_no IS NOT NULL`,
     );
+    await query(`CREATE INDEX IF NOT EXISTS idx_client_market_orders_created_at ON client_market_orders(created_at DESC)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_client_market_orders_client_created ON client_market_orders(client_id, created_at DESC) WHERE is_deleted = 0`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_client_market_orders_influencer_created ON client_market_orders(influencer_id, created_at DESC) WHERE is_deleted = 0`);
   }
   await query(`CREATE TABLE IF NOT EXISTS client_skus (
     id SERIAL PRIMARY KEY,
