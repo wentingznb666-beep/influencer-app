@@ -92,7 +92,7 @@ router.post("/", (req: AuthRequest, res: Response) => {
       res.status(409).json({ error: "USER_EXISTS", message: "用户名已存在。" });
       return;
     }
-    const passwordHash = hashPassword(password);
+    const passwordHash = await hashPassword(password);
     const created = await query<{ id: number }>(
       "INSERT INTO users (username, password_hash, role_id, display_name) VALUES ($1, $2, $3, $4) RETURNING id",
       [username.trim(), passwordHash, roleId, display_name ? String(display_name) : null]
@@ -131,7 +131,8 @@ router.patch("/:id/password", (req: AuthRequest, res: Response) => {
       res.status(404).json({ error: "NOT_FOUND", message: "账号不存在。" });
       return;
     }
-    await query("UPDATE users SET password_hash = $1 WHERE id = $2", [hashPassword(new_password), id]);
+    const passwordHash = await hashPassword(new_password);
+    await query("UPDATE users SET password_hash = $1 WHERE id = $2", [passwordHash, id]);
     res.json({ ok: true });
   })().catch((e) => {
     console.error("admin users reset password error:", e);

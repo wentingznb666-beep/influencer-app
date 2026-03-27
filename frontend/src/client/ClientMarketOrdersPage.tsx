@@ -44,6 +44,26 @@ function formatDateTime(value?: string | null): string {
 }
 
 /**
+ * 兼容不同字段命名，解析领取达人昵称（username/display/nickname）。
+ */
+function resolveClaimerText(order: MarketOrder): string {
+  const raw = order as unknown as Record<string, unknown>;
+  const username = String(order.influencer_username || raw.influencer_nickname || raw.influencerName || "").trim();
+  const display = String(order.influencer_display_name || raw.influencer_display || raw.influencerDisplayName || "").trim();
+  if (username && display && username !== display) return `${username} / ${display}`;
+  return username || display || "—";
+}
+
+/**
+ * 兼容不同字段命名，解析 TikTok 链接。
+ */
+function resolveTikTokLink(order: MarketOrder): string {
+  const raw = order as unknown as Record<string, unknown>;
+  const link = String(order.tiktok_link || raw.tiktokLink || raw.tiktok_url || "").trim();
+  return link;
+}
+
+/**
  * 客户端「达人领单」页面：发布要求、查看订单号与标题、搜索、查看状态与交付链接。
  */
 export default function ClientMarketOrdersPage() {
@@ -481,16 +501,16 @@ export default function ClientMarketOrdersPage() {
                 </div>
               </div>
               <p style={{ margin: "10px 0 0", fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</p>
-              {o.status === "claimed" && (
+              {(o.status === "claimed" || o.status === "completed" || !!o.influencer_id || !!o.influencer_username) && (
                 <p style={{ margin: "8px 0 0", fontSize: 14, fontWeight: 600, color: "#0f766e" }}>
-                  领取达人账号昵称：{o.influencer_username || "—"}{o.influencer_display_name ? ` / ${o.influencer_display_name}` : ""}
+                  领取达人账号昵称：{resolveClaimerText(o)}
                 </p>
               )}
-              {!!o.tiktok_link && (
+              {!!resolveTikTokLink(o) && (
                 <p style={{ margin: "8px 0 0", fontSize: 13 }}>
                   TikTok：
-                  <a href={o.tiktok_link} target="_blank" rel="noreferrer">
-                    {o.tiktok_link}
+                  <a href={resolveTikTokLink(o)} target="_blank" rel="noreferrer">
+                    {resolveTikTokLink(o)}
                   </a>
                 </p>
               )}
