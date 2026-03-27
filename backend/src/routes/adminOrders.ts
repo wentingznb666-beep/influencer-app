@@ -39,10 +39,11 @@ function normalizeClientGroupChat(value: unknown): string {
 router.get("/", (req: AuthRequest, res: Response) => {
   const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const status = normalizeOrderStatus(req.query.status);
+  const requesterRole = req.user?.role === "employee" ? "employee" : "admin";
 
   (async () => {
-    const params: any[] = [];
-    let idx = 1;
+    const params: any[] = [requesterRole];
+    let idx = 2;
     let sql = `
       SELECT mo.id, mo.order_no, mo.title, mo.requirements,
              mo.client_id,
@@ -54,8 +55,8 @@ router.get("/", (req: AuthRequest, res: Response) => {
              ui.username AS influencer_username,
              COALESCE(NULLIF(ui.display_name, ''), ui.username) AS influencer_display_name,
              mo.reward_points AS client_pay_points,
-             mo.creator_reward_points,
-             mo.platform_profit_points,
+             CASE WHEN $1 = 'employee' THEN NULL ELSE mo.creator_reward_points END AS creator_reward_points,
+             CASE WHEN $1 = 'employee' THEN NULL ELSE mo.platform_profit_points END AS platform_profit_points,
              mo.tier,
              mo.status,
              mo.work_link,

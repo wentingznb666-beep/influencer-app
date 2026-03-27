@@ -405,3 +405,78 @@ export async function getAdminSkuClients() {
   if (!res.ok) throw new Error(await readErrorMessage(res, "请求失败"));
   return res.json();
 }
+
+
+/**
+ * 管理员/员工：模特展示列表。
+ */
+export async function getAdminModels(params?: { q?: string; status?: "enabled" | "disabled" }) {
+  const q = new URLSearchParams();
+  if (params?.q) q.set("q", params.q);
+  if (params?.status) q.set("status", params.status);
+  const res = await fetchWithAuth(`/api/admin/models?${q}`);
+  if (!res.ok) throw new Error(await readErrorMessage(res, "请求失败"));
+  return res.json();
+}
+
+/**
+ * 管理员/员工：上传模特图片（多图）。
+ */
+export async function uploadAdminModelImages(files: File[]): Promise<string[]> {
+  if (files.length === 0) return [];
+  const fd = new FormData();
+  files.forEach((f) => fd.append("files", f));
+  const res = await fetchWithAuth("/api/admin/models/upload", { method: "POST", body: fd });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "上传失败"));
+  const data = (await res.json().catch(() => ({}))) as { urls?: string[] };
+  return Array.isArray(data.urls) ? data.urls : [];
+}
+
+/**
+ * 管理员/员工：新增模特资料。
+ */
+export async function createAdminModel(body: { name: string; photos: string[]; intro?: string; cloud_link: string; status?: "enabled" | "disabled" }) {
+  const res = await fetchWithAuth("/api/admin/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "创建失败"));
+  return res.json();
+}
+
+/**
+ * 管理员/员工：编辑模特资料。
+ */
+export async function updateAdminModel(id: number, body: { name?: string; photos?: string[]; intro?: string; cloud_link?: string; status?: "enabled" | "disabled" }) {
+  const res = await fetchWithAuth(`/api/admin/models/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "更新失败"));
+  return res.json();
+}
+
+/**
+ * 员工：提交模特上下架审核申请。
+ */
+export async function requestAdminModelStatus(id: number, status: "enabled" | "disabled") {
+  const res = await fetchWithAuth(`/api/admin/models/${id}/status-request`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "提交失败"));
+  return res.json();
+}
+
+/**
+ * 管理员：审核员工上下架申请。
+ */
+export async function reviewAdminModelStatus(id: number, action: "approve" | "reject", note?: string) {
+  const res = await fetchWithAuth(`/api/admin/models/${id}/status-review`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, note }),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "审核失败"));
+  return res.json();
+}
+
+/**
+ * 管理员：删除模特资料。
+ */
+export async function deleteAdminModel(id: number) {
+  const res = await fetchWithAuth(`/api/admin/models/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "删除失败"));
+  return res.json();
+}

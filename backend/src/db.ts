@@ -318,6 +318,42 @@ const FULL_INIT_SQL = `
     created_by INTEGER REFERENCES users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
+
+  /**
+   * 模特展示：管理员/员工维护模特资料，客户端浏览与长期合作选择。
+   */
+  CREATE TABLE IF NOT EXISTS model_profiles (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    photos JSONB NOT NULL DEFAULT '[]'::jsonb,
+    intro TEXT,
+    cloud_link TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'disabled' CHECK (status IN ('enabled', 'disabled')),
+    pending_status TEXT CHECK (pending_status IN ('enabled', 'disabled')),
+    created_by INTEGER REFERENCES users(id),
+    updated_by INTEGER REFERENCES users(id),
+    reviewed_by INTEGER REFERENCES users(id),
+    review_note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ
+  );
+  CREATE INDEX IF NOT EXISTS idx_model_profiles_status ON model_profiles(status, id DESC) WHERE is_deleted = 0;
+
+  /**
+   * 客户长期合作模特选择：按客户隔离。
+   */
+  CREATE TABLE IF NOT EXISTS client_model_favorites (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES users(id),
+    model_id INTEGER NOT NULL REFERENCES model_profiles(id),
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(client_id, model_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_client_model_favorites_client ON client_model_favorites(client_id, id DESC) WHERE is_deleted = 0;
 `;
 
 /**
@@ -613,6 +649,43 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     created_by INTEGER REFERENCES users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`);
+  await query(`CREATE TABLE IF NOT EXISTS model_profiles (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    photos JSONB NOT NULL DEFAULT '[]'::jsonb,
+    intro TEXT,
+    cloud_link TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'disabled',
+    pending_status TEXT,
+    created_by INTEGER REFERENCES users(id),
+    updated_by INTEGER REFERENCES users(id),
+    reviewed_by INTEGER REFERENCES users(id),
+    review_note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    is_deleted INTEGER NOT NULL DEFAULT 0,
+    deleted_at TIMESTAMPTZ
+  )`);
+  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS pending_status TEXT`);
+  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS created_by INTEGER REFERENCES users(id)`);
+  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS updated_by INTEGER REFERENCES users(id)`);
+  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS reviewed_by INTEGER REFERENCES users(id)`);
+  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS review_note TEXT`);
+  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS is_deleted INTEGER NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_model_profiles_status ON model_profiles(status, id DESC) WHERE is_deleted = 0`);
+  await query(`CREATE TABLE IF NOT EXISTS client_model_favorites (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES users(id),
+    model_id INTEGER NOT NULL REFERENCES model_profiles(id),
+    is_deleted INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(client_id, model_id)
+  )`);
+  await query(`ALTER TABLE client_model_favorites ADD COLUMN IF NOT EXISTS is_deleted INTEGER NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE client_model_favorites ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_client_model_favorites_client ON client_model_favorites(client_id, id DESC) WHERE is_deleted = 0`);
 }
 
 /**

@@ -4,7 +4,7 @@ import { hashPassword, requireAuth, requireRole, type AuthRequest } from "../aut
 
 const router = Router();
 router.use(requireAuth);
-router.use(requireRole("admin", "employee"));
+router.use(requireRole("admin"));
 
 type UserRole = "admin" | "employee" | "influencer" | "client";
 

@@ -234,3 +234,36 @@ export async function deleteMarketOrder(id: number) {
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "删除失败");
   return res.json();
 }
+
+/**
+ * 客户端：获取模特展示列表（仅启用状态）。
+ */
+export async function getClientModels(params?: { q?: string }) {
+  const q = new URLSearchParams();
+  if (params?.q) q.set("q", params.q);
+  const res = await fetchWithAuth(`/api/client/models?${q}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
+/**
+ * 客户端：获取我的长期合作模特列表。
+ */
+export async function getMyCooperationModels() {
+  const res = await fetchWithAuth("/api/client/models/my");
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
+/**
+ * 客户端：设置或取消长期合作模特。
+ */
+export async function updateModelCooperation(id: number, selected: boolean) {
+  const res = await fetchWithAuth(`/api/client/models/${id}/cooperation`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ selected }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  return res.json();
+}

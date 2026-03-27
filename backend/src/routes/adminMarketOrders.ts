@@ -24,12 +24,13 @@ router.get("/", (req: AuthRequest, res: Response) => {
   const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const startDate = normalizeDateOnly(req.query.start_date);
   const endDate = normalizeDateOnly(req.query.end_date);
+  const requesterRole = req.user?.role === "employee" ? "employee" : "admin";
   (async () => {
     let sql = `
       SELECT mo.id, mo.order_no, mo.title, mo.requirements,
              mo.reward_points AS client_pay_points,
-             mo.creator_reward_points AS creator_reward_points,
-             mo.platform_profit_points AS platform_profit_points,
+             CASE WHEN $1 = 'employee' THEN NULL ELSE mo.creator_reward_points END AS creator_reward_points,
+             CASE WHEN $1 = 'employee' THEN NULL ELSE mo.platform_profit_points END AS platform_profit_points,
              mo.tier,
              mo.status,
              mo.client_id, uc.username AS client_username,
@@ -40,9 +41,9 @@ router.get("/", (req: AuthRequest, res: Response) => {
       JOIN users uc ON mo.client_id = uc.id
       LEFT JOIN users ui ON mo.influencer_id = ui.id
     `;
-    const params: unknown[] = [];
+    const params: unknown[] = [requesterRole];
     const where: string[] = [];
-    let idx = 1;
+    let idx = 2;
     if (rawQ) {
       where.push(`(mo.order_no = $${idx} OR mo.title = $${idx} OR mo.requirements = $${idx})`);
       params.push(rawQ);

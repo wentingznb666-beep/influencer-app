@@ -21,6 +21,8 @@ import adminOrdersRoutes from "./routes/adminOrders";
 import adminSkusRoutes from "./routes/adminSkus";
 import adminProfitRoutes from "./routes/adminProfit";
 import operationLogsRoutes from "./routes/operationLogs";
+import modelsRoutes from "./routes/models";
+import clientModelsRoutes from "./routes/clientModels";
 import { initDb } from "./db";
 
 dotenv.config();
@@ -57,10 +59,12 @@ app.use("/api/admin/profit", adminProfitRoutes);
 app.use("/api/admin/market-orders", adminMarketOrdersRoutes);
 app.use("/api/admin/orders", adminOrdersRoutes);
 app.use("/api/admin/skus", adminSkusRoutes);
+app.use("/api/admin/models", modelsRoutes);
 /** 达人端：任务大厅、领取、我的任务、投稿、积分 */
 app.use("/api/influencer", influencerRoutes);
 /** 客户端：合作意向、订单跟踪、达人作品、积分充值 */
 app.use("/api/client", clientRoutes);
+app.use("/api/client/models", clientModelsRoutes);
 /** 通用：我的操作日志 */
 app.use("/api/operation-logs", operationLogsRoutes);
 

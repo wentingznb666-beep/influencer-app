@@ -52,6 +52,7 @@ function isHttpUrl(value?: string | null): boolean {
 export default function OrdersPage() {
   const user = getStoredUser();
   const basePath = user?.role === "employee" ? "/employee" : "/admin";
+  const isEmployee = user?.role === "employee";
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [list, setList] = useState<Row[]>([]);
@@ -268,8 +269,12 @@ export default function OrdersPage() {
                   </td>
                   <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>
                     客户支付：{o.client_pay_points}
-                    <br />
-                    达人收益：{o.creator_reward_points}
+                    {!isEmployee && (
+                      <>
+                        <br />
+                        达人收益：{o.creator_reward_points}
+                      </>
+                    )}
                   </td>
                   <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", maxWidth: 380 }}>
                     <div style={{ fontWeight: 600 }}>{o.title || "未命名订单"}</div>
@@ -374,8 +379,12 @@ export default function OrdersPage() {
               <div style={{ color: "#64748b" }}>状态</div><div>{statusText[detailOrder.status] ?? detailOrder.status}</div>
               <div style={{ color: "#64748b" }}>档位</div><div>{detailOrder.tier}</div>
               <div style={{ color: "#64748b" }}>客户支付</div><div>{detailOrder.client_pay_points}</div>
-              <div style={{ color: "#64748b" }}>达人收益</div><div>{detailOrder.creator_reward_points}</div>
-              <div style={{ color: "#64748b" }}>平台利润</div><div>{detailOrder.platform_profit_points}</div>
+              {!isEmployee && (
+                <>
+                  <div style={{ color: "#64748b" }}>达人收益</div><div>{detailOrder.creator_reward_points}</div>
+                  <div style={{ color: "#64748b" }}>平台利润</div><div>{detailOrder.platform_profit_points}</div>
+                </>
+              )}
               <div style={{ color: "#64748b" }}>标题</div><div>{detailOrder.title || "未命名订单"}</div>
               <div style={{ color: "#64748b" }}>任务要求</div><div style={{ whiteSpace: "pre-wrap" }}>{detailOrder.requirements}</div>
               <div style={{ color: "#64748b" }}>交付链接</div>
