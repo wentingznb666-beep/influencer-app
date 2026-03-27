@@ -1,5 +1,5 @@
 /**
- * 客户端 API：合作意向、订单、达人作品、积分与充值。
+ * 客户端 API：合作意向、订单、积分与充值。
  */
 import { fetchWithAuth } from "./fetchWithAuth";
 import { getAccessToken, refreshAccessToken } from "./authApi";
@@ -138,13 +138,6 @@ export async function createOrder(body: { request_id?: number; note?: string }) 
 export async function updateOrder(id: number, body: { status?: string; note?: string }) {
   const res = await fetchWithAuth(`/api/client/orders/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "更新失败");
-  return res.json();
-}
-
-/** 达人已发布作品列表 */
-export async function getWorks() {
-  const res = await fetchWithAuth("/api/client/works");
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
   return res.json();
 }
 

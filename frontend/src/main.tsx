@@ -19,7 +19,6 @@ import ClientLayout from "./ClientLayout";
 import ClientMarketOrdersPage from "./client/ClientMarketOrdersPage";
 import MarketOrderEditPage from "./client/MarketOrderEditPage";
 import ClientSkusPage from "./client/SkusPage";
-import WorksPage from "./client/WorksPage";
 import ClientPointsPage from "./client/PointsPage";
 import InfluencerLayout from "./InfluencerLayout";
 /**
@@ -77,7 +76,6 @@ createRoot(document.getElementById("root")!).render(
             <Route path="market-orders" element={<ClientMarketOrdersPage />} />
             <Route path="skus" element={<ClientSkusPage />} />
             <Route path="market-orders/:id/edit" element={<MarketOrderEditPage />} />
-            <Route path="works" element={<WorksPage />} />
             <Route path="points" element={<ClientPointsPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
           </Route>

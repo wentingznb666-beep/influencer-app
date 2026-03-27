@@ -587,31 +587,10 @@ router.patch("/orders/:id", (req: AuthRequest, res: Response) => {
 
 /**
  * GET /api/client/works
- * 达人已发布作品列表（已通过审核的投稿，含作品链接、达人、任务/素材信息）。
+ * 达人作品板块已下线，统一返回停用状态。
  */
 router.get("/works", (req: AuthRequest, res: Response) => {
-  (async () => {
-    const { rows } = await query(
-      `
-    SELECT s.id, s.work_link, s.submitted_at,
-           u.username AS influencer_username,
-           t.platform, t.point_reward,
-           m.title AS material_title, m.type AS material_type
-    FROM submissions s
-    JOIN task_claims tc ON s.task_claim_id = tc.id
-    JOIN users u ON tc.user_id = u.id
-    JOIN tasks t ON tc.task_id = t.id
-    JOIN materials m ON t.material_id = m.id
-    WHERE s.status = 'approved'
-    ORDER BY s.submitted_at DESC
-  `
-    );
-    const list = (rows as Array<Record<string, unknown> & { id: number }>).map((r) => ({ ...r, play_count: null }));
-    res.json({ list });
-  })().catch((e) => {
-    console.error("client works list error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-  });
+  res.status(410).json({ error: "MODULE_DISABLED", message: "达人作品板块已下线。" });
 });
 
 /**
