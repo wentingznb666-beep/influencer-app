@@ -11,6 +11,8 @@ type MarketOrderItem = {
   voice_link?: string | null;
   voice_note?: string | null;
   tiktok_link?: string | null;
+  client_shop_name?: string | null;
+  client_group_chat?: string | null;
   product_images?: string[] | null;
   status: string;
   created_at: string;
@@ -30,6 +32,8 @@ export default function MarketOrderEditPage() {
   const [form, setForm] = useState({
     title: "",
     requirements: "",
+    client_shop_name: "",
+    client_group_chat: "",
     tier: "C" as "C" | "B" | "A",
     voice_link: "",
     voice_note: "",
@@ -53,6 +57,8 @@ export default function MarketOrderEditPage() {
       setForm({
         title: it.title || "",
         requirements: it.requirements || "",
+        client_shop_name: (it.client_shop_name || "") as any,
+        client_group_chat: (it.client_group_chat || "") as any,
         tier: (String(it.tier || "C").toUpperCase() as any) === "A" ? "A" : (String(it.tier || "C").toUpperCase() as any) === "B" ? "B" : "C",
         voice_link: (it.voice_link || "") as any,
         voice_note: (it.voice_note || "") as any,
@@ -71,10 +77,20 @@ export default function MarketOrderEditPage() {
     e.preventDefault();
     if (!item) return;
     setError(null);
+    if (!form.client_shop_name.trim()) {
+      setError("请输入客户店铺名称");
+      return;
+    }
+    if (!form.client_group_chat.trim()) {
+      setError("请输入客户对接群聊（群号/链接）");
+      return;
+    }
     try {
       await api.updateMarketOrder(item.id, {
         title: form.title.trim() || undefined,
         requirements: form.requirements.trim() || undefined,
+        client_shop_name: form.client_shop_name.trim(),
+        client_group_chat: form.client_group_chat.trim(),
         tier: form.tier,
         voice_link: form.tier === "A" ? (form.voice_link.trim() || undefined) : undefined,
         voice_note: form.tier === "A" ? (form.voice_note.trim() || undefined) : undefined,
@@ -111,6 +127,14 @@ export default function MarketOrderEditPage() {
           <div style={{ marginBottom: 10 }}>
             <label>任务要求</label>
             <textarea value={form.requirements} onChange={(e) => setForm((f) => ({ ...f, requirements: e.target.value }))} rows={5} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <label>客户店铺名称（必填）</label>
+            <input value={form.client_shop_name} onChange={(e) => setForm((f) => ({ ...f, client_shop_name: e.target.value }))} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <label>客户对接群聊（必填）</label>
+            <input value={form.client_group_chat} onChange={(e) => setForm((f) => ({ ...f, client_group_chat: e.target.value }))} placeholder="群号或链接" style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
           </div>
           <div style={{ marginBottom: 10 }}>
             <label>订单档位</label>

@@ -14,6 +14,8 @@ type Row = {
   status: string;
   client_username: string;
   client_display_name?: string | null;
+  client_shop_name?: string | null;
+  client_group_chat?: string | null;
   influencer_username: string | null;
   influencer_display_name?: string | null;
   work_link: string | null;
@@ -34,6 +36,14 @@ function formatDateTime(value?: string | null): string {
 }
 
 /**
+ * 判断文本是否为可跳转链接（http/https）。
+ */
+function isHttpUrl(value?: string | null): boolean {
+  if (!value) return false;
+  return /^https?:\/\//i.test(value.trim());
+}
+
+/**
  * 管理员端：达人领单全量列表，采用与客户订单一致的表格风格。
  */
 export default function MarketOrdersPage() {
@@ -45,6 +55,7 @@ export default function MarketOrdersPage() {
   const [searchQ, setSearchQ] = useState("");
   const [detailOrder, setDetailOrder] = useState<Row | null>(null);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
+  const [savingClientInfo, setSavingClientInfo] = useState(false);
   const hasInitLoadedRef = useRef(false);
 
   /**
@@ -101,6 +112,34 @@ export default function MarketOrdersPage() {
       setCopyMsg(`已复制：${successLabel}`);
     } catch {
       setCopyMsg("复制失败，请检查浏览器权限");
+    }
+  };
+
+  /**
+   * 管理员端回写客户基础信息并同步更新当前列表。
+   */
+  const saveClientInfo = async () => {
+    if (!detailOrder) return;
+    const shopName = String(detailOrder.client_shop_name ?? "").trim();
+    const groupChat = String(detailOrder.client_group_chat ?? "").trim();
+    if (!shopName) {
+      setError("请输入客户店铺名称");
+      return;
+    }
+    if (!groupChat) {
+      setError("请输入客户对接群聊（群号/链接）");
+      return;
+    }
+    setSavingClientInfo(true);
+    setError(null);
+    try {
+      await api.updateAdminOrderClientInfo(detailOrder.id, { client_shop_name: shopName, client_group_chat: groupChat });
+      setList((prev) => prev.map((row) => (row.id === detailOrder.id ? { ...row, client_shop_name: shopName, client_group_chat: groupChat } : row)));
+      setDetailOrder((prev) => (prev ? { ...prev, client_shop_name: shopName, client_group_chat: groupChat } : prev));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "更新失败");
+    } finally {
+      setSavingClientInfo(false);
     }
   };
 
@@ -174,6 +213,19 @@ export default function MarketOrdersPage() {
                     {o.client_username}
                     <br />
                     <span style={{ color: "#64748b" }}>{o.client_display_name || o.client_username}</span>
+                    <br />
+                    <span style={{ color: "#64748b" }}>店铺：{o.client_shop_name?.trim() || "未填写"}</span>
+                    <br />
+                    <span style={{ color: "#64748b" }}>
+                      群聊：
+                      {isHttpUrl(o.client_group_chat) ? (
+                        <a href={String(o.client_group_chat).trim()} target="_blank" rel="noreferrer">
+                          {String(o.client_group_chat).trim()}
+                        </a>
+                      ) : (
+                        o.client_group_chat?.trim() || "未填写"
+                      )}
+                    </span>
                   </td>
                   <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>
                     {o.influencer_username ? (
@@ -268,6 +320,33 @@ export default function MarketOrdersPage() {
               <div style={{ color: "#64748b" }}>订单ID</div><div>{detailOrder.id}</div>
               <div style={{ color: "#64748b" }}>订单号</div><div>{detailOrder.order_no || "—"}</div>
               <div style={{ color: "#64748b" }}>客户账号/名称</div><div>{detailOrder.client_username} / {detailOrder.client_display_name || detailOrder.client_username}</div>
+              <div style={{ color: "#64748b" }}>客户店铺名称</div>
+              <div>
+                <input
+                  value={detailOrder.client_shop_name || ""}
+                  onChange={(e) => setDetailOrder((prev) => (prev ? { ...prev, client_shop_name: e.target.value } : prev))}
+                  placeholder="请输入客户店铺名称"
+                  style={{ width: "100%", maxWidth: 360, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                />
+              </div>
+              <div style={{ color: "#64748b" }}>客户对接群聊</div>
+              <div>
+                <input
+                  value={detailOrder.client_group_chat || ""}
+                  onChange={(e) => setDetailOrder((prev) => (prev ? { ...prev, client_group_chat: e.target.value } : prev))}
+                  placeholder="群号或链接"
+                  style={{ width: "100%", maxWidth: 360, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                />
+                <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>
+                  {isHttpUrl(detailOrder.client_group_chat) ? (
+                    <a href={String(detailOrder.client_group_chat).trim()} target="_blank" rel="noreferrer">
+                      跳转群聊链接
+                    </a>
+                  ) : (
+                    "当前为群号文本"
+                  )}
+                </div>
+              </div>
               <div style={{ color: "#64748b" }}>领取达人</div><div>{detailOrder.influencer_username ? `${detailOrder.influencer_username} / ${detailOrder.influencer_display_name || detailOrder.influencer_username}` : "—"}</div>
               <div style={{ color: "#64748b" }}>状态</div><div>{statusText[detailOrder.status] ?? detailOrder.status}</div>
               <div style={{ color: "#64748b" }}>档位</div><div>{detailOrder.tier}</div>
@@ -281,6 +360,16 @@ export default function MarketOrdersPage() {
               <div style={{ color: "#64748b" }}>创建时间</div><div>{formatDateTime(detailOrder.created_at)}</div>
               <div style={{ color: "#64748b" }}>更新时间</div><div>{formatDateTime(detailOrder.updated_at)}</div>
               <div style={{ color: "#64748b" }}>完成时间</div><div>{formatDateTime(detailOrder.completed_at)}</div>
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <button
+                type="button"
+                onClick={saveClientInfo}
+                disabled={savingClientInfo}
+                style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "var(--xt-accent)", color: "#fff", cursor: savingClientInfo ? "not-allowed" : "pointer", opacity: savingClientInfo ? 0.65 : 1 }}
+              >
+                {savingClientInfo ? "保存中..." : "保存客户信息"}
+              </button>
             </div>
           </div>
         </div>

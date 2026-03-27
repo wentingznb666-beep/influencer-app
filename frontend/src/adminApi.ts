@@ -285,6 +285,19 @@ export async function getAdminOrders(params?: { q?: string; status?: "open" | "c
 }
 
 /**
+ * 管理员/员工：更新订单客户基础信息（店铺名称、对接群聊）。
+ */
+export async function updateAdminOrderClientInfo(id: number, body: { client_shop_name: string; client_group_chat: string }) {
+  const res = await fetchWithAuth(`/api/admin/orders/${id}/client-info`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "更新失败"));
+  return res.json();
+}
+
+/**
  * 获取全量账号列表（管理员/员工/达人/客户端）。
  */
 export async function getUsers(params?: { role?: string; keyword?: string; disabled?: "0" | "1" | "" }) {

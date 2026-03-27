@@ -21,6 +21,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
              mo.tier,
              mo.status,
              mo.client_id, uc.username AS client_username,
+             mo.client_shop_name, mo.client_group_chat,
              mo.influencer_id, ui.username AS influencer_username,
              mo.work_link, mo.created_at, mo.updated_at, mo.completed_at
       FROM client_market_orders mo

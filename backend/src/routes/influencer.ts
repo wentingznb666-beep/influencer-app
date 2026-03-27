@@ -451,7 +451,8 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
     let sql = `SELECT mo.id, mo.order_no, mo.title, mo.requirements, mo.tier, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images,
                       mo.creator_reward_points AS reward_points, mo.status, mo.created_at,
-                      mo.client_id, u.username AS client_username, COALESCE(NULLIF(u.display_name, ''), u.username) AS client_display_name
+                      mo.client_id, u.username AS client_username, COALESCE(NULLIF(u.display_name, ''), u.username) AS client_display_name,
+                      mo.client_shop_name, mo.client_group_chat
        FROM client_market_orders mo
        JOIN users u ON mo.client_id = u.id
       WHERE mo.status = 'open' AND mo.is_deleted = 0`;
@@ -481,7 +482,8 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
     let sql = `SELECT mo.id, mo.order_no, mo.title, mo.requirements, mo.tier, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images,
                       mo.creator_reward_points AS reward_points, mo.status, mo.work_link, mo.created_at, mo.updated_at, mo.completed_at,
-                      mo.client_id, u.username AS client_username, COALESCE(NULLIF(u.display_name, ''), u.username) AS client_display_name
+                      mo.client_id, u.username AS client_username, COALESCE(NULLIF(u.display_name, ''), u.username) AS client_display_name,
+                      mo.client_shop_name, mo.client_group_chat
        FROM client_market_orders mo
        JOIN users u ON mo.client_id = u.id
       WHERE mo.influencer_id = $1 AND mo.is_deleted = 0`;

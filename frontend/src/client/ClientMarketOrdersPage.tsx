@@ -16,6 +16,8 @@ type MarketOrder = {
   influencer_id: number | null;
   influencer_username?: string | null;
   influencer_display_name?: string | null;
+  client_shop_name?: string | null;
+  client_group_chat?: string | null;
   work_link: string | null;
   created_at: string;
   updated_at: string;
@@ -52,6 +54,8 @@ export default function ClientMarketOrdersPage() {
   const [showForm, setShowForm] = useState(false);
   const [requirements, setRequirements] = useState("");
   const [title, setTitle] = useState("");
+  const [clientShopName, setClientShopName] = useState("");
+  const [clientGroupChat, setClientGroupChat] = useState("");
   const [tier, setTier] = useState<"C" | "B" | "A">("C");
   const [voiceLink, setVoiceLink] = useState("");
   const [voiceNote, setVoiceNote] = useState("");
@@ -141,6 +145,7 @@ export default function ClientMarketOrdersPage() {
   const consumePoints = tier === "A" ? 60 : tier === "B" ? 40 : 20;
   const totalConsumePoints = consumePoints * taskCount;
   const canAfford = balance == null ? true : balance >= totalConsumePoints;
+  const canSubmitClientInfo = clientShopName.trim().length > 0 && clientGroupChat.trim().length > 0;
 
   /**
    * 提交新订单（需账户至少有约定奖励积分）。
@@ -150,6 +155,14 @@ export default function ClientMarketOrdersPage() {
     const text = requirements.trim();
     if (!text) {
       setError("请填写任务要求。");
+      return;
+    }
+    if (!clientShopName.trim()) {
+      setError("请输入客户店铺名称");
+      return;
+    }
+    if (!clientGroupChat.trim()) {
+      setError("请输入客户对接群聊（群号/链接）");
       return;
     }
     if (balance != null && balance < consumePoints) {
@@ -162,6 +175,8 @@ export default function ClientMarketOrdersPage() {
       const skuImages = chosen.flatMap((s) => (Array.isArray(s.sku_images) ? s.sku_images : [])).slice(0, 100);
       await api.createMarketOrder({
         requirements: text,
+        client_shop_name: clientShopName.trim(),
+        client_group_chat: clientGroupChat.trim(),
         title: title.trim() || undefined,
         tier,
         voice_link: tier === "A" ? (voiceLink.trim() || undefined) : undefined,
@@ -176,6 +191,8 @@ export default function ClientMarketOrdersPage() {
       setShowForm(false);
       setRequirements("");
       setTitle("");
+      setClientShopName("");
+      setClientGroupChat("");
       setTier("C");
       setVoiceLink("");
       setVoiceNote("");
@@ -271,6 +288,28 @@ export default function ClientMarketOrdersPage() {
             rows={5}
             style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
           />
+          <label htmlFor="clientShopName">客户店铺名称（必填）</label>
+          <input
+            id="clientShopName"
+            type="text"
+            value={clientShopName}
+            onChange={(e) => setClientShopName(e.target.value)}
+            placeholder="请输入客户店铺名称"
+            maxLength={200}
+            style={{ display: "block", marginTop: 8, marginBottom: 4, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+          />
+          {!clientShopName.trim() && <div style={{ marginBottom: 10, fontSize: 12, color: "#b91c1c" }}>请输入客户店铺名称</div>}
+          <label htmlFor="clientGroupChat">客户对接群聊（必填）</label>
+          <input
+            id="clientGroupChat"
+            type="text"
+            value={clientGroupChat}
+            onChange={(e) => setClientGroupChat(e.target.value)}
+            placeholder="请输入客户对接群聊（群号/链接）"
+            maxLength={2000}
+            style={{ display: "block", marginTop: 8, marginBottom: 4, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+          />
+          {!clientGroupChat.trim() && <div style={{ marginBottom: 10, fontSize: 12, color: "#b91c1c" }}>请输入客户对接群聊（群号/链接）</div>}
           <label htmlFor="tier">订单档位（决定扣除积分）</label>
           <select
             id="tier"
@@ -353,15 +392,15 @@ export default function ClientMarketOrdersPage() {
             <button
               type="button"
               onClick={handleCreate}
-              disabled={!canAfford}
+              disabled={!canAfford || !canSubmitClientInfo}
               style={{
                 padding: "8px 16px",
                 background: "var(--xt-accent)",
                 color: "#fff",
                 border: "none",
                 borderRadius: 8,
-                cursor: !canAfford ? "not-allowed" : "pointer",
-                opacity: !canAfford ? 0.6 : 1,
+                cursor: !canAfford || !canSubmitClientInfo ? "not-allowed" : "pointer",
+                opacity: !canAfford || !canSubmitClientInfo ? 0.6 : 1,
               }}
             >
               发布
@@ -446,6 +485,9 @@ export default function ClientMarketOrdersPage() {
                   )}
                 </div>
               ) : null}
+              <p style={{ margin: "8px 0 0", fontSize: 13, color: "#475569" }}>
+                店铺名称：{o.client_shop_name?.trim() || "未填写"} · 对接群聊：{o.client_group_chat?.trim() || "未填写"}
+              </p>
               {o.work_link && (
                 <p style={{ margin: "8px 0 0", fontSize: 14 }}>
                   交付链接：

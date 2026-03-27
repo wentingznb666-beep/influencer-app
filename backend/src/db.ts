@@ -263,6 +263,10 @@ const FULL_INIT_SQL = `
     sku_images JSONB NOT NULL DEFAULT '[]'::jsonb,
     /** 可选：关联 SKU ID 列表 */
     sku_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+    /** 客户店铺名称（必填） */
+    client_shop_name TEXT,
+    /** 客户对接群聊（必填：群号或链接） */
+    client_group_chat TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     completed_at TIMESTAMPTZ,
@@ -555,6 +559,8 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS sku_codes JSONB NOT NULL DEFAULT '[]'::jsonb`);
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS sku_images JSONB NOT NULL DEFAULT '[]'::jsonb`);
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS sku_ids JSONB NOT NULL DEFAULT '[]'::jsonb`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS client_shop_name TEXT`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS client_group_chat TEXT`);
     await query(
       `UPDATE client_market_orders SET title = LEFT(requirements, 200) WHERE title IS NULL OR TRIM(COALESCE(title, '')) = ''`,
     );

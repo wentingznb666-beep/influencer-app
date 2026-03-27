@@ -17,6 +17,20 @@ function normalizeOrderStatus(value: unknown): OrderStatus | "" {
 }
 
 /**
+ * 规范化客户店铺名称输入。
+ */
+function normalizeClientShopName(value: unknown): string {
+  return value != null ? String(value).trim() : "";
+}
+
+/**
+ * 规范化客户对接群聊输入（群号或链接）。
+ */
+function normalizeClientGroupChat(value: unknown): string {
+  return value != null ? String(value).trim() : "";
+}
+
+/**
  * GET /api/admin/orders
  * 管理员/员工查看客户端发起的达人领单订单（client_market_orders），支持：
  * - q：按订单号、标题、要求、客户账号/名称、达人账号/昵称模糊匹配
@@ -34,6 +48,8 @@ router.get("/", (req: AuthRequest, res: Response) => {
              mo.client_id,
              uc.username AS client_username,
              COALESCE(NULLIF(uc.display_name, ''), uc.username) AS client_display_name,
+             mo.client_shop_name,
+             mo.client_group_chat,
              mo.influencer_id,
              ui.username AS influencer_username,
              COALESCE(NULLIF(ui.display_name, ''), ui.username) AS influencer_display_name,
@@ -62,6 +78,8 @@ router.get("/", (req: AuthRequest, res: Response) => {
         mo.order_no ILIKE '%' || $${idx} || '%'
         OR COALESCE(mo.title, '') ILIKE '%' || $${idx} || '%'
         OR mo.requirements ILIKE '%' || $${idx} || '%'
+        OR COALESCE(mo.client_shop_name, '') ILIKE '%' || $${idx} || '%'
+        OR COALESCE(mo.client_group_chat, '') ILIKE '%' || $${idx} || '%'
         OR uc.username ILIKE '%' || $${idx} || '%'
         OR COALESCE(uc.display_name, '') ILIKE '%' || $${idx} || '%'
         OR COALESCE(ui.username, '') ILIKE '%' || $${idx} || '%'
@@ -77,6 +95,54 @@ router.get("/", (req: AuthRequest, res: Response) => {
     res.json({ list: rows });
   })().catch((e) => {
     console.error("admin orders list error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * PATCH /api/admin/orders/:id/client-info
+ * 管理员/员工编辑客户基础信息（店铺名称、对接群聊）。
+ */
+router.patch("/:id/client-info", (req: AuthRequest, res: Response) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
+    return;
+  }
+  const { client_shop_name, client_group_chat } = req.body ?? {};
+  const shopName = normalizeClientShopName(client_shop_name);
+  const groupChat = normalizeClientGroupChat(client_group_chat);
+  if (!shopName) {
+    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "请输入客户店铺名称。" });
+    return;
+  }
+  if (shopName.length > 200) {
+    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "客户店铺名称最长 200 字符。" });
+    return;
+  }
+  if (!groupChat) {
+    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "请输入客户对接群聊（群号/链接）。" });
+    return;
+  }
+  if (groupChat.length > 2000) {
+    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "客户对接群聊最长 2000 字符。" });
+    return;
+  }
+  (async () => {
+    const updated = await query<{ id: number }>(
+      `UPDATE client_market_orders
+          SET client_shop_name = $1, client_group_chat = $2, updated_at = now()
+        WHERE id = $3 AND is_deleted = 0
+        RETURNING id`,
+      [shopName, groupChat, id]
+    );
+    if (!updated.rows[0]) {
+      res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+      return;
+    }
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("admin orders client-info patch error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   });
 });

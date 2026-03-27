@@ -184,6 +184,8 @@ export async function getMarketOrderDetail(id: number) {
  */
 export async function createMarketOrder(body: {
   requirements: string;
+  client_shop_name: string;
+  client_group_chat: string;
   title?: string;
   tier?: "A" | "B" | "C";
   voice_link?: string;
@@ -208,6 +210,8 @@ export async function createMarketOrder(body: {
 export async function updateMarketOrder(
   id: number,
   body: {
+    client_shop_name?: string;
+    client_group_chat?: string;
     title?: string;
     requirements?: string;
     tier?: "A" | "B" | "C";
