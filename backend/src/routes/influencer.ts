@@ -88,6 +88,8 @@ async function settleMarketOrderComplete(params: {
  * 任务大厅：已发布任务，支持 platform、type 筛选；露脸任务仅对 show_face=1 的达人可见。
  */
 router.get("/tasks", (req: AuthRequest, res: Response) => {
+  res.status(410).json({ error: "MODULE_DISABLED", message: "任务大厅模块已下线。" });
+  return;
   const userId = req.user!.userId;
   const { platform, type } = req.query as { platform?: string; type?: string };
   (async () => {
@@ -151,6 +153,8 @@ router.get("/tasks", (req: AuthRequest, res: Response) => {
  * 领取任务：校验每日上限、是否已领、任务剩余量、黑名单。
  */
 router.post("/tasks/:taskId/claim", (req: AuthRequest, res: Response) => {
+  res.status(410).json({ error: "MODULE_DISABLED", message: "任务大厅模块已下线。" });
+  return;
   const userId = req.user!.userId;
   const taskId = Number(req.params.taskId);
   if (!Number.isInteger(taskId) || taskId < 1) {

@@ -4,10 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
 import Login from "./Login";
 import AdminLayout from "./AdminLayout";
-import MaterialsPage from "./admin/MaterialsPage";
-import TasksPage from "./admin/TasksPage";
 import InfluencersPage from "./admin/InfluencersPage";
-import SubmissionsPage from "./admin/SubmissionsPage";
 import PointsPage from "./admin/PointsPage";
 import SettlementPage from "./admin/SettlementPage";
 import RiskPage from "./admin/RiskPage";
@@ -16,6 +13,7 @@ import UsersPage from "./admin/UsersPage";
 import MarketOrdersPage from "./admin/MarketOrdersPage";
 import AdminOrdersPage from "./admin/OrdersPage";
 import AdminSkusPage from "./admin/SkusPage";
+import ProfitPage from "./admin/ProfitPage";
 import ClientLayout from "./ClientLayout";
 import ClientMarketOrdersPage from "./client/ClientMarketOrdersPage";
 import MarketOrderEditPage from "./client/MarketOrderEditPage";
@@ -27,13 +25,11 @@ import InfluencerLayout from "./InfluencerLayout";
  * 性能优化（仅生产环境）：达人端路由懒加载，减小登录后首屏 JS 体积。
  * - 仅影响加载时机，不改变任何业务逻辑与页面布局。
  */
-import TaskHallPageDev from "./influencer/TaskHallPage";
 import ClientOrdersHallPageDev from "./influencer/ClientOrdersHallPage";
 import MyTasksPageDev from "./influencer/MyTasksPage";
 import InfluencerPointsPageDev from "./influencer/PointsPage";
 import WithdrawPageDev from "./influencer/WithdrawPage";
 
-const TaskHallPage = import.meta.env.PROD ? lazy(() => import("./influencer/TaskHallPage")) : TaskHallPageDev;
 const ClientOrdersHallPage = import.meta.env.PROD
   ? lazy(() => import("./influencer/ClientOrdersHallPage"))
   : ClientOrdersHallPageDev;
@@ -52,16 +48,14 @@ createRoot(document.getElementById("root")!).render(
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/admin" element={<ProtectedRoute roles={["admin", "employee"]}><AdminLayout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/admin/materials" replace />} />
-            <Route path="materials" element={<MaterialsPage />} />
-            <Route path="tasks" element={<TasksPage />} />
+            <Route index element={<Navigate to="/admin/orders" replace />} />
             <Route path="influencers" element={<InfluencersPage />} />
-            <Route path="submissions" element={<SubmissionsPage />} />
             <Route path="points" element={<PointsPage />} />
             <Route path="settlement" element={<SettlementPage />} />
             <Route path="withdrawals" element={<WithdrawalsPage />} />
             <Route path="risk" element={<RiskPage />} />
             <Route path="users" element={<UsersPage />} />
+            <Route path="profit" element={<ProtectedRoute roles={["admin"]}><ProfitPage /></ProtectedRoute>} />
             <Route path="market-orders" element={<MarketOrdersPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="skus" element={<AdminSkusPage />} />
@@ -80,8 +74,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="op-logs" element={<OperationLogsPage />} />
           </Route>
           <Route path="/influencer" element={<ProtectedRoute roles={["influencer"]}><InfluencerLayout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/influencer/tasks" replace />} />
-            <Route path="tasks" element={<Suspense fallback={<p>加载中…</p>}><TaskHallPage /></Suspense>} />
+            <Route index element={<Navigate to="/influencer/client-orders" replace />} />
             <Route path="client-orders" element={<Suspense fallback={<p>加载中…</p>}><ClientOrdersHallPage /></Suspense>} />
             <Route path="my-tasks" element={<Suspense fallback={<p>加载中…</p>}><MyTasksPage /></Suspense>} />
             <Route path="points" element={<Suspense fallback={<p>加载中…</p>}><InfluencerPointsPage /></Suspense>} />

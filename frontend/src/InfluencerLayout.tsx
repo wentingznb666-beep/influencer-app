@@ -10,7 +10,6 @@ import { xtOutlineBtn } from "./brandTheme";
 function preloadInfluencerRoutes(): Record<string, () => void> {
   if (!import.meta.env.PROD) return {};
   return {
-    "/influencer/tasks": () => import("./influencer/TaskHallPage"),
     "/influencer/client-orders": () => import("./influencer/ClientOrdersHallPage"),
     "/influencer/my-tasks": () => import("./influencer/MyTasksPage"),
     "/influencer/points": () => import("./influencer/PointsPage"),
@@ -69,7 +68,6 @@ export default function InfluencerLayout() {
     <DashboardShell
       roleTitle="达人端"
       navItems={[
-        { to: "/influencer/tasks", label: "任务大厅", preload: preloadMap["/influencer/tasks"] },
         { to: "/influencer/client-orders", label: "客户端发单", preload: preloadMap["/influencer/client-orders"] },
         { to: "/influencer/my-tasks", label: "我的任务", preload: preloadMap["/influencer/my-tasks"] },
         { to: "/influencer/points", label: "积分与收益", preload: preloadMap["/influencer/points"] },

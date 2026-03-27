@@ -7,10 +7,7 @@ import { translateBatchWithDeepseek, translateTextWithDeepseek } from "./transla
 import { synthesizeSpeechWithAzure } from "./ttsAzure";
 import { requestId, auditLog, loginRateLimit } from "./middlewares";
 import authRoutes from "./routes/auth";
-import materialsRoutes from "./routes/materials";
-import tasksRoutes from "./routes/tasks";
 import influencersRoutes from "./routes/influencers";
-import submissionsRoutes from "./routes/submissions";
 import pointsRoutes from "./routes/points";
 import auditRoutes from "./routes/audit";
 import settlementRoutes from "./routes/settlement";
@@ -22,6 +19,7 @@ import usersRoutes from "./routes/users";
 import adminMarketOrdersRoutes from "./routes/adminMarketOrders";
 import adminOrdersRoutes from "./routes/adminOrders";
 import adminSkusRoutes from "./routes/adminSkus";
+import adminProfitRoutes from "./routes/adminProfit";
 import operationLogsRoutes from "./routes/operationLogs";
 import { initDb } from "./db";
 
@@ -39,16 +37,23 @@ app.use(auditLog);
 /** 达人分发 APP：鉴权与用户相关接口 */
 app.use("/api/auth", loginRateLimit, authRoutes);
 /** 管理员端：素材、任务、达人、投稿、积分、审计 */
-app.use("/api/admin/materials", materialsRoutes);
-app.use("/api/admin/tasks", tasksRoutes);
+app.use("/api/admin/materials", (_req: Request, res: Response) => {
+  res.status(410).json({ error: "MODULE_DISABLED", message: "素材管理模块已下线。" });
+});
+app.use("/api/admin/tasks", (_req: Request, res: Response) => {
+  res.status(410).json({ error: "MODULE_DISABLED", message: "任务管理模块已下线。" });
+});
 app.use("/api/admin/influencers", influencersRoutes);
-app.use("/api/admin/submissions", submissionsRoutes);
+app.use("/api/admin/submissions", (_req: Request, res: Response) => {
+  res.status(410).json({ error: "MODULE_DISABLED", message: "投稿审核模块已下线。" });
+});
 app.use("/api/admin/points", pointsRoutes);
 app.use("/api/admin/audit", auditRoutes);
 app.use("/api/admin/settlement", settlementRoutes);
 app.use("/api/admin/risk", riskControlRoutes);
 app.use("/api/admin/withdrawals", withdrawalsRoutes);
 app.use("/api/admin/users", usersRoutes);
+app.use("/api/admin/profit", adminProfitRoutes);
 app.use("/api/admin/market-orders", adminMarketOrdersRoutes);
 app.use("/api/admin/orders", adminOrdersRoutes);
 app.use("/api/admin/skus", adminSkusRoutes);

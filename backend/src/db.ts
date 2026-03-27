@@ -305,6 +305,16 @@ const FULL_INIT_SQL = `
   CREATE INDEX IF NOT EXISTS idx_client_skus_active_client ON client_skus (client_id, id DESC) WHERE is_deleted = 0;
   CREATE INDEX IF NOT EXISTS idx_client_skus_code ON client_skus (sku_code);
   CREATE INDEX IF NOT EXISTS idx_client_skus_name ON client_skus (sku_name);
+
+  /**
+   * 利润统计：管理员排除账号配置（被排除账号不参与利润计算与列表展示）。
+   */
+  CREATE TABLE IF NOT EXISTS admin_profit_exclusions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL UNIQUE REFERENCES users(id),
+    created_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
 `;
 
 /**
@@ -591,6 +601,12 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`CREATE INDEX IF NOT EXISTS idx_client_skus_active_client ON client_skus (client_id, id DESC) WHERE is_deleted = 0`);
   await query(`CREATE INDEX IF NOT EXISTS idx_client_skus_code ON client_skus (sku_code)`);
   await query(`CREATE INDEX IF NOT EXISTS idx_client_skus_name ON client_skus (sku_name)`);
+  await query(`CREATE TABLE IF NOT EXISTS admin_profit_exclusions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL UNIQUE REFERENCES users(id),
+    created_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
 }
 
 /**

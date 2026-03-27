@@ -298,6 +298,41 @@ export async function updateAdminOrderClientInfo(id: number, body: { client_shop
 }
 
 /**
+ * 管理员：利润统计摘要（按月或按时间区间）。
+ */
+export async function getProfitSummary(params?: { month?: string; start?: string; end?: string }) {
+  const q = new URLSearchParams();
+  if (params?.month) q.set("month", params.month);
+  if (params?.start) q.set("start", params.start);
+  if (params?.end) q.set("end", params.end);
+  const res = await fetchWithAuth(`/api/admin/profit/summary?${q}`);
+  if (!res.ok) throw new Error(await readErrorMessage(res, "请求失败"));
+  return res.json();
+}
+
+/**
+ * 管理员：获取利润统计排除账号列表。
+ */
+export async function getProfitExclusions() {
+  const res = await fetchWithAuth("/api/admin/profit/exclusions");
+  if (!res.ok) throw new Error(await readErrorMessage(res, "请求失败"));
+  return res.json();
+}
+
+/**
+ * 管理员：保存利润统计排除账号（全量覆盖）。
+ */
+export async function updateProfitExclusions(user_ids: number[]) {
+  const res = await fetchWithAuth("/api/admin/profit/exclusions", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ user_ids }),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "更新失败"));
+  return res.json();
+}
+
+/**
  * 获取全量账号列表（管理员/员工/达人/客户端）。
  */
 export async function getUsers(params?: { role?: string; keyword?: string; disabled?: "0" | "1" | "" }) {
