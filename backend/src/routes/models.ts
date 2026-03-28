@@ -55,6 +55,57 @@ function normalizePhotos(value: unknown): string[] {
 }
 
 /**
+ * 将公开访问 URL 解析为 uploads 下的安全绝对路径（仅限 /uploads/models/{userId}/...）。
+ */
+function urlToSafeModelUploadPath(rawUrl: string): string | null {
+  const trimmed = String(rawUrl ?? "").trim();
+  if (!trimmed) return null;
+  try {
+    const u = new URL(trimmed, "http://localhost");
+    const pathname = u.pathname.replace(/\\/g, "/");
+    const prefix = "/uploads/models/";
+    const idx = pathname.indexOf(prefix);
+    if (idx === -1) return null;
+    const rest = pathname.slice(idx + prefix.length);
+    const segments = rest.split("/").filter(Boolean);
+    if (segments.length < 2) return null;
+    const userId = Number(segments[0]);
+    if (!Number.isInteger(userId) || userId < 1) return null;
+    const filename = segments.slice(1).join("/");
+    if (!filename || filename.includes("..")) return null;
+    const full = path.resolve(process.cwd(), "uploads", "models", String(userId), filename);
+    const base = path.resolve(process.cwd(), "uploads", "models");
+    if (!full.startsWith(base)) return null;
+    return full;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 判断 URL 是否属于当前用户上传目录（员工仅能删自有目录下文件）。
+ */
+function isOwnModelPhotoUrl(userId: number, photoUrl: string): boolean {
+  const p = urlToSafeModelUploadPath(photoUrl);
+  if (!p) return false;
+  const ownBase = path.resolve(process.cwd(), "uploads", "models", String(userId));
+  return p.startsWith(ownBase + path.sep) || p === ownBase;
+}
+
+/**
+ * 尝试删除磁盘上的图片文件（忽略不存在等错误）。
+ */
+async function tryUnlinkModelPhotoFile(photoUrl: string): Promise<void> {
+  const diskPath = urlToSafeModelUploadPath(photoUrl);
+  if (!diskPath) return;
+  try {
+    await fs.unlink(diskPath);
+  } catch {
+    // 文件不存在或无权限时忽略，仍以数据库为准
+  }
+}
+
+/**
  * GET /api/admin/models
  * 管理端模特列表（管理员/员工），支持关键词、状态与提审状态筛选。
  */
@@ -188,6 +239,76 @@ router.post("/", (req: AuthRequest, res: Response) => {
     res.status(201).json({ id: rows[0]!.id });
   })().catch((e) => {
     console.error("admin models create error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * POST /api/admin/models/:id/photos/remove
+ * 从模特资料中移除指定图片：管理员可批量；员工仅允许单次删除一张且仅限本人上传目录下的图片。
+ */
+router.post("/:id/photos/remove", (req: AuthRequest, res: Response) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的模特 ID。" });
+    return;
+  }
+  const isAdmin = req.user?.role === "admin";
+  const userId = req.user!.userId;
+  const rawUrls = req.body?.urls;
+  if (!Array.isArray(rawUrls)) {
+    res.status(400).json({ error: "INVALID_URLS", message: "请提供 urls 数组。" });
+    return;
+  }
+  const urls = rawUrls
+    .filter((x) => typeof x === "string")
+    .map((x) => String(x).trim())
+    .filter(Boolean)
+    .slice(0, 20);
+  if (urls.length === 0) {
+    res.status(400).json({ error: "INVALID_URLS", message: "请至少选择一张要删除的照片。" });
+    return;
+  }
+  if (!isAdmin && urls.length !== 1) {
+    res.status(403).json({ error: "FORBIDDEN", message: "员工仅支持单次删除一张照片。" });
+    return;
+  }
+  (async () => {
+    const row = await query<{ photos: string[] }>("SELECT photos FROM model_profiles WHERE id = $1 AND is_deleted = 0", [id]);
+    const current = row.rows[0];
+    if (!current) {
+      res.status(404).json({ error: "NOT_FOUND", message: "模特资料不存在。" });
+      return;
+    }
+    const existing = Array.isArray(current.photos) ? current.photos.map((x) => String(x).trim()) : [];
+    const toRemove = urls.filter((u) => existing.includes(u));
+    if (toRemove.length === 0) {
+      res.status(400).json({ error: "NO_MATCH", message: "所选照片不属于该模特或已删除。" });
+      return;
+    }
+    if (!isAdmin) {
+      const only = toRemove[0]!;
+      if (!isOwnModelPhotoUrl(userId, only)) {
+        res.status(403).json({ error: "FORBIDDEN", message: "仅能删除本人上传目录下的照片。" });
+        return;
+      }
+    }
+    const next = existing.filter((u) => !toRemove.includes(u));
+    if (next.length === 0) {
+      res.status(400).json({ error: "LAST_PHOTO", message: "至少需保留一张模特照片。" });
+      return;
+    }
+    await query("UPDATE model_profiles SET photos = $1::jsonb, updated_by = $2, updated_at = now() WHERE id = $3 AND is_deleted = 0", [
+      JSON.stringify(next),
+      userId,
+      id,
+    ]);
+    for (const u of toRemove) {
+      await tryUnlinkModelPhotoFile(u);
+    }
+    res.json({ ok: true, removed: toRemove.length });
+  })().catch((e) => {
+    console.error("admin models photos remove error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   });
 });

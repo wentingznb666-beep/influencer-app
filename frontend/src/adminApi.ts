@@ -480,3 +480,16 @@ export async function deleteAdminModel(id: number) {
   if (!res.ok) throw new Error(await readErrorMessage(res, "删除失败"));
   return res.json();
 }
+
+/**
+ * 管理员/员工：从模特资料中移除指定照片（管理员可批量；员工仅允许单张且后端校验为本人上传目录）。
+ */
+export async function removeAdminModelPhotos(modelId: number, urls: string[]) {
+  const res = await fetchWithAuth(`/api/admin/models/${modelId}/photos/remove`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ urls }),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "删除照片失败"));
+  return res.json() as Promise<{ ok: boolean; removed: number }>;
+}

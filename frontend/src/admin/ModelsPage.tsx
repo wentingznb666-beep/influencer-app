@@ -15,12 +15,20 @@ type ModelRow = {
 };
 
 /**
+ * 判断是否为本账号上传目录下的照片（员工仅可删此类 URL）。
+ */
+function isOwnUploadPhoto(photoUrl: string, userId: number): boolean {
+  return photoUrl.includes(`/uploads/models/${userId}/`);
+}
+
+/**
  * 管理员/员工模特展示管理页。
  */
 export default function ModelsPage() {
   const user = getStoredUser();
   const isAdmin = user?.role === "admin";
   const isEmployee = user?.role === "employee";
+  const currentUserId = user?.userId ?? 0;
   const [list, setList] = useState<ModelRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -30,6 +38,10 @@ export default function ModelsPage() {
   const [form, setForm] = useState({ id: 0, name: "", intro: "", cloud_link: "", status: "disabled" as "enabled" | "disabled" });
   const [photos, setPhotos] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  /** 列表区：管理员批量勾选待删照片（按模特 ID 分组）。 */
+  const [listBulkSelected, setListBulkSelected] = useState<Record<number, string[]>>({});
+  /** 表单区：管理员批量勾选待删照片。 */
+  const [formBulkSelected, setFormBulkSelected] = useState<string[]>([]);
   const editing = useMemo(() => form.id > 0, [form.id]);
 
   /**
@@ -69,6 +81,49 @@ export default function ModelsPage() {
     setForm({ id: 0, name: "", intro: "", cloud_link: "", status: "disabled" });
     setPhotos([]);
     setSelectedFiles([]);
+    setFormBulkSelected([]);
+  };
+
+  /**
+   * 切换列表区某张图片的批量选中状态（仅管理员）。
+   */
+  const toggleListPhotoSelect = (modelId: number, url: string) => {
+    setListBulkSelected((prev) => {
+      const cur = prev[modelId] || [];
+      const has = cur.includes(url);
+      const next = has ? cur.filter((u) => u !== url) : [...cur, url];
+      return { ...prev, [modelId]: next };
+    });
+  };
+
+  /**
+   * 切换表单区编辑中的图片批量选中状态（仅管理员）。
+   */
+  const toggleFormPhotoSelect = (url: string) => {
+    setFormBulkSelected((cur) => (cur.includes(url) ? cur.filter((u) => u !== url) : [...cur, url]));
+  };
+
+  /**
+   * 删除模特照片（确认后刷新列表）——管理员批量或员工单张。
+   */
+  const removePhotosWithConfirm = async (modelId: number, urls: string[], label: string) => {
+    if (urls.length === 0) return;
+    const ok = window.confirm(`确定要删除${label}？删除后不可恢复。`);
+    if (!ok) return;
+    setError(null);
+    try {
+      await api.removeAdminModelPhotos(modelId, urls);
+      setListBulkSelected((prev) => {
+        const next = { ...prev };
+        if (next[modelId]) next[modelId] = next[modelId]!.filter((u) => !urls.includes(u));
+        return next;
+      });
+      setFormBulkSelected((prev) => prev.filter((u) => !urls.includes(u)));
+      setPhotos((prev) => prev.filter((u) => !urls.includes(u)));
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "删除照片失败");
+    }
   };
 
   /**
@@ -189,9 +244,34 @@ export default function ModelsPage() {
           <div>
             <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setSelectedFiles(Array.from(e.target.files || []).slice(0, 20))} />
             {(photos.length > 0 || selectedFiles.length > 0) && (
-              <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
                 {photos.map((url, idx) => (
-                  <img key={`old-${idx}`} src={url} alt={`model-old-${idx}`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                  <div key={`old-${idx}`} style={{ width: 64, height: 64, position: "relative" }}>
+                    <img src={url} alt={`model-old-${idx}`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                    {isAdmin && editing && (
+                      <label style={{ position: "absolute", top: 2, left: 2, background: "#fff", borderRadius: 4, cursor: "pointer" }}>
+                        <input type="checkbox" checked={formBulkSelected.includes(url)} onChange={() => toggleFormPhotoSelect(url)} />
+                      </label>
+                    )}
+                    {isAdmin && editing && (
+                      <button
+                        type="button"
+                        onClick={() => removePhotosWithConfirm(form.id, [url], "这张照片")}
+                        style={{ position: "absolute", bottom: -2, right: -2, fontSize: 10, padding: "2px 4px", borderRadius: 4, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: "pointer" }}
+                      >
+                        删
+                      </button>
+                    )}
+                    {isEmployee && editing && isOwnUploadPhoto(url, currentUserId) && (
+                      <button
+                        type="button"
+                        onClick={() => removePhotosWithConfirm(form.id, [url], "这张本人上传的照片")}
+                        style={{ position: "absolute", bottom: -2, right: -2, fontSize: 10, padding: "2px 4px", borderRadius: 4, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: "pointer" }}
+                      >
+                        删
+                      </button>
+                    )}
+                  </div>
                 ))}
                 {selectedFiles.map((file, idx) => (
                   <span key={`new-${idx}`} style={{ fontSize: 12, color: "#334155", border: "1px solid #e2e8f0", borderRadius: 8, padding: "4px 6px" }}>
@@ -202,6 +282,17 @@ export default function ModelsPage() {
             )}
           </div>
         </div>
+        {isAdmin && editing && formBulkSelected.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <button
+              type="button"
+              onClick={() => removePhotosWithConfirm(form.id, formBulkSelected, `选中的 ${formBulkSelected.length} 张照片`)}
+              style={{ padding: "6px 10px", border: "1px solid #fecaca", color: "#b91c1c", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+            >
+              批量删除选中照片（{formBulkSelected.length}）
+            </button>
+          </div>
+        )}
         <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
           <button type="button" onClick={save} disabled={saving} style={{ padding: "8px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1 }}>
             {saving ? "保存中..." : "保存"}
@@ -233,6 +324,7 @@ export default function ModelsPage() {
                       setForm({ id: m.id, name: m.name, intro: m.intro || "", cloud_link: m.cloud_link, status: m.status });
                       setPhotos(Array.isArray(m.photos) ? m.photos : []);
                       setSelectedFiles([]);
+                      setFormBulkSelected([]);
                     }}
                     style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}
                   >
@@ -265,12 +357,48 @@ export default function ModelsPage() {
                 视频链接：<a href={m.cloud_link} target="_blank" rel="noreferrer">{m.cloud_link}</a>
               </div>
               {Array.isArray(m.photos) && m.photos.length > 0 && (
-                <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {m.photos.map((url, idx) => (
-                    <a key={`${m.id}-${idx}`} href={url} target="_blank" rel="noreferrer">
-                      <img src={url} alt={`model-${m.id}-${idx}`} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
-                    </a>
-                  ))}
+                <div style={{ marginTop: 8 }}>
+                  {isAdmin && (listBulkSelected[m.id]?.length ?? 0) > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => removePhotosWithConfirm(m.id, listBulkSelected[m.id] || [], `选中的 ${(listBulkSelected[m.id] || []).length} 张照片`)}
+                      style={{ marginBottom: 8, padding: "6px 10px", border: "1px solid #fecaca", color: "#b91c1c", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+                    >
+                      批量删除选中（{(listBulkSelected[m.id] || []).length}）
+                    </button>
+                  )}
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {m.photos.map((url, idx) => (
+                      <div key={`${m.id}-${idx}`} style={{ width: 72, height: 72, position: "relative" }}>
+                        <a href={url} target="_blank" rel="noreferrer">
+                          <img src={url} alt={`model-${m.id}-${idx}`} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                        </a>
+                        {isAdmin && (
+                          <label style={{ position: "absolute", top: 2, left: 2, background: "#fff", borderRadius: 4, cursor: "pointer" }}>
+                            <input type="checkbox" checked={(listBulkSelected[m.id] || []).includes(url)} onChange={() => toggleListPhotoSelect(m.id, url)} />
+                          </label>
+                        )}
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => removePhotosWithConfirm(m.id, [url], "这张照片")}
+                            style={{ position: "absolute", bottom: -2, right: -2, fontSize: 10, padding: "2px 4px", borderRadius: 4, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: "pointer" }}
+                          >
+                            删
+                          </button>
+                        )}
+                        {isEmployee && isOwnUploadPhoto(url, currentUserId) && (
+                          <button
+                            type="button"
+                            onClick={() => removePhotosWithConfirm(m.id, [url], "这张本人上传的照片")}
+                            style={{ position: "absolute", bottom: -2, right: -2, fontSize: 10, padding: "2px 4px", borderRadius: 4, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: "pointer" }}
+                          >
+                            删
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
