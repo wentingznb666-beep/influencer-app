@@ -60,8 +60,10 @@ app.use("/api/admin/market-orders", adminMarketOrdersRoutes);
 app.use("/api/admin/orders", adminOrdersRoutes);
 app.use("/api/admin/skus", adminSkusRoutes);
 app.use("/api/admin/models", modelsRoutes);
-app.use("/api/admin", adminPhotosRouter);
-app.use("/api/employee", employeePhotosRouter);
+/** 管理员端：模特照片删除（与文档路径 /api/admin/photos 对齐；原 /api/admin/models/photos/* 仍可用） */
+app.use("/api/admin/photos", adminPhotosRouter);
+/** 员工端：本人上传的模特照片删除（与文档路径 /api/employee/photos 对齐） */
+app.use("/api/employee/photos", employeePhotosRouter);
 /** 达人端：任务大厅、领取、我的任务、投稿、积分 */
 app.use("/api/influencer", influencerRoutes);
 /** 客户端：合作意向、订单跟踪、达人作品、积分充值 */

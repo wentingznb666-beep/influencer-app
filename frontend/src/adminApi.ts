@@ -422,30 +422,20 @@ export async function getAdminModels(params?: { q?: string; status?: "enabled" |
 /**
  * 管理员/员工：上传模特图片（多图）。
  */
-export async function uploadAdminModelImages(files: File[]): Promise<{ urls: string[]; items: { id: number; url: string }[] }> {
-  if (files.length === 0) return { urls: [], items: [] };
+export async function uploadAdminModelImages(files: File[]): Promise<string[]> {
+  if (files.length === 0) return [];
   const fd = new FormData();
   files.forEach((f) => fd.append("files", f));
   const res = await fetchWithAuth("/api/admin/models/upload", { method: "POST", body: fd });
   if (!res.ok) throw new Error(await readErrorMessage(res, "上传失败"));
-  const data = (await res.json().catch(() => ({}))) as { urls?: string[]; items?: { id: number; url: string }[] };
-  return {
-    urls: Array.isArray(data.urls) ? data.urls : [],
-    items: Array.isArray(data.items) ? data.items : [],
-  };
+  const data = (await res.json().catch(() => ({}))) as { urls?: string[] };
+  return Array.isArray(data.urls) ? data.urls : [];
 }
 
 /**
  * 管理员/员工：新增模特资料。
  */
-export async function createAdminModel(body: {
-  name: string;
-  photo_ids?: number[];
-  photos?: string[];
-  intro?: string;
-  cloud_link: string;
-  status?: "enabled" | "disabled";
-}) {
+export async function createAdminModel(body: { name: string; photos: string[]; intro?: string; cloud_link: string; status?: "enabled" | "disabled" }) {
   const res = await fetchWithAuth("/api/admin/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await readErrorMessage(res, "创建失败"));
   return res.json();
@@ -454,46 +444,9 @@ export async function createAdminModel(body: {
 /**
  * 管理员/员工：编辑模特资料。
  */
-export async function updateAdminModel(
-  id: number,
-  body: { name?: string; photo_ids?: number[]; photos?: string[]; intro?: string; cloud_link?: string; status?: "enabled" | "disabled" }
-) {
+export async function updateAdminModel(id: number, body: { name?: string; photos?: string[]; intro?: string; cloud_link?: string; status?: "enabled" | "disabled" }) {
   const res = await fetchWithAuth(`/api/admin/models/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await readErrorMessage(res, "更新失败"));
-  return res.json();
-}
-
-/**
- * 员工：删除本人上传的模特照片。
- * 对应后端：DELETE /api/employee/photos/{photo_id}
- */
-export async function deleteEmployeePhoto(photoId: number) {
-  const res = await fetchWithAuth(`/api/employee/photos/${photoId}`, { method: "DELETE" });
-  if (!res.ok) throw new Error(await readErrorMessage(res, "删除失败"));
-  return res.json();
-}
-
-/**
- * 管理员：删除任意一张模特照片。
- * 对应后端：DELETE /api/admin/photos/{photo_id}
- */
-export async function deleteAdminPhoto(photoId: number) {
-  const res = await fetchWithAuth(`/api/admin/photos/${photoId}`, { method: "DELETE" });
-  if (!res.ok) throw new Error(await readErrorMessage(res, "删除失败"));
-  return res.json();
-}
-
-/**
- * 管理员：批量删除模特照片（请求体 `{ ids: number[] }`）。
- * 对应后端：DELETE /api/admin/photos/batch
- */
-export async function deleteAdminPhotosBatch(ids: number[]) {
-  const res = await fetchWithAuth("/api/admin/photos/batch", {
-    method: "DELETE",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ids }),
-  });
-  if (!res.ok) throw new Error(await readErrorMessage(res, "批量删除失败"));
   return res.json();
 }
 
@@ -525,5 +478,39 @@ export async function reviewAdminModelStatus(id: number, action: "approve" | "re
 export async function deleteAdminModel(id: number) {
   const res = await fetchWithAuth(`/api/admin/models/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error(await readErrorMessage(res, "删除失败"));
+  return res.json();
+}
+
+/**
+ * 管理员：按 photo_id 删除单张模特照片（DELETE /api/admin/photos/:photoId）。
+ * 仍兼容旧路径 DELETE /api/admin/models/photos/:photoId（后端双挂）。
+ */
+export async function deleteAdminModelPhoto(photoId: string) {
+  const id = encodeURIComponent(photoId);
+  const res = await fetchWithAuth(`/api/admin/photos/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "删除照片失败"));
+  return res.json();
+}
+
+/**
+ * 员工：按 photo_id 删除本人上传的模特照片（DELETE /api/employee/photos/:photoId）。
+ */
+export async function deleteEmployeeModelPhoto(photoId: string) {
+  const id = encodeURIComponent(photoId);
+  const res = await fetchWithAuth(`/api/employee/photos/${id}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "删除照片失败"));
+  return res.json();
+}
+
+/**
+ * 管理员：批量删除模特照片（DELETE /api/admin/photos/batch，仅管理员）。
+ */
+export async function deleteAdminModelPhotosBatch(ids: string[]) {
+  const res = await fetchWithAuth("/api/admin/photos/batch", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "批量删除照片失败"));
   return res.json();
 }

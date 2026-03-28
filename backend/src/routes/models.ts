@@ -2,7 +2,8 @@ import { Router, Response } from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
-import { query, withTx } from "../db";
+import crypto from "crypto";
+import { query } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
 const router = Router();
@@ -55,77 +56,62 @@ function normalizePhotos(value: unknown): string[] {
 }
 
 /**
- * 解析前端提交的模特照片 ID 列表（最多 20 张）。
+ * 根据图片公开 URL 生成稳定 photo_id（与前端 SHA-256 前 32 位 hex 一致），用于删除接口定位。
  */
-function normalizePhotoIds(value: unknown): number[] {
-  if (!Array.isArray(value)) return [];
-  const out: number[] = [];
-  for (const v of value) {
-    const n = Number(v);
-    if (Number.isInteger(n) && n > 0) out.push(n);
-    if (out.length >= 20) break;
-  }
-  return out;
+function photoIdFromUrl(url: string): string {
+  return crypto.createHash("sha256").update(String(url).trim(), "utf8").digest("hex").slice(0, 32);
 }
 
 /**
- * 根据 model_profile_photos 同步 model_profiles.photos（URL 数组 JSON）。
+ * 从模特图片 URL 中解析上传目录所属用户 ID（/uploads/models/{userId}/...），非本地上传则返回 null。
  */
-async function syncModelPhotosJson(modelId: number): Promise<void> {
-  await query(
-    `UPDATE model_profiles SET photos = (
-      SELECT COALESCE(jsonb_agg(url ORDER BY id), '[]'::jsonb) FROM model_profile_photos WHERE model_id = $1
-    ), updated_at = now() WHERE id = $1`,
-    [modelId]
-  );
-}
-
-/**
- * 删除 uploads 目录下的物理文件（不存在则忽略）。
- */
-async function deletePhysicalUploadFile(relPath: string | null | undefined): Promise<void> {
-  if (!relPath || !String(relPath).trim()) return;
-  const abs = path.resolve(process.cwd(), "uploads", String(relPath).replace(/^[/\\]+/, ""));
-  const root = path.resolve(process.cwd(), "uploads");
-  if (!abs.startsWith(root)) return;
+function parseUploaderUserIdFromPhotoUrl(url: string): number | null {
   try {
-    await fs.unlink(abs);
+    const u = new URL(url);
+    const m = u.pathname.match(/\/uploads\/models\/(\d+)\//);
+    if (!m) return null;
+    const id = Number(m[1]);
+    return Number.isInteger(id) && id > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 将对外访问 URL 转为项目内 uploads 相对磁盘路径；无法解析时返回 null。
+ */
+function resolveUploadsFilePathFromPublicUrl(url: string): string | null {
+  try {
+    const u = new URL(url);
+    if (!u.pathname.startsWith("/uploads/")) return null;
+    const rel = u.pathname.replace(/^\//, "");
+    return path.resolve(process.cwd(), rel);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 删除磁盘上的上传文件；文件不存在时忽略（幂等）。
+ */
+async function deletePhysicalFileSafe(filePath: string): Promise<void> {
+  try {
+    await fs.unlink(filePath);
   } catch (e: unknown) {
-    const err = e as { code?: string };
-    if (err.code !== "ENOENT") throw e;
+    const code = (e as NodeJS.ErrnoException)?.code;
+    if (code !== "ENOENT") throw e;
   }
 }
 
 /**
- * 删除单条照片记录并同步模特 JSON；返回是否删除成功（含权限）。
+ * 在模特的 photos（字符串 URL 数组）中按 photo_id 找到对应 URL。
  */
-async function deleteModelPhotoById(photoId: number, userId: number, role: "admin" | "employee"): Promise<{ ok: true } | { ok: false; status: number; code: string; message: string }> {
-  const rowRes = await query<{ id: number; model_id: number | null; uploader_id: number; rel_path: string | null }>(
-    "SELECT id, model_id, uploader_id, rel_path FROM model_profile_photos WHERE id = $1",
-    [photoId]
-  );
-  const row = rowRes.rows[0];
-  if (!row) {
-    return { ok: false, status: 404, code: "NOT_FOUND", message: "照片不存在或已删除。" };
+function findPhotoUrlByPhotoId(photos: string[], photoId: string): string | null {
+  const id = String(photoId).trim().toLowerCase();
+  for (const u of photos) {
+    if (photoIdFromUrl(u) === id) return u;
   }
-  if (role === "employee" && row.uploader_id !== userId) {
-    return { ok: false, status: 403, code: "FORBIDDEN", message: "只能删除自己上传的照片。" };
-  }
-  try {
-    await query("DELETE FROM model_profile_photos WHERE id = $1", [photoId]);
-  } catch (e) {
-    console.error("delete model_profile_photos error:", e);
-    return { ok: false, status: 500, code: "DATABASE_ERROR", message: "删除数据库记录失败，请稍后重试。" };
-  }
-  await deletePhysicalUploadFile(row.rel_path);
-  if (row.model_id != null) {
-    try {
-      await syncModelPhotosJson(row.model_id);
-    } catch (e) {
-      console.error("syncModelPhotosJson error:", e);
-    }
-  }
-  return { ok: true };
+  return null;
 }
 
 /**
@@ -140,12 +126,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     const params: unknown[] = [];
     let idx = 1;
     let sql = `
-      SELECT m.id, m.name,
-             COALESCE((
-               SELECT jsonb_agg(jsonb_build_object('id', ph.id, 'url', ph.url, 'uploader_id', ph.uploader_id) ORDER BY ph.id)
-               FROM model_profile_photos ph WHERE ph.model_id = m.id
-             ), '[]'::jsonb) AS photos,
-             m.intro, m.cloud_link, m.status, m.pending_status,
+      SELECT m.id, m.name, m.photos, m.intro, m.cloud_link, m.status, m.pending_status,
              m.created_by, uc.username AS created_by_username,
              m.updated_by, uu.username AS updated_by_username,
              m.reviewed_by, ur.username AS reviewed_by_username,
@@ -201,7 +182,6 @@ router.post("/upload", (req: AuthRequest, res: Response) => {
       await fs.mkdir(uploadDir, { recursive: true });
       const base = getPublicBaseUrl(req);
       const urls: string[] = [];
-      const items: { id: number; url: string }[] = [];
       for (const file of files) {
         if (!ALLOWED_MODEL_IMAGE_MIME.has(file.mimetype)) {
           res.status(400).json({ error: "INVALID_IMAGE_TYPE", message: "仅支持 jpg/png/webp 图片。" });
@@ -219,16 +199,9 @@ router.post("/upload", (req: AuthRequest, res: Response) => {
         const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`;
         const filepath = path.join(uploadDir, filename);
         await fs.writeFile(filepath, file.buffer);
-        const relPath = `models/${req.user!.userId}/${filename}`;
-        const publicUrl = `${base}/uploads/${relPath}`;
-        const ins = await query<{ id: number }>(
-          `INSERT INTO model_profile_photos (model_id, uploader_id, url, rel_path) VALUES (NULL, $1, $2, $3) RETURNING id`,
-          [req.user!.userId, publicUrl, relPath]
-        );
-        urls.push(publicUrl);
-        items.push({ id: ins.rows[0]!.id, url: publicUrl });
+        urls.push(`${base}/uploads/models/${req.user!.userId}/${filename}`);
       }
-      res.status(201).json({ urls, items });
+      res.status(201).json({ urls });
     })().catch((e) => {
       console.error("admin models upload error:", e);
       res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
@@ -244,11 +217,9 @@ router.post("/", (req: AuthRequest, res: Response) => {
   const name = String(req.body?.name ?? "").trim();
   const intro = String(req.body?.intro ?? "").trim();
   const cloudLink = String(req.body?.cloud_link ?? "").trim();
-  const photoIds = normalizePhotoIds(req.body?.photo_ids);
-  const legacyPhotos = normalizePhotos(req.body?.photos);
+  const photos = normalizePhotos(req.body?.photos);
   const isAdmin = req.user?.role === "admin";
   const status = normalizeModelStatus(req.body?.status);
-  const uid = req.user!.userId;
   if (!name || name.length > 100) {
     res.status(400).json({ error: "INVALID_NAME", message: "请填写模特姓名/昵称（1-100）。" });
     return;
@@ -261,58 +232,22 @@ router.post("/", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_CLOUD_LINK", message: "请填写有效云端网盘链接（1-2000）。" });
     return;
   }
-  if (photoIds.length === 0 && legacyPhotos.length === 0) {
+  if (photos.length === 0) {
     res.status(400).json({ error: "INVALID_PHOTOS", message: "请至少上传一张模特照片。" });
     return;
   }
   (async () => {
     const targetStatus = isAdmin ? status : "disabled";
     const pendingStatus = !isAdmin && status === "enabled" ? "enabled" : null;
-    if (photoIds.length > 0) {
-      const newId = await withTx(async (client) => {
-        const ins = await client.query<{ id: number }>(
-          `INSERT INTO model_profiles (name, photos, intro, cloud_link, status, pending_status, created_by, updated_by)
-           VALUES ($1, '[]'::jsonb, $2, $3, $4, $5, $6, $6)
-           RETURNING id`,
-          [name, intro || null, cloudLink, targetStatus, pendingStatus, uid]
-        );
-        const mid = ins.rows[0]!.id;
-        const upd = await client.query<{ id: number }>(
-          `UPDATE model_profile_photos
-              SET model_id = $1
-            WHERE id = ANY($2::int[])
-              AND uploader_id = $3
-              AND model_id IS NULL
-              RETURNING id`,
-          [mid, photoIds, uid]
-        );
-        if (upd.rowCount !== photoIds.length) {
-          throw new Error("PHOTO_ATTACH_FAILED");
-        }
-        await client.query(
-          `UPDATE model_profiles SET photos = (
-            SELECT COALESCE(jsonb_agg(url ORDER BY id), '[]'::jsonb) FROM model_profile_photos WHERE model_id = $1
-          ), updated_at = now() WHERE id = $1`,
-          [mid]
-        );
-        return mid;
-      });
-      res.status(201).json({ id: newId });
-      return;
-    }
     const { rows } = await query<{ id: number }>(
       `INSERT INTO model_profiles (name, photos, intro, cloud_link, status, pending_status, created_by, updated_by)
        VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7, $7)
        RETURNING id`,
-      [name, JSON.stringify(legacyPhotos), intro || null, cloudLink, targetStatus, pendingStatus, uid]
+      [name, JSON.stringify(photos), intro || null, cloudLink, targetStatus, pendingStatus, req.user!.userId]
     );
     res.status(201).json({ id: rows[0]!.id });
   })().catch((e) => {
     console.error("admin models create error:", e);
-    if (e instanceof Error && e.message === "PHOTO_ATTACH_FAILED") {
-      res.status(400).json({ error: "INVALID_PHOTO_IDS", message: "照片 ID 无效或不属于当前账号。" });
-      return;
-    }
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   });
 });
@@ -328,12 +263,10 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     return;
   }
   const isAdmin = req.user?.role === "admin";
-  const uid = req.user!.userId;
   const name = req.body?.name !== undefined ? String(req.body?.name ?? "").trim() : undefined;
   const intro = req.body?.intro !== undefined ? String(req.body?.intro ?? "").trim() : undefined;
   const cloudLink = req.body?.cloud_link !== undefined ? String(req.body?.cloud_link ?? "").trim() : undefined;
   const photos = req.body?.photos !== undefined ? normalizePhotos(req.body?.photos) : undefined;
-  const photoIdsPatch = req.body?.photo_ids !== undefined ? normalizePhotoIds(req.body?.photo_ids) : undefined;
   const status = req.body?.status !== undefined ? normalizeModelStatus(req.body?.status) : undefined;
   if (name !== undefined && (!name || name.length > 100)) {
     res.status(400).json({ error: "INVALID_NAME", message: "请填写模特姓名/昵称（1-100）。" });
@@ -351,46 +284,11 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_PHOTOS", message: "请至少保留一张模特照片。" });
     return;
   }
-  if (photoIdsPatch !== undefined && photoIdsPatch.length === 0) {
-    res.status(400).json({ error: "INVALID_PHOTOS", message: "请至少保留一张模特照片。" });
-    return;
-  }
   (async () => {
     const existed = await query<{ id: number }>("SELECT id FROM model_profiles WHERE id = $1 AND is_deleted = 0", [id]);
     if (!existed.rows[0]) {
       res.status(404).json({ error: "NOT_FOUND", message: "模特资料不存在。" });
       return;
-    }
-    if (photoIdsPatch !== undefined) {
-      const curRes = await query<{ id: number }>("SELECT id FROM model_profile_photos WHERE model_id = $1", [id]);
-      const curIds = new Set(curRes.rows.map((r) => r.id));
-      const newSet = new Set(photoIdsPatch);
-      for (const cid of curIds) {
-        if (!newSet.has(cid)) {
-          const del = await deleteModelPhotoById(cid, uid, isAdmin ? "admin" : "employee");
-          if (!del.ok) {
-            res.status(del.status).json({ error: del.code, message: del.message });
-            return;
-          }
-        }
-      }
-      const toAdd = photoIdsPatch.filter((pid) => !curIds.has(pid));
-      if (toAdd.length > 0) {
-        const upd = await query(
-          `UPDATE model_profile_photos
-              SET model_id = $1
-            WHERE id = ANY($2::int[])
-              AND uploader_id = $3
-              AND (model_id IS NULL OR model_id = $1)
-            RETURNING id`,
-          [id, toAdd, uid]
-        );
-        if (upd.rowCount !== toAdd.length) {
-          res.status(400).json({ error: "INVALID_PHOTO_IDS", message: "部分照片无法关联到该模特。" });
-          return;
-        }
-      }
-      await syncModelPhotosJson(id);
     }
     const sets: string[] = [];
     const params: unknown[] = [];
@@ -407,7 +305,7 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
       sets.push(`cloud_link = $${idx++}`);
       params.push(cloudLink);
     }
-    if (photos !== undefined && photoIdsPatch === undefined) {
+    if (photos !== undefined) {
       sets.push(`photos = $${idx++}::jsonb`);
       params.push(JSON.stringify(photos));
     }
@@ -421,17 +319,15 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
         params.push(status);
       }
     }
-    if (sets.length === 0 && photoIdsPatch === undefined) {
+    if (sets.length === 0) {
       res.json({ ok: true });
       return;
     }
-    if (sets.length > 0) {
-      sets.push(`updated_by = $${idx++}`);
-      params.push(uid);
-      sets.push(`updated_at = now()`);
-      params.push(id);
-      await query(`UPDATE model_profiles SET ${sets.join(", ")} WHERE id = $${idx} AND is_deleted = 0`, params);
-    }
+    sets.push(`updated_by = $${idx++}`);
+    params.push(req.user!.userId);
+    sets.push(`updated_at = now()`);
+    params.push(id);
+    await query(`UPDATE model_profiles SET ${sets.join(", ")} WHERE id = $${idx} AND is_deleted = 0`, params);
     res.json({ ok: true });
   })().catch((e) => {
     console.error("admin models patch error:", e);
@@ -522,6 +418,203 @@ router.post("/:id/status-review", (req: AuthRequest, res: Response) => {
   });
 });
 
+type DeletePhotoResult = { ok: true } | { ok: false; status: number; error: string; message: string };
+
+/**
+ * 校验路径中的 photo_id（32 位 hex）。
+ */
+function parsePhotoIdParam(raw: string | string[] | undefined): string | null {
+  const first = Array.isArray(raw) ? raw[0] : raw;
+  const photoId = String(first ?? "").trim().toLowerCase();
+  if (!/^[a-f0-9]{32}$/.test(photoId)) return null;
+  return photoId;
+}
+
+/**
+ * 批量删除照片（仅管理员逻辑），供 /api/admin/models/photos/batch 与 /api/admin/photos/batch 复用。
+ */
+function handleModelPhotosBatchDelete(req: AuthRequest, res: Response): void {
+  const idsRaw = (req.body as { ids?: unknown })?.ids;
+  if (!Array.isArray(idsRaw) || idsRaw.length === 0) {
+    res.status(400).json({ error: "INVALID_INPUT", message: "请提供 ids 数组（photo_id 列表）。" });
+    return;
+  }
+  const ids = idsRaw.filter((x) => typeof x === "string").map((x) => String(x).trim().toLowerCase());
+  if (ids.length === 0) {
+    res.status(400).json({ error: "INVALID_INPUT", message: "ids 无效。" });
+    return;
+  }
+  (async () => {
+    for (const photoId of ids) {
+      const result = await deleteModelPhotoByPhotoId(req, photoId, "admin");
+      if (!result.ok) {
+        res.status(result.status).json({ error: result.error, message: result.message });
+        return;
+      }
+    }
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("model photos batch delete error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+}
+
+/**
+ * 单删（管理员权限），供 /api/admin/photos/:photoId 使用。
+ */
+function handleModelPhotoDeleteAsAdmin(req: AuthRequest, res: Response): void {
+  const photoId = parsePhotoIdParam(req.params.photoId);
+  if (!photoId) {
+    res.status(400).json({ error: "INVALID_PHOTO_ID", message: "photo_id 格式无效。" });
+    return;
+  }
+  (async () => {
+    const result = await deleteModelPhotoByPhotoId(req, photoId, "admin");
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error, message: result.message });
+      return;
+    }
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("admin photos delete error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+}
+
+/**
+ * 单删（员工权限），供 /api/employee/photos/:photoId 使用。
+ */
+function handleModelPhotoDeleteAsEmployee(req: AuthRequest, res: Response): void {
+  const photoId = parsePhotoIdParam(req.params.photoId);
+  if (!photoId) {
+    res.status(400).json({ error: "INVALID_PHOTO_ID", message: "photo_id 格式无效。" });
+    return;
+  }
+  (async () => {
+    const result = await deleteModelPhotoByPhotoId(req, photoId, "employee");
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error, message: result.message });
+      return;
+    }
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("employee photos delete error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+}
+
+/**
+ * DELETE /api/admin/models/photos/batch
+ * 管理员批量删除（兼容旧路径，行为与 DELETE /api/admin/photos/batch 一致）。
+ */
+router.delete("/photos/batch", (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "admin") {
+    res.status(403).json({ error: "FORBIDDEN", message: "仅管理员可批量删除照片。" });
+    return;
+  }
+  handleModelPhotosBatchDelete(req, res);
+});
+
+/**
+ * DELETE /api/admin/models/photos/:photoId
+ * 单删（兼容旧路径）：管理员可删任意；员工仅可删本人上传目录下的文件。
+ */
+router.delete("/photos/:photoId", (req: AuthRequest, res: Response) => {
+  const photoId = parsePhotoIdParam(req.params.photoId);
+  if (!photoId) {
+    res.status(400).json({ error: "INVALID_PHOTO_ID", message: "photo_id 格式无效。" });
+    return;
+  }
+  (async () => {
+    const role = req.user?.role === "employee" ? "employee" : "admin";
+    const result = await deleteModelPhotoByPhotoId(req, photoId, role);
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error, message: result.message });
+      return;
+    }
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("admin models photo delete error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * 独立挂载：DELETE /api/admin/photos/batch、DELETE /api/admin/photos/:photoId（仅管理员）。
+ * 与产品文档路径一致，且不改变原有 /api/admin/models/photos/* 行为。
+ */
+const adminPhotosRouter = Router();
+adminPhotosRouter.use(requireAuth);
+adminPhotosRouter.use(requireRole("admin"));
+adminPhotosRouter.delete("/batch", (req: AuthRequest, res: Response) => {
+  handleModelPhotosBatchDelete(req, res);
+});
+adminPhotosRouter.delete("/:photoId", (req: AuthRequest, res: Response) => {
+  handleModelPhotoDeleteAsAdmin(req, res);
+});
+
+/**
+ * 独立挂载：DELETE /api/employee/photos/:photoId（仅员工，仅能删本人上传目录下的文件）。
+ */
+const employeePhotosRouter = Router();
+employeePhotosRouter.use(requireAuth);
+employeePhotosRouter.use(requireRole("employee"));
+employeePhotosRouter.delete("/:photoId", (req: AuthRequest, res: Response) => {
+  handleModelPhotoDeleteAsEmployee(req, res);
+});
+
+/**
+ * 按 photo_id 删除一条照片记录（更新 JSONB、删物理文件），供单删与批量删除复用。
+ */
+async function deleteModelPhotoByPhotoId(req: AuthRequest, photoId: string, role: "admin" | "employee"): Promise<DeletePhotoResult> {
+  const uid = req.user!.userId;
+  const { rows } = await query<{ id: number; photos: unknown }>(`SELECT id, photos FROM model_profiles WHERE is_deleted = 0 AND photos IS NOT NULL`);
+  let targetModelId: number | null = null;
+  let targetUrl: string | null = null;
+  let photosArray: string[] = [];
+  for (const row of rows) {
+    const arr = normalizePhotos(row.photos);
+    const found = findPhotoUrlByPhotoId(arr, photoId);
+    if (found) {
+      targetModelId = row.id;
+      targetUrl = found;
+      photosArray = arr;
+      break;
+    }
+  }
+  if (!targetModelId || !targetUrl) {
+    return { ok: false, status: 404, error: "NOT_FOUND", message: "未找到对应照片或 photo_id 无效。" };
+  }
+  if (role === "employee") {
+    const uploaderId = parseUploaderUserIdFromPhotoUrl(targetUrl);
+    if (uploaderId == null || uploaderId !== uid) {
+      return { ok: false, status: 403, error: "FORBIDDEN", message: "员工仅可删除本人上传的模特照片。" };
+    }
+  }
+  const next = photosArray.filter((u) => u !== targetUrl);
+  if (next.length === photosArray.length) {
+    return { ok: false, status: 404, error: "NOT_FOUND", message: "未找到对应照片。" };
+  }
+  if (next.length === 0) {
+    return { ok: false, status: 400, error: "AT_LEAST_ONE_PHOTO", message: "至少保留一张模特照片。" };
+  }
+  const diskPath = resolveUploadsFilePathFromPublicUrl(targetUrl);
+  if (diskPath) {
+    try {
+      await deletePhysicalFileSafe(diskPath);
+    } catch (e) {
+      console.error("admin models photo delete file error:", e);
+      return { ok: false, status: 500, error: "FILE_DELETE_FAILED", message: "删除服务器文件失败，请稍后重试。" };
+    }
+  }
+  await query(`UPDATE model_profiles SET photos = $1::jsonb, updated_by = $2, updated_at = now() WHERE id = $3 AND is_deleted = 0`, [
+    JSON.stringify(next),
+    uid,
+    targetModelId,
+  ]);
+  return { ok: true };
+}
+
 /**
  * DELETE /api/admin/models/:id
  * 删除模特资料（仅管理员）。
@@ -552,87 +645,6 @@ router.delete("/:id", (req: AuthRequest, res: Response) => {
   });
 });
 
-/**
- * 员工端子路由：DELETE /api/employee/photos/:photoId（仅删除本人上传）。
- */
-export const employeePhotosRouter = Router();
-employeePhotosRouter.use(requireAuth);
-employeePhotosRouter.use(requireRole("employee"));
-employeePhotosRouter.delete("/photos/:photoId", (req: AuthRequest, res: Response) => {
-  const photoId = Number(req.params.photoId);
-  if (!Number.isInteger(photoId) || photoId < 1) {
-    res.status(400).json({ error: "INVALID_ID", message: "无效的照片 ID。" });
-    return;
-  }
-  (async () => {
-    const r = await deleteModelPhotoById(photoId, req.user!.userId, "employee");
-    if (!r.ok) {
-      res.status(r.status).json({ error: r.code, message: r.message });
-      return;
-    }
-    res.json({ ok: true });
-  })().catch((e) => {
-    console.error("employee photos delete error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-  });
-});
-
-/**
- * 管理员端照片删除子路由（挂载在 app.use("/api/admin", adminPhotosRouter)）：
- *
- * - DELETE /api/admin/photos/batch — JSON 体 `{ "ids": number[] }`，删除多条；任一条失败则返回对应状态码并中止。
- * - DELETE /api/admin/photos/:photoId — 单条删除。
- *
- * 员工端见 employeePhotosRouter：DELETE /api/employee/photos/:photoId。
- *
- * 手动回归建议：① 员工删他人照片 → 403；② 管理员单删/批量删成功 → 200，列表无该图且文件已删；③ 无效 id → 400；④ 已删 id → 404。
- */
-export const adminPhotosRouter = Router();
-adminPhotosRouter.use(requireAuth);
-adminPhotosRouter.use(requireRole("admin"));
-/** 批量删除须注册在 /photos/:photoId 之前，避免 "batch" 被当作 photoId。 */
-adminPhotosRouter.delete("/photos/batch", (req: AuthRequest, res: Response) => {
-  if (!Array.isArray(req.body?.ids)) {
-    res.status(400).json({ error: "INVALID_INPUT", message: "请求体需包含 ids 数组。" });
-    return;
-  }
-  const ids = normalizePhotoIds(req.body.ids);
-  if (ids.length === 0) {
-    res.status(400).json({ error: "INVALID_INPUT", message: "请提供至少一个有效的照片 ID。" });
-    return;
-  }
-  (async () => {
-    for (const pid of ids) {
-      const r = await deleteModelPhotoById(pid, req.user!.userId, "admin");
-      if (!r.ok) {
-        res.status(r.status).json({ error: r.code, message: r.message });
-        return;
-      }
-    }
-    res.json({ ok: true, deleted: ids.length });
-  })().catch((e) => {
-    console.error("admin photos batch delete error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-  });
-});
-adminPhotosRouter.delete("/photos/:photoId", (req: AuthRequest, res: Response) => {
-  const photoId = Number(req.params.photoId);
-  if (!Number.isInteger(photoId) || photoId < 1) {
-    res.status(400).json({ error: "INVALID_ID", message: "无效的照片 ID。" });
-    return;
-  }
-  (async () => {
-    const r = await deleteModelPhotoById(photoId, req.user!.userId, "admin");
-    if (!r.ok) {
-      res.status(r.status).json({ error: r.code, message: r.message });
-      return;
-    }
-    res.json({ ok: true });
-  })().catch((e) => {
-    console.error("admin photos delete error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-  });
-});
-
+export { adminPhotosRouter, employeePhotosRouter };
 export default router;
 

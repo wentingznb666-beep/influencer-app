@@ -342,20 +342,6 @@ const FULL_INIT_SQL = `
   CREATE INDEX IF NOT EXISTS idx_model_profiles_status ON model_profiles(status, id DESC) WHERE is_deleted = 0;
 
   /**
-   * 模特照片：独立记录便于按 ID 删除与上传者权限校验（rel_path 相对 uploads/）。
-   */
-  CREATE TABLE IF NOT EXISTS model_profile_photos (
-    id SERIAL PRIMARY KEY,
-    model_id INTEGER REFERENCES model_profiles(id) ON DELETE CASCADE,
-    uploader_id INTEGER NOT NULL REFERENCES users(id),
-    url TEXT NOT NULL,
-    rel_path TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-  );
-  CREATE INDEX IF NOT EXISTS idx_model_profile_photos_model ON model_profile_photos(model_id, id) WHERE model_id IS NOT NULL;
-  CREATE INDEX IF NOT EXISTS idx_model_profile_photos_uploader ON model_profile_photos(uploader_id, id);
-
-  /**
    * 客户长期合作模特选择：按客户隔离。
    */
   CREATE TABLE IF NOT EXISTS client_model_favorites (
@@ -700,40 +686,6 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE client_model_favorites ADD COLUMN IF NOT EXISTS is_deleted INTEGER NOT NULL DEFAULT 0`);
   await query(`ALTER TABLE client_model_favorites ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
   await query(`CREATE INDEX IF NOT EXISTS idx_client_model_favorites_client ON client_model_favorites(client_id, id DESC) WHERE is_deleted = 0`);
-  await query(`CREATE TABLE IF NOT EXISTS model_profile_photos (
-    id SERIAL PRIMARY KEY,
-    model_id INTEGER REFERENCES model_profiles(id) ON DELETE CASCADE,
-    uploader_id INTEGER NOT NULL REFERENCES users(id),
-    url TEXT NOT NULL,
-    rel_path TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-  )`);
-  await query(`CREATE INDEX IF NOT EXISTS idx_model_profile_photos_model ON model_profile_photos(model_id, id) WHERE model_id IS NOT NULL`);
-  await query(`CREATE INDEX IF NOT EXISTS idx_model_profile_photos_uploader ON model_profile_photos(uploader_id, id)`);
-  await query(`
-    INSERT INTO model_profile_photos (model_id, uploader_id, url, rel_path)
-    SELECT m.id, COALESCE(m.created_by, 1), u,
-           NULLIF(regexp_replace(u, '^https?://[^/]+/uploads/', ''), '')
-      FROM model_profiles m
-      CROSS JOIN LATERAL jsonb_array_elements_text(m.photos) AS u
-     WHERE m.is_deleted = 0
-       AND jsonb_array_length(m.photos) > 0
-       AND NOT EXISTS (SELECT 1 FROM model_profile_photos p WHERE p.model_id = m.id)
-  `).catch(() => {
-    /* 迁移失败时忽略（例如空库或已迁移） */
-  });
-  await query(`
-    UPDATE model_profiles mp
-       SET photos = COALESCE(sub.j, '[]'::jsonb), updated_at = now()
-      FROM (
-        SELECT p.model_id,
-               jsonb_agg(p.url ORDER BY p.id) AS j
-          FROM model_profile_photos p
-         WHERE p.model_id IS NOT NULL
-         GROUP BY p.model_id
-      ) sub
-     WHERE mp.id = sub.model_id AND mp.is_deleted = 0
-  `).catch(() => {});
 }
 
 /**
