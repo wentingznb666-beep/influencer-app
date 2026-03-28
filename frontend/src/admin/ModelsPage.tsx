@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getStoredUser } from "../authApi";
+import { resolvePublicUploadUrl } from "../fetchWithAuth";
 import * as api from "../adminApi";
 
 type ModelRow = {
@@ -367,7 +368,7 @@ export default function ModelsPage() {
               <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
                 {photos.map((url, idx) => (
                   <div key={`old-${idx}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                    <img src={url} alt={`model-old-${idx}`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                    <img src={resolvePublicUploadUrl(url)} alt={`model-old-${idx}`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
                     {isAdmin && (
                       <button
                         type="button"
@@ -488,8 +489,8 @@ export default function ModelsPage() {
                             选择
                           </label>
                         )}
-                        <a href={url} target="_blank" rel="noreferrer">
-                          <img src={url} alt={`model-${m.id}-${idx}`} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                        <a href={resolvePublicUploadUrl(url)} target="_blank" rel="noreferrer">
+                          <img src={resolvePublicUploadUrl(url)} alt={`model-${m.id}-${idx}`} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
                         </a>
                         {showAdmin && (
                           <button

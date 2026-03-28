@@ -1,5 +1,5 @@
 import { Router, Response } from "express";
-import { query } from "../db";
+import { query, normalizePhotosFromDb } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
 const router = Router();
@@ -30,7 +30,11 @@ router.get("/", (req: AuthRequest, res: Response) => {
     }
     sql += ` ORDER BY m.id DESC`;
     const { rows } = await query(sql, params);
-    res.json({ list: rows });
+    const list = rows.map((r: Record<string, unknown>) => ({
+      ...r,
+      photos: normalizePhotosFromDb(r.photos),
+    }));
+    res.json({ list });
   })().catch((e) => {
     console.error("client models list error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
@@ -54,7 +58,11 @@ router.get("/my", (req: AuthRequest, res: Response) => {
         ORDER BY cfm.id DESC`,
       [clientId]
     );
-    res.json({ list: rows });
+    const list = rows.map((r: Record<string, unknown>) => ({
+      ...r,
+      photos: normalizePhotosFromDb(r.photos),
+    }));
+    res.json({ list });
   })().catch((e) => {
     console.error("client my models list error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });

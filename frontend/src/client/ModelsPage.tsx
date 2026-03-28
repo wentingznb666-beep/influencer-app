@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { resolvePublicUploadUrl } from "../fetchWithAuth";
 import * as api from "../clientApi";
 
 type ModelRow = {
@@ -117,8 +118,8 @@ export default function ClientModelsPage() {
                   {Array.isArray(m.photos) && m.photos.length > 0 && (
                     <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {m.photos.map((url, idx) => (
-                        <a key={`${m.id}-${idx}`} href={url} target="_blank" rel="noreferrer">
-                          <img src={url} alt={`client-model-${m.id}-${idx}`} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                        <a key={`${m.id}-${idx}`} href={resolvePublicUploadUrl(url)} target="_blank" rel="noreferrer">
+                          <img src={resolvePublicUploadUrl(url)} alt={`client-model-${m.id}-${idx}`} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
                         </a>
                       ))}
                     </div>

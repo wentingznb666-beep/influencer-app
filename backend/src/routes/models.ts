@@ -3,7 +3,7 @@ import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
 import crypto from "crypto";
-import { query } from "../db";
+import { query, normalizePhotosFromDb } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
 const router = Router();
@@ -67,8 +67,9 @@ function photoIdFromUrl(url: string): string {
  */
 function parseUploaderUserIdFromPhotoUrl(url: string): number | null {
   try {
-    const u = new URL(url);
-    const m = u.pathname.match(/\/uploads\/models\/(\d+)\//);
+    /** 兼容相对路径 /uploads/...（无协议时 new URL 会抛错，导致员工删除权限误判）。 */
+    const pathPart = url.trim().startsWith("/") ? url.trim() : new URL(url).pathname;
+    const m = pathPart.match(/\/uploads\/models\/(\d+)\//);
     if (!m) return null;
     const id = Number(m[1]);
     return Number.isInteger(id) && id > 0 ? id : null;
@@ -82,9 +83,10 @@ function parseUploaderUserIdFromPhotoUrl(url: string): number | null {
  */
 function resolveUploadsFilePathFromPublicUrl(url: string): string | null {
   try {
-    const u = new URL(url);
-    if (!u.pathname.startsWith("/uploads/")) return null;
-    const rel = u.pathname.replace(/^\//, "");
+    /** 兼容相对路径，与 parseUploaderUserIdFromPhotoUrl 一致。 */
+    const pathname = (url.trim().startsWith("/") ? url.trim().split("?")[0] : new URL(url).pathname) ?? "";
+    if (!pathname.startsWith("/uploads/")) return null;
+    const rel = pathname.replace(/^\//, "");
     return path.resolve(process.cwd(), rel);
   } catch {
     return null;
@@ -153,7 +155,12 @@ router.get("/", (req: AuthRequest, res: Response) => {
     }
     sql += ` ORDER BY m.id DESC LIMIT 500`;
     const { rows } = await query(sql, params);
-    res.json({ list: rows });
+    /** 统一 photos 为 string[]，避免 JSONB 被序列成字符串时列表区无图。 */
+    const list = rows.map((r: Record<string, unknown>) => ({
+      ...r,
+      photos: normalizePhotosFromDb(r.photos),
+    }));
+    res.json({ list });
   })().catch((e) => {
     console.error("admin models list error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
@@ -573,7 +580,7 @@ async function deleteModelPhotoByPhotoId(req: AuthRequest, photoId: string, role
   let targetUrl: string | null = null;
   let photosArray: string[] = [];
   for (const row of rows) {
-    const arr = normalizePhotos(row.photos);
+    const arr = normalizePhotosFromDb(row.photos);
     const found = findPhotoUrlByPhotoId(arr, photoId);
     if (found) {
       targetModelId = row.id;

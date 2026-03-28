@@ -384,6 +384,28 @@ export async function query<T = any>(text: string, params?: any[]): Promise<{ ro
 }
 
 /**
+ * 将 model_profiles.photos（JSONB）规范为字符串 URL 数组。
+ * 原因：部分环境下驱动/序列化可能把 JSON 数组以字符串形式返回，导致前端 Array.isArray 为 false、整块照片不渲染。
+ */
+export function normalizePhotosFromDb(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value
+      .filter((x) => typeof x === "string")
+      .map((x) => String(x).trim())
+      .filter(Boolean)
+      .slice(0, 20);
+  }
+  if (typeof value === "string") {
+    try {
+      return normalizePhotosFromDb(JSON.parse(value));
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+/**
  * 在事务中执行回调，回调抛错则自动回滚。
  */
 export async function withTx<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
