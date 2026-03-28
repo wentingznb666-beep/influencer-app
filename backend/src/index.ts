@@ -21,7 +21,7 @@ import adminOrdersRoutes from "./routes/adminOrders";
 import adminSkusRoutes from "./routes/adminSkus";
 import adminProfitRoutes from "./routes/adminProfit";
 import operationLogsRoutes from "./routes/operationLogs";
-import modelsRoutes from "./routes/models";
+import modelsRoutes, { adminPhotosRouter, employeePhotosRouter } from "./routes/models";
 import clientModelsRoutes from "./routes/clientModels";
 import { initDb } from "./db";
 
@@ -60,6 +60,8 @@ app.use("/api/admin/market-orders", adminMarketOrdersRoutes);
 app.use("/api/admin/orders", adminOrdersRoutes);
 app.use("/api/admin/skus", adminSkusRoutes);
 app.use("/api/admin/models", modelsRoutes);
+app.use("/api/admin", adminPhotosRouter);
+app.use("/api/employee", employeePhotosRouter);
 /** 达人端：任务大厅、领取、我的任务、投稿、积分 */
 app.use("/api/influencer", influencerRoutes);
 /** 客户端：合作意向、订单跟踪、达人作品、积分充值 */

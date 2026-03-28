@@ -422,20 +422,30 @@ export async function getAdminModels(params?: { q?: string; status?: "enabled" |
 /**
  * 管理员/员工：上传模特图片（多图）。
  */
-export async function uploadAdminModelImages(files: File[]): Promise<string[]> {
-  if (files.length === 0) return [];
+export async function uploadAdminModelImages(files: File[]): Promise<{ urls: string[]; items: { id: number; url: string }[] }> {
+  if (files.length === 0) return { urls: [], items: [] };
   const fd = new FormData();
   files.forEach((f) => fd.append("files", f));
   const res = await fetchWithAuth("/api/admin/models/upload", { method: "POST", body: fd });
   if (!res.ok) throw new Error(await readErrorMessage(res, "上传失败"));
-  const data = (await res.json().catch(() => ({}))) as { urls?: string[] };
-  return Array.isArray(data.urls) ? data.urls : [];
+  const data = (await res.json().catch(() => ({}))) as { urls?: string[]; items?: { id: number; url: string }[] };
+  return {
+    urls: Array.isArray(data.urls) ? data.urls : [],
+    items: Array.isArray(data.items) ? data.items : [],
+  };
 }
 
 /**
  * 管理员/员工：新增模特资料。
  */
-export async function createAdminModel(body: { name: string; photos: string[]; intro?: string; cloud_link: string; status?: "enabled" | "disabled" }) {
+export async function createAdminModel(body: {
+  name: string;
+  photo_ids?: number[];
+  photos?: string[];
+  intro?: string;
+  cloud_link: string;
+  status?: "enabled" | "disabled";
+}) {
   const res = await fetchWithAuth("/api/admin/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await readErrorMessage(res, "创建失败"));
   return res.json();
@@ -444,9 +454,46 @@ export async function createAdminModel(body: { name: string; photos: string[]; i
 /**
  * 管理员/员工：编辑模特资料。
  */
-export async function updateAdminModel(id: number, body: { name?: string; photos?: string[]; intro?: string; cloud_link?: string; status?: "enabled" | "disabled" }) {
+export async function updateAdminModel(
+  id: number,
+  body: { name?: string; photo_ids?: number[]; photos?: string[]; intro?: string; cloud_link?: string; status?: "enabled" | "disabled" }
+) {
   const res = await fetchWithAuth(`/api/admin/models/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await readErrorMessage(res, "更新失败"));
+  return res.json();
+}
+
+/**
+ * 员工：删除本人上传的模特照片。
+ * 对应后端：DELETE /api/employee/photos/{photo_id}
+ */
+export async function deleteEmployeePhoto(photoId: number) {
+  const res = await fetchWithAuth(`/api/employee/photos/${photoId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "删除失败"));
+  return res.json();
+}
+
+/**
+ * 管理员：删除任意一张模特照片。
+ * 对应后端：DELETE /api/admin/photos/{photo_id}
+ */
+export async function deleteAdminPhoto(photoId: number) {
+  const res = await fetchWithAuth(`/api/admin/photos/${photoId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "删除失败"));
+  return res.json();
+}
+
+/**
+ * 管理员：批量删除模特照片（请求体 `{ ids: number[] }`）。
+ * 对应后端：DELETE /api/admin/photos/batch
+ */
+export async function deleteAdminPhotosBatch(ids: number[]) {
+  const res = await fetchWithAuth("/api/admin/photos/batch", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "批量删除失败"));
   return res.json();
 }
 
@@ -479,17 +526,4 @@ export async function deleteAdminModel(id: number) {
   const res = await fetchWithAuth(`/api/admin/models/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error(await readErrorMessage(res, "删除失败"));
   return res.json();
-}
-
-/**
- * 管理员/员工：从模特资料中移除指定照片（管理员可批量；员工仅允许单张且后端校验为本人上传目录）。
- */
-export async function removeAdminModelPhotos(modelId: number, urls: string[]) {
-  const res = await fetchWithAuth(`/api/admin/models/${modelId}/photos/remove`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ urls }),
-  });
-  if (!res.ok) throw new Error(await readErrorMessage(res, "删除照片失败"));
-  return res.json() as Promise<{ ok: boolean; removed: number }>;
 }
