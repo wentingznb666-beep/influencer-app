@@ -201,7 +201,7 @@ router.patch("/recharge-orders/:id", (req: AuthRequest, res: Response) => {
  * POST /api/admin/points/manual-recharge
  * 管理员手动积分调整：
  * - mode=add：为达人/商家加积分
- * - mode=deduct：仅可扣减达人积分
+ * - mode=deduct：扣减达人或商家积分（余额不足则拒绝）
  */
 router.post("/manual-recharge", (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "admin") {
@@ -236,7 +236,6 @@ router.post("/manual-recharge", (req: AuthRequest, res: Response) => {
       const user = userRes.rows[0];
       if (!user) return { kind: "not_found" as const };
       if (user.role !== "influencer" && user.role !== "client") return { kind: "invalid_role" as const, role: user.role };
-      if (actionMode === "deduct" && user.role !== "influencer") return { kind: "invalid_deduct_role" as const, role: user.role };
 
       const accRes = await client.query<{ id: number; balance: number }>(
         "SELECT id, balance FROM point_accounts WHERE user_id = $1 FOR UPDATE",
@@ -274,10 +273,6 @@ router.post("/manual-recharge", (req: AuthRequest, res: Response) => {
     }
     if (result.kind === "invalid_role") {
       res.status(400).json({ error: "INVALID_ROLE", message: "仅可为达人或商家充值。" });
-      return;
-    }
-    if (result.kind === "invalid_deduct_role") {
-      res.status(400).json({ error: "INVALID_DEDUCT_ROLE", message: "扣减积分仅支持达人账号。" });
       return;
     }
     if (result.kind === "insufficient") {

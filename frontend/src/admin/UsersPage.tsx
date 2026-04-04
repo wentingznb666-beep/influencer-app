@@ -20,6 +20,52 @@ const roleTextMap: Record<UserRole, string> = {
   client: "商家",
 };
 
+type PasswordFieldProps = {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  required?: boolean;
+  /** 是否明文展示 */
+  visible: boolean;
+  /** 切换明文/密文 */
+  onToggleVisible: () => void;
+};
+
+/**
+ * 密码输入 + 显示/隐藏开关，与系统内按钮样式统一。
+ */
+function PasswordFieldWithToggle({ value, onChange, placeholder, required, visible, onToggleVisible }: PasswordFieldProps) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, width: "100%" }}>
+      <input
+        type={visible ? "text" : "password"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        required={required}
+        autoComplete="new-password"
+        style={{ flex: 1, minWidth: 0, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+      />
+      <button
+        type="button"
+        onClick={onToggleVisible}
+        style={{
+          flexShrink: 0,
+          padding: "8px 10px",
+          borderRadius: 8,
+          border: "1px solid #dbe1ea",
+          background: "#fff",
+          cursor: "pointer",
+          fontSize: 13,
+          color: "var(--xt-text)",
+        }}
+      >
+        {visible ? "隐藏" : "显示"}
+      </button>
+    </div>
+  );
+}
+
 /**
  * 管理员账号管理页：展示全量账号并可开通新账号。
  */
@@ -29,12 +75,18 @@ export default function UsersPage() {
   const [list, setList] = useState<UserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [roleFilter, setRoleFilter] = useState<"" | UserRole>("");
   const [disabledFilter, setDisabledFilter] = useState<"" | "0" | "1">("");
   const [onlyPendingInfluencer, setOnlyPendingInfluencer] = useState(false);
-  const [resetPassword, setResetPassword] = useState("");
+  /** 开通账号表单：密码是否明文 */
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
+  /** 重置密码弹窗：目标账号与输入 */
+  const [resetModal, setResetModal] = useState<{ id: number; username: string } | null>(null);
+  const [resetModalPassword, setResetModalPassword] = useState("");
+  const [showResetModalPassword, setShowResetModalPassword] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
   const [form, setForm] = useState({
     username: "",
@@ -91,22 +143,46 @@ export default function UsersPage() {
   };
 
   /**
-   * 重置指定账号密码，输入框留空时直接拦截。
+   * 打开重置密码弹窗（管理员输入新密码后提交）。
    */
-  const handleResetPassword = async (id: number) => {
+  const openResetPasswordModal = (item: UserItem) => {
     if (isEmployee) {
       setError("员工无账号编辑权限。");
       return;
     }
-    if (!resetPassword.trim()) {
-      setError("请先在“重置密码输入框”填写新密码。");
+    setError(null);
+    setSuccessMsg(null);
+    setResetModalPassword("");
+    setShowResetModalPassword(false);
+    setResetModal({ id: item.id, username: item.username });
+  };
+
+  /**
+   * 关闭重置密码弹窗并清空临时输入。
+   */
+  const closeResetPasswordModal = () => {
+    setResetModal(null);
+    setResetModalPassword("");
+    setShowResetModalPassword(false);
+  };
+
+  /**
+   * 确认将弹窗内新密码写入后端（与 PATCH /api/admin/users/:id/password 一致）。
+   */
+  const confirmResetPassword = async () => {
+    if (!resetModal) return;
+    const pwd = resetModalPassword.trim();
+    if (pwd.length < 6) {
+      setError("新密码至少 6 位。");
       return;
     }
     setError(null);
-    setActionLoadingId(id);
+    setActionLoadingId(resetModal.id);
     try {
-      await api.resetUserPassword(id, resetPassword.trim());
-      setResetPassword("");
+      await api.resetUserPassword(resetModal.id, pwd);
+      closeResetPasswordModal();
+      setSuccessMsg("密码已重置。");
+      window.setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "重置密码失败");
     } finally {
@@ -163,8 +239,14 @@ export default function UsersPage() {
           待审核达人：{pendingInfluencerCount}
         </span>
       </div>
+      {!isEmployee && (
+        <p style={{ fontSize: 14, color: "#64748b", marginTop: 4, marginBottom: 8 }}>
+          达人/商家（含客户）的积分加分与扣分请在侧边栏「积分与结算」中操作；扣分现已支持客户账号。
+        </p>
+      )}
       {error && <p style={{ color: "#c00" }}>{error}</p>}
-      <div style={{ marginBottom: 12, padding: 12, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 8 }}>
+      {successMsg && <p style={{ color: "#0a7a2a" }}>{successMsg}</p>}
+      <div style={{ marginBottom: 12, padding: 12, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 8 }}>
         <input
           placeholder="搜索用户名/显示名"
           value={keyword}
@@ -183,13 +265,6 @@ export default function UsersPage() {
           <option value="0">启用中</option>
           <option value="1">已禁用</option>
         </select>
-        <input
-          type="password"
-          placeholder="重置密码输入框"
-          value={resetPassword}
-          onChange={(e) => setResetPassword(e.target.value)}
-          style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
-        />
         <label
           style={{
             gridColumn: "1 / -1",
@@ -214,7 +289,7 @@ export default function UsersPage() {
           onSubmit={handleCreate}
           style={{ marginBottom: 20, padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
         >
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8, alignItems: "stretch" }}>
             <input
               placeholder="用户名"
               value={form.username}
@@ -222,13 +297,13 @@ export default function UsersPage() {
               required
               style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
             />
-            <input
-              type="password"
-              placeholder="密码"
+            <PasswordFieldWithToggle
               value={form.password}
-              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+              onChange={(v) => setForm((f) => ({ ...f, password: v }))}
+              placeholder="密码"
               required
-              style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+              visible={showCreatePassword}
+              onToggleVisible={() => setShowCreatePassword((s) => !s)}
             />
             <select
               value={form.role}
@@ -287,7 +362,7 @@ export default function UsersPage() {
                     <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1", whiteSpace: "nowrap" }}>
                       <button
                         type="button"
-                        onClick={() => handleResetPassword(item.id)}
+                        onClick={() => openResetPasswordModal(item)}
                         disabled={actionLoadingId === item.id}
                         style={{ marginRight: 8, padding: "6px 10px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
                       >
@@ -314,6 +389,77 @@ export default function UsersPage() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+      {resetModal && (
+        <div
+          role="presentation"
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.45)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: 16,
+          }}
+          onClick={closeResetPasswordModal}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reset-pwd-title"
+            style={{
+              width: "100%",
+              maxWidth: 400,
+              background: "#fff",
+              borderRadius: 8,
+              boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
+              padding: 20,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="reset-pwd-title" style={{ marginTop: 0, marginBottom: 8 }}>
+              重置密码
+            </h3>
+            <p style={{ margin: "0 0 12px", fontSize: 14, color: "#64748b" }}>
+              账号：<strong>{resetModal.username}</strong>
+            </p>
+            <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 600 }}>新密码</label>
+            <PasswordFieldWithToggle
+              value={resetModalPassword}
+              onChange={setResetModalPassword}
+              placeholder="至少 6 位"
+              visible={showResetModalPassword}
+              onToggleVisible={() => setShowResetModalPassword((s) => !s)}
+            />
+            <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button
+                type="button"
+                onClick={closeResetPasswordModal}
+                disabled={actionLoadingId === resetModal.id}
+                style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: actionLoadingId === resetModal.id ? "not-allowed" : "pointer" }}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmResetPassword()}
+                disabled={actionLoadingId === resetModal.id}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: "var(--xt-accent)",
+                  color: "#fff",
+                  cursor: actionLoadingId === resetModal.id ? "not-allowed" : "pointer",
+                }}
+              >
+                {actionLoadingId === resetModal.id ? "提交中…" : "确定"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

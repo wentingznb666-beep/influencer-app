@@ -158,7 +158,7 @@ export async function updateRechargeOrder(id: number, body: { status: "approved"
 }
 
 /**
- * 管理员手动充值：仅支持达人或商家账号，提交后立即入账。
+ * 管理员手动积分调整：达人/商家均可加分；扣分同样适用于达人或商家（余额不足时接口返回错误）。
  */
 export async function manualRecharge(body: { user_id: number; amount: number; note?: string; mode?: "add" | "deduct" }) {
   const res = await fetchWithAuth("/api/admin/points/manual-recharge", {

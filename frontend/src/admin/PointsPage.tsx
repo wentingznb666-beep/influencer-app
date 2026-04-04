@@ -91,7 +91,7 @@ export default function PointsPage() {
   };
 
   /**
-   * 管理员手动充值：为达人/商家直接加积分。
+   * 管理员手动积分调整：加分或扣分，对象为达人/商家（与后端 manual-recharge 一致）。
    */
   const handleManualRecharge = async () => {
     if (isEmployee) {
@@ -149,7 +149,7 @@ export default function PointsPage() {
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <select value={manualMode} onChange={(e) => setManualMode(e.target.value as "add" | "deduct")} style={{ padding: "6px 8px", minWidth: 120 }}>
                 <option value="add">加分</option>
-                <option value="deduct">扣分（仅达人）</option>
+                <option value="deduct">扣分（达人/商家）</option>
               </select>
               {/* 关键修改 1：搜索输入框（实时过滤用户名/ID） */}
               <input
