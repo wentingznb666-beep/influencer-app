@@ -2,7 +2,6 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import os from "os";
-import path from "path";
 import { translateBatchWithDeepseek, translateTextWithDeepseek } from "./translate";
 import { synthesizeSpeechWithAzure } from "./ttsAzure";
 import { requestId, auditLog, loginRateLimit } from "./middlewares";
@@ -24,6 +23,7 @@ import operationLogsRoutes from "./routes/operationLogs";
 import modelsRoutes, { adminPhotosRouter, employeePhotosRouter } from "./routes/models";
 import clientModelsRoutes from "./routes/clientModels";
 import { initDb } from "./db";
+import { ensureUploadsSubdirs, getUploadsRoot } from "./uploadsConfig";
 
 dotenv.config();
 
@@ -32,7 +32,8 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(cors({ origin: "*" }));
-app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
+/** 与写入路径一致；UPLOADS_ROOT 指向持久盘时重启后仍可访问历史文件 */
+app.use("/uploads", express.static(getUploadsRoot()));
 app.use(requestId);
 app.use(auditLog);
 
@@ -236,6 +237,8 @@ function getLocalIp(): string | null {
  */
 async function main(): Promise<void> {
   await initDb();
+  ensureUploadsSubdirs();
+  console.log(`Uploads root (static + writes): ${getUploadsRoot()}`);
   app.listen(Number(port), "0.0.0.0", () => {
     const local = `http://localhost:${port}`;
     const ip = getLocalIp();

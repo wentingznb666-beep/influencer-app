@@ -1,6 +1,10 @@
 # Render 一键部署：会生成固定网址 https://xxx.onrender.com
 # 在 https://render.com 连接 GitHub 仓库后，在 Dashboard 用此 Blueprint 或手动建 Web Service
 # 根目录设为 backend（若仓库为整项目）
+#
+# 上传文件（模特图/SKU）：默认在临时盘，重部署会丢失导致 /uploads/... 404。
+# 解决：付费实例上添加 Persistent Disk，并设置 UPLOADS_ROOT 与挂载路径一致（见下方注释示例）。
+# 免费实例无持久盘时，部署后需重新上传图片，或升级实例并配置 disk。
 services:
   - type: web
     name: influencer-app-backend
@@ -9,11 +13,19 @@ services:
     plan: free
     buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
+    # 付费实例可启用持久盘（与 UPLOADS_ROOT 一致），例如：
+    # disk:
+    #   name: uploads-disk
+    #   mountPath: /var/render/uploads
+    #   sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 3000
+      # 与 disk.mountPath 一致时上传可跨部署保留；未配磁盘时请删除此项
+      # - key: UPLOADS_ROOT
+      #   value: /var/render/uploads
       - key: DATABASE_URL
         fromDatabase:
           name: influencer-app-db

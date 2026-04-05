@@ -7,6 +7,7 @@ import { recordOperationLogTx } from "../operationLog";
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
+import { getUploadsRoot } from "../uploadsConfig";
 
 const router = Router();
 router.use(requireAuth);
@@ -316,7 +317,7 @@ router.post("/skus/upload", (req: AuthRequest, res: Response) => {
         res.status(400).json({ error: "INVALID_INPUT", message: "请至少上传一张图片。" });
         return;
       }
-      const uploadDir = path.resolve(process.cwd(), "uploads", "skus", String(clientId));
+      const uploadDir = path.join(getUploadsRoot(), "skus", String(clientId));
       await fs.mkdir(uploadDir, { recursive: true });
       const urls: string[] = [];
       const base = getPublicBaseUrl(req);

@@ -5,6 +5,7 @@ import fs from "fs/promises";
 import crypto from "crypto";
 import { query, normalizePhotosFromDb } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
+import { getUploadsRoot, diskPathFromPublicImageUrl } from "../uploadsConfig";
 
 const router = Router();
 router.use(requireAuth);
@@ -79,18 +80,10 @@ function parseUploaderUserIdFromPhotoUrl(url: string): number | null {
 }
 
 /**
- * 将对外访问 URL 转为项目内 uploads 相对磁盘路径；无法解析时返回 null。
+ * 将对外访问 URL 转为磁盘路径（与 index 中 express.static 根目录一致，见 UPLOADS_ROOT）。
  */
 function resolveUploadsFilePathFromPublicUrl(url: string): string | null {
-  try {
-    /** 兼容相对路径，与 parseUploaderUserIdFromPhotoUrl 一致。 */
-    const pathname = (url.trim().startsWith("/") ? url.trim().split("?")[0] : new URL(url).pathname) ?? "";
-    if (!pathname.startsWith("/uploads/")) return null;
-    const rel = pathname.replace(/^\//, "");
-    return path.resolve(process.cwd(), rel);
-  } catch {
-    return null;
-  }
+  return diskPathFromPublicImageUrl(url);
 }
 
 /**
@@ -185,7 +178,7 @@ router.post("/upload", (req: AuthRequest, res: Response) => {
         res.status(400).json({ error: "INVALID_INPUT", message: "请至少上传一张图片。" });
         return;
       }
-      const uploadDir = path.resolve(process.cwd(), "uploads", "models", String(req.user!.userId));
+      const uploadDir = path.join(getUploadsRoot(), "models", String(req.user!.userId));
       await fs.mkdir(uploadDir, { recursive: true });
       const base = getPublicBaseUrl(req);
       const urls: string[] = [];
