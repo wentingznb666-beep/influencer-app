@@ -238,7 +238,11 @@ function getLocalIp(): string | null {
 async function main(): Promise<void> {
   await initDb();
   ensureUploadsSubdirs();
-  console.log(`Uploads root (static + writes): ${getUploadsRoot()}`);
+  /** 部署后可在 Render 日志中搜索 “Uploads root” 核对 UPLOADS_ROOT 是否与磁盘挂载一致 */
+  const uploadsResolved = getUploadsRoot();
+  console.log(
+    `[uploads] UPLOADS_ROOT env=${process.env.UPLOADS_ROOT != null && process.env.UPLOADS_ROOT !== "" ? JSON.stringify(process.env.UPLOADS_ROOT) : "(unset, using cwd/uploads)"} → resolved=${uploadsResolved}`
+  );
   app.listen(Number(port), "0.0.0.0", () => {
     const local = `http://localhost:${port}`;
     const ip = getLocalIp();
