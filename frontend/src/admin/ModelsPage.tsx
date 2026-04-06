@@ -17,6 +17,7 @@ type ModelRow = {
   tiktok_followers_text?: string | null;
   tiktok_sales_text?: string | null;
   sellable_product_types?: string | null;
+  skills_text?: string | null;
 };
 
 /**
@@ -57,7 +58,7 @@ export default function ModelsPage() {
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"" | "enabled" | "disabled">("");
-  const [form, setForm] = useState({ id: 0, name: "", intro: "", tiktok_followers_text: "", tiktok_sales_text: "", sellable_product_types: "", cloud_link: "", status: "disabled" as "enabled" | "disabled" });
+  const [form, setForm] = useState({ id: 0, name: "", intro: "", tiktok_followers_text: "", tiktok_sales_text: "", sellable_product_types: "", skills_text: "", cloud_link: "", status: "disabled" as "enabled" | "disabled" });
   const [photos, setPhotos] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   /** URL -> photo_id，供勾选与删除接口使用 */
@@ -137,7 +138,7 @@ export default function ModelsPage() {
    * 重置编辑表单。
    */
   const resetForm = () => {
-    setForm({ id: 0, name: "", intro: "", tiktok_followers_text: "", tiktok_sales_text: "", sellable_product_types: "", cloud_link: "", status: "disabled" });
+    setForm({ id: 0, name: "", intro: "", tiktok_followers_text: "", tiktok_sales_text: "", sellable_product_types: "", skills_text: "", cloud_link: "", status: "disabled" });
     setPhotos([]);
     setSelectedFiles([]);
   };
@@ -169,6 +170,7 @@ export default function ModelsPage() {
         tiktok_followers_text: form.tiktok_followers_text.trim(),
         tiktok_sales_text: form.tiktok_sales_text.trim(),
         sellable_product_types: form.sellable_product_types.trim(),
+        skills_text: form.skills_text.trim(),
         cloud_link: form.cloud_link.trim(),
         status: form.status,
         photos: nextPhotos,
@@ -367,6 +369,8 @@ export default function ModelsPage() {
           <input value={form.tiktok_sales_text} onChange={(e) => setForm((s) => ({ ...s, tiktok_sales_text: e.target.value }))} placeholder="可填写金额或描述" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>模特可销售的商品类型</div>
           <input value={form.sellable_product_types} onChange={(e) => setForm((s) => ({ ...s, sellable_product_types: e.target.value }))} placeholder="如：美妆、服饰等" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
+          <div>技能</div>
+          <textarea value={form.skills_text} onChange={(e) => setForm((s) => ({ ...s, skills_text: e.target.value }))} rows={2} placeholder="可填写多项技能或技能描述" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>云端网盘链接</div>
           <input value={form.cloud_link} onChange={(e) => setForm((s) => ({ ...s, cloud_link: e.target.value }))} placeholder="用于展示视频的链接" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>展示状态</div>
@@ -446,6 +450,7 @@ export default function ModelsPage() {
                         tiktok_followers_text: m.tiktok_followers_text ?? "",
                         tiktok_sales_text: m.tiktok_sales_text ?? "",
                         sellable_product_types: m.sellable_product_types ?? "",
+                        skills_text: m.skills_text ?? "",
                         cloud_link: m.cloud_link,
                         status: m.status,
                       });
@@ -491,6 +496,10 @@ export default function ModelsPage() {
                 <div>
                   <span style={{ color: "#64748b" }}>可售商品类型：</span>
                   {m.sellable_product_types?.trim() ? m.sellable_product_types : "—"}
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>技能：</span>
+                  {m.skills_text?.trim() ? m.skills_text : "—"}
                 </div>
               </div>
               <div style={{ marginTop: 8 }}>

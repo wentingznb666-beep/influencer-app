@@ -48,6 +48,8 @@ function normalizeModelStatus(value: unknown): "enabled" | "disabled" {
 const MAX_TIKTOK_METRIC_LEN = 500;
 /** 可售商品类型最大长度 */
 const MAX_SELLABLE_PRODUCT_TYPES_LEN = 2000;
+/** 模特技能描述最大长度 */
+const MAX_SKILLS_TEXT_LEN = 2000;
 
 /**
  * 清洗可选文本字段（扩展列，空串存为 null）。
@@ -137,7 +139,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     let idx = 1;
     let sql = `
       SELECT m.id, m.name, m.photos, m.intro, m.cloud_link, m.status, m.pending_status,
-             m.tiktok_followers_text, m.tiktok_sales_text, m.sellable_product_types,
+             m.tiktok_followers_text, m.tiktok_sales_text, m.sellable_product_types, m.skills_text,
              m.created_by, uc.username AS created_by_username,
              m.updated_by, uu.username AS updated_by_username,
              m.reviewed_by, ur.username AS reviewed_by_username,
@@ -237,6 +239,7 @@ router.post("/", (req: AuthRequest, res: Response) => {
   const tiktokFollowers = normalizeOptionalModelField(req.body?.tiktok_followers_text, MAX_TIKTOK_METRIC_LEN);
   const tiktokSales = normalizeOptionalModelField(req.body?.tiktok_sales_text, MAX_TIKTOK_METRIC_LEN);
   const sellableTypes = normalizeOptionalModelField(req.body?.sellable_product_types, MAX_SELLABLE_PRODUCT_TYPES_LEN);
+  const skillsText = normalizeOptionalModelField(req.body?.skills_text, MAX_SKILLS_TEXT_LEN);
   const isAdmin = req.user?.role === "admin";
   const status = normalizeModelStatus(req.body?.status);
   if (!name || name.length > 100) {
@@ -260,8 +263,8 @@ router.post("/", (req: AuthRequest, res: Response) => {
     const pendingStatus = !isAdmin && status === "enabled" ? "enabled" : null;
     const { rows } = await query<{ id: number }>(
       `INSERT INTO model_profiles (name, photos, intro, cloud_link, status, pending_status,
-          tiktok_followers_text, tiktok_sales_text, sellable_product_types, created_by, updated_by)
-       VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7, $8, $9, $10, $10)
+          tiktok_followers_text, tiktok_sales_text, sellable_product_types, skills_text, created_by, updated_by)
+       VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7, $8, $9, $10, $11, $11)
        RETURNING id`,
       [
         name,
@@ -273,6 +276,7 @@ router.post("/", (req: AuthRequest, res: Response) => {
         tiktokFollowers,
         tiktokSales,
         sellableTypes,
+        skillsText,
         req.user!.userId,
       ]
     );
@@ -310,6 +314,10 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
   const sellableTypes =
     req.body?.sellable_product_types !== undefined
       ? normalizeOptionalModelField(req.body?.sellable_product_types, MAX_SELLABLE_PRODUCT_TYPES_LEN)
+      : undefined;
+  const skillsText =
+    req.body?.skills_text !== undefined
+      ? normalizeOptionalModelField(req.body?.skills_text, MAX_SKILLS_TEXT_LEN)
       : undefined;
   if (name !== undefined && (!name || name.length > 100)) {
     res.status(400).json({ error: "INVALID_NAME", message: "请填写模特姓名/昵称（1-100）。" });
@@ -351,6 +359,14 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_FIELD", message: `可售商品类型过长（最多 ${MAX_SELLABLE_PRODUCT_TYPES_LEN} 字）。` });
     return;
   }
+  if (
+    skillsText !== undefined &&
+    req.body?.skills_text !== undefined &&
+    String(req.body.skills_text).trim().length > MAX_SKILLS_TEXT_LEN
+  ) {
+    res.status(400).json({ error: "INVALID_FIELD", message: `技能描述过长（最多 ${MAX_SKILLS_TEXT_LEN} 字）。` });
+    return;
+  }
   (async () => {
     const existed = await query<{ id: number }>("SELECT id FROM model_profiles WHERE id = $1 AND is_deleted = 0", [id]);
     if (!existed.rows[0]) {
@@ -387,6 +403,10 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     if (sellableTypes !== undefined) {
       sets.push(`sellable_product_types = $${idx++}`);
       params.push(sellableTypes);
+    }
+    if (skillsText !== undefined) {
+      sets.push(`skills_text = $${idx++}`);
+      params.push(skillsText);
     }
     if (status !== undefined) {
       if (isAdmin) {

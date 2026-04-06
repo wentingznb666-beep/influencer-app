@@ -7,11 +7,12 @@ type Row = {
   name: string;
   photos: string[];
   intro: string | null;
-  tiktok_url: string | null;
   tiktok_followers_text: string | null;
   sales_text: string | null;
   sellable_types_text: string | null;
   fee_quote_text: string | null;
+  skills_text: string | null;
+  video_url: string | null;
   selected: number;
 };
 
@@ -80,6 +81,11 @@ export default function ClientShowcaseInfluencersPage() {
               <div key={`my-${m.id}`} style={{ background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
                 <strong>{m.name}</strong>
                 <div style={{ marginTop: 6, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
+                <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
+                  {[m.tiktok_followers_text && `粉丝：${m.tiktok_followers_text}`, m.sales_text && `销售额：${m.sales_text}`, m.sellable_types_text && `可售类型：${m.sellable_types_text}`, m.fee_quote_text && `报价：${m.fee_quote_text}`, m.skills_text && `技能：${m.skills_text}`, m.video_url && `视频：${m.video_url}`]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </div>
               </div>
             ))}
           </div>
@@ -114,13 +120,8 @@ export default function ClientShowcaseInfluencersPage() {
                     </button>
                   </div>
                   <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
-                  {m.tiktok_url && (
-                    <div style={{ marginTop: 8, fontSize: 14 }}>
-                      TikTok：<a href={m.tiktok_url} target="_blank" rel="noreferrer">{m.tiktok_url}</a>
-                    </div>
-                  )}
                   <div style={{ marginTop: 8, fontSize: 13, color: "#475569" }}>
-                    {[m.tiktok_followers_text && `粉丝：${m.tiktok_followers_text}`, m.sales_text && `销售额：${m.sales_text}`, m.sellable_types_text && `可售类型：${m.sellable_types_text}`, m.fee_quote_text && `报价：${m.fee_quote_text}`]
+                    {[m.tiktok_followers_text && `粉丝：${m.tiktok_followers_text}`, m.sales_text && `销售额：${m.sales_text}`, m.sellable_types_text && `可售类型：${m.sellable_types_text}`, m.fee_quote_text && `报价：${m.fee_quote_text}`, m.skills_text && `技能：${m.skills_text}`, m.video_url && `视频：${m.video_url}`]
                       .filter(Boolean)
                       .join(" · ")}
                   </div>

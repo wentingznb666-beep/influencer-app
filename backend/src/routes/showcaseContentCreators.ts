@@ -8,9 +8,10 @@ router.use(requireRole("admin", "employee"));
 
 const MAX_NAME = 100;
 const MAX_INTRO = 5000;
-const MAX_URL = 2000;
 const MAX_TYPES = 2000;
 const MAX_FEE = 500;
+const MAX_SKILLS_CC = 2000;
+const MAX_VIDEO_URL_CC = 2000;
 
 /** 规范化图片 URL 列表。 */
 function normalizePhotos(value: unknown): string[] {
@@ -35,13 +36,6 @@ function normStatus(value: unknown): "enabled" | "disabled" {
   return value === "enabled" ? "enabled" : "disabled";
 }
 
-/** 规范化等级 A/B/C。 */
-function normTier(value: unknown): "A" | "B" | "C" {
-  const t = String(value ?? "C").trim().toUpperCase();
-  if (t === "A" || t === "B" || t === "C") return t;
-  return "C";
-}
-
 /**
  * GET /api/admin/showcase-content-creators
  * 管理端 Content Creator 展示列表。
@@ -53,7 +47,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     const params: unknown[] = [];
     let idx = 1;
     let sql = `
-      SELECT s.id, s.name, s.intro, s.photos, s.social_url, s.tier, s.shoot_types_text, s.fee_quote_text, s.status,
+      SELECT s.id, s.name, s.intro, s.photos, s.shoot_types_text, s.fee_quote_text, s.skills_text, s.video_url, s.status,
              s.created_by, uc.username AS created_by_username,
              s.updated_by, uu.username AS updated_by_username,
              s.created_at, s.updated_at
@@ -92,10 +86,10 @@ router.post("/", (req: AuthRequest, res: Response) => {
   const name = String(req.body?.name ?? "").trim();
   const intro = String(req.body?.intro ?? "").trim();
   const photos = normalizePhotos(req.body?.photos);
-  const socialUrl = normText(req.body?.social_url, MAX_URL);
-  const tier = normTier(req.body?.tier);
   const shootTypes = normText(req.body?.shoot_types_text, MAX_TYPES);
   const fee = normText(req.body?.fee_quote_text, MAX_FEE);
+  const skills = normText(req.body?.skills_text, MAX_SKILLS_CC);
+  const videoUrl = normText(req.body?.video_url, MAX_VIDEO_URL_CC);
   const status = normStatus(req.body?.status);
   if (!name || name.length > MAX_NAME) {
     res.status(400).json({ error: "INVALID_NAME", message: `请填写姓名/昵称（1-${MAX_NAME}）。` });
@@ -112,17 +106,17 @@ router.post("/", (req: AuthRequest, res: Response) => {
   (async () => {
     const { rows } = await query<{ id: number }>(
       `INSERT INTO showcase_content_creators (
-         name, intro, photos, social_url, tier, shoot_types_text, fee_quote_text, status, created_by, updated_by
+         name, intro, photos, shoot_types_text, fee_quote_text, skills_text, video_url, status, created_by, updated_by
        ) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $9)
        RETURNING id`,
       [
         name,
         intro || null,
         JSON.stringify(photos),
-        socialUrl,
-        tier,
         shootTypes,
         fee,
+        skills,
+        videoUrl,
         status,
         req.user!.userId,
       ]
@@ -147,10 +141,10 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
   const name = req.body?.name !== undefined ? String(req.body?.name ?? "").trim() : undefined;
   const intro = req.body?.intro !== undefined ? String(req.body?.intro ?? "").trim() : undefined;
   const photos = req.body?.photos !== undefined ? normalizePhotos(req.body?.photos) : undefined;
-  const socialUrl = req.body?.social_url !== undefined ? normText(req.body?.social_url, MAX_URL) : undefined;
-  const tier = req.body?.tier !== undefined ? normTier(req.body?.tier) : undefined;
   const shootTypes = req.body?.shoot_types_text !== undefined ? normText(req.body?.shoot_types_text, MAX_TYPES) : undefined;
   const fee = req.body?.fee_quote_text !== undefined ? normText(req.body?.fee_quote_text, MAX_FEE) : undefined;
+  const skills = req.body?.skills_text !== undefined ? normText(req.body?.skills_text, MAX_SKILLS_CC) : undefined;
+  const videoUrl = req.body?.video_url !== undefined ? normText(req.body?.video_url, MAX_VIDEO_URL_CC) : undefined;
   const status = req.body?.status !== undefined ? normStatus(req.body?.status) : undefined;
   if (name !== undefined && (!name || name.length > MAX_NAME)) {
     res.status(400).json({ error: "INVALID_NAME", message: "姓名/昵称无效。" });
@@ -185,14 +179,6 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
       sets.push(`photos = $${idx++}::jsonb`);
       params.push(JSON.stringify(photos));
     }
-    if (socialUrl !== undefined) {
-      sets.push(`social_url = $${idx++}`);
-      params.push(socialUrl);
-    }
-    if (tier !== undefined) {
-      sets.push(`tier = $${idx++}`);
-      params.push(tier);
-    }
     if (shootTypes !== undefined) {
       sets.push(`shoot_types_text = $${idx++}`);
       params.push(shootTypes);
@@ -200,6 +186,14 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     if (fee !== undefined) {
       sets.push(`fee_quote_text = $${idx++}`);
       params.push(fee);
+    }
+    if (skills !== undefined) {
+      sets.push(`skills_text = $${idx++}`);
+      params.push(skills);
+    }
+    if (videoUrl !== undefined) {
+      sets.push(`video_url = $${idx++}`);
+      params.push(videoUrl);
     }
     if (status !== undefined) {
       sets.push(`status = $${idx++}`);

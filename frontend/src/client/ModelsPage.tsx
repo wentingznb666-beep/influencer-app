@@ -9,6 +9,7 @@ type ModelRow = {
   intro: string | null;
   cloud_link: string;
   selected: number;
+  skills_text?: string | null;
 };
 
 /**
@@ -78,6 +79,12 @@ export default function ClientModelsPage() {
               <div key={`my-${m.id}`} style={{ background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
                 <strong>{m.name}</strong>
                 <div style={{ marginTop: 6, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
+                {m.skills_text?.trim() ? (
+                  <div style={{ marginTop: 6, fontSize: 14, color: "#475569" }}>
+                    <span style={{ color: "#64748b" }}>技能：</span>
+                    {m.skills_text}
+                  </div>
+                ) : null}
               </div>
             ))}
           </div>
@@ -112,6 +119,12 @@ export default function ClientModelsPage() {
                     </button>
                   </div>
                   <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
+                  {m.skills_text?.trim() ? (
+                    <div style={{ marginTop: 8, fontSize: 14, color: "#475569" }}>
+                      <span style={{ color: "#64748b" }}>技能：</span>
+                      {m.skills_text}
+                    </div>
+                  ) : null}
                   <div style={{ marginTop: 8 }}>
                     视频链接：<a href={m.cloud_link} target="_blank" rel="noreferrer">{m.cloud_link}</a>
                   </div>

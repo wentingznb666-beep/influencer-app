@@ -435,7 +435,7 @@ export async function uploadAdminModelImages(files: File[]): Promise<string[]> {
 /**
  * 管理员/员工：新增模特资料。
  */
-export async function createAdminModel(body: { name: string; photos: string[]; intro?: string; cloud_link: string; status?: "enabled" | "disabled"; tiktok_followers_text?: string; tiktok_sales_text?: string; sellable_product_types?: string }) {
+export async function createAdminModel(body: { name: string; photos: string[]; intro?: string; cloud_link: string; status?: "enabled" | "disabled"; tiktok_followers_text?: string; tiktok_sales_text?: string; sellable_product_types?: string; skills_text?: string }) {
   const res = await fetchWithAuth("/api/admin/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await readErrorMessage(res, "创建失败"));
   return res.json();
@@ -444,7 +444,7 @@ export async function createAdminModel(body: { name: string; photos: string[]; i
 /**
  * 管理员/员工：编辑模特资料。
  */
-export async function updateAdminModel(id: number, body: { name?: string; photos?: string[]; intro?: string; cloud_link?: string; status?: "enabled" | "disabled"; tiktok_followers_text?: string; tiktok_sales_text?: string; sellable_product_types?: string }) {
+export async function updateAdminModel(id: number, body: { name?: string; photos?: string[]; intro?: string; cloud_link?: string; status?: "enabled" | "disabled"; tiktok_followers_text?: string; tiktok_sales_text?: string; sellable_product_types?: string; skills_text?: string }) {
   const res = await fetchWithAuth(`/api/admin/models/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await readErrorMessage(res, "更新失败"));
   return res.json();
@@ -534,11 +534,12 @@ export async function createAdminShowcaseInfluencer(body: {
   name: string;
   intro?: string;
   photos: string[];
-  tiktok_url?: string;
   tiktok_followers_text?: string;
   sales_text?: string;
   sellable_types_text?: string;
   fee_quote_text?: string;
+  skills_text?: string;
+  video_url?: string;
   status?: "enabled" | "disabled";
 }) {
   const res = await fetchWithAuth("/api/admin/showcase-influencers", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -555,11 +556,12 @@ export async function updateAdminShowcaseInfluencer(
     name?: string;
     intro?: string;
     photos?: string[];
-    tiktok_url?: string;
     tiktok_followers_text?: string;
     sales_text?: string;
     sellable_types_text?: string;
     fee_quote_text?: string;
+    skills_text?: string;
+    video_url?: string;
     status?: "enabled" | "disabled";
   }
 ) {
@@ -596,10 +598,10 @@ export async function createAdminShowcaseContentCreator(body: {
   name: string;
   intro?: string;
   photos: string[];
-  social_url?: string;
-  tier?: "A" | "B" | "C";
   shoot_types_text?: string;
   fee_quote_text?: string;
+  skills_text?: string;
+  video_url?: string;
   status?: "enabled" | "disabled";
 }) {
   const res = await fetchWithAuth("/api/admin/showcase-content-creators", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -616,10 +618,10 @@ export async function updateAdminShowcaseContentCreator(
     name?: string;
     intro?: string;
     photos?: string[];
-    social_url?: string;
-    tier?: "A" | "B" | "C";
     shoot_types_text?: string;
     fee_quote_text?: string;
+    skills_text?: string;
+    video_url?: string;
     status?: "enabled" | "disabled";
   }
 ) {

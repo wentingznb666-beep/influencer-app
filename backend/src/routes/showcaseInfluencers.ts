@@ -8,10 +8,11 @@ router.use(requireRole("admin", "employee"));
 
 const MAX_NAME = 100;
 const MAX_INTRO = 5000;
-const MAX_URL = 2000;
 const MAX_TEXT = 500;
 const MAX_TYPES = 2000;
 const MAX_FEE = 500;
+const MAX_SKILLS_INF = 2000;
+const MAX_VIDEO_URL = 2000;
 
 /** 规范化图片 URL 列表。 */
 function normalizePhotos(value: unknown): string[] {
@@ -47,8 +48,8 @@ router.get("/", (req: AuthRequest, res: Response) => {
     const params: unknown[] = [];
     let idx = 1;
     let sql = `
-      SELECT s.id, s.name, s.intro, s.photos, s.tiktok_url, s.tiktok_followers_text, s.sales_text,
-             s.sellable_types_text, s.fee_quote_text, s.status,
+      SELECT s.id, s.name, s.intro, s.photos, s.tiktok_followers_text, s.sales_text,
+             s.sellable_types_text, s.fee_quote_text, s.skills_text, s.video_url, s.status,
              s.created_by, uc.username AS created_by_username,
              s.updated_by, uu.username AS updated_by_username,
              s.created_at, s.updated_at
@@ -87,11 +88,12 @@ router.post("/", (req: AuthRequest, res: Response) => {
   const name = String(req.body?.name ?? "").trim();
   const intro = String(req.body?.intro ?? "").trim();
   const photos = normalizePhotos(req.body?.photos);
-  const tiktokUrl = normText(req.body?.tiktok_url, MAX_URL);
   const followers = normText(req.body?.tiktok_followers_text, MAX_TEXT);
   const sales = normText(req.body?.sales_text, MAX_TEXT);
   const types = normText(req.body?.sellable_types_text, MAX_TYPES);
   const fee = normText(req.body?.fee_quote_text, MAX_FEE);
+  const skills = normText(req.body?.skills_text, MAX_SKILLS_INF);
+  const videoUrl = normText(req.body?.video_url, MAX_VIDEO_URL);
   const status = normStatus(req.body?.status);
   if (!name || name.length > MAX_NAME) {
     res.status(400).json({ error: "INVALID_NAME", message: `请填写姓名/昵称（1-${MAX_NAME}）。` });
@@ -108,18 +110,19 @@ router.post("/", (req: AuthRequest, res: Response) => {
   (async () => {
     const { rows } = await query<{ id: number }>(
       `INSERT INTO showcase_influencers (
-         name, intro, photos, tiktok_url, tiktok_followers_text, sales_text, sellable_types_text, fee_quote_text, status, created_by, updated_by
-       ) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $10, $10)
+         name, intro, photos, tiktok_followers_text, sales_text, sellable_types_text, fee_quote_text, skills_text, video_url, status, created_by, updated_by
+       ) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $10, $11, $11)
        RETURNING id`,
       [
         name,
         intro || null,
         JSON.stringify(photos),
-        tiktokUrl,
         followers,
         sales,
         types,
         fee,
+        skills,
+        videoUrl,
         status,
         req.user!.userId,
       ]
@@ -144,12 +147,13 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
   const name = req.body?.name !== undefined ? String(req.body?.name ?? "").trim() : undefined;
   const intro = req.body?.intro !== undefined ? String(req.body?.intro ?? "").trim() : undefined;
   const photos = req.body?.photos !== undefined ? normalizePhotos(req.body?.photos) : undefined;
-  const tiktokUrl = req.body?.tiktok_url !== undefined ? normText(req.body?.tiktok_url, MAX_URL) : undefined;
   const followers =
     req.body?.tiktok_followers_text !== undefined ? normText(req.body?.tiktok_followers_text, MAX_TEXT) : undefined;
   const sales = req.body?.sales_text !== undefined ? normText(req.body?.sales_text, MAX_TEXT) : undefined;
   const types = req.body?.sellable_types_text !== undefined ? normText(req.body?.sellable_types_text, MAX_TYPES) : undefined;
   const fee = req.body?.fee_quote_text !== undefined ? normText(req.body?.fee_quote_text, MAX_FEE) : undefined;
+  const skills = req.body?.skills_text !== undefined ? normText(req.body?.skills_text, MAX_SKILLS_INF) : undefined;
+  const videoUrl = req.body?.video_url !== undefined ? normText(req.body?.video_url, MAX_VIDEO_URL) : undefined;
   const status = req.body?.status !== undefined ? normStatus(req.body?.status) : undefined;
   if (name !== undefined && (!name || name.length > MAX_NAME)) {
     res.status(400).json({ error: "INVALID_NAME", message: "姓名/昵称无效。" });
@@ -184,10 +188,6 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
       sets.push(`photos = $${idx++}::jsonb`);
       params.push(JSON.stringify(photos));
     }
-    if (tiktokUrl !== undefined) {
-      sets.push(`tiktok_url = $${idx++}`);
-      params.push(tiktokUrl);
-    }
     if (followers !== undefined) {
       sets.push(`tiktok_followers_text = $${idx++}`);
       params.push(followers);
@@ -203,6 +203,14 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     if (fee !== undefined) {
       sets.push(`fee_quote_text = $${idx++}`);
       params.push(fee);
+    }
+    if (skills !== undefined) {
+      sets.push(`skills_text = $${idx++}`);
+      params.push(skills);
+    }
+    if (videoUrl !== undefined) {
+      sets.push(`video_url = $${idx++}`);
+      params.push(videoUrl);
     }
     if (status !== undefined) {
       sets.push(`status = $${idx++}`);

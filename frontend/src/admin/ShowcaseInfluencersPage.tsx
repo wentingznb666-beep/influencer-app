@@ -7,11 +7,12 @@ type Row = {
   name: string;
   photos: string[];
   intro: string | null;
-  tiktok_url: string | null;
   tiktok_followers_text: string | null;
   sales_text: string | null;
   sellable_types_text: string | null;
   fee_quote_text: string | null;
+  skills_text: string | null;
+  video_url: string | null;
   status: "enabled" | "disabled";
   updated_at: string;
 };
@@ -30,11 +31,12 @@ export default function ShowcaseInfluencersPage() {
     id: 0,
     name: "",
     intro: "",
-    tiktok_url: "",
     tiktok_followers_text: "",
     sales_text: "",
     sellable_types_text: "",
     fee_quote_text: "",
+    skills_text: "",
+    video_url: "",
     status: "disabled" as "enabled" | "disabled",
   });
   const [photos, setPhotos] = useState<string[]>([]);
@@ -72,11 +74,12 @@ export default function ShowcaseInfluencersPage() {
       id: 0,
       name: "",
       intro: "",
-      tiktok_url: "",
       tiktok_followers_text: "",
       sales_text: "",
       sellable_types_text: "",
       fee_quote_text: "",
+      skills_text: "",
+      video_url: "",
       status: "disabled",
     });
     setPhotos([]);
@@ -101,11 +104,12 @@ export default function ShowcaseInfluencersPage() {
       const payload = {
         name: form.name.trim(),
         intro: form.intro.trim(),
-        tiktok_url: form.tiktok_url.trim(),
         tiktok_followers_text: form.tiktok_followers_text.trim(),
         sales_text: form.sales_text.trim(),
         sellable_types_text: form.sellable_types_text.trim(),
         fee_quote_text: form.fee_quote_text.trim(),
+        skills_text: form.skills_text.trim(),
+        video_url: form.video_url.trim(),
         status: form.status,
         photos: nextPhotos,
       };
@@ -168,9 +172,7 @@ export default function ShowcaseInfluencersPage() {
           <input value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>简介</div>
           <textarea value={form.intro} onChange={(e) => setForm((s) => ({ ...s, intro: e.target.value }))} rows={3} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
-          <div>TikTok 链接</div>
-          <input value={form.tiktok_url} onChange={(e) => setForm((s) => ({ ...s, tiktok_url: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
-          <div>TikTok 粉丝数量</div>
+          <div>粉丝数量</div>
           <input value={form.tiktok_followers_text} onChange={(e) => setForm((s) => ({ ...s, tiktok_followers_text: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>账号销售额</div>
           <input value={form.sales_text} onChange={(e) => setForm((s) => ({ ...s, sales_text: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
@@ -178,6 +180,10 @@ export default function ShowcaseInfluencersPage() {
           <input value={form.sellable_types_text} onChange={(e) => setForm((s) => ({ ...s, sellable_types_text: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>合作费用/报价</div>
           <input value={form.fee_quote_text} onChange={(e) => setForm((s) => ({ ...s, fee_quote_text: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
+          <div>技能</div>
+          <textarea value={form.skills_text} onChange={(e) => setForm((s) => ({ ...s, skills_text: e.target.value }))} rows={2} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} placeholder="可填写多项技能或描述" />
+          <div>作品视频链接</div>
+          <input value={form.video_url} onChange={(e) => setForm((s) => ({ ...s, video_url: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} placeholder="https://" />
           <div>展示状态</div>
           <select value={form.status} onChange={(e) => setForm((s) => ({ ...s, status: e.target.value as "enabled" | "disabled" }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff" }}>
             <option value="disabled">禁用</option>
@@ -236,11 +242,12 @@ export default function ShowcaseInfluencersPage() {
                         id: m.id,
                         name: m.name,
                         intro: m.intro || "",
-                        tiktok_url: m.tiktok_url || "",
                         tiktok_followers_text: m.tiktok_followers_text || "",
                         sales_text: m.sales_text || "",
                         sellable_types_text: m.sellable_types_text || "",
                         fee_quote_text: m.fee_quote_text || "",
+                        skills_text: m.skills_text || "",
+                        video_url: m.video_url || "",
                         status: m.status,
                       });
                       setPhotos(m.photos || []);
@@ -256,13 +263,8 @@ export default function ShowcaseInfluencersPage() {
                 </div>
               </div>
               <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无简介"}</div>
-              {m.tiktok_url && (
-                <div style={{ marginTop: 6, fontSize: 13 }}>
-                  TikTok：<a href={m.tiktok_url} target="_blank" rel="noreferrer">{m.tiktok_url}</a>
-                </div>
-              )}
               <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
-                {[m.tiktok_followers_text && `粉丝：${m.tiktok_followers_text}`, m.sales_text && `销售额：${m.sales_text}`, m.sellable_types_text && `可售类型：${m.sellable_types_text}`, m.fee_quote_text && `报价：${m.fee_quote_text}`]
+                {[m.tiktok_followers_text && `粉丝：${m.tiktok_followers_text}`, m.sales_text && `销售额：${m.sales_text}`, m.sellable_types_text && `可售类型：${m.sellable_types_text}`, m.fee_quote_text && `报价：${m.fee_quote_text}`, m.skills_text && `技能：${m.skills_text}`, m.video_url && `视频：${m.video_url}`]
                   .filter(Boolean)
                   .join(" · ")}
               </div>

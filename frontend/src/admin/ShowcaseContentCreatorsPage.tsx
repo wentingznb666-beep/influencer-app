@@ -7,10 +7,10 @@ type Row = {
   name: string;
   photos: string[];
   intro: string | null;
-  social_url: string | null;
-  tier: "A" | "B" | "C";
   shoot_types_text: string | null;
   fee_quote_text: string | null;
+  skills_text: string | null;
+  video_url: string | null;
   status: "enabled" | "disabled";
   updated_at: string;
 };
@@ -29,10 +29,10 @@ export default function ShowcaseContentCreatorsPage() {
     id: 0,
     name: "",
     intro: "",
-    social_url: "",
-    tier: "C" as "A" | "B" | "C",
     shoot_types_text: "",
     fee_quote_text: "",
+    skills_text: "",
+    video_url: "",
     status: "disabled" as "enabled" | "disabled",
   });
   const [photos, setPhotos] = useState<string[]>([]);
@@ -70,10 +70,10 @@ export default function ShowcaseContentCreatorsPage() {
       id: 0,
       name: "",
       intro: "",
-      social_url: "",
-      tier: "C",
       shoot_types_text: "",
       fee_quote_text: "",
+      skills_text: "",
+      video_url: "",
       status: "disabled",
     });
     setPhotos([]);
@@ -98,10 +98,10 @@ export default function ShowcaseContentCreatorsPage() {
       const payload = {
         name: form.name.trim(),
         intro: form.intro.trim(),
-        social_url: form.social_url.trim(),
-        tier: form.tier,
         shoot_types_text: form.shoot_types_text.trim(),
         fee_quote_text: form.fee_quote_text.trim(),
+        skills_text: form.skills_text.trim(),
+        video_url: form.video_url.trim(),
         status: form.status,
         photos: nextPhotos,
       };
@@ -141,7 +141,7 @@ export default function ShowcaseContentCreatorsPage() {
     <div>
       <h2 style={{ marginTop: 0 }}>Content Creator（短视频拍摄）</h2>
       <p style={{ fontSize: 14, color: "#64748b" }}>
-        面向短视频拍摄接单，通常按 A/B/C 等级划分。管理员与员工可完整维护资料与作品集图片。
+        面向短视频拍摄接单。管理员与员工可完整维护资料、技能、作品视频链接与作品集图片。
       </p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
@@ -164,14 +164,6 @@ export default function ShowcaseContentCreatorsPage() {
           <input value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>简介</div>
           <textarea value={form.intro} onChange={(e) => setForm((s) => ({ ...s, intro: e.target.value }))} rows={3} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
-          <div>社交账号链接</div>
-          <input value={form.social_url} onChange={(e) => setForm((s) => ({ ...s, social_url: e.target.value }))} placeholder="TikTok 或其他平台" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
-          <div>等级</div>
-          <select value={form.tier} onChange={(e) => setForm((s) => ({ ...s, tier: e.target.value as "A" | "B" | "C" }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff" }}>
-            <option value="A">A</option>
-            <option value="B">B</option>
-            <option value="C">C</option>
-          </select>
           <div>可承接拍摄内容类型</div>
           <input value={form.shoot_types_text} onChange={(e) => setForm((s) => ({ ...s, shoot_types_text: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>拍摄报价/合作费用</div>
@@ -224,7 +216,6 @@ export default function ShowcaseContentCreatorsPage() {
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                 <div>
                   <strong>{m.name}</strong>
-                  <span style={{ marginLeft: 8, color: "#0f766e" }}>等级 {m.tier}</span>
                   <span style={{ marginLeft: 8, color: m.status === "enabled" ? "#16a34a" : "#64748b" }}>{m.status === "enabled" ? "已启用" : "已禁用"}</span>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
@@ -235,10 +226,10 @@ export default function ShowcaseContentCreatorsPage() {
                         id: m.id,
                         name: m.name,
                         intro: m.intro || "",
-                        social_url: m.social_url || "",
-                        tier: m.tier,
                         shoot_types_text: m.shoot_types_text || "",
                         fee_quote_text: m.fee_quote_text || "",
+                        skills_text: m.skills_text || "",
+                        video_url: m.video_url || "",
                         status: m.status,
                       });
                       setPhotos(m.photos || []);
@@ -254,13 +245,8 @@ export default function ShowcaseContentCreatorsPage() {
                 </div>
               </div>
               <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无简介"}</div>
-              {m.social_url && (
-                <div style={{ marginTop: 6, fontSize: 13 }}>
-                  链接：<a href={m.social_url} target="_blank" rel="noreferrer">{m.social_url}</a>
-                </div>
-              )}
               <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
-                {[m.shoot_types_text && `拍摄类型：${m.shoot_types_text}`, m.fee_quote_text && `报价：${m.fee_quote_text}`].filter(Boolean).join(" · ")}
+                {[m.shoot_types_text && `拍摄类型：${m.shoot_types_text}`, m.fee_quote_text && `报价：${m.fee_quote_text}`, m.skills_text && `技能：${m.skills_text}`, m.video_url && `视频：${m.video_url}`].filter(Boolean).join(" · ")}
               </div>
               {Array.isArray(m.photos) && m.photos.length > 0 && (
                 <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>

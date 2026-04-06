@@ -716,11 +716,12 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     name TEXT NOT NULL,
     intro TEXT,
     photos JSONB NOT NULL DEFAULT '[]'::jsonb,
-    tiktok_url TEXT,
     tiktok_followers_text TEXT,
     sales_text TEXT,
     sellable_types_text TEXT,
     fee_quote_text TEXT,
+    skills_text TEXT,
+    video_url TEXT,
     status TEXT NOT NULL DEFAULT 'disabled' CHECK (status IN ('enabled', 'disabled')),
     created_by INTEGER REFERENCES users(id),
     updated_by INTEGER REFERENCES users(id),
@@ -729,16 +730,19 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
     deleted_at TIMESTAMPTZ
   )`);
+  await query(`ALTER TABLE showcase_influencers ADD COLUMN IF NOT EXISTS skills_text TEXT`);
+  await query(`ALTER TABLE showcase_influencers ADD COLUMN IF NOT EXISTS video_url TEXT`);
+  await query(`ALTER TABLE showcase_influencers DROP COLUMN IF EXISTS tiktok_url`);
   await query(`CREATE INDEX IF NOT EXISTS idx_showcase_influencers_status ON showcase_influencers(status, id DESC) WHERE is_deleted = 0`);
   await query(`CREATE TABLE IF NOT EXISTS showcase_content_creators (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL,
     intro TEXT,
     photos JSONB NOT NULL DEFAULT '[]'::jsonb,
-    social_url TEXT,
-    tier TEXT NOT NULL DEFAULT 'C' CHECK (tier IN ('A', 'B', 'C')),
     shoot_types_text TEXT,
     fee_quote_text TEXT,
+    skills_text TEXT,
+    video_url TEXT,
     status TEXT NOT NULL DEFAULT 'disabled' CHECK (status IN ('enabled', 'disabled')),
     created_by INTEGER REFERENCES users(id),
     updated_by INTEGER REFERENCES users(id),
@@ -747,6 +751,10 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
     deleted_at TIMESTAMPTZ
   )`);
+  await query(`ALTER TABLE showcase_content_creators DROP COLUMN IF EXISTS tier`);
+  await query(`ALTER TABLE showcase_content_creators DROP COLUMN IF EXISTS social_url`);
+  await query(`ALTER TABLE showcase_content_creators ADD COLUMN IF NOT EXISTS skills_text TEXT`);
+  await query(`ALTER TABLE showcase_content_creators ADD COLUMN IF NOT EXISTS video_url TEXT`);
   await query(`CREATE INDEX IF NOT EXISTS idx_showcase_content_creators_status ON showcase_content_creators(status, id DESC) WHERE is_deleted = 0`);
   await query(`CREATE TABLE IF NOT EXISTS client_showcase_influencer_favorites (
     id SERIAL PRIMARY KEY,

@@ -7,10 +7,10 @@ type Row = {
   name: string;
   photos: string[];
   intro: string | null;
-  social_url: string | null;
-  tier: "A" | "B" | "C";
   shoot_types_text: string | null;
   fee_quote_text: string | null;
+  skills_text: string | null;
+  video_url: string | null;
   selected: number;
 };
 
@@ -78,8 +78,10 @@ export default function ClientShowcaseContentCreatorsPage() {
             {myList.map((m) => (
               <div key={`my-${m.id}`} style={{ background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
                 <strong>{m.name}</strong>
-                <span style={{ marginLeft: 8, color: "#0f766e" }}>等级 {m.tier}</span>
                 <div style={{ marginTop: 6, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
+                <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
+                  {[m.shoot_types_text && `拍摄类型：${m.shoot_types_text}`, m.fee_quote_text && `报价：${m.fee_quote_text}`, m.skills_text && `技能：${m.skills_text}`, m.video_url && `视频：${m.video_url}`].filter(Boolean).join(" · ")}
+                </div>
               </div>
             ))}
           </div>
@@ -99,7 +101,6 @@ export default function ClientShowcaseContentCreatorsPage() {
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                     <div>
                       <strong>{m.name}</strong>
-                      <span style={{ marginLeft: 8, color: "#0f766e" }}>等级 {m.tier}</span>
                     </div>
                     <button
                       type="button"
@@ -117,13 +118,8 @@ export default function ClientShowcaseContentCreatorsPage() {
                     </button>
                   </div>
                   <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
-                  {m.social_url && (
-                    <div style={{ marginTop: 8, fontSize: 14 }}>
-                      链接：<a href={m.social_url} target="_blank" rel="noreferrer">{m.social_url}</a>
-                    </div>
-                  )}
                   <div style={{ marginTop: 8, fontSize: 13, color: "#475569" }}>
-                    {[m.shoot_types_text && `拍摄类型：${m.shoot_types_text}`, m.fee_quote_text && `报价：${m.fee_quote_text}`].filter(Boolean).join(" · ")}
+                    {[m.shoot_types_text && `拍摄类型：${m.shoot_types_text}`, m.fee_quote_text && `报价：${m.fee_quote_text}`, m.skills_text && `技能：${m.skills_text}`, m.video_url && `视频：${m.video_url}`].filter(Boolean).join(" · ")}
                   </div>
                   {Array.isArray(m.photos) && m.photos.length > 0 && (
                     <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
