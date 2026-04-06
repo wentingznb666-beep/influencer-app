@@ -698,6 +698,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS tiktok_followers_text TEXT`);
   await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS tiktok_sales_text TEXT`);
   await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS sellable_product_types TEXT`);
+  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS skills_text TEXT`);
   await query(`CREATE INDEX IF NOT EXISTS idx_model_profiles_status ON model_profiles(status, id DESC) WHERE is_deleted = 0`);
   await query(`CREATE TABLE IF NOT EXISTS client_model_favorites (
     id SERIAL PRIMARY KEY,
