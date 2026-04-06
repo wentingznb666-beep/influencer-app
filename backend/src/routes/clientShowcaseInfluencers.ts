@@ -18,7 +18,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     let idx = 2;
     let sql = `
       SELECT s.id, s.name, s.intro, s.photos, s.tiktok_followers_text, s.sales_text,
-             s.sellable_types_text, s.fee_quote_text, s.skills_text, s.video_url, s.status, s.updated_at,
+             s.sellable_types_text, s.skills_text, s.video_url, s.status, s.updated_at,
              CASE WHEN c.id IS NULL THEN 0 ELSE 1 END AS selected
         FROM showcase_influencers s
         LEFT JOIN client_showcase_influencer_favorites c
@@ -51,7 +51,7 @@ router.get("/my", (req: AuthRequest, res: Response) => {
   (async () => {
     const { rows } = await query(
       `SELECT s.id, s.name, s.intro, s.photos, s.tiktok_followers_text, s.sales_text,
-              s.sellable_types_text, s.fee_quote_text, s.skills_text, s.video_url, s.updated_at
+              s.sellable_types_text, s.skills_text, s.video_url, s.updated_at
          FROM client_showcase_influencer_favorites c
          JOIN showcase_influencers s ON c.showcase_influencer_id = s.id
         WHERE c.client_id = $1

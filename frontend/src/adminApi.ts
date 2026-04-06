@@ -537,7 +537,6 @@ export async function createAdminShowcaseInfluencer(body: {
   tiktok_followers_text?: string;
   sales_text?: string;
   sellable_types_text?: string;
-  fee_quote_text?: string;
   skills_text?: string;
   video_url?: string;
   status?: "enabled" | "disabled";
@@ -559,7 +558,6 @@ export async function updateAdminShowcaseInfluencer(
     tiktok_followers_text?: string;
     sales_text?: string;
     sellable_types_text?: string;
-    fee_quote_text?: string;
     skills_text?: string;
     video_url?: string;
     status?: "enabled" | "disabled";
@@ -599,7 +597,6 @@ export async function createAdminShowcaseContentCreator(body: {
   intro?: string;
   photos: string[];
   shoot_types_text?: string;
-  fee_quote_text?: string;
   skills_text?: string;
   video_url?: string;
   status?: "enabled" | "disabled";
@@ -619,7 +616,6 @@ export async function updateAdminShowcaseContentCreator(
     intro?: string;
     photos?: string[];
     shoot_types_text?: string;
-    fee_quote_text?: string;
     skills_text?: string;
     video_url?: string;
     status?: "enabled" | "disabled";

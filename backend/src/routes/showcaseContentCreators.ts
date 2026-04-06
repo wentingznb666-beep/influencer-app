@@ -9,7 +9,6 @@ router.use(requireRole("admin", "employee"));
 const MAX_NAME = 100;
 const MAX_INTRO = 5000;
 const MAX_TYPES = 2000;
-const MAX_FEE = 500;
 const MAX_SKILLS_CC = 2000;
 const MAX_VIDEO_URL_CC = 2000;
 
@@ -47,7 +46,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     const params: unknown[] = [];
     let idx = 1;
     let sql = `
-      SELECT s.id, s.name, s.intro, s.photos, s.shoot_types_text, s.fee_quote_text, s.skills_text, s.video_url, s.status,
+      SELECT s.id, s.name, s.intro, s.photos, s.shoot_types_text, s.skills_text, s.video_url, s.status,
              s.created_by, uc.username AS created_by_username,
              s.updated_by, uu.username AS updated_by_username,
              s.created_at, s.updated_at
@@ -87,7 +86,6 @@ router.post("/", (req: AuthRequest, res: Response) => {
   const intro = String(req.body?.intro ?? "").trim();
   const photos = normalizePhotos(req.body?.photos);
   const shootTypes = normText(req.body?.shoot_types_text, MAX_TYPES);
-  const fee = normText(req.body?.fee_quote_text, MAX_FEE);
   const skills = normText(req.body?.skills_text, MAX_SKILLS_CC);
   const videoUrl = normText(req.body?.video_url, MAX_VIDEO_URL_CC);
   const status = normStatus(req.body?.status);
@@ -106,15 +104,14 @@ router.post("/", (req: AuthRequest, res: Response) => {
   (async () => {
     const { rows } = await query<{ id: number }>(
       `INSERT INTO showcase_content_creators (
-         name, intro, photos, shoot_types_text, fee_quote_text, skills_text, video_url, status, created_by, updated_by
-       ) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $9)
+         name, intro, photos, shoot_types_text, skills_text, video_url, status, created_by, updated_by
+       ) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $8)
        RETURNING id`,
       [
         name,
         intro || null,
         JSON.stringify(photos),
         shootTypes,
-        fee,
         skills,
         videoUrl,
         status,
@@ -142,7 +139,6 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
   const intro = req.body?.intro !== undefined ? String(req.body?.intro ?? "").trim() : undefined;
   const photos = req.body?.photos !== undefined ? normalizePhotos(req.body?.photos) : undefined;
   const shootTypes = req.body?.shoot_types_text !== undefined ? normText(req.body?.shoot_types_text, MAX_TYPES) : undefined;
-  const fee = req.body?.fee_quote_text !== undefined ? normText(req.body?.fee_quote_text, MAX_FEE) : undefined;
   const skills = req.body?.skills_text !== undefined ? normText(req.body?.skills_text, MAX_SKILLS_CC) : undefined;
   const videoUrl = req.body?.video_url !== undefined ? normText(req.body?.video_url, MAX_VIDEO_URL_CC) : undefined;
   const status = req.body?.status !== undefined ? normStatus(req.body?.status) : undefined;
@@ -182,10 +178,6 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     if (shootTypes !== undefined) {
       sets.push(`shoot_types_text = $${idx++}`);
       params.push(shootTypes);
-    }
-    if (fee !== undefined) {
-      sets.push(`fee_quote_text = $${idx++}`);
-      params.push(fee);
     }
     if (skills !== undefined) {
       sets.push(`skills_text = $${idx++}`);

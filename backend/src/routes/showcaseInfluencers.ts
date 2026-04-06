@@ -10,7 +10,6 @@ const MAX_NAME = 100;
 const MAX_INTRO = 5000;
 const MAX_TEXT = 500;
 const MAX_TYPES = 2000;
-const MAX_FEE = 500;
 const MAX_SKILLS_INF = 2000;
 const MAX_VIDEO_URL = 2000;
 
@@ -49,7 +48,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     let idx = 1;
     let sql = `
       SELECT s.id, s.name, s.intro, s.photos, s.tiktok_followers_text, s.sales_text,
-             s.sellable_types_text, s.fee_quote_text, s.skills_text, s.video_url, s.status,
+             s.sellable_types_text, s.skills_text, s.video_url, s.status,
              s.created_by, uc.username AS created_by_username,
              s.updated_by, uu.username AS updated_by_username,
              s.created_at, s.updated_at
@@ -91,7 +90,6 @@ router.post("/", (req: AuthRequest, res: Response) => {
   const followers = normText(req.body?.tiktok_followers_text, MAX_TEXT);
   const sales = normText(req.body?.sales_text, MAX_TEXT);
   const types = normText(req.body?.sellable_types_text, MAX_TYPES);
-  const fee = normText(req.body?.fee_quote_text, MAX_FEE);
   const skills = normText(req.body?.skills_text, MAX_SKILLS_INF);
   const videoUrl = normText(req.body?.video_url, MAX_VIDEO_URL);
   const status = normStatus(req.body?.status);
@@ -110,8 +108,8 @@ router.post("/", (req: AuthRequest, res: Response) => {
   (async () => {
     const { rows } = await query<{ id: number }>(
       `INSERT INTO showcase_influencers (
-         name, intro, photos, tiktok_followers_text, sales_text, sellable_types_text, fee_quote_text, skills_text, video_url, status, created_by, updated_by
-       ) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $10, $11, $11)
+         name, intro, photos, tiktok_followers_text, sales_text, sellable_types_text, skills_text, video_url, status, created_by, updated_by
+       ) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $10, $10)
        RETURNING id`,
       [
         name,
@@ -120,7 +118,6 @@ router.post("/", (req: AuthRequest, res: Response) => {
         followers,
         sales,
         types,
-        fee,
         skills,
         videoUrl,
         status,
@@ -151,7 +148,6 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     req.body?.tiktok_followers_text !== undefined ? normText(req.body?.tiktok_followers_text, MAX_TEXT) : undefined;
   const sales = req.body?.sales_text !== undefined ? normText(req.body?.sales_text, MAX_TEXT) : undefined;
   const types = req.body?.sellable_types_text !== undefined ? normText(req.body?.sellable_types_text, MAX_TYPES) : undefined;
-  const fee = req.body?.fee_quote_text !== undefined ? normText(req.body?.fee_quote_text, MAX_FEE) : undefined;
   const skills = req.body?.skills_text !== undefined ? normText(req.body?.skills_text, MAX_SKILLS_INF) : undefined;
   const videoUrl = req.body?.video_url !== undefined ? normText(req.body?.video_url, MAX_VIDEO_URL) : undefined;
   const status = req.body?.status !== undefined ? normStatus(req.body?.status) : undefined;
@@ -199,10 +195,6 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     if (types !== undefined) {
       sets.push(`sellable_types_text = $${idx++}`);
       params.push(types);
-    }
-    if (fee !== undefined) {
-      sets.push(`fee_quote_text = $${idx++}`);
-      params.push(fee);
     }
     if (skills !== undefined) {
       sets.push(`skills_text = $${idx++}`);

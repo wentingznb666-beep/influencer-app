@@ -10,7 +10,6 @@ type Row = {
   tiktok_followers_text: string | null;
   sales_text: string | null;
   sellable_types_text: string | null;
-  fee_quote_text: string | null;
   skills_text: string | null;
   video_url: string | null;
   status: "enabled" | "disabled";
@@ -34,7 +33,6 @@ export default function ShowcaseInfluencersPage() {
     tiktok_followers_text: "",
     sales_text: "",
     sellable_types_text: "",
-    fee_quote_text: "",
     skills_text: "",
     video_url: "",
     status: "disabled" as "enabled" | "disabled",
@@ -77,8 +75,7 @@ export default function ShowcaseInfluencersPage() {
       tiktok_followers_text: "",
       sales_text: "",
       sellable_types_text: "",
-      fee_quote_text: "",
-      skills_text: "",
+        skills_text: "",
       video_url: "",
       status: "disabled",
     });
@@ -107,7 +104,6 @@ export default function ShowcaseInfluencersPage() {
         tiktok_followers_text: form.tiktok_followers_text.trim(),
         sales_text: form.sales_text.trim(),
         sellable_types_text: form.sellable_types_text.trim(),
-        fee_quote_text: form.fee_quote_text.trim(),
         skills_text: form.skills_text.trim(),
         video_url: form.video_url.trim(),
         status: form.status,
@@ -149,7 +145,7 @@ export default function ShowcaseInfluencersPage() {
     <div>
       <h2 style={{ marginTop: 0 }}>Influencer（带货达人）</h2>
       <p style={{ fontSize: 14, color: "#64748b" }}>
-        面向可露脸出镜、可挂购物车带货的类型，粉丝与报价通常较高。管理员与员工可完整维护资料与图片。
+        面向可露脸出镜、可挂购物车带货的类型，粉丝与带货数据通常较高。管理员与员工可完整维护资料与图片。
       </p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
@@ -178,8 +174,6 @@ export default function ShowcaseInfluencersPage() {
           <input value={form.sales_text} onChange={(e) => setForm((s) => ({ ...s, sales_text: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>可销售商品类型</div>
           <input value={form.sellable_types_text} onChange={(e) => setForm((s) => ({ ...s, sellable_types_text: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
-          <div>合作费用/报价</div>
-          <input value={form.fee_quote_text} onChange={(e) => setForm((s) => ({ ...s, fee_quote_text: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>技能</div>
           <textarea value={form.skills_text} onChange={(e) => setForm((s) => ({ ...s, skills_text: e.target.value }))} rows={2} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} placeholder="可填写多项技能或描述" />
           <div>作品视频链接</div>
@@ -245,7 +239,6 @@ export default function ShowcaseInfluencersPage() {
                         tiktok_followers_text: m.tiktok_followers_text || "",
                         sales_text: m.sales_text || "",
                         sellable_types_text: m.sellable_types_text || "",
-                        fee_quote_text: m.fee_quote_text || "",
                         skills_text: m.skills_text || "",
                         video_url: m.video_url || "",
                         status: m.status,
@@ -264,7 +257,7 @@ export default function ShowcaseInfluencersPage() {
               </div>
               <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无简介"}</div>
               <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
-                {[m.tiktok_followers_text && `粉丝：${m.tiktok_followers_text}`, m.sales_text && `销售额：${m.sales_text}`, m.sellable_types_text && `可售类型：${m.sellable_types_text}`, m.fee_quote_text && `报价：${m.fee_quote_text}`, m.skills_text && `技能：${m.skills_text}`, m.video_url && `视频：${m.video_url}`]
+                {[m.tiktok_followers_text && `粉丝：${m.tiktok_followers_text}`, m.sales_text && `销售额：${m.sales_text}`, m.sellable_types_text && `可售类型：${m.sellable_types_text}`, m.skills_text && `技能：${m.skills_text}`, m.video_url && `视频：${m.video_url}`]
                   .filter(Boolean)
                   .join(" · ")}
               </div>

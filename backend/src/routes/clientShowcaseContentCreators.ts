@@ -17,7 +17,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     const params: unknown[] = [clientId];
     let idx = 2;
     let sql = `
-      SELECT s.id, s.name, s.intro, s.photos, s.shoot_types_text, s.fee_quote_text, s.skills_text, s.video_url, s.status, s.updated_at,
+      SELECT s.id, s.name, s.intro, s.photos, s.shoot_types_text, s.skills_text, s.video_url, s.status, s.updated_at,
              CASE WHEN c.id IS NULL THEN 0 ELSE 1 END AS selected
         FROM showcase_content_creators s
         LEFT JOIN client_showcase_creator_favorites c
@@ -49,7 +49,7 @@ router.get("/my", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
   (async () => {
     const { rows } = await query(
-      `SELECT s.id, s.name, s.intro, s.photos, s.shoot_types_text, s.fee_quote_text, s.skills_text, s.video_url, s.updated_at
+      `SELECT s.id, s.name, s.intro, s.photos, s.shoot_types_text, s.skills_text, s.video_url, s.updated_at
          FROM client_showcase_creator_favorites c
          JOIN showcase_content_creators s ON c.showcase_content_creator_id = s.id
         WHERE c.client_id = $1

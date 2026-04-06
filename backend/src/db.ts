@@ -720,7 +720,6 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     tiktok_followers_text TEXT,
     sales_text TEXT,
     sellable_types_text TEXT,
-    fee_quote_text TEXT,
     skills_text TEXT,
     video_url TEXT,
     status TEXT NOT NULL DEFAULT 'disabled' CHECK (status IN ('enabled', 'disabled')),
@@ -733,6 +732,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   )`);
   await query(`ALTER TABLE showcase_influencers ADD COLUMN IF NOT EXISTS skills_text TEXT`);
   await query(`ALTER TABLE showcase_influencers ADD COLUMN IF NOT EXISTS video_url TEXT`);
+  await query(`ALTER TABLE showcase_influencers DROP COLUMN IF EXISTS fee_quote_text`);
   await query(`ALTER TABLE showcase_influencers DROP COLUMN IF EXISTS tiktok_url`);
   await query(`CREATE INDEX IF NOT EXISTS idx_showcase_influencers_status ON showcase_influencers(status, id DESC) WHERE is_deleted = 0`);
   await query(`CREATE TABLE IF NOT EXISTS showcase_content_creators (
@@ -741,7 +741,6 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     intro TEXT,
     photos JSONB NOT NULL DEFAULT '[]'::jsonb,
     shoot_types_text TEXT,
-    fee_quote_text TEXT,
     skills_text TEXT,
     video_url TEXT,
     status TEXT NOT NULL DEFAULT 'disabled' CHECK (status IN ('enabled', 'disabled')),
@@ -756,6 +755,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE showcase_content_creators DROP COLUMN IF EXISTS social_url`);
   await query(`ALTER TABLE showcase_content_creators ADD COLUMN IF NOT EXISTS skills_text TEXT`);
   await query(`ALTER TABLE showcase_content_creators ADD COLUMN IF NOT EXISTS video_url TEXT`);
+  await query(`ALTER TABLE showcase_content_creators DROP COLUMN IF EXISTS fee_quote_text`);
   await query(`CREATE INDEX IF NOT EXISTS idx_showcase_content_creators_status ON showcase_content_creators(status, id DESC) WHERE is_deleted = 0`);
   await query(`CREATE TABLE IF NOT EXISTS client_showcase_influencer_favorites (
     id SERIAL PRIMARY KEY,
