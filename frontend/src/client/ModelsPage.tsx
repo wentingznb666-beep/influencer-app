@@ -9,7 +9,20 @@ type ModelRow = {
   intro: string | null;
   cloud_link: string;
   selected: number;
+  talent_type?: string | null;
+  tiktok_link?: string | null;
+  content_creator_tier?: string | null;
+  tiktok_followers_text?: string | null;
+  tiktok_sales_text?: string | null;
+  sellable_product_types?: string | null;
 };
+
+/**
+ * 达人类型在界面上的展示名称（只读）。
+ */
+function talentTypeLabel(t: string | null | undefined): string {
+  return t === "content_creator" ? "Content Creator" : "Influencer";
+}
 
 /**
  * 客户端模特展示页：浏览、筛选并选择长期合作模特。
@@ -77,7 +90,48 @@ export default function ClientModelsPage() {
             {myList.map((m) => (
               <div key={`my-${m.id}`} style={{ background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
                 <strong>{m.name}</strong>
+                <span style={{ marginLeft: 8, fontSize: 13, color: "#475569" }}>({talentTypeLabel(m.talent_type)})</span>
                 <div style={{ marginTop: 6, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
+                <div style={{ marginTop: 8, fontSize: 14, color: "#475569", display: "grid", gap: 4 }}>
+                  <div>
+                    <span style={{ color: "#64748b" }}>达人类型：</span>
+                    {talentTypeLabel(m.talent_type)}
+                  </div>
+                  {m.talent_type === "content_creator" ? (
+                    <div>
+                      <span style={{ color: "#64748b" }}>等级：</span>
+                      {m.content_creator_tier?.trim() ? m.content_creator_tier : "—"}
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <span style={{ color: "#64748b" }}>TK 粉丝数：</span>
+                        {m.tiktok_followers_text?.trim() ? m.tiktok_followers_text : "—"}
+                      </div>
+                      <div>
+                        <span style={{ color: "#64748b" }}>TK 销售额：</span>
+                        {m.tiktok_sales_text?.trim() ? m.tiktok_sales_text : "—"}
+                      </div>
+                      <div>
+                        <span style={{ color: "#64748b" }}>可售商品类型：</span>
+                        {m.sellable_product_types?.trim() ? m.sellable_product_types : "—"}
+                      </div>
+                    </>
+                  )}
+                  <div>
+                    <span style={{ color: "#64748b" }}>TikTok 链接：</span>
+                    {m.tiktok_link?.trim() ? (
+                      <a href={m.tiktok_link} target="_blank" rel="noreferrer">
+                        {m.tiktok_link}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
+                  </div>
+                </div>
+                <div style={{ marginTop: 8 }}>
+                  视频链接：<a href={m.cloud_link} target="_blank" rel="noreferrer">{m.cloud_link}</a>
+                </div>
               </div>
             ))}
           </div>
@@ -95,7 +149,10 @@ export default function ClientModelsPage() {
               return (
                 <div key={m.id} style={{ background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                    <strong>{m.name}</strong>
+                    <div>
+                      <strong>{m.name}</strong>
+                      <span style={{ marginLeft: 8, fontSize: 13, color: "#475569" }}>({talentTypeLabel(m.talent_type)})</span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => toggleCooperation(m.id, selected)}
@@ -112,6 +169,43 @@ export default function ClientModelsPage() {
                     </button>
                   </div>
                   <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
+                  <div style={{ marginTop: 8, fontSize: 14, color: "#475569", display: "grid", gap: 4 }}>
+                    <div>
+                      <span style={{ color: "#64748b" }}>达人类型：</span>
+                      {talentTypeLabel(m.talent_type)}
+                    </div>
+                    {m.talent_type === "content_creator" ? (
+                      <div>
+                        <span style={{ color: "#64748b" }}>等级：</span>
+                        {m.content_creator_tier?.trim() ? m.content_creator_tier : "—"}
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <span style={{ color: "#64748b" }}>TK 粉丝数：</span>
+                          {m.tiktok_followers_text?.trim() ? m.tiktok_followers_text : "—"}
+                        </div>
+                        <div>
+                          <span style={{ color: "#64748b" }}>TK 销售额：</span>
+                          {m.tiktok_sales_text?.trim() ? m.tiktok_sales_text : "—"}
+                        </div>
+                        <div>
+                          <span style={{ color: "#64748b" }}>可售商品类型：</span>
+                          {m.sellable_product_types?.trim() ? m.sellable_product_types : "—"}
+                        </div>
+                      </>
+                    )}
+                    <div>
+                      <span style={{ color: "#64748b" }}>TikTok 链接：</span>
+                      {m.tiktok_link?.trim() ? (
+                        <a href={m.tiktok_link} target="_blank" rel="noreferrer">
+                          {m.tiktok_link}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </div>
+                  </div>
                   <div style={{ marginTop: 8 }}>
                     视频链接：<a href={m.cloud_link} target="_blank" rel="noreferrer">{m.cloud_link}</a>
                   </div>

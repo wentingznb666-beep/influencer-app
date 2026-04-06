@@ -698,6 +698,9 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS tiktok_followers_text TEXT`);
   await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS tiktok_sales_text TEXT`);
   await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS sellable_product_types TEXT`);
+  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS talent_type TEXT NOT NULL DEFAULT 'influencer'`);
+  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS tiktok_link TEXT`);
+  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS content_creator_tier TEXT`);
   await query(`CREATE INDEX IF NOT EXISTS idx_model_profiles_status ON model_profiles(status, id DESC) WHERE is_deleted = 0`);
   await query(`CREATE TABLE IF NOT EXISTS client_model_favorites (
     id SERIAL PRIMARY KEY,

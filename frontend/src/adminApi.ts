@@ -410,14 +410,22 @@ export async function getAdminSkuClients() {
 /**
  * 管理员/员工：模特展示列表。
  */
-export async function getAdminModels(params?: { q?: string; status?: "enabled" | "disabled" }) {
+export async function getAdminModels(params?: { q?: string; status?: "enabled" | "disabled"; talent_type?: "influencer" | "content_creator" }) {
   const q = new URLSearchParams();
   if (params?.q) q.set("q", params.q);
   if (params?.status) q.set("status", params.status);
+  if (params?.talent_type) q.set("talent_type", params.talent_type);
   const res = await fetchWithAuth(`/api/admin/models?${q}`);
   if (!res.ok) throw new Error(await readErrorMessage(res, "请求失败"));
   return res.json();
 }
+
+/** 模特资料扩展：达人类型与 Content Creator 档位（与后端 model_profiles 一致）。 */
+export type AdminModelTalentFields = {
+  talent_type?: "influencer" | "content_creator";
+  tiktok_link?: string;
+  content_creator_tier?: "A" | "B" | "C" | null;
+};
 
 /**
  * 管理员/员工：上传模特图片（多图）。
@@ -435,7 +443,9 @@ export async function uploadAdminModelImages(files: File[]): Promise<string[]> {
 /**
  * 管理员/员工：新增模特资料。
  */
-export async function createAdminModel(body: { name: string; photos: string[]; intro?: string; cloud_link: string; status?: "enabled" | "disabled"; tiktok_followers_text?: string; tiktok_sales_text?: string; sellable_product_types?: string }) {
+export async function createAdminModel(
+  body: { name: string; photos: string[]; intro?: string; cloud_link: string; status?: "enabled" | "disabled"; tiktok_followers_text?: string; tiktok_sales_text?: string; sellable_product_types?: string } & AdminModelTalentFields
+) {
   const res = await fetchWithAuth("/api/admin/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await readErrorMessage(res, "创建失败"));
   return res.json();
@@ -444,7 +454,10 @@ export async function createAdminModel(body: { name: string; photos: string[]; i
 /**
  * 管理员/员工：编辑模特资料。
  */
-export async function updateAdminModel(id: number, body: { name?: string; photos?: string[]; intro?: string; cloud_link?: string; status?: "enabled" | "disabled"; tiktok_followers_text?: string; tiktok_sales_text?: string; sellable_product_types?: string }) {
+export async function updateAdminModel(
+  id: number,
+  body: { name?: string; photos?: string[]; intro?: string; cloud_link?: string; status?: "enabled" | "disabled"; tiktok_followers_text?: string; tiktok_sales_text?: string; sellable_product_types?: string } & AdminModelTalentFields
+) {
   const res = await fetchWithAuth(`/api/admin/models/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await readErrorMessage(res, "更新失败"));
   return res.json();

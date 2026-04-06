@@ -59,6 +59,25 @@ function normalizeOptionalModelField(value: unknown, maxLen: number): string | n
   return s.slice(0, maxLen);
 }
 
+/** TikTok 主页/作品链接最大长度 */
+const MAX_TIKTOK_LINK_LEN = 2000;
+
+/**
+ * 达人类型：带货型 Influencer 或短视频拍摄型 Content Creator。
+ */
+function normalizeTalentType(value: unknown): "influencer" | "content_creator" {
+  return value === "content_creator" ? "content_creator" : "influencer";
+}
+
+/**
+ * Content Creator 档位 A/B/C。
+ */
+function normalizeContentCreatorTier(value: unknown): "A" | "B" | "C" | null {
+  const s = String(value ?? "").trim().toUpperCase();
+  if (s === "A" || s === "B" || s === "C") return s as "A" | "B" | "C";
+  return null;
+}
+
 /**
  * 规范化图片 URL 列表。
  */
@@ -132,12 +151,15 @@ router.get("/", (req: AuthRequest, res: Response) => {
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
   const status = req.query.status === "enabled" || req.query.status === "disabled" ? req.query.status : "";
   const pendingStatus = req.query.pending_status === "enabled" || req.query.pending_status === "disabled" ? req.query.pending_status : "";
+  const talentTypeFilter =
+    req.query.talent_type === "influencer" || req.query.talent_type === "content_creator" ? req.query.talent_type : "";
   (async () => {
     const params: unknown[] = [];
     let idx = 1;
     let sql = `
       SELECT m.id, m.name, m.photos, m.intro, m.cloud_link, m.status, m.pending_status,
              m.tiktok_followers_text, m.tiktok_sales_text, m.sellable_product_types,
+             m.talent_type, m.tiktok_link, m.content_creator_tier,
              m.created_by, uc.username AS created_by_username,
              m.updated_by, uu.username AS updated_by_username,
              m.reviewed_by, ur.username AS reviewed_by_username,
@@ -148,6 +170,11 @@ router.get("/", (req: AuthRequest, res: Response) => {
         LEFT JOIN users ur ON m.reviewed_by = ur.id
        WHERE m.is_deleted = 0
     `;
+    if (talentTypeFilter) {
+      sql += ` AND m.talent_type = $${idx}`;
+      params.push(talentTypeFilter);
+      idx += 1;
+    }
     if (q) {
       sql += ` AND (m.name ILIKE '%' || $${idx} || '%' OR COALESCE(m.intro, '') ILIKE '%' || $${idx} || '%')`;
       params.push(q);
@@ -237,6 +264,9 @@ router.post("/", (req: AuthRequest, res: Response) => {
   const tiktokFollowers = normalizeOptionalModelField(req.body?.tiktok_followers_text, MAX_TIKTOK_METRIC_LEN);
   const tiktokSales = normalizeOptionalModelField(req.body?.tiktok_sales_text, MAX_TIKTOK_METRIC_LEN);
   const sellableTypes = normalizeOptionalModelField(req.body?.sellable_product_types, MAX_SELLABLE_PRODUCT_TYPES_LEN);
+  const talentType = normalizeTalentType(req.body?.talent_type);
+  const tiktokLink = normalizeOptionalModelField(req.body?.tiktok_link, MAX_TIKTOK_LINK_LEN);
+  const ccTier = normalizeContentCreatorTier(req.body?.content_creator_tier);
   const isAdmin = req.user?.role === "admin";
   const status = normalizeModelStatus(req.body?.status);
   if (!name || name.length > 100) {
@@ -255,13 +285,22 @@ router.post("/", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_PHOTOS", message: "请至少上传一张模特照片。" });
     return;
   }
+  if (talentType === "content_creator" && !ccTier) {
+    res.status(400).json({ error: "INVALID_TIER", message: "Content Creator 类型须选择 A / B / C 等级。" });
+    return;
+  }
+  if (talentType === "influencer") {
+    /* Influencer 不强制档位，清空档位 */
+  }
   (async () => {
     const targetStatus = isAdmin ? status : "disabled";
     const pendingStatus = !isAdmin && status === "enabled" ? "enabled" : null;
+    const tierForInsert = talentType === "content_creator" ? ccTier : null;
     const { rows } = await query<{ id: number }>(
       `INSERT INTO model_profiles (name, photos, intro, cloud_link, status, pending_status,
-          tiktok_followers_text, tiktok_sales_text, sellable_product_types, created_by, updated_by)
-       VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7, $8, $9, $10, $10)
+          tiktok_followers_text, tiktok_sales_text, sellable_product_types,
+          talent_type, tiktok_link, content_creator_tier, created_by, updated_by)
+       VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $13)
        RETURNING id`,
       [
         name,
@@ -273,6 +312,9 @@ router.post("/", (req: AuthRequest, res: Response) => {
         tiktokFollowers,
         tiktokSales,
         sellableTypes,
+        talentType,
+        tiktokLink,
+        tierForInsert,
         req.user!.userId,
       ]
     );
@@ -311,6 +353,11 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     req.body?.sellable_product_types !== undefined
       ? normalizeOptionalModelField(req.body?.sellable_product_types, MAX_SELLABLE_PRODUCT_TYPES_LEN)
       : undefined;
+  const talentTypePatch = req.body?.talent_type !== undefined ? normalizeTalentType(req.body?.talent_type) : undefined;
+  const tiktokLinkPatch =
+    req.body?.tiktok_link !== undefined ? normalizeOptionalModelField(req.body?.tiktok_link, MAX_TIKTOK_LINK_LEN) : undefined;
+  const ccTierPatch =
+    req.body?.content_creator_tier !== undefined ? normalizeContentCreatorTier(req.body?.content_creator_tier) : undefined;
   if (name !== undefined && (!name || name.length > 100)) {
     res.status(400).json({ error: "INVALID_NAME", message: "请填写模特姓名/昵称（1-100）。" });
     return;
@@ -351,10 +398,33 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_FIELD", message: `可售商品类型过长（最多 ${MAX_SELLABLE_PRODUCT_TYPES_LEN} 字）。` });
     return;
   }
+  if (talentTypePatch !== undefined && req.body?.talent_type !== undefined && req.body?.talent_type !== "influencer" && req.body?.talent_type !== "content_creator") {
+    res.status(400).json({ error: "INVALID_TALENT_TYPE", message: "达人类型无效。" });
+    return;
+  }
+  if (
+    ccTierPatch !== undefined &&
+    req.body?.content_creator_tier !== undefined &&
+    String(req.body.content_creator_tier).trim() !== "" &&
+    !normalizeContentCreatorTier(req.body.content_creator_tier)
+  ) {
+    res.status(400).json({ error: "INVALID_TIER", message: "等级须为 A、B 或 C。" });
+    return;
+  }
   (async () => {
     const existed = await query<{ id: number }>("SELECT id FROM model_profiles WHERE id = $1 AND is_deleted = 0", [id]);
     if (!existed.rows[0]) {
       res.status(404).json({ error: "NOT_FOUND", message: "模特资料不存在。" });
+      return;
+    }
+    const cur = await query<{
+      talent_type: string;
+      content_creator_tier: string | null;
+    }>("SELECT talent_type, content_creator_tier FROM model_profiles WHERE id = $1 AND is_deleted = 0", [id]);
+    const nextType = talentTypePatch ?? cur.rows[0]?.talent_type ?? "influencer";
+    const nextTier = ccTierPatch !== undefined ? ccTierPatch : cur.rows[0]?.content_creator_tier ?? null;
+    if (nextType === "content_creator" && !nextTier) {
+      res.status(400).json({ error: "INVALID_TIER", message: "Content Creator 类型须选择 A / B / C 等级。" });
       return;
     }
     const sets: string[] = [];
@@ -387,6 +457,21 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     if (sellableTypes !== undefined) {
       sets.push(`sellable_product_types = $${idx++}`);
       params.push(sellableTypes);
+    }
+    if (talentTypePatch !== undefined) {
+      sets.push(`talent_type = $${idx++}`);
+      params.push(talentTypePatch);
+      if (talentTypePatch === "influencer") {
+        sets.push(`content_creator_tier = NULL`);
+      }
+    }
+    if (tiktokLinkPatch !== undefined) {
+      sets.push(`tiktok_link = $${idx++}`);
+      params.push(tiktokLinkPatch);
+    }
+    if (ccTierPatch !== undefined) {
+      sets.push(`content_creator_tier = $${idx++}`);
+      params.push(ccTierPatch);
     }
     if (status !== undefined) {
       if (isAdmin) {
