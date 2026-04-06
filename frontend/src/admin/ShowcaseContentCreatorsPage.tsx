@@ -168,6 +168,21 @@ export default function ShowcaseContentCreatorsPage() {
           <input value={form.shoot_types_text} onChange={(e) => setForm((s) => ({ ...s, shoot_types_text: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>拍摄报价/合作费用</div>
           <input value={form.fee_quote_text} onChange={(e) => setForm((s) => ({ ...s, fee_quote_text: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
+          <div>技能</div>
+          <textarea
+            value={form.skills_text}
+            onChange={(e) => setForm((s) => ({ ...s, skills_text: e.target.value }))}
+            rows={2}
+            placeholder="可填写多项技能或描述"
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}
+          />
+          <div>作品视频链接</div>
+          <input
+            value={form.video_url}
+            onChange={(e) => setForm((s) => ({ ...s, video_url: e.target.value }))}
+            placeholder="https://"
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}
+          />
           <div>展示状态</div>
           <select value={form.status} onChange={(e) => setForm((s) => ({ ...s, status: e.target.value as "enabled" | "disabled" }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff" }}>
             <option value="disabled">禁用</option>
