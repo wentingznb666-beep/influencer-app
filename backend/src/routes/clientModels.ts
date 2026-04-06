@@ -18,6 +18,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     let idx = 2;
     let sql = `
       SELECT m.id, m.name, m.photos, m.intro, m.cloud_link, m.status, m.updated_at,
+             m.tiktok_followers_text, m.tiktok_sales_text, m.sellable_product_types,
              CASE WHEN cfm.id IS NULL THEN 0 ELSE 1 END AS selected
         FROM model_profiles m
         LEFT JOIN client_model_favorites cfm
@@ -49,7 +50,8 @@ router.get("/my", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
   (async () => {
     const { rows } = await query(
-      `SELECT m.id, m.name, m.photos, m.intro, m.cloud_link, m.updated_at
+      `SELECT m.id, m.name, m.photos, m.intro, m.cloud_link, m.updated_at,
+                m.tiktok_followers_text, m.tiktok_sales_text, m.sellable_product_types
          FROM client_model_favorites cfm
          JOIN model_profiles m ON cfm.model_id = m.id
         WHERE cfm.client_id = $1

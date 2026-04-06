@@ -13,6 +13,10 @@ type ModelRow = {
   pending_status: "enabled" | "disabled" | null;
   review_note?: string | null;
   updated_at: string;
+  /** 手动维护的 TK 与可售品类（可选） */
+  tiktok_followers_text?: string | null;
+  tiktok_sales_text?: string | null;
+  sellable_product_types?: string | null;
 };
 
 /**
@@ -53,7 +57,7 @@ export default function ModelsPage() {
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"" | "enabled" | "disabled">("");
-  const [form, setForm] = useState({ id: 0, name: "", intro: "", cloud_link: "", status: "disabled" as "enabled" | "disabled" });
+  const [form, setForm] = useState({ id: 0, name: "", intro: "", tiktok_followers_text: "", tiktok_sales_text: "", sellable_product_types: "", cloud_link: "", status: "disabled" as "enabled" | "disabled" });
   const [photos, setPhotos] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   /** URL -> photo_id，供勾选与删除接口使用 */
@@ -133,7 +137,7 @@ export default function ModelsPage() {
    * 重置编辑表单。
    */
   const resetForm = () => {
-    setForm({ id: 0, name: "", intro: "", cloud_link: "", status: "disabled" });
+    setForm({ id: 0, name: "", intro: "", tiktok_followers_text: "", tiktok_sales_text: "", sellable_product_types: "", cloud_link: "", status: "disabled" });
     setPhotos([]);
     setSelectedFiles([]);
   };
@@ -162,6 +166,9 @@ export default function ModelsPage() {
       const payload = {
         name: form.name.trim(),
         intro: form.intro.trim(),
+        tiktok_followers_text: form.tiktok_followers_text.trim(),
+        tiktok_sales_text: form.tiktok_sales_text.trim(),
+        sellable_product_types: form.sellable_product_types.trim(),
         cloud_link: form.cloud_link.trim(),
         status: form.status,
         photos: nextPhotos,
@@ -354,6 +361,12 @@ export default function ModelsPage() {
           <input value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} placeholder="请输入姓名/昵称" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>文字介绍</div>
           <textarea value={form.intro} onChange={(e) => setForm((s) => ({ ...s, intro: e.target.value }))} rows={4} placeholder="请输入模特介绍" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
+          <div>模特 TK 账号粉丝数量</div>
+          <input value={form.tiktok_followers_text} onChange={(e) => setForm((s) => ({ ...s, tiktok_followers_text: e.target.value }))} placeholder="可填写数字或描述" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
+          <div>模特 TK 账号销售额</div>
+          <input value={form.tiktok_sales_text} onChange={(e) => setForm((s) => ({ ...s, tiktok_sales_text: e.target.value }))} placeholder="可填写金额或描述" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
+          <div>模特可销售的商品类型</div>
+          <input value={form.sellable_product_types} onChange={(e) => setForm((s) => ({ ...s, sellable_product_types: e.target.value }))} placeholder="如：美妆、服饰等" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>云端网盘链接</div>
           <input value={form.cloud_link} onChange={(e) => setForm((s) => ({ ...s, cloud_link: e.target.value }))} placeholder="用于展示视频的链接" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>展示状态</div>
@@ -426,7 +439,16 @@ export default function ModelsPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      setForm({ id: m.id, name: m.name, intro: m.intro || "", cloud_link: m.cloud_link, status: m.status });
+                      setForm({
+                        id: m.id,
+                        name: m.name,
+                        intro: m.intro || "",
+                        tiktok_followers_text: m.tiktok_followers_text ?? "",
+                        tiktok_sales_text: m.tiktok_sales_text ?? "",
+                        sellable_product_types: m.sellable_product_types ?? "",
+                        cloud_link: m.cloud_link,
+                        status: m.status,
+                      });
                       setPhotos(Array.isArray(m.photos) ? m.photos : []);
                       setSelectedFiles([]);
                     }}
@@ -457,6 +479,20 @@ export default function ModelsPage() {
                 </div>
               </div>
               <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
+              <div style={{ marginTop: 8, fontSize: 14, color: "#475569", display: "grid", gap: 4 }}>
+                <div>
+                  <span style={{ color: "#64748b" }}>TK 粉丝数：</span>
+                  {m.tiktok_followers_text?.trim() ? m.tiktok_followers_text : "—"}
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>TK 销售额：</span>
+                  {m.tiktok_sales_text?.trim() ? m.tiktok_sales_text : "—"}
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>可售商品类型：</span>
+                  {m.sellable_product_types?.trim() ? m.sellable_product_types : "—"}
+                </div>
+              </div>
               <div style={{ marginTop: 8 }}>
                 视频链接：<a href={m.cloud_link} target="_blank" rel="noreferrer">{m.cloud_link}</a>
               </div>

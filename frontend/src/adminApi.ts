@@ -435,7 +435,7 @@ export async function uploadAdminModelImages(files: File[]): Promise<string[]> {
 /**
  * 管理员/员工：新增模特资料。
  */
-export async function createAdminModel(body: { name: string; photos: string[]; intro?: string; cloud_link: string; status?: "enabled" | "disabled" }) {
+export async function createAdminModel(body: { name: string; photos: string[]; intro?: string; cloud_link: string; status?: "enabled" | "disabled"; tiktok_followers_text?: string; tiktok_sales_text?: string; sellable_product_types?: string }) {
   const res = await fetchWithAuth("/api/admin/models", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await readErrorMessage(res, "创建失败"));
   return res.json();
@@ -444,7 +444,7 @@ export async function createAdminModel(body: { name: string; photos: string[]; i
 /**
  * 管理员/员工：编辑模特资料。
  */
-export async function updateAdminModel(id: number, body: { name?: string; photos?: string[]; intro?: string; cloud_link?: string; status?: "enabled" | "disabled" }) {
+export async function updateAdminModel(id: number, body: { name?: string; photos?: string[]; intro?: string; cloud_link?: string; status?: "enabled" | "disabled"; tiktok_followers_text?: string; tiktok_sales_text?: string; sellable_product_types?: string }) {
   const res = await fetchWithAuth(`/api/admin/models/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(await readErrorMessage(res, "更新失败"));
   return res.json();

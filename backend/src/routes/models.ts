@@ -44,6 +44,21 @@ function normalizeModelStatus(value: unknown): "enabled" | "disabled" {
   return value === "enabled" ? "enabled" : "disabled";
 }
 
+/** TK 粉丝数、销售额单字段最大长度 */
+const MAX_TIKTOK_METRIC_LEN = 500;
+/** 可售商品类型最大长度 */
+const MAX_SELLABLE_PRODUCT_TYPES_LEN = 2000;
+
+/**
+ * 清洗可选文本字段（扩展列，空串存为 null）。
+ */
+function normalizeOptionalModelField(value: unknown, maxLen: number): string | null {
+  if (value === undefined || value === null) return null;
+  const s = String(value).trim();
+  if (!s) return null;
+  return s.slice(0, maxLen);
+}
+
 /**
  * 规范化图片 URL 列表。
  */
@@ -122,6 +137,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     let idx = 1;
     let sql = `
       SELECT m.id, m.name, m.photos, m.intro, m.cloud_link, m.status, m.pending_status,
+             m.tiktok_followers_text, m.tiktok_sales_text, m.sellable_product_types,
              m.created_by, uc.username AS created_by_username,
              m.updated_by, uu.username AS updated_by_username,
              m.reviewed_by, ur.username AS reviewed_by_username,
@@ -218,6 +234,9 @@ router.post("/", (req: AuthRequest, res: Response) => {
   const intro = String(req.body?.intro ?? "").trim();
   const cloudLink = String(req.body?.cloud_link ?? "").trim();
   const photos = normalizePhotos(req.body?.photos);
+  const tiktokFollowers = normalizeOptionalModelField(req.body?.tiktok_followers_text, MAX_TIKTOK_METRIC_LEN);
+  const tiktokSales = normalizeOptionalModelField(req.body?.tiktok_sales_text, MAX_TIKTOK_METRIC_LEN);
+  const sellableTypes = normalizeOptionalModelField(req.body?.sellable_product_types, MAX_SELLABLE_PRODUCT_TYPES_LEN);
   const isAdmin = req.user?.role === "admin";
   const status = normalizeModelStatus(req.body?.status);
   if (!name || name.length > 100) {
@@ -240,10 +259,22 @@ router.post("/", (req: AuthRequest, res: Response) => {
     const targetStatus = isAdmin ? status : "disabled";
     const pendingStatus = !isAdmin && status === "enabled" ? "enabled" : null;
     const { rows } = await query<{ id: number }>(
-      `INSERT INTO model_profiles (name, photos, intro, cloud_link, status, pending_status, created_by, updated_by)
-       VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7, $7)
+      `INSERT INTO model_profiles (name, photos, intro, cloud_link, status, pending_status,
+          tiktok_followers_text, tiktok_sales_text, sellable_product_types, created_by, updated_by)
+       VALUES ($1, $2::jsonb, $3, $4, $5, $6, $7, $8, $9, $10, $10)
        RETURNING id`,
-      [name, JSON.stringify(photos), intro || null, cloudLink, targetStatus, pendingStatus, req.user!.userId]
+      [
+        name,
+        JSON.stringify(photos),
+        intro || null,
+        cloudLink,
+        targetStatus,
+        pendingStatus,
+        tiktokFollowers,
+        tiktokSales,
+        sellableTypes,
+        req.user!.userId,
+      ]
     );
     res.status(201).json({ id: rows[0]!.id });
   })().catch((e) => {
@@ -268,6 +299,18 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
   const cloudLink = req.body?.cloud_link !== undefined ? String(req.body?.cloud_link ?? "").trim() : undefined;
   const photos = req.body?.photos !== undefined ? normalizePhotos(req.body?.photos) : undefined;
   const status = req.body?.status !== undefined ? normalizeModelStatus(req.body?.status) : undefined;
+  const tiktokFollowers =
+    req.body?.tiktok_followers_text !== undefined
+      ? normalizeOptionalModelField(req.body?.tiktok_followers_text, MAX_TIKTOK_METRIC_LEN)
+      : undefined;
+  const tiktokSales =
+    req.body?.tiktok_sales_text !== undefined
+      ? normalizeOptionalModelField(req.body?.tiktok_sales_text, MAX_TIKTOK_METRIC_LEN)
+      : undefined;
+  const sellableTypes =
+    req.body?.sellable_product_types !== undefined
+      ? normalizeOptionalModelField(req.body?.sellable_product_types, MAX_SELLABLE_PRODUCT_TYPES_LEN)
+      : undefined;
   if (name !== undefined && (!name || name.length > 100)) {
     res.status(400).json({ error: "INVALID_NAME", message: "请填写模特姓名/昵称（1-100）。" });
     return;
@@ -282,6 +325,30 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
   }
   if (photos !== undefined && photos.length === 0) {
     res.status(400).json({ error: "INVALID_PHOTOS", message: "请至少保留一张模特照片。" });
+    return;
+  }
+  if (
+    tiktokFollowers !== undefined &&
+    req.body?.tiktok_followers_text !== undefined &&
+    String(req.body.tiktok_followers_text).trim().length > MAX_TIKTOK_METRIC_LEN
+  ) {
+    res.status(400).json({ error: "INVALID_FIELD", message: `TK 粉丝数字段过长（最多 ${MAX_TIKTOK_METRIC_LEN} 字）。` });
+    return;
+  }
+  if (
+    tiktokSales !== undefined &&
+    req.body?.tiktok_sales_text !== undefined &&
+    String(req.body.tiktok_sales_text).trim().length > MAX_TIKTOK_METRIC_LEN
+  ) {
+    res.status(400).json({ error: "INVALID_FIELD", message: `TK 销售额字段过长（最多 ${MAX_TIKTOK_METRIC_LEN} 字）。` });
+    return;
+  }
+  if (
+    sellableTypes !== undefined &&
+    req.body?.sellable_product_types !== undefined &&
+    String(req.body.sellable_product_types).trim().length > MAX_SELLABLE_PRODUCT_TYPES_LEN
+  ) {
+    res.status(400).json({ error: "INVALID_FIELD", message: `可售商品类型过长（最多 ${MAX_SELLABLE_PRODUCT_TYPES_LEN} 字）。` });
     return;
   }
   (async () => {
@@ -308,6 +375,18 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     if (photos !== undefined) {
       sets.push(`photos = $${idx++}::jsonb`);
       params.push(JSON.stringify(photos));
+    }
+    if (tiktokFollowers !== undefined) {
+      sets.push(`tiktok_followers_text = $${idx++}`);
+      params.push(tiktokFollowers);
+    }
+    if (tiktokSales !== undefined) {
+      sets.push(`tiktok_sales_text = $${idx++}`);
+      params.push(tiktokSales);
+    }
+    if (sellableTypes !== undefined) {
+      sets.push(`sellable_product_types = $${idx++}`);
+      params.push(sellableTypes);
     }
     if (status !== undefined) {
       if (isAdmin) {
