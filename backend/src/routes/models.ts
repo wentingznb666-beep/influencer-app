@@ -11,7 +11,8 @@ const router = Router();
 router.use(requireAuth);
 router.use(requireRole("admin", "employee"));
 
-const MODEL_UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+/** 单张模特图片最大体积（与前端提示一致）。 */
+const MODEL_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 const ALLOWED_MODEL_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 const modelUpload = multer({
   storage: multer.memoryStorage(),
@@ -187,7 +188,7 @@ router.post("/upload", (req: AuthRequest, res: Response) => {
     if (uploadErr) {
       const msg = uploadErr instanceof Error ? uploadErr.message : "上传失败";
       const isSize = msg.toLowerCase().includes("file too large");
-      res.status(400).json({ error: isSize ? "IMAGE_TOO_LARGE" : "INVALID_UPLOAD", message: isSize ? "单张图片不能超过 5MB。" : msg });
+      res.status(400).json({ error: isSize ? "IMAGE_TOO_LARGE" : "INVALID_UPLOAD", message: isSize ? "单张图片不能超过 10MB。" : msg });
       return;
     }
     (async () => {
@@ -206,7 +207,7 @@ router.post("/upload", (req: AuthRequest, res: Response) => {
           return;
         }
         if (file.size > MODEL_UPLOAD_MAX_BYTES) {
-          res.status(400).json({ error: "IMAGE_TOO_LARGE", message: "单张图片不能超过 5MB。" });
+          res.status(400).json({ error: "IMAGE_TOO_LARGE", message: "单张图片不能超过 10MB。" });
           return;
         }
         const ext = extByMime(file.mimetype);

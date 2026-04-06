@@ -67,7 +67,7 @@ export default function SkusPage() {
     const next: File[] = [];
     for (const f of files) {
       if (!allowed.includes(f.type)) continue;
-      if (f.size > 5 * 1024 * 1024) continue;
+      if (f.size > 10 * 1024 * 1024) continue;
       next.push(f);
       if (next.length >= 20) break;
     }
@@ -188,7 +188,7 @@ export default function SkusPage() {
           <input value={form.sku_name} onChange={(e) => setForm((f) => ({ ...f, sku_name: e.target.value }))} style={{ marginLeft: 8, padding: "6px 8px", minWidth: 220 }} />
         </div>
         <div style={{ marginBottom: 10 }}>
-          <label>SKU 图片上传（jpg/png/webp，单张≤5MB）</label>
+          <label>SKU 图片上传（jpg/png/webp，单张≤10MB）</label>
           <div
             onDragOver={(e) => {
               e.preventDefault();
