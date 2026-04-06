@@ -267,3 +267,70 @@ export async function updateModelCooperation(id: number, selected: boolean) {
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
   return res.json();
 }
+
+/**
+ * 客户端：Influencer 展示列表（仅启用）。
+ */
+export async function getClientShowcaseInfluencers(params?: { q?: string }) {
+  const q = new URLSearchParams();
+  if (params?.q) q.set("q", params.q);
+  const res = await fetchWithAuth(`/api/client/showcase-influencers?${q}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
+/**
+ * 客户端：已预约的 Influencer 列表。
+ */
+export async function getMyShowcaseInfluencers() {
+  const res = await fetchWithAuth("/api/client/showcase-influencers/my");
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
+/**
+ * 客户端：预约或取消预约 Influencer。
+ */
+export async function updateShowcaseInfluencerSelection(id: number, selected: boolean) {
+  const res = await fetchWithAuth(`/api/client/showcase-influencers/${id}/selection`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ selected }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  return res.json();
+}
+
+/**
+ * 客户端：Content Creator 展示列表（仅启用）。
+ */
+export async function getClientShowcaseContentCreators(params?: { q?: string }) {
+  const q = new URLSearchParams();
+  if (params?.q) q.set("q", params.q);
+  const res = await fetchWithAuth(`/api/client/showcase-content-creators?${q}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
+/**
+ * 客户端：已预约的 Content Creator 列表。
+ */
+export async function getMyShowcaseContentCreators() {
+  const res = await fetchWithAuth("/api/client/showcase-content-creators/my");
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
+/**
+ * 客户端：预约或取消预约 Content Creator。
+ */
+export async function updateShowcaseContentCreatorSelection(id: number, selected: boolean) {
+  const res = await fetchWithAuth(`/api/client/showcase-content-creators/${id}/selection`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ selected }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  return res.json();
+}
+

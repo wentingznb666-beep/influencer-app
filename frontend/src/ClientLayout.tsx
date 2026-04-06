@@ -6,6 +6,8 @@ import { xtOutlineBtn } from "./brandTheme";
 
 const CLIENT_NAV = [
   { to: "/client/models", label: "模特展示" },
+  { to: "/client/showcase-influencers", label: "Influencer" },
+  { to: "/client/showcase-content-creators", label: "Content Creator" },
   { to: "/client/market-orders", label: "达人领单" },
   { to: "/client/skus", label: "SKU 列表" },
   { to: "/client/points", label: "积分充值" },

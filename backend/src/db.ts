@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { Pool, PoolClient } from "pg";
 
-/** Postgres 连接池单例，用于达人分发 APP 用户、角色、积分与审计 */
+/** Postgres ���ӳص��������ڴ��˷ַ� APP �û�����ɫ����������� */
 let pool: Pool | null = null;
 let initialized = false;
 const FULL_INIT_SQL = `
@@ -235,37 +235,37 @@ const FULL_INIT_SQL = `
     title TEXT,
     requirements TEXT NOT NULL,
     /**
-     * 客户支付积分（历史字段沿用 reward_points），用于平台利润计算与后台报表。
+     * �ͻ�֧�����֣���ʷ�ֶ����� reward_points��������ƽ̨����������̨������
      */
     reward_points INTEGER NOT NULL DEFAULT 10 CHECK (reward_points > 0),
-    /** 订单档位：C/B/A（默认 C） */
+    /** ������λ��C/B/A��Ĭ�� C�� */
     tier TEXT NOT NULL DEFAULT 'C' CHECK (tier IN ('C', 'B', 'A')),
-    /** 达人收益：硬编码固定 5 */
+    /** �������棺Ӳ����̶� 5 */
     creator_reward_points INTEGER NOT NULL DEFAULT 5 CHECK (creator_reward_points > 0),
-    /** 平台利润：客户支付 - 达人收益 */
+    /** ƽ̨���󣺿ͻ�֧�� - �������� */
     platform_profit_points INTEGER NOT NULL DEFAULT 0,
-    /** 是否已从客户扣除支付积分（1=已扣，0=未扣；兼容历史订单） */
+    /** �Ƿ��Ѵӿͻ��۳�֧�����֣�1=�ѿۣ�0=δ�ۣ�������ʷ������ */
     pay_deducted INTEGER NOT NULL DEFAULT 0 CHECK (pay_deducted IN (0, 1)),
     status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'claimed', 'completed', 'cancelled')),
     influencer_id INTEGER REFERENCES users(id),
     work_link TEXT,
-    /** A 类可选：配音素材下载链接 */
+    /** A ���ѡ�������ز��������� */
     voice_link TEXT,
-    /** A 类可选：配音要求备注 */
+    /** A ���ѡ������Ҫ��ע */
     voice_note TEXT,
-    /** 可选：TikTok 参考链接 */
+    /** ��ѡ��TikTok �ο����� */
     tiktok_link TEXT,
-    /** 可选：商品图片 URL 列表 */
+    /** ��ѡ����ƷͼƬ URL �б� */
     product_images JSONB NOT NULL DEFAULT '[]'::jsonb,
-    /** 可选：SKU 编码/名称列表 */
+    /** ��ѡ��SKU ����/�����б� */
     sku_codes JSONB NOT NULL DEFAULT '[]'::jsonb,
-    /** 可选：SKU 图片列表 */
+    /** ��ѡ��SKU ͼƬ�б� */
     sku_images JSONB NOT NULL DEFAULT '[]'::jsonb,
-    /** 可选：关联 SKU ID 列表 */
+    /** ��ѡ������ SKU ID �б� */
     sku_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
-    /** 客户店铺名称（必填） */
+    /** �ͻ��������ƣ���� */
     client_shop_name TEXT,
-    /** 客户对接群聊（必填：群号或链接） */
+    /** �ͻ��Խ�Ⱥ�ģ����Ⱥ�Ż����ӣ� */
     client_group_chat TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -291,7 +291,7 @@ const FULL_INIT_SQL = `
   CREATE INDEX IF NOT EXISTS idx_operation_log_user_time ON operation_log (user_id, create_time DESC);
 
   /**
-   * 客户 SKU 列表：客户可维护自己的 SKU 编码/名称与图片。
+   * �ͻ� SKU �б����ͻ���ά���Լ��� SKU ����/������ͼƬ��
    */
   CREATE TABLE IF NOT EXISTS client_skus (
     id SERIAL PRIMARY KEY,
@@ -310,7 +310,7 @@ const FULL_INIT_SQL = `
   CREATE INDEX IF NOT EXISTS idx_client_skus_name ON client_skus (sku_name);
 
   /**
-   * 利润统计：管理员排除账号配置（被排除账号不参与利润计算与列表展示）。
+   * ����ͳ�ƣ�����Ա�ų��˺����ã����ų��˺Ų���������������б�չʾ����
    */
   CREATE TABLE IF NOT EXISTS admin_profit_exclusions (
     id SERIAL PRIMARY KEY,
@@ -320,7 +320,7 @@ const FULL_INIT_SQL = `
   );
 
   /**
-   * 模特展示：管理员/员工维护模特资料，客户端浏览与长期合作选择。
+   * ģ��չʾ������Ա/Ա��ά��ģ�����ϣ��ͻ�������볤�ں���ѡ��
    */
   CREATE TABLE IF NOT EXISTS model_profiles (
     id SERIAL PRIMARY KEY,
@@ -342,7 +342,7 @@ const FULL_INIT_SQL = `
   CREATE INDEX IF NOT EXISTS idx_model_profiles_status ON model_profiles(status, id DESC) WHERE is_deleted = 0;
 
   /**
-   * 客户长期合作模特选择：按客户隔离。
+   * �ͻ����ں���ģ��ѡ�񣺰��ͻ����롣
    */
   CREATE TABLE IF NOT EXISTS client_model_favorites (
     id SERIAL PRIMARY KEY,
@@ -357,25 +357,25 @@ const FULL_INIT_SQL = `
 `;
 
 /**
- * 获取 Postgres 连接池实例（单例）。
+ * ��ȡ Postgres ���ӳ�ʵ������������
  */
 export function getPool(): Pool {
   if (pool) return pool;
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
-    throw new Error("DATABASE_URL 未配置：请在环境变量中提供 Render Postgres 连接串。");
+    throw new Error("DATABASE_URL δ���ã����ڻ����������ṩ Render Postgres ���Ӵ���");
   }
 
   pool = new Pool({
     connectionString,
-    // Render Postgres 通常要求 SSL；本地可不启用。若需要严格校验证书可自行调整。
+    // Render Postgres ͨ��Ҫ�� SSL�����ؿɲ����á�����Ҫ�ϸ�У��֤������е�����
     ssl: connectionString.includes("render.com") || connectionString.includes("onrender.com") ? ({ rejectUnauthorized: false } as any) : undefined,
   });
   return pool;
 }
 
 /**
- * 执行 SQL 查询，统一使用参数化占位符（$1, $2...）。
+ * ִ�� SQL ��ѯ��ͳһʹ�ò�����ռλ����$1, $2...����
  */
 export async function query<T = any>(text: string, params?: any[]): Promise<{ rows: T[]; rowCount: number }> {
   const p = getPool();
@@ -384,8 +384,8 @@ export async function query<T = any>(text: string, params?: any[]): Promise<{ ro
 }
 
 /**
- * 将 model_profiles.photos（JSONB）规范为字符串 URL 数组。
- * 原因：部分环境下驱动/序列化可能把 JSON 数组以字符串形式返回，导致前端 Array.isArray 为 false、整块照片不渲染。
+ * �� model_profiles.photos��JSONB���淶Ϊ�ַ��� URL ���顣
+ * ԭ�򣺲��ֻ���������/���л����ܰ� JSON �������ַ�����ʽ���أ�����ǰ�� Array.isArray Ϊ false��������Ƭ����Ⱦ��
  */
 export function normalizePhotosFromDb(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -406,7 +406,7 @@ export function normalizePhotosFromDb(value: unknown): string[] {
 }
 
 /**
- * 在事务中执行回调，回调抛错则自动回滚。
+ * ��������ִ�лص����ص��״����Զ��ع���
  */
 export async function withTx<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
   const p = getPool();
@@ -425,8 +425,8 @@ export async function withTx<T>(fn: (client: PoolClient) => Promise<T>): Promise
 }
 
 /**
- * 初始化表结构与默认数据（roles/config/默认账号）。
- * 需在服务启动时调用一次，确保数据库可用与结构齐全。
+ * ��ʼ�����ṹ��Ĭ�����ݣ�roles/config/Ĭ���˺ţ���
+ * ���ڷ�������ʱ����һ�Σ�ȷ�����ݿ������ṹ��ȫ��
  */
 export async function initDb(): Promise<void> {
   if (initialized) return;
@@ -439,11 +439,11 @@ export async function initDb(): Promise<void> {
     await runFullInit();
   } else {
     await runLightweightInit();
-    // lightweight 只校验少量核心表；缺 materials/tasks 等会导致素材管理 500。FULL_INIT_SQL 幂等，用于补齐整库结构。
+    // lightweight ֻУ���������ı���ȱ materials/tasks �Ȼᵼ���زĹ��� 500��FULL_INIT_SQL �ݵȣ����ڲ�������ṹ��
     await runFullInit();
   }
 
-  // 旧库仅跑 lightweight 时不会执行 FULL_INIT_SQL 中的 ALTER，此处幂等补齐列，避免账号管理等接口 SQL 报错。
+  // �ɿ���� lightweight ʱ����ִ�� FULL_INIT_SQL �е� ALTER���˴��ݵȲ����У������˺Ź����Ƚӿ� SQL ������
   await applyOnlineSchemaPatches();
   await ensureOptionalTables();
   await seedDefaultUsers();
@@ -451,7 +451,7 @@ export async function initDb(): Promise<void> {
 }
 
 /**
- * 轻量初始化场景下补建后续版本增加的表，避免结算等接口因 relation does not exist 报 500。
+ * ������ʼ�������²��������汾���ӵı����������Ƚӿ��� relation does not exist �� 500��
  */
 async function ensureOptionalTables(): Promise<void> {
   await query(`
@@ -504,7 +504,7 @@ async function ensureOptionalTables(): Promise<void> {
 }
 
 /**
- * 将环境变量值解析为布尔值（1/true/yes/on 视为 true），用于种子数据开关。
+ * ����������ֵ����Ϊ����ֵ��1/true/yes/on ��Ϊ true���������������ݿ��ء�
  */
 function envBool(name: string, defaultValue: boolean): boolean {
   const raw = process.env[name];
@@ -513,7 +513,7 @@ function envBool(name: string, defaultValue: boolean): boolean {
 }
 
 /**
- * 若用户不存在则创建，并确保其积分账户存在（已存在则不覆盖密码）。
+ * ���û��������򴴽�����ȷ��������˻����ڣ��Ѵ����򲻸������룩��
  */
 async function ensureUserIfMissing(username: string, password: string, roleId: number): Promise<void> {
   const existed = await query<{ id: number }>("SELECT id FROM users WHERE username = $1", [username]);
@@ -530,10 +530,10 @@ async function ensureUserIfMissing(username: string, password: string, roleId: n
 }
 
 /**
- * 解析数据库初始化模式：
- * - 生产环境默认 lightweight（只检查关键表是否存在）
- * - 非生产环境默认 full（执行全量建表）
- * - 可通过 DB_INIT_MODE 覆盖（full / lightweight）
+ * �������ݿ��ʼ��ģʽ��
+ * - ��������Ĭ�� lightweight��ֻ���ؼ����Ƿ���ڣ�
+ * - ����������Ĭ�� full��ִ��ȫ��������
+ * - ��ͨ�� DB_INIT_MODE ���ǣ�full / lightweight��
  */
 function resolveDbInitMode(): "full" | "lightweight" {
   const raw = (process.env.DB_INIT_MODE || "").trim().toLowerCase();
@@ -542,14 +542,14 @@ function resolveDbInitMode(): "full" | "lightweight" {
 }
 
 /**
- * 全量初始化：执行完整 DDL，适合本地开发、首次建库或显式迁移窗口。
+ * ȫ����ʼ����ִ������ DDL���ʺϱ��ؿ������״ν������ʽǨ�ƴ��ڡ�
  */
 async function runFullInit(): Promise<void> {
   await query(FULL_INIT_SQL);
 }
 
 /**
- * 轻量初始化：仅检查关键业务表是否存在，避免生产环境每次冷启动执行全量 DDL。
+ * ������ʼ���������ؼ�ҵ����Ƿ���ڣ�������������ÿ��������ִ��ȫ�� DDL��
  */
 async function runLightweightInit(): Promise<void> {
   const requiredTables = ["roles", "users", "point_accounts", "config", "audit_log"];
@@ -560,17 +560,17 @@ async function runLightweightInit(): Promise<void> {
   if (checked.rowCount !== requiredTables.length) {
     const exists = new Set(checked.rows.map((r) => r.table_name));
     const missing = requiredTables.filter((name) => !exists.has(name));
-    throw new Error(`数据库缺少关键表：${missing.join(", ")}。请在一次部署中设置 DB_INIT_MODE=full 完成初始化。`);
+    throw new Error(`���ݿ�ȱ�ٹؼ�����${missing.join(", ")}������һ�β��������� DB_INIT_MODE=full ��ɳ�ʼ����`);
   }
 }
 
 /**
- * 线上增量补丁：在 full / lightweight 之后执行，使用 IF NOT EXISTS 保证幂等。
- * 解决合并后代码依赖 `users.disabled` 等列，而历史库从未执行对应 ALTER 的问题。
+ * ���������������� full / lightweight ֮��ִ�У�ʹ�� IF NOT EXISTS ��֤�ݵȡ�
+ * ����ϲ���������� `users.disabled` ���У�����ʷ���δִ�ж�Ӧ ALTER �����⡣
  */
 async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS disabled INTEGER NOT NULL DEFAULT 0`);
-  // 操作日志（幂等）
+  // ������־���ݵȣ�
   await query(`CREATE TABLE IF NOT EXISTS operation_log (
     id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id),
@@ -581,7 +581,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   )`);
   await query(`CREATE INDEX IF NOT EXISTS idx_operation_log_user_time ON operation_log (user_id, create_time DESC)`);
 
-  // 软删除字段（幂等）
+  // ��ɾ���ֶΣ��ݵȣ�
   const softDeleteTables = [
     "materials",
     "tasks",
@@ -601,7 +601,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     await query(`ALTER TABLE ${t} ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`);
   }
 
-  // tasks：发布增强与计数/状态字段（幂等）
+  // tasks��������ǿ�����/״̬�ֶΣ��ݵȣ�
   await query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS biz_status TEXT NOT NULL DEFAULT 'open'`);
   await query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS claimed_count INTEGER NOT NULL DEFAULT 0`);
   await query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS fulfilled_count INTEGER NOT NULL DEFAULT 0`);
@@ -698,9 +698,6 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS tiktok_followers_text TEXT`);
   await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS tiktok_sales_text TEXT`);
   await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS sellable_product_types TEXT`);
-  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS talent_type TEXT NOT NULL DEFAULT 'influencer'`);
-  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS tiktok_link TEXT`);
-  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS content_creator_tier TEXT`);
   await query(`CREATE INDEX IF NOT EXISTS idx_model_profiles_status ON model_profiles(status, id DESC) WHERE is_deleted = 0`);
   await query(`CREATE TABLE IF NOT EXISTS client_model_favorites (
     id SERIAL PRIMARY KEY,
@@ -714,15 +711,78 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE client_model_favorites ADD COLUMN IF NOT EXISTS is_deleted INTEGER NOT NULL DEFAULT 0`);
   await query(`ALTER TABLE client_model_favorites ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
   await query(`CREATE INDEX IF NOT EXISTS idx_client_model_favorites_client ON client_model_favorites(client_id, id DESC) WHERE is_deleted = 0`);
+  await query(`CREATE TABLE IF NOT EXISTS showcase_influencers (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    intro TEXT,
+    photos JSONB NOT NULL DEFAULT '[]'::jsonb,
+    tiktok_url TEXT,
+    tiktok_followers_text TEXT,
+    sales_text TEXT,
+    sellable_types_text TEXT,
+    fee_quote_text TEXT,
+    status TEXT NOT NULL DEFAULT 'disabled' CHECK (status IN ('enabled', 'disabled')),
+    created_by INTEGER REFERENCES users(id),
+    updated_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ
+  )`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_showcase_influencers_status ON showcase_influencers(status, id DESC) WHERE is_deleted = 0`);
+  await query(`CREATE TABLE IF NOT EXISTS showcase_content_creators (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    intro TEXT,
+    photos JSONB NOT NULL DEFAULT '[]'::jsonb,
+    social_url TEXT,
+    tier TEXT NOT NULL DEFAULT 'C' CHECK (tier IN ('A', 'B', 'C')),
+    shoot_types_text TEXT,
+    fee_quote_text TEXT,
+    status TEXT NOT NULL DEFAULT 'disabled' CHECK (status IN ('enabled', 'disabled')),
+    created_by INTEGER REFERENCES users(id),
+    updated_by INTEGER REFERENCES users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    is_deleted INTEGER NOT NULL DEFAULT 0 CHECK (is_deleted IN (0, 1)),
+    deleted_at TIMESTAMPTZ
+  )`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_showcase_content_creators_status ON showcase_content_creators(status, id DESC) WHERE is_deleted = 0`);
+  await query(`CREATE TABLE IF NOT EXISTS client_showcase_influencer_favorites (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES users(id),
+    showcase_influencer_id INTEGER NOT NULL REFERENCES showcase_influencers(id),
+    is_deleted INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(client_id, showcase_influencer_id)
+  )`);
+  await query(`ALTER TABLE client_showcase_influencer_favorites ADD COLUMN IF NOT EXISTS is_deleted INTEGER NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE client_showcase_influencer_favorites ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_client_showcase_inf_fav ON client_showcase_influencer_favorites(client_id, id DESC) WHERE is_deleted = 0`);
+  await query(`CREATE TABLE IF NOT EXISTS client_showcase_creator_favorites (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES users(id),
+    showcase_content_creator_id INTEGER NOT NULL REFERENCES showcase_content_creators(id),
+    is_deleted INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(client_id, showcase_content_creator_id)
+  )`);
+  await query(`ALTER TABLE client_showcase_creator_favorites ADD COLUMN IF NOT EXISTS is_deleted INTEGER NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE client_showcase_creator_favorites ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_client_showcase_cc_fav ON client_showcase_creator_favorites(client_id, id DESC) WHERE is_deleted = 0`);
+
 }
 
+
 /**
- * 创建默认账号（Postgres 版本）：
- * - 始终确保管理员存在：admin / admin123（仅在缺失时创建，不会覆盖已有密码）
- * - 可选创建演示账号（默认开启，可用环境变量关闭），避免每次手动注册 client / influencer / employee
+ * ����Ĭ���˺ţ�Postgres �汾����
+ * - ʼ��ȷ������Ա���ڣ�admin / admin123������ȱʧʱ���������Ḳ���������룩
+ * - ��ѡ������ʾ�˺ţ�Ĭ�Ͽ��������û��������رգ�������ÿ���ֶ�ע�� client / influencer / employee
  */
 async function seedDefaultUsers(): Promise<void> {
-  // 1=admin, 2=client, 3=influencer, 4=employee（见 roles 表初始化）
+  // 1=admin, 2=client, 3=influencer, 4=employee���� roles ����ʼ����
   await ensureUserIfMissing("admin", "admin123", 1);
   await ensureUserIfMissing("employee001", "123456", 4);
 

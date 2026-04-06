@@ -22,6 +22,10 @@ import adminProfitRoutes from "./routes/adminProfit";
 import operationLogsRoutes from "./routes/operationLogs";
 import modelsRoutes, { adminPhotosRouter, employeePhotosRouter } from "./routes/models";
 import clientModelsRoutes from "./routes/clientModels";
+import showcaseInfluencersRoutes from "./routes/showcaseInfluencers";
+import showcaseContentCreatorsRoutes from "./routes/showcaseContentCreators";
+import clientShowcaseInfluencersRoutes from "./routes/clientShowcaseInfluencers";
+import clientShowcaseContentCreatorsRoutes from "./routes/clientShowcaseContentCreators";
 import { initDb } from "./db";
 import { ensureUploadsSubdirs, getUploadsRoot } from "./uploadsConfig";
 
@@ -70,6 +74,10 @@ app.use("/api/influencer", influencerRoutes);
 /** 客户端：合作意向、订单跟踪、达人作品、积分充值 */
 app.use("/api/client", clientRoutes);
 app.use("/api/client/models", clientModelsRoutes);
+app.use("/api/admin/showcase-influencers", showcaseInfluencersRoutes);
+app.use("/api/admin/showcase-content-creators", showcaseContentCreatorsRoutes);
+app.use("/api/client/showcase-influencers", clientShowcaseInfluencersRoutes);
+app.use("/api/client/showcase-content-creators", clientShowcaseContentCreatorsRoutes);
 /** 通用：我的操作日志 */
 app.use("/api/operation-logs", operationLogsRoutes);
 

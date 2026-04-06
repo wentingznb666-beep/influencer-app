@@ -8,6 +8,8 @@ import DashboardShell from "./DashboardShell";
 export default function EmployeeLayout() {
   const navItems = [
     { to: "/employee/models", label: "模特展示" },
+    { to: "/employee/showcase-influencers", label: "Influencer" },
+    { to: "/employee/showcase-content-creators", label: "Content Creator" },
     { to: "/employee/orders", label: "客户订单" },
     { to: "/employee/market-orders", label: "达人领单" },
     { to: "/employee/skus", label: "SKU 列表" },

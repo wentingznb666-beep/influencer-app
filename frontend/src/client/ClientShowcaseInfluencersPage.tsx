@@ -2,35 +2,40 @@ import { useEffect, useState } from "react";
 import { resolvePublicUploadUrl } from "../fetchWithAuth";
 import * as api from "../clientApi";
 
-type ModelRow = {
+type Row = {
   id: number;
   name: string;
   photos: string[];
   intro: string | null;
-  cloud_link: string;
+  tiktok_url: string | null;
+  tiktok_followers_text: string | null;
+  sales_text: string | null;
+  sellable_types_text: string | null;
+  fee_quote_text: string | null;
   selected: number;
 };
 
 /**
- * 客户端模特展示页：浏览、筛选并选择长期合作模特。
+ * 客户端 Influencer 展示：仅浏览与预约，无编辑与上传。
  */
-export default function ClientModelsPage() {
-  const [list, setList] = useState<ModelRow[]>([]);
-  const [myList, setMyList] = useState<ModelRow[]>([]);
+export default function ClientShowcaseInfluencersPage() {
+  const [list, setList] = useState<Row[]>([]);
+  const [myList, setMyList] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
 
-  /**
-   * 拉取可展示模特与我的合作列表。
-   */
+  /** 加载可选列表与我的预约。 */
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const [allRes, myRes] = await Promise.all([api.getClientModels({ q: q.trim() || undefined }), api.getMyCooperationModels()]);
-      setList((allRes.list || []) as ModelRow[]);
-      setMyList((myRes.list || []) as ModelRow[]);
+      const [allRes, myRes] = await Promise.all([
+        api.getClientShowcaseInfluencers({ q: q.trim() || undefined }),
+        api.getMyShowcaseInfluencers(),
+      ]);
+      setList((allRes.list || []) as Row[]);
+      setMyList((myRes.list || []) as Row[]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     } finally {
@@ -40,16 +45,13 @@ export default function ClientModelsPage() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /**
-   * 切换长期合作状态。
-   */
-  const toggleCooperation = async (modelId: number, selected: boolean) => {
+  /** 切换预约状态。 */
+  const toggle = async (id: number, selected: boolean) => {
     setError(null);
     try {
-      await api.updateModelCooperation(modelId, !selected);
+      await api.updateShowcaseInfluencerSelection(id, !selected);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "操作失败");
@@ -58,20 +60,20 @@ export default function ClientModelsPage() {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>模特展示</h2>
-      <p style={{ fontSize: 14, color: "#64748b" }}>浏览已启用模特，选择长期合作对象；仅显示你自己的合作选择。</p>
+      <h2 style={{ marginTop: 0 }}>Influencer（带货达人）</h2>
+      <p style={{ fontSize: 14, color: "#64748b" }}>浏览已启用达人资料，可预约合作；此处不可编辑或上传任何资料。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索模特名称/介绍" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 260 }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索名称/介绍" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 260 }} />
         <button type="button" onClick={load} style={{ padding: "8px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer" }}>
           搜索
         </button>
       </div>
 
       <section style={{ marginBottom: 16 }}>
-        <h3 style={{ margin: "0 0 8px" }}>我的合作模特</h3>
+        <h3 style={{ margin: "0 0 8px" }}>我的预约</h3>
         {myList.length === 0 ? (
-          <p style={{ color: "#64748b" }}>暂无长期合作模特</p>
+          <p style={{ color: "#64748b" }}>暂无预约</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {myList.map((m) => (
@@ -85,7 +87,7 @@ export default function ClientModelsPage() {
       </section>
 
       <section>
-        <h3 style={{ margin: "0 0 8px" }}>可选模特</h3>
+        <h3 style={{ margin: "0 0 8px" }}>可选 Influencer</h3>
         {loading ? (
           <p>加载中…</p>
         ) : (
@@ -98,7 +100,7 @@ export default function ClientModelsPage() {
                     <strong>{m.name}</strong>
                     <button
                       type="button"
-                      onClick={() => toggleCooperation(m.id, selected)}
+                      onClick={() => toggle(m.id, selected)}
                       style={{
                         padding: "6px 10px",
                         borderRadius: 8,
@@ -108,18 +110,25 @@ export default function ClientModelsPage() {
                         cursor: "pointer",
                       }}
                     >
-                      {selected ? "取消长期合作" : "设为长期合作"}
+                      {selected ? "取消预约" : "预约合作"}
                     </button>
                   </div>
                   <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
-                  <div style={{ marginTop: 8 }}>
-                    视频链接：<a href={m.cloud_link} target="_blank" rel="noreferrer">{m.cloud_link}</a>
+                  {m.tiktok_url && (
+                    <div style={{ marginTop: 8, fontSize: 14 }}>
+                      TikTok：<a href={m.tiktok_url} target="_blank" rel="noreferrer">{m.tiktok_url}</a>
+                    </div>
+                  )}
+                  <div style={{ marginTop: 8, fontSize: 13, color: "#475569" }}>
+                    {[m.tiktok_followers_text && `粉丝：${m.tiktok_followers_text}`, m.sales_text && `销售额：${m.sales_text}`, m.sellable_types_text && `可售类型：${m.sellable_types_text}`, m.fee_quote_text && `报价：${m.fee_quote_text}`]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </div>
                   {Array.isArray(m.photos) && m.photos.length > 0 && (
                     <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
                       {m.photos.map((url, idx) => (
                         <a key={`${m.id}-${idx}`} href={resolvePublicUploadUrl(url)} target="_blank" rel="noreferrer">
-                          <img src={resolvePublicUploadUrl(url)} alt={`client-model-${m.id}-${idx}`} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                          <img src={resolvePublicUploadUrl(url)} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
                         </a>
                       ))}
                     </div>
@@ -127,11 +136,10 @@ export default function ClientModelsPage() {
                 </div>
               );
             })}
-            {list.length === 0 && <p style={{ color: "#666" }}>暂无可展示模特</p>}
+            {list.length === 0 && <p style={{ color: "#666" }}>暂无可展示达人</p>}
           </div>
         )}
       </section>
     </div>
   );
 }
-

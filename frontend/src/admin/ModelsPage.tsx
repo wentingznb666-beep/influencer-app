@@ -17,9 +17,6 @@ type ModelRow = {
   tiktok_followers_text?: string | null;
   tiktok_sales_text?: string | null;
   sellable_product_types?: string | null;
-  talent_type?: string | null;
-  tiktok_link?: string | null;
-  content_creator_tier?: string | null;
 };
 
 /**
@@ -36,21 +33,14 @@ async function sha256Hex32(input: string): Promise<string> {
  */
 function parseUploaderUserIdFromPhotoUrl(url: string): number | null {
   try {
-    const pathPart = url.trim().startsWith("/") ? url.trim() : new URL(url).pathname;
-    const m = pathPart.match(/\/uploads\/models\/(\d+)\//);
+    const u = new URL(url);
+    const m = u.pathname.match(/\/uploads\/models\/(\d+)\//);
     if (!m) return null;
     const id = Number(m[1]);
     return Number.isInteger(id) && id > 0 ? id : null;
   } catch {
     return null;
   }
-}
-
-/**
- * 达人类型在界面上的展示名称。
- */
-function talentTypeLabel(t: string | null | undefined): string {
-  return t === "content_creator" ? "Content Creator" : "Influencer";
 }
 
 /**
@@ -67,20 +57,7 @@ export default function ModelsPage() {
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"" | "enabled" | "disabled">("");
-  const [talentFilter, setTalentFilter] = useState<"" | "influencer" | "content_creator">("");
-  const [form, setForm] = useState({
-    id: 0,
-    name: "",
-    intro: "",
-    tiktok_followers_text: "",
-    tiktok_sales_text: "",
-    sellable_product_types: "",
-    cloud_link: "",
-    status: "disabled" as "enabled" | "disabled",
-    talent_type: "influencer" as "influencer" | "content_creator",
-    tiktok_link: "",
-    content_creator_tier: "" as "" | "A" | "B" | "C",
-  });
+  const [form, setForm] = useState({ id: 0, name: "", intro: "", tiktok_followers_text: "", tiktok_sales_text: "", sellable_product_types: "", cloud_link: "", status: "disabled" as "enabled" | "disabled" });
   const [photos, setPhotos] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   /** URL -> photo_id，供勾选与删除接口使用 */
@@ -108,7 +85,7 @@ export default function ModelsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.getAdminModels({ q: q.trim() || undefined, status: status || undefined, talent_type: talentFilter || undefined });
+      const data = await api.getAdminModels({ q: q.trim() || undefined, status: status || undefined });
       const rows = (data.list || []) as ModelRow[];
       setList(rows);
       return rows;
@@ -160,7 +137,7 @@ export default function ModelsPage() {
    * 重置编辑表单。
    */
   const resetForm = () => {
-    setForm({ id: 0, name: "", intro: "", tiktok_followers_text: "", tiktok_sales_text: "", sellable_product_types: "", cloud_link: "", status: "disabled", talent_type: "influencer", tiktok_link: "", content_creator_tier: "" });
+    setForm({ id: 0, name: "", intro: "", tiktok_followers_text: "", tiktok_sales_text: "", sellable_product_types: "", cloud_link: "", status: "disabled" });
     setPhotos([]);
     setSelectedFiles([]);
   };
@@ -177,10 +154,6 @@ export default function ModelsPage() {
       setError("请输入云端网盘链接");
       return;
     }
-    if (form.talent_type === "content_creator" && form.content_creator_tier !== "A" && form.content_creator_tier !== "B" && form.content_creator_tier !== "C") {
-      setError("Content Creator 类型须选择 A / B / C 等级");
-      return;
-    }
     setSaving(true);
     setError(null);
     try {
@@ -190,11 +163,6 @@ export default function ModelsPage() {
         setSaving(false);
         return;
       }
-      const tierForApi: "A" | "B" | "C" | null =
-        form.talent_type === "content_creator" &&
-        (form.content_creator_tier === "A" || form.content_creator_tier === "B" || form.content_creator_tier === "C")
-          ? form.content_creator_tier
-          : null;
       const payload = {
         name: form.name.trim(),
         intro: form.intro.trim(),
@@ -204,9 +172,6 @@ export default function ModelsPage() {
         cloud_link: form.cloud_link.trim(),
         status: form.status,
         photos: nextPhotos,
-        talent_type: form.talent_type,
-        tiktok_link: form.tiktok_link.trim(),
-        content_creator_tier: tierForApi,
       };
       if (editing) {
         await api.updateAdminModel(form.id, payload);
@@ -384,11 +349,6 @@ export default function ModelsPage() {
           <option value="enabled">已启用</option>
           <option value="disabled">已禁用</option>
         </select>
-        <select value={talentFilter} onChange={(e) => setTalentFilter(e.target.value as any)} style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff" }}>
-          <option value="">全部类型</option>
-          <option value="influencer">Influencer</option>
-          <option value="content_creator">Content Creator</option>
-        </select>
         <button type="button" onClick={() => load()} style={{ padding: "8px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer" }}>
           搜索
         </button>
@@ -401,44 +361,12 @@ export default function ModelsPage() {
           <input value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} placeholder="请输入姓名/昵称" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>文字介绍</div>
           <textarea value={form.intro} onChange={(e) => setForm((s) => ({ ...s, intro: e.target.value }))} rows={4} placeholder="请输入模特介绍" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
-          <div>达人类型</div>
-          <select
-            value={form.talent_type}
-            onChange={(e) => {
-              const v = e.target.value as "influencer" | "content_creator";
-              setForm((s) => ({ ...s, talent_type: v, content_creator_tier: v === "content_creator" ? s.content_creator_tier : "" }));
-            }}
-            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff" }}
-          >
-            <option value="influencer">Influencer（带货/出镜）</option>
-            <option value="content_creator">Content Creator（短视频拍摄）</option>
-          </select>
-          <div>TikTok 链接</div>
-          <input value={form.tiktok_link} onChange={(e) => setForm((s) => ({ ...s, tiktok_link: e.target.value }))} placeholder="主页或作品链接" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
-          {form.talent_type === "influencer" ? (
-            <>
-              <div>模特 TK 账号粉丝数量</div>
-              <input value={form.tiktok_followers_text} onChange={(e) => setForm((s) => ({ ...s, tiktok_followers_text: e.target.value }))} placeholder="可填写数字或描述" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
-              <div>模特 TK 账号销售额</div>
-              <input value={form.tiktok_sales_text} onChange={(e) => setForm((s) => ({ ...s, tiktok_sales_text: e.target.value }))} placeholder="可填写金额或描述" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
-              <div>模特可销售的商品类型</div>
-              <input value={form.sellable_product_types} onChange={(e) => setForm((s) => ({ ...s, sellable_product_types: e.target.value }))} placeholder="如：美妆、服饰等" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
-            </>
-          ) : (
-            <>
-              <div>Content Creator 等级</div>
-              <select
-                value={form.content_creator_tier}
-                onChange={(e) => setForm((s) => ({ ...s, content_creator_tier: e.target.value as "" | "A" | "B" | "C" }))}
-                style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff" }}
-              >
-                <option value="">请选择 A / B / C</option>
-                <option value="A">A</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-              </select>
-            </>
-          )}
+          <div>模特 TK 账号粉丝数量</div>
+          <input value={form.tiktok_followers_text} onChange={(e) => setForm((s) => ({ ...s, tiktok_followers_text: e.target.value }))} placeholder="可填写数字或描述" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
+          <div>模特 TK 账号销售额</div>
+          <input value={form.tiktok_sales_text} onChange={(e) => setForm((s) => ({ ...s, tiktok_sales_text: e.target.value }))} placeholder="可填写金额或描述" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
+          <div>模特可销售的商品类型</div>
+          <input value={form.sellable_product_types} onChange={(e) => setForm((s) => ({ ...s, sellable_product_types: e.target.value }))} placeholder="如：美妆、服饰等" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>云端网盘链接</div>
           <input value={form.cloud_link} onChange={(e) => setForm((s) => ({ ...s, cloud_link: e.target.value }))} placeholder="用于展示视频的链接" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
           <div>展示状态</div>
@@ -504,7 +432,6 @@ export default function ModelsPage() {
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                 <div>
                   <strong>{m.name}</strong>
-                  <span style={{ marginLeft: 8, fontSize: 13, color: "#475569" }}>({talentTypeLabel(m.talent_type)})</span>
                   <span style={{ marginLeft: 8, color: m.status === "enabled" ? "#16a34a" : "#64748b" }}>{m.status === "enabled" ? "已启用" : "已禁用"}</span>
                   {m.pending_status && <span style={{ marginLeft: 8, color: "#b45309" }}>待审核：{m.pending_status === "enabled" ? "申请启用" : "申请禁用"}</span>}
                 </div>
@@ -521,10 +448,6 @@ export default function ModelsPage() {
                         sellable_product_types: m.sellable_product_types ?? "",
                         cloud_link: m.cloud_link,
                         status: m.status,
-                        talent_type: m.talent_type === "content_creator" ? "content_creator" : "influencer",
-                        tiktok_link: m.tiktok_link ?? "",
-                        content_creator_tier:
-                          m.content_creator_tier === "A" || m.content_creator_tier === "B" || m.content_creator_tier === "C" ? m.content_creator_tier : "",
                       });
                       setPhotos(Array.isArray(m.photos) ? m.photos : []);
                       setSelectedFiles([]);
@@ -558,39 +481,16 @@ export default function ModelsPage() {
               <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
               <div style={{ marginTop: 8, fontSize: 14, color: "#475569", display: "grid", gap: 4 }}>
                 <div>
-                  <span style={{ color: "#64748b" }}>达人类型：</span>
-                  {talentTypeLabel(m.talent_type)}
+                  <span style={{ color: "#64748b" }}>TK 粉丝数：</span>
+                  {m.tiktok_followers_text?.trim() ? m.tiktok_followers_text : "—"}
                 </div>
-                {m.talent_type === "content_creator" ? (
-                  <div>
-                    <span style={{ color: "#64748b" }}>等级：</span>
-                    {m.content_creator_tier?.trim() ? m.content_creator_tier : "—"}
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <span style={{ color: "#64748b" }}>TK 粉丝数：</span>
-                      {m.tiktok_followers_text?.trim() ? m.tiktok_followers_text : "—"}
-                    </div>
-                    <div>
-                      <span style={{ color: "#64748b" }}>TK 销售额：</span>
-                      {m.tiktok_sales_text?.trim() ? m.tiktok_sales_text : "—"}
-                    </div>
-                    <div>
-                      <span style={{ color: "#64748b" }}>可售商品类型：</span>
-                      {m.sellable_product_types?.trim() ? m.sellable_product_types : "—"}
-                    </div>
-                  </>
-                )}
                 <div>
-                  <span style={{ color: "#64748b" }}>TikTok 链接：</span>
-                  {m.tiktok_link?.trim() ? (
-                    <a href={m.tiktok_link} target="_blank" rel="noreferrer">
-                      {m.tiktok_link}
-                    </a>
-                  ) : (
-                    "—"
-                  )}
+                  <span style={{ color: "#64748b" }}>TK 销售额：</span>
+                  {m.tiktok_sales_text?.trim() ? m.tiktok_sales_text : "—"}
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>可售商品类型：</span>
+                  {m.sellable_product_types?.trim() ? m.sellable_product_types : "—"}
                 </div>
               </div>
               <div style={{ marginTop: 8 }}>

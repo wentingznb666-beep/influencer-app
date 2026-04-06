@@ -22,6 +22,10 @@ import MarketOrderEditPage from "./client/MarketOrderEditPage";
 import ClientSkusPage from "./client/SkusPage";
 import ClientPointsPage from "./client/PointsPage";
 import ClientModelsPage from "./client/ModelsPage";
+import ShowcaseInfluencersPage from "./admin/ShowcaseInfluencersPage";
+import ShowcaseContentCreatorsPage from "./admin/ShowcaseContentCreatorsPage";
+import ClientShowcaseInfluencersPage from "./client/ClientShowcaseInfluencersPage";
+import ClientShowcaseContentCreatorsPage from "./client/ClientShowcaseContentCreatorsPage";
 import InfluencerLayout from "./InfluencerLayout";
 /**
  * 性能优化（仅生产环境）：达人端路由懒加载，减小登录后首屏 JS 体积。
@@ -57,6 +61,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="users" element={<UsersPage />} />
             <Route path="profit" element={<ProtectedRoute roles={["admin"]}><ProfitPage /></ProtectedRoute>} />
             <Route path="models" element={<ModelsPage />} />
+            <Route path="showcase-influencers" element={<ShowcaseInfluencersPage />} />
+            <Route path="showcase-content-creators" element={<ShowcaseContentCreatorsPage />} />
             <Route path="market-orders" element={<MarketOrdersPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="skus" element={<AdminSkusPage />} />
@@ -66,6 +72,8 @@ createRoot(document.getElementById("root")!).render(
             <Route index element={<Navigate to="/employee/orders" replace />} />
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="models" element={<ModelsPage />} />
+            <Route path="showcase-influencers" element={<ShowcaseInfluencersPage />} />
+            <Route path="showcase-content-creators" element={<ShowcaseContentCreatorsPage />} />
             <Route path="market-orders" element={<MarketOrdersPage />} />
             <Route path="skus" element={<AdminSkusPage />} />
             <Route path="points" element={<PointsPage />} />
@@ -77,6 +85,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="requests/:id/edit" element={<Navigate to="/client/market-orders" replace />} />
             <Route path="orders" element={<Navigate to="/client/market-orders" replace />} />
             <Route path="models" element={<ClientModelsPage />} />
+            <Route path="showcase-influencers" element={<ClientShowcaseInfluencersPage />} />
+            <Route path="showcase-content-creators" element={<ClientShowcaseContentCreatorsPage />} />
             <Route path="market-orders" element={<ClientMarketOrdersPage />} />
             <Route path="skus" element={<ClientSkusPage />} />
             <Route path="market-orders/:id/edit" element={<MarketOrderEditPage />} />
