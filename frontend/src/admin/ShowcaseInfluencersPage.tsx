@@ -17,7 +17,8 @@ type Row = {
 };
 
 /**
- * 管理员/员工 Influencer（带货达人）资料管理页：增删改查与图片上传。
+ * 管理员/员工 Influencer（带货达人）资料管理页。
+ * UI 布局、栅格、间距、列表卡片与「模特展示」模块保持一致，仅业务标题与接口不同。
  */
 export default function ShowcaseInfluencersPage() {
   const [list, setList] = useState<Row[]>([]);
@@ -75,7 +76,7 @@ export default function ShowcaseInfluencersPage() {
       tiktok_followers_text: "",
       sales_text: "",
       sellable_types_text: "",
-        skills_text: "",
+      skills_text: "",
       video_url: "",
       status: "disabled",
     });
@@ -86,7 +87,7 @@ export default function ShowcaseInfluencersPage() {
   /** 新增或更新一条 Influencer 记录。 */
   const save = async () => {
     if (!form.name.trim()) {
-      setError("请输入姓名/昵称");
+      setError("请输入模特姓名/昵称");
       return;
     }
     setSaving(true);
@@ -94,7 +95,7 @@ export default function ShowcaseInfluencersPage() {
     try {
       const nextPhotos = await uploadSelected();
       if (nextPhotos.length === 0) {
-        setError("请至少上传一张图片");
+        setError("请至少上传一张模特照片");
         setSaving(false);
         return;
       }
@@ -145,12 +146,12 @@ export default function ShowcaseInfluencersPage() {
     <div>
       <h2 style={{ marginTop: 0 }}>Influencer（带货达人）</h2>
       <p style={{ fontSize: 14, color: "#64748b" }}>
-        面向可露脸出镜、可挂购物车带货的类型，粉丝与带货数据通常较高。管理员与员工可完整维护资料与图片。
+        面向可露脸出镜、可挂购物车带货的类型，粉丝与带货数据通常较高。管理员与员工可完整维护资料与图片；表单布局与「模特展示」一致。
       </p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
       <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索名称/介绍" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 260 }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索模特名称/介绍" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 260 }} />
         <select value={status} onChange={(e) => setStatus(e.target.value as "")} style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff" }}>
           <option value="">全部状态</option>
           <option value="enabled">已启用</option>
@@ -162,42 +163,79 @@ export default function ShowcaseInfluencersPage() {
       </div>
 
       <div style={{ marginBottom: 16, padding: 14, background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-        <h3 style={{ marginTop: 0 }}>{editing ? `编辑 #${form.id}` : "新增 Influencer"}</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", gap: 8, alignItems: "center" }}>
-          <div>姓名/昵称</div>
-          <input value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
-          <div>简介</div>
-          <textarea value={form.intro} onChange={(e) => setForm((s) => ({ ...s, intro: e.target.value }))} rows={3} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
-          <div>粉丝数量</div>
-          <input value={form.tiktok_followers_text} onChange={(e) => setForm((s) => ({ ...s, tiktok_followers_text: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
-          <div>账号销售额</div>
-          <input value={form.sales_text} onChange={(e) => setForm((s) => ({ ...s, sales_text: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
-          <div>可销售商品类型</div>
-          <input value={form.sellable_types_text} onChange={(e) => setForm((s) => ({ ...s, sellable_types_text: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
+        <h3 style={{ marginTop: 0 }}>{editing ? `编辑 Influencer #${form.id}` : "新增 Influencer"}</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 8, alignItems: "center" }}>
+          <div>模特姓名/昵称</div>
+          <input
+            value={form.name}
+            onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+            placeholder="请输入姓名/昵称"
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}
+          />
+          <div>文字介绍</div>
+          <textarea
+            value={form.intro}
+            onChange={(e) => setForm((s) => ({ ...s, intro: e.target.value }))}
+            rows={4}
+            placeholder="请输入模特介绍"
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}
+          />
+          <div>模特 TK 账号粉丝数量</div>
+          <input
+            value={form.tiktok_followers_text}
+            onChange={(e) => setForm((s) => ({ ...s, tiktok_followers_text: e.target.value }))}
+            placeholder="可填写数字或描述"
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}
+          />
+          <div>模特 TK 账号销售额</div>
+          <input
+            value={form.sales_text}
+            onChange={(e) => setForm((s) => ({ ...s, sales_text: e.target.value }))}
+            placeholder="可填写金额或描述"
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}
+          />
+          <div>模特可销售的商品类型</div>
+          <input
+            value={form.sellable_types_text}
+            onChange={(e) => setForm((s) => ({ ...s, sellable_types_text: e.target.value }))}
+            placeholder="如：美妆、服饰等"
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}
+          />
           <div>技能</div>
-          <textarea value={form.skills_text} onChange={(e) => setForm((s) => ({ ...s, skills_text: e.target.value }))} rows={2} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} placeholder="可填写多项技能或描述" />
-          <div>作品视频链接</div>
-          <input value={form.video_url} onChange={(e) => setForm((s) => ({ ...s, video_url: e.target.value }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} placeholder="https://" />
+          <textarea
+            value={form.skills_text}
+            onChange={(e) => setForm((s) => ({ ...s, skills_text: e.target.value }))}
+            rows={2}
+            placeholder="可填写多项技能或技能描述"
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}
+          />
+          <div>云端网盘链接</div>
+          <input
+            value={form.video_url}
+            onChange={(e) => setForm((s) => ({ ...s, video_url: e.target.value }))}
+            placeholder="用于展示视频的链接"
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}
+          />
           <div>展示状态</div>
           <select value={form.status} onChange={(e) => setForm((s) => ({ ...s, status: e.target.value as "enabled" | "disabled" }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff" }}>
             <option value="disabled">禁用</option>
             <option value="enabled">启用</option>
           </select>
-          <div>图片</div>
+          <div>模特照片</div>
           <div>
             <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setSelectedFiles(Array.from(e.target.files || []).slice(0, 20))} />
             {(photos.length > 0 || selectedFiles.length > 0) && (
-              <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
                 {photos.map((url, idx) => (
-                  <div key={`p-${idx}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                    <img src={resolvePublicUploadUrl(url)} alt="" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                  <div key={`old-${idx}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                    <img src={resolvePublicUploadUrl(url)} alt={`influencer-old-${idx}`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
                     <button type="button" onClick={() => removePhotoAt(idx)} style={{ padding: "4px 8px", fontSize: 12, border: "1px solid #fecaca", color: "#b91c1c", borderRadius: 6, background: "#fff", cursor: "pointer" }}>
-                      移除
+                      删除
                     </button>
                   </div>
                 ))}
                 {selectedFiles.map((file, idx) => (
-                  <span key={`f-${idx}`} style={{ fontSize: 12, color: "#334155" }}>
+                  <span key={`new-${idx}`} style={{ fontSize: 12, color: "#334155", border: "1px solid #e2e8f0", borderRadius: 8, padding: "4px 6px" }}>
                     {file.name}
                   </span>
                 ))}
@@ -206,7 +244,20 @@ export default function ShowcaseInfluencersPage() {
           </div>
         </div>
         <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-          <button type="button" onClick={save} disabled={saving} style={{ padding: "8px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: saving ? "not-allowed" : "pointer" }}>
+          <button
+            type="button"
+            onClick={save}
+            disabled={saving}
+            style={{
+              padding: "8px 14px",
+              border: "none",
+              borderRadius: 8,
+              background: "var(--xt-accent)",
+              color: "#fff",
+              cursor: saving ? "not-allowed" : "pointer",
+              opacity: saving ? 0.7 : 1,
+            }}
+          >
             {saving ? "保存中..." : "保存"}
           </button>
           {editing && (
@@ -228,7 +279,7 @@ export default function ShowcaseInfluencersPage() {
                   <strong>{m.name}</strong>
                   <span style={{ marginLeft: 8, color: m.status === "enabled" ? "#16a34a" : "#64748b" }}>{m.status === "enabled" ? "已启用" : "已禁用"}</span>
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <button
                     type="button"
                     onClick={() => {
@@ -255,16 +306,41 @@ export default function ShowcaseInfluencersPage() {
                   </button>
                 </div>
               </div>
-              <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无简介"}</div>
-              <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
-                {[m.tiktok_followers_text && `粉丝：${m.tiktok_followers_text}`, m.sales_text && `销售额：${m.sales_text}`, m.sellable_types_text && `可售类型：${m.sellable_types_text}`, m.skills_text && `技能：${m.skills_text}`, m.video_url && `视频：${m.video_url}`]
-                  .filter(Boolean)
-                  .join(" · ")}
+              <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
+              <div style={{ marginTop: 8, fontSize: 14, color: "#475569", display: "grid", gap: 4 }}>
+                <div>
+                  <span style={{ color: "#64748b" }}>TK 粉丝数：</span>
+                  {m.tiktok_followers_text?.trim() ? m.tiktok_followers_text : "—"}
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>TK 销售额：</span>
+                  {m.sales_text?.trim() ? m.sales_text : "—"}
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>可售商品类型：</span>
+                  {m.sellable_types_text?.trim() ? m.sellable_types_text : "—"}
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>技能：</span>
+                  {m.skills_text?.trim() ? m.skills_text : "—"}
+                </div>
+              </div>
+              <div style={{ marginTop: 8 }}>
+                视频链接：
+                {m.video_url?.trim() ? (
+                  <a href={m.video_url} target="_blank" rel="noreferrer">
+                    {m.video_url}
+                  </a>
+                ) : (
+                  "—"
+                )}
               </div>
               {Array.isArray(m.photos) && m.photos.length > 0 && (
-                <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {m.photos.map((url, idx) => (
-                    <img key={`${m.id}-${idx}`} src={resolvePublicUploadUrl(url)} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                    <a key={`${m.id}-${idx}`} href={resolvePublicUploadUrl(url)} target="_blank" rel="noreferrer">
+                      <img src={resolvePublicUploadUrl(url)} alt={`influencer-${m.id}-${idx}`} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                    </a>
                   ))}
                 </div>
               )}

@@ -14,7 +14,7 @@ type Row = {
 };
 
 /**
- * 客户端 Content Creator 展示：仅浏览与预约，无编辑与上传。
+ * 客户端 Content Creator 展示：仅浏览与预约；卡片排版与「模特展示」一致。
  */
 export default function ClientShowcaseContentCreatorsPage() {
   const [list, setList] = useState<Row[]>([]);
@@ -62,7 +62,7 @@ export default function ClientShowcaseContentCreatorsPage() {
       <p style={{ fontSize: 14, color: "#64748b" }}>浏览已启用创作者资料，可预约合作；此处不可编辑或上传任何资料。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索名称/介绍" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 260 }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索模特名称/介绍" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 260 }} />
         <button type="button" onClick={load} style={{ padding: "8px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer" }}>
           搜索
         </button>
@@ -77,10 +77,36 @@ export default function ClientShowcaseContentCreatorsPage() {
             {myList.map((m) => (
               <div key={`my-${m.id}`} style={{ background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
                 <strong>{m.name}</strong>
-                <div style={{ marginTop: 6, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
-                <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
-                  {[m.shoot_types_text && `拍摄类型：${m.shoot_types_text}`, m.skills_text && `技能：${m.skills_text}`, m.video_url && `视频：${m.video_url}`].filter(Boolean).join(" · ")}
+                <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
+                <div style={{ marginTop: 8, fontSize: 14, color: "#475569", display: "grid", gap: 4 }}>
+                  <div>
+                    <span style={{ color: "#64748b" }}>可承接拍摄内容类型：</span>
+                    {m.shoot_types_text?.trim() ? m.shoot_types_text : "—"}
+                  </div>
+                  <div>
+                    <span style={{ color: "#64748b" }}>技能：</span>
+                    {m.skills_text?.trim() ? m.skills_text : "—"}
+                  </div>
                 </div>
+                <div style={{ marginTop: 8 }}>
+                  视频链接：
+                  {m.video_url?.trim() ? (
+                    <a href={m.video_url} target="_blank" rel="noreferrer">
+                      {m.video_url}
+                    </a>
+                  ) : (
+                    "—"
+                  )}
+                </div>
+                {Array.isArray(m.photos) && m.photos.length > 0 && (
+                  <div style={{ marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    {m.photos.map((url, idx) => (
+                      <a key={`my-${m.id}-${idx}`} href={resolvePublicUploadUrl(url)} target="_blank" rel="noreferrer">
+                        <img src={resolvePublicUploadUrl(url)} alt={`my-cc-${m.id}-${idx}`} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -98,9 +124,7 @@ export default function ClientShowcaseContentCreatorsPage() {
               return (
                 <div key={m.id} style={{ background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
-                    <div>
-                      <strong>{m.name}</strong>
-                    </div>
+                    <strong>{m.name}</strong>
                     <button
                       type="button"
                       onClick={() => toggle(m.id, selected)}
@@ -117,14 +141,31 @@ export default function ClientShowcaseContentCreatorsPage() {
                     </button>
                   </div>
                   <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
-                  <div style={{ marginTop: 8, fontSize: 13, color: "#475569" }}>
-                    {[m.shoot_types_text && `拍摄类型：${m.shoot_types_text}`, m.skills_text && `技能：${m.skills_text}`, m.video_url && `视频：${m.video_url}`].filter(Boolean).join(" · ")}
+                  <div style={{ marginTop: 8, fontSize: 14, color: "#475569", display: "grid", gap: 4 }}>
+                    <div>
+                      <span style={{ color: "#64748b" }}>可承接拍摄内容类型：</span>
+                      {m.shoot_types_text?.trim() ? m.shoot_types_text : "—"}
+                    </div>
+                    <div>
+                      <span style={{ color: "#64748b" }}>技能：</span>
+                      {m.skills_text?.trim() ? m.skills_text : "—"}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 8 }}>
+                    视频链接：
+                    {m.video_url?.trim() ? (
+                      <a href={m.video_url} target="_blank" rel="noreferrer">
+                        {m.video_url}
+                      </a>
+                    ) : (
+                      "—"
+                    )}
                   </div>
                   {Array.isArray(m.photos) && m.photos.length > 0 && (
-                    <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <div style={{ marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap" }}>
                       {m.photos.map((url, idx) => (
                         <a key={`${m.id}-${idx}`} href={resolvePublicUploadUrl(url)} target="_blank" rel="noreferrer">
-                          <img src={resolvePublicUploadUrl(url)} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                          <img src={resolvePublicUploadUrl(url)} alt={`client-cc-${m.id}-${idx}`} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
                         </a>
                       ))}
                     </div>
