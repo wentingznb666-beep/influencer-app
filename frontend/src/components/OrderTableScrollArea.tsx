@@ -17,9 +17,23 @@ function getWheelDeltaX(e: WheelEvent): number {
 }
 
 /**
+ * 判断事件目标是否落在可交互控件上（避免拖拽与点击/输入冲突）。
+ */
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  const el = target instanceof Element ? target : null;
+  if (!el) return false;
+  return (
+    el.closest(
+      'a, button, input, select, textarea, label, [contenteditable="true"], [role="button"]',
+    ) !== null
+  );
+}
+
+/**
  * 订单列表宽表横向滚动容器：
  * - 顶部与底部各一条横向滚动轨道同步 scrollLeft，避免「必须滚到表格最底才能拖到底部横条」的体验问题；
- * - 在捕获阶段于包裹层处理 wheel，顶轨/表格区域均可触发横向滚动，优先响应 Shift+纵轮与触控板横滑。
+ * - 在捕获阶段于包裹层处理 wheel，顶轨/表格区域均可触发横向滚动，优先响应 Shift+纵轮与触控板横滑；
+ * - 桌面端：仅在表格列区域（bottom 横向滚动容器）内，按住鼠标左键拖拽即可实时改变 scrollLeft（与地图「抓手」一致）。
  */
 export default function OrderTableScrollArea({ children }: OrderTableScrollAreaProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -137,6 +151,121 @@ export default function OrderTableScrollArea({ children }: OrderTableScrollAreaP
     wrap.addEventListener("wheel", onWheel, { passive: false, capture: true });
     return () => wrap.removeEventListener("wheel", onWheel, { capture: true } as AddEventListenerOptions);
   }, [showTopRail]);
+
+  /**
+   * 桌面端：在表格列区域（bottom 横向滚动容器）内按住左键拖拽，实时同步 scrollLeft；
+   * 先检测横向位移阈值再进入拖拽，避免轻微点击与选中文本被误判；使用 document 级 pointer 监听，指针移出表格仍可拖。
+   */
+  useEffect(() => {
+    const scrollEl = bottomRef.current;
+    if (!scrollEl) return;
+    const tableEl: HTMLDivElement = scrollEl;
+
+    /** 横向位移超过该值才视为拖拽滚动，避免与单元格点击冲突 */
+    const DRAG_THRESHOLD_PX = 5;
+
+    type DragPhase = "idle" | "pending" | "dragging";
+    let phase: DragPhase = "idle";
+    let dragPointerId = -1;
+    let startClientX = 0;
+    let startScrollLeft = 0;
+
+    /** 当前是否具备横向可滚空间 */
+    const canScrollHorizontally = () => tableEl.scrollWidth > tableEl.clientWidth;
+
+    /** 将拖拽位移映射为 scrollLeft（向右拖 = 内容跟随，scrollLeft 减小） */
+    const applyDragToScrollLeft = (clientX: number) => {
+      const maxLeft = Math.max(0, tableEl.scrollWidth - tableEl.clientWidth);
+      const next = startScrollLeft - (clientX - startClientX);
+      tableEl.scrollLeft = Math.max(0, Math.min(maxLeft, next));
+    };
+
+    const cleanupDocListeners = () => {
+      document.removeEventListener("pointermove", onDocPointerMove, true);
+      document.removeEventListener("pointerup", onDocPointerUp, true);
+      document.removeEventListener("pointercancel", onDocPointerUp, true);
+    };
+
+    const endDrag = (moved: boolean) => {
+      document.body.style.userSelect = "";
+      tableEl.style.cursor = "";
+      try {
+        if (dragPointerId >= 0) {
+          tableEl.releasePointerCapture(dragPointerId);
+        }
+      } catch {
+        /* 已释放或非当前 capture */
+      }
+      if (moved) {
+        const stopClick = (ev: Event) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          document.removeEventListener("click", stopClick, true);
+        };
+        document.addEventListener("click", stopClick, true);
+      }
+      phase = "idle";
+      dragPointerId = -1;
+      cleanupDocListeners();
+    };
+
+    /** document 上捕获 pointermove：超过阈值后进入 dragging，并实时更新 scrollLeft */
+    function onDocPointerMove(e: PointerEvent) {
+      if (phase === "idle" || e.pointerId !== dragPointerId) return;
+      if (phase === "pending") {
+        if (Math.abs(e.clientX - startClientX) < DRAG_THRESHOLD_PX) return;
+        phase = "dragging";
+        tableEl.setPointerCapture(e.pointerId);
+        document.body.style.userSelect = "none";
+        tableEl.style.cursor = "grabbing";
+      }
+      if (phase === "dragging") {
+        applyDragToScrollLeft(e.clientX);
+        e.preventDefault();
+      }
+    }
+
+    /** document 上捕获 pointerup/cancel：结束 pending 或拖拽并做清理 */
+    function onDocPointerUp(e: PointerEvent) {
+      if (e.pointerId !== dragPointerId) return;
+      const wasDragging = phase === "dragging";
+      cleanupDocListeners();
+      if (phase === "pending") {
+        phase = "idle";
+        dragPointerId = -1;
+        return;
+      }
+      if (phase === "dragging") {
+        endDrag(wasDragging);
+      }
+    }
+
+    /** 表格列区域按下左键：进入 pending 并挂载 document 级指针监听 */
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType !== "mouse" || e.button !== 0) return;
+      if (!canScrollHorizontally()) return;
+      if (isInteractiveTarget(e.target)) return;
+      if (phase !== "idle") return;
+
+      phase = "pending";
+      dragPointerId = e.pointerId;
+      startClientX = e.clientX;
+      startScrollLeft = tableEl.scrollLeft;
+
+      document.addEventListener("pointermove", onDocPointerMove, true);
+      document.addEventListener("pointerup", onDocPointerUp, true);
+      document.addEventListener("pointercancel", onDocPointerUp, true);
+    };
+
+    tableEl.addEventListener("pointerdown", onPointerDown);
+
+    return () => {
+      tableEl.removeEventListener("pointerdown", onPointerDown);
+      cleanupDocListeners();
+      document.body.style.userSelect = "";
+      tableEl.style.cursor = "";
+    };
+  }, []);
 
   return (
     <div ref={wrapRef} className="xt-order-table-scroll-wrap">
