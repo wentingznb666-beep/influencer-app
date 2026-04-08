@@ -593,3 +593,13 @@ textarea {
 .xt-inline-btn:active {
   transform: scale(0.98);
 }
+
+/* 订单列表宽表：横向滚动容器，避免与页面纵向滚动抢手势；配合 OrderTableScrollArea 内 wheel 处理 */
+.xt-order-table-scroll {
+  overflow-x: auto;
+  overflow-y: visible;
+  max-width: 100%;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+

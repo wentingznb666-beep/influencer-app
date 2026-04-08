@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
+﻿import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { TH_UI_DICT } from "./locales/th";
 
@@ -15,23 +15,27 @@ const TEXT_CACHE_KEY = "influencer_app_i18n_th_cache_v1";
 const translatedCache = new Map<string, string>();
 const originalTextByNode = new WeakMap<Text, string>();
 
+/** 可参与自动翻译的 DOM 属性名。 */
+type AttrName = "placeholder" | "title" | "aria-label" | "alt";
+const originalAttrByEl = new WeakMap<Element, Partial<Record<AttrName, string>>>();
+
+let persistCacheTimer: number | null = null;
+let translateGeneration = 0;
+let networkInFlight = false;
+
 /**
- * 判断是否为低端设备：
- * - 低端设备上 useLayoutEffect 可能阻塞首屏绘制，故降级为 useEffect。
- * - 仅用于“泰语自动翻译”的性能优化，不影响业务逻辑。
+ * 判断是否为低端设备（useLayoutEffect 降级为 useEffect，避免阻塞绘制）。
  */
 function isLowEndDevice(): boolean {
   if (typeof navigator === "undefined") return false;
-  const anyNav = navigator as any;
+  const anyNav = navigator as Navigator & { hardwareConcurrency?: number; deviceMemory?: number };
   const cores = typeof anyNav.hardwareConcurrency === "number" ? anyNav.hardwareConcurrency : 8;
   const mem = typeof anyNav.deviceMemory === "number" ? anyNav.deviceMemory : 8;
   return cores <= 2 || mem <= 2;
 }
 
 /**
- * 将固定词典注入到翻译缓存中：
- * - 优先使用人工校对的泰语翻译，避免自动翻译不稳定或遗漏。
- * - 不影响原有缓存机制：缓存仍可覆盖未命中的文本节点。
+ * 将人工词典 TH_UI_DICT 注入内存缓存，优先于接口翻译。
  */
 function seedThaiDictionary(): void {
   Object.entries(TH_UI_DICT).forEach(([k, v]) => {
@@ -41,6 +45,9 @@ function seedThaiDictionary(): void {
   });
 }
 
+/**
+ * 从 localStorage 恢复历史泰语翻译缓存。
+ */
 function loadCache(): void {
   try {
     const raw = localStorage.getItem(TEXT_CACHE_KEY);
@@ -48,10 +55,13 @@ function loadCache(): void {
     const obj = JSON.parse(raw) as Record<string, string>;
     Object.keys(obj).forEach((k) => translatedCache.set(k, obj[k]));
   } catch {
-    // ignore cache parse errors
+    // ignore
   }
 }
 
+/**
+ * 将内存缓存全量写入 localStorage。
+ */
 function persistCache(): void {
   try {
     const obj: Record<string, string> = {};
@@ -60,27 +70,38 @@ function persistCache(): void {
     });
     localStorage.setItem(TEXT_CACHE_KEY, JSON.stringify(obj));
   } catch {
-    // ignore storage errors
+    // ignore
   }
 }
 
 /**
- * 仅泰语模式下预热缓存（生产环境生效）：
- * - 在首次渲染前让 translatedCache 就绪，避免泰语模式出现“先中文后泰语”的闪烁。
- * - 优先注入 TH_UI_DICT，减少首屏触发网络翻译请求。
+ * 防抖写入 localStorage，避免接口批量返回时连续 stringify 阻塞主线程。
+ */
+function schedulePersistCache(): void {
+  if (persistCacheTimer !== null) window.clearTimeout(persistCacheTimer);
+  persistCacheTimer = window.setTimeout(() => {
+    persistCacheTimer = null;
+    persistCache();
+  }, 500);
+}
+
+/**
+ * 生产环境且用户上次选择泰语时，在首屏前预热缓存以减少闪烁。
  */
 function bootstrapThaiCacheIfNeeded(): void {
   if (typeof window === "undefined") return;
   if (!import.meta.env.PROD) return;
   const currentLang = localStorage.getItem("influencer_app_lang");
   if (currentLang !== "th") return;
-  // 先载入历史缓存，再注入固定词典（固定词典优先级更高）
   loadCache();
   seedThaiDictionary();
 }
 
 bootstrapThaiCacheIfNeeded();
 
+/**
+ * 调用后端批量翻译接口（仅用于缓存未命中的中文片段）。
+ */
 async function requestBatchTranslate(texts: string[], targetLang: "th"): Promise<string[]> {
   const base = (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin;
   const res = await fetch(`${base}/api/translate/batch`, {
@@ -93,6 +114,9 @@ async function requestBatchTranslate(texts: string[], targetLang: "th"): Promise
   return (data.translated || []) as string[];
 }
 
+/**
+ * 收集 #root 内需翻译的文本节点（排除脚本、样式与 data-no-auto-translate）。
+ */
 function collectTextNodes(root: HTMLElement): Text[] {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   const list: Text[] = [];
@@ -117,16 +141,148 @@ function collectTextNodes(root: HTMLElement): Text[] {
 }
 
 /**
- * 自动翻译当前界面的文本节点（中文<->泰语）。
+ * 收集 placeholder / title / aria-label / alt 等待翻译的节点任务。
+ */
+function collectAttrJobs(root: HTMLElement): Array<{ el: Element; attr: AttrName }> {
+  const result: Array<{ el: Element; attr: AttrName }> = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+  let cur: Node | null = walker.nextNode();
+  while (cur) {
+    const el = cur as Element;
+    if (!el.closest("[data-no-auto-translate]")) {
+      const tag = el.tagName;
+      if (tag !== "SCRIPT" && tag !== "STYLE" && tag !== "CODE") {
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          if (el.placeholder?.trim()) result.push({ el, attr: "placeholder" });
+        }
+        for (const attr of ["title", "aria-label", "alt"] as const) {
+          if (el.getAttribute(attr)?.trim()) result.push({ el, attr });
+        }
+      }
+    }
+    cur = walker.nextNode();
+  }
+  return result;
+}
+
+/**
+ * 读取元素上指定可翻译属性的当前值。
+ */
+function readAttr(el: Element, attr: AttrName): string {
+  if (attr === "placeholder") {
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return el.placeholder;
+    return "";
+  }
+  return el.getAttribute(attr) ?? "";
+}
+
+/**
+ * 写入元素上指定可翻译属性。
+ */
+function writeAttr(el: Element, attr: AttrName, value: string): void {
+  if (attr === "placeholder") {
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) el.placeholder = value;
+    return;
+  }
+  el.setAttribute(attr, value);
+}
+
+/**
+ * 首次访问时缓存该属性的中文原文，供还原或作为翻译 key。
+ */
+function ensureAttrOriginal(el: Element, attr: AttrName): string {
+  let bag = originalAttrByEl.get(el);
+  if (!bag) {
+    bag = {};
+    originalAttrByEl.set(el, bag);
+  }
+  if (bag[attr] !== undefined) return bag[attr]!;
+  const v = readAttr(el, attr);
+  bag[attr] = v;
+  return v;
+}
+
+/**
+ * 在保持首尾空白的前提下，用译文替换 trim 后的 key 对应片段。
+ */
+function applyTranslatedToString(full: string, keyTrim: string, target: string): string {
+  if (!keyTrim) return full;
+  if (full.trim() !== keyTrim) return full;
+  if (full === keyTrim) return target;
+  return full.replace(keyTrim, target);
+}
+
+/**
+ * 泰语：仅用内存缓存同步更新 DOM，不等待网络（点击切换后立即生效）。
+ */
+function applyThaiSync(root: HTMLElement): void {
+  seedThaiDictionary();
+
+  const nodes = collectTextNodes(root);
+  for (const node of nodes) {
+    const current = node.nodeValue ?? "";
+    const fullSource = originalTextByNode.get(node) ?? current;
+    if (!originalTextByNode.has(node)) originalTextByNode.set(node, fullSource);
+    const key = fullSource.trim();
+    if (!key) continue;
+    const target = translatedCache.get(key);
+    if (target) node.nodeValue = applyTranslatedToString(fullSource, key, target);
+  }
+
+  for (const { el, attr } of collectAttrJobs(root)) {
+    const full = ensureAttrOriginal(el, attr);
+    const key = full.trim();
+    if (!key) continue;
+    const target = translatedCache.get(key);
+    if (target) writeAttr(el, attr, applyTranslatedToString(full, key, target));
+  }
+}
+
+/**
+ * 中文：从 WeakMap 还原曾翻译过的文本节点与属性。
+ */
+function applyZh(root: HTMLElement): void {
+  for (const node of collectTextNodes(root)) {
+    const original = originalTextByNode.get(node);
+    if (original !== undefined) node.nodeValue = original;
+  }
+  for (const { el, attr } of collectAttrJobs(root)) {
+    const bag = originalAttrByEl.get(el);
+    if (!bag || bag[attr] === undefined) continue;
+    writeAttr(el, attr, bag[attr]!);
+  }
+}
+
+/**
+ * 汇总尚未命中缓存的中文 key（文本 + 属性），供批量接口补全。
+ */
+function collectPendingChineseKeys(root: HTMLElement): string[] {
+  const pending: string[] = [];
+  const seen = new Set<string>();
+  const push = (raw: string) => {
+    const key = raw.trim();
+    if (!key || translatedCache.has(key) || seen.has(key)) return;
+    seen.add(key);
+    pending.push(key);
+  };
+
+  for (const node of collectTextNodes(root)) {
+    const full = originalTextByNode.get(node) ?? node.nodeValue ?? "";
+    if (!originalTextByNode.has(node)) originalTextByNode.set(node, full);
+    push(full);
+  }
+  for (const { el, attr } of collectAttrJobs(root)) {
+    push(ensureAttrOriginal(el, attr));
+  }
+  return pending;
+}
+
+/**
+ * 路由与语言变化时，对整棵界面树执行中泰切换（文本节点 + 可翻译属性）。
  */
 function UiAutoTranslator({ lang }: { lang: Lang }) {
   const location = useLocation();
 
-  /**
-   * 泰语翻译的渲染时机优化（仅生产环境）：
-   * - 默认用 useLayoutEffect 在绘制前替换文本，避免闪烁；
-   * - 低端设备降级为 useEffect，避免阻塞首屏。
-   */
   const useTranslatorEffect = import.meta.env.PROD && isLowEndDevice() ? useEffect : useLayoutEffect;
 
   useTranslatorEffect(() => {
@@ -134,56 +290,55 @@ function UiAutoTranslator({ lang }: { lang: Lang }) {
     if (!root) return;
 
     let destroyed = false;
-    const apply = async () => {
-      if (destroyed) return;
-      const nodes = collectTextNodes(root);
 
-      if (lang === "zh") {
-        nodes.forEach((node) => {
-          const original = originalTextByNode.get(node);
-          if (original !== undefined) node.nodeValue = original;
-        });
-        return;
-      }
+    const runThaiNetworkIfNeeded = () => {
+      if (destroyed || lang !== "th") return;
+      const pending = collectPendingChineseKeys(root);
+      if (pending.length === 0) return;
+      if (networkInFlight) return;
 
-      // 仅泰语模式下确保字典优先级（避免首屏依赖网络翻译）
-      if (import.meta.env.PROD) seedThaiDictionary();
-
-      const pendingTexts: string[] = [];
-      const seen = new Set<string>();
-      nodes.forEach((node) => {
-        const current = node.nodeValue ?? "";
-        const source = originalTextByNode.get(node) ?? current;
-        if (!originalTextByNode.has(node)) originalTextByNode.set(node, source);
-        const text = source.trim();
-        if (!text || translatedCache.has(text) || seen.has(text)) return;
-        seen.add(text);
-        pendingTexts.push(text);
-      });
-
-      if (pendingTexts.length > 0) {
+      const gen = ++translateGeneration;
+      networkInFlight = true;
+      void (async () => {
         try {
-          const translated = await requestBatchTranslate(pendingTexts, "th");
-          pendingTexts.forEach((t, i) => translatedCache.set(t, translated[i] ?? t));
-          persistCache();
+          const translated = await requestBatchTranslate(pending, "th");
+          if (destroyed || gen !== translateGeneration) return;
+          pending.forEach((t, i) => translatedCache.set(t, translated[i] ?? t));
+          schedulePersistCache();
+          applyThaiSync(root);
+          const more = collectPendingChineseKeys(root);
+          if (more.length > 0) queueMicrotask(() => runThaiNetworkIfNeeded());
         } catch {
-          // ignore translation request errors to avoid blocking UI
+          // ignore
+        } finally {
+          networkInFlight = false;
         }
-      }
-
-      nodes.forEach((node) => {
-        const source = (originalTextByNode.get(node) ?? node.nodeValue ?? "").trim();
-        if (!source) return;
-        const target = translatedCache.get(source);
-        if (target) node.nodeValue = node.nodeValue?.replace(source, target) ?? target;
-      });
+      })();
     };
 
-    apply();
-    const timer = window.setTimeout(apply, 300);
+    const run = () => {
+      if (destroyed) return;
+      if (lang === "zh") {
+        applyZh(root);
+        return;
+      }
+      if (!import.meta.env.PROD) loadCache();
+      applyThaiSync(root);
+      runThaiNetworkIfNeeded();
+    };
+
+    run();
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        if (!destroyed) run();
+      });
+    });
+
     return () => {
       destroyed = true;
-      window.clearTimeout(timer);
+      window.cancelAnimationFrame(raf1);
+      window.cancelAnimationFrame(raf2);
     };
   }, [lang, location.pathname]);
 

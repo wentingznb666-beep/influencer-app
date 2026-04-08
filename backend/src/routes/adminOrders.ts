@@ -2,6 +2,7 @@ import { Router, Response } from "express";
 import { query } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 import { normalizeWorkLinksFromDb, parseWorkLinksFromBody, validateWorkLinksForAdminEdit } from "../marketOrderWorkLinks";
+import { normalizeSkuCodesFromDb, normalizeSkuIdsFromDb, normalizeSkuImagesFromDb } from "../marketOrderSku";
 
 const router = Router();
 router.use(requireAuth);
@@ -60,6 +61,9 @@ router.get("/", (req: AuthRequest, res: Response) => {
              CASE WHEN $1 = 'employee' THEN NULL ELSE mo.platform_profit_points END AS platform_profit_points,
              mo.tier,
              mo.status,
+             mo.sku_codes,
+             mo.sku_ids,
+             mo.sku_images,
              mo.work_links,
              mo.created_at,
              mo.updated_at,
@@ -95,6 +99,9 @@ router.get("/", (req: AuthRequest, res: Response) => {
     const { rows } = await query(sql, params);
     const list = rows.map((r: Record<string, unknown>) => ({
       ...r,
+      sku_codes: normalizeSkuCodesFromDb(r.sku_codes),
+      sku_ids: normalizeSkuIdsFromDb(r.sku_ids),
+      sku_images: normalizeSkuImagesFromDb(r.sku_images),
       work_links: normalizeWorkLinksFromDb(r.work_links),
     }));
     res.json({ list });

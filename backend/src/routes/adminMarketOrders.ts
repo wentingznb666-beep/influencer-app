@@ -2,6 +2,7 @@ import { Router, Response } from "express";
 import { query } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 import { normalizeWorkLinksFromDb } from "../marketOrderWorkLinks";
+import { normalizeSkuCodesFromDb, normalizeSkuIdsFromDb, normalizeSkuImagesFromDb } from "../marketOrderSku";
 
 const router = Router();
 router.use(requireAuth);
@@ -37,6 +38,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
              mo.client_id, uc.username AS client_username,
              mo.client_shop_name, mo.client_group_chat,
              mo.influencer_id, ui.username AS influencer_username,
+             mo.sku_codes, mo.sku_ids, mo.sku_images,
              mo.work_links, mo.created_at, mo.updated_at, mo.completed_at
       FROM client_market_orders mo
       JOIN users uc ON mo.client_id = uc.id
@@ -67,6 +69,9 @@ router.get("/", (req: AuthRequest, res: Response) => {
     const { rows } = await query(sql, params);
     const list = rows.map((r: Record<string, unknown>) => ({
       ...r,
+      sku_codes: normalizeSkuCodesFromDb(r.sku_codes),
+      sku_ids: normalizeSkuIdsFromDb(r.sku_ids),
+      sku_images: normalizeSkuImagesFromDb(r.sku_images),
       work_links: normalizeWorkLinksFromDb(r.work_links),
     }));
     res.json({ list });

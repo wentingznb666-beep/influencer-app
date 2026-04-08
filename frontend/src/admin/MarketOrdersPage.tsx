@@ -5,6 +5,9 @@ import { getStoredUser } from "../authApi";
 import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFilter";
 import WorkLinksModal from "../components/WorkLinksModal";
 import { normalizeWorkLinks } from "../utils/workLinks";
+import { normalizeSkuCodes, normalizeSkuIds, normalizeSkuImages } from "../utils/marketOrderSku";
+import OrderTableScrollArea from "../components/OrderTableScrollArea";
+import { SkuDetailBlock, SkuTableCell } from "../components/MarketOrderSkuBlocks";
 
 type Row = {
   id: number;
@@ -22,6 +25,9 @@ type Row = {
   influencer_username: string | null;
   influencer_display_name?: string | null;
   work_links: string[];
+  sku_codes: string[];
+  sku_ids: number[];
+  sku_images: string[];
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -94,7 +100,15 @@ export default function MarketOrdersPage() {
       };
       const data = await api.getAdminMarketOrders(Object.keys(query).length > 0 ? query : undefined);
       const raw = (data.list as Row[]) || [];
-      setList(raw.map((r) => ({ ...r, work_links: normalizeWorkLinks(r.work_links) })));
+      setList(
+        raw.map((r) => ({
+          ...r,
+          work_links: normalizeWorkLinks(r.work_links),
+          sku_codes: normalizeSkuCodes(r.sku_codes),
+          sku_ids: normalizeSkuIds(r.sku_ids),
+          sku_images: normalizeSkuImages(r.sku_images),
+        })),
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     } finally {
@@ -244,8 +258,8 @@ export default function MarketOrdersPage() {
       {loading ? (
         <p>加载中…</p>
       ) : (
-        <div style={{ overflowX: "auto", background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1280 }}>
+<OrderTableScrollArea>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1480 }}>
             <thead>
               <tr style={{ background: "#f5f5f5" }}>
                 <th style={{ padding: 10, textAlign: "left" }}>订单号</th>
@@ -254,6 +268,7 @@ export default function MarketOrdersPage() {
                 <th style={{ padding: 10, textAlign: "left" }}>状态</th>
                 <th style={{ padding: 10, textAlign: "left" }}>金额</th>
                 <th style={{ padding: 10, textAlign: "left" }}>订单详情</th>
+                <th style={{ padding: 10, textAlign: "left" }}>SKU信息</th>
                 <th style={{ padding: 10, textAlign: "left" }}>交付链接</th>
                 <th style={{ padding: 10, textAlign: "left" }}>创建时间</th>
                 <th style={{ padding: 10, textAlign: "left" }}>完成时间</th>
@@ -318,6 +333,9 @@ export default function MarketOrdersPage() {
                     <div style={{ fontWeight: 600 }}>{o.title || "未命名订单"}</div>
                     <div style={{ marginTop: 4, color: "#64748b", fontSize: 13 }}>档位：{o.tier}</div>
                   </td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", maxWidth: 260, verticalAlign: "top" }}>
+                    <SkuTableCell codes={o.sku_codes} />
+                  </td>
                   <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>
                     <button
                       type="button"
@@ -336,14 +354,14 @@ export default function MarketOrdersPage() {
               ))}
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={9} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
+                  <td colSpan={10} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
                     暂无数据
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
-        </div>
+        </OrderTableScrollArea>
       )}
       <WorkLinksModal open={linksModalOpen} onClose={() => setLinksModalOpen(false)} links={linksModalLinks} title="交付链接" />
       {detailOrder && (
@@ -422,6 +440,10 @@ export default function MarketOrdersPage() {
                 </>
               )}
               <div style={{ color: "#64748b" }}>标题</div><div>{detailOrder.title || "未命名订单"}</div>
+              <div style={{ color: "#64748b", alignSelf: "start" }}>SKU信息</div>
+              <div>
+                <SkuDetailBlock codes={detailOrder.sku_codes} ids={detailOrder.sku_ids} images={detailOrder.sku_images} />
+              </div>
               <div style={{ color: "#64748b", alignSelf: "start" }}>交付链接</div>
               <div>
                 {detailWorkLinksDraft.map((line, idx) => (
