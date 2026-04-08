@@ -594,12 +594,30 @@ textarea {
   transform: scale(0.98);
 }
 
-/* 订单列表宽表：横向滚动容器，避免与页面纵向滚动抢手势；配合 OrderTableScrollArea 内 wheel 处理 */
+/* 订单列表宽表：外层卡片 + 顶轨/底轨双横条同步，避免横条只在表格最底、需先纵向滚到底才能操作 */
+.xt-order-table-scroll-wrap {
+  max-width: 100%;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.xt-order-table-scroll-top {
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  border-bottom: 1px solid #eef2f7;
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
 .xt-order-table-scroll {
   overflow-x: auto;
   overflow-y: visible;
   max-width: 100%;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
 }
 
