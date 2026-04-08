@@ -262,7 +262,7 @@ export async function updateWithdrawal(id: number, body: { status: "paid" | "rej
 
 /**
  * 达人领单订单列表（全量）：
- * - q：订单号/标题/要求全文精准匹配
+ * - q：订单号/标题精准匹配
  * - start_date/end_date：创建日期筛选（YYYY-MM-DD）
  */
 export async function getAdminMarketOrders(params?: { q?: string; start_date?: string; end_date?: string }) {
@@ -277,7 +277,7 @@ export async function getAdminMarketOrders(params?: { q?: string; start_date?: s
 
 /**
  * 管理员：客户订单列表（达人领单订单）。
- * 支持按订单号/标题/要求/客户/达人搜索，按状态筛选。
+ * 支持按订单号/标题/客户/达人等模糊搜索，按状态筛选。
  */
 export async function getAdminOrders(params?: { q?: string; status?: "open" | "claimed" | "completed" | "cancelled" | "" }) {
   const q = new URLSearchParams();
@@ -300,6 +300,20 @@ export async function updateAdminOrderClientInfo(id: number, body: { client_shop
   if (!res.ok) throw new Error(await readErrorMessage(res, "更新失败"));
   return res.json();
 }
+
+/**
+ * 管理员/员工：维护订单多条交付链接（JSONB 数组，可为空表示清空）。
+ */
+export async function updateAdminOrderWorkLinks(id: number, body: { work_links: string[] }) {
+  const res = await fetchWithAuth(`/api/admin/orders/${id}/work-links`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "更新失败"));
+  return res.json();
+}
+
 
 /**
  * 管理员：利润统计摘要（按月或按时间区间）。

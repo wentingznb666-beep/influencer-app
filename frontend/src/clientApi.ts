@@ -179,13 +179,12 @@ export async function getMarketOrderDetail(id: number) {
 
 /**
  * 创建达人领单（需满足最低积分；完成后从余额扣给达人）。
- * @param body 任务要求文案与可选标题
+ * @param body 订单标题（1–200 字）及档位等
  */
 export async function createMarketOrder(body: {
-  requirements: string;
+  title: string;
   client_shop_name: string;
   client_group_chat: string;
-  title?: string;
   tier?: "A" | "B" | "C";
   voice_link?: string;
   voice_note?: string;
@@ -212,7 +211,6 @@ export async function updateMarketOrder(
     client_shop_name?: string;
     client_group_chat?: string;
     title?: string;
-    requirements?: string;
     tier?: "A" | "B" | "C";
     voice_link?: string;
     voice_note?: string;

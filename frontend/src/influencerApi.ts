@@ -76,19 +76,35 @@ export async function claimMarketOrder(orderId: number) {
 }
 
 /**
- * 提交完成与作品链接（结算积分）。
+ * 提交完成与多条交付链接（结算积分）。
  * @param orderId 订单 ID
- * @param work_link 交付链接
+ * @param work_links 交付链接列表（至少一条非空）
  */
-export async function completeMarketOrder(orderId: number, work_link: string) {
+export async function completeMarketOrder(orderId: number, work_links: string[]) {
   const res = await fetchWithAuth(`/api/influencer/market-orders/${orderId}/complete`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ work_link }),
+    body: JSON.stringify({ work_links }),
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error((data.message as string) || "提交失败");
+  }
+  return res.json();
+}
+
+/**
+ * 领取人维护多条交付链接（已领取/已完成订单）。
+ */
+export async function updateInfluencerOrderWorkLinks(orderId: number, body: { work_links: string[] }) {
+  const res = await fetchWithAuth(`/api/influencer/market-orders/${orderId}/work-links`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data.message as string) || "更新失败");
   }
   return res.json();
 }

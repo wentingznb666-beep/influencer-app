@@ -3,6 +3,7 @@ import { query, withTx } from "../db";
 import { ensurePointAccountLocked } from "../pointAccounts";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 import { recordOperationLogTx } from "../operationLog";
+import { normalizeWorkLinksFromDb, parseWorkLinksFromBody, validateWorkLinksForAdminEdit, validateWorkLinksForComplete } from "../marketOrderWorkLinks";
 
 const router = Router();
 router.use(requireAuth);
@@ -27,14 +28,14 @@ function normalizeDateOnly(value: unknown): string {
 async function settleMarketOrderComplete(params: {
   orderId: number;
   influencerUserId: number;
-  workLink: string;
+  workLinks: string[];
 }): Promise<
   | { kind: "ok" }
   | { kind: "not_found" }
   | { kind: "bad_state" }
   | { kind: "insufficient"; balance: number; need: number }
 > {
-  const { orderId, influencerUserId, workLink } = params;
+  const { orderId, influencerUserId, workLinks } = params;
   return withTx(async (client) => {
     const ordRes = await client.query<{
       id: number;
@@ -86,8 +87,8 @@ async function settleMarketOrderComplete(params: {
     await client.query("UPDATE point_accounts SET balance = balance + $1, updated_at = now() WHERE id = $2", [creatorReward, infAcc.id]);
     await client.query("UPDATE client_market_orders SET platform_profit_points = $1 WHERE id = $2", [platformProfit, orderId]);
     await client.query(
-      `UPDATE client_market_orders SET status = 'completed', work_link = $1, updated_at = now(), completed_at = now() WHERE id = $2`,
-      [workLink, orderId]
+      `UPDATE client_market_orders SET status = 'completed', work_links = $1::jsonb, updated_at = now(), completed_at = now() WHERE id = $2`,
+      [JSON.stringify(workLinks), orderId]
     );
     return { kind: "ok" };
   });
@@ -471,7 +472,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
   (async () => {
     // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
-    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.requirements, mo.tier, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images,
+    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.tier, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images,
                       mo.creator_reward_points AS reward_points, mo.status, mo.created_at,
                       mo.client_id, u.username AS client_username, COALESCE(NULLIF(u.display_name, ''), u.username) AS client_display_name,
                       mo.client_shop_name, mo.client_group_chat
@@ -481,7 +482,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
     const params: unknown[] = [];
     let idx = 1;
     if (rawQ) {
-      sql += ` AND (mo.order_no = $${idx} OR mo.title = $${idx} OR mo.requirements = $${idx} OR u.username = $${idx} OR COALESCE(u.display_name, '') = $${idx})`;
+      sql += ` AND (mo.order_no = $${idx} OR mo.title = $${idx} OR u.username = $${idx} OR COALESCE(u.display_name, '') = $${idx})`;
       params.push(rawQ);
       idx += 1;
     }
@@ -496,7 +497,11 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
     }
     sql += ` ORDER BY mo.id DESC`;
     const { rows } = await query(sql, params);
-    res.json({ list: rows });
+    const list = rows.map((r: Record<string, unknown>) => ({
+      ...r,
+      work_links: normalizeWorkLinksFromDb(r.work_links),
+    }));
+    res.json({ list });
   })().catch((e) => {
     console.error("influencer market-orders list error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
@@ -515,8 +520,8 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
   (async () => {
     // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
-    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.requirements, mo.tier, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images,
-                      mo.creator_reward_points AS reward_points, mo.status, mo.work_link, mo.created_at, mo.updated_at, mo.completed_at,
+    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.tier, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images,
+                      mo.creator_reward_points AS reward_points, mo.status, mo.work_links, mo.created_at, mo.updated_at, mo.completed_at,
                       mo.client_id, u.username AS client_username, COALESCE(NULLIF(u.display_name, ''), u.username) AS client_display_name,
                       mo.client_shop_name, mo.client_group_chat
        FROM client_market_orders mo
@@ -525,7 +530,7 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
     const params: unknown[] = [userId];
     let idx = 2;
     if (rawQ) {
-      sql += ` AND (mo.order_no = $${idx} OR mo.title = $${idx} OR mo.requirements = $${idx} OR u.username = $${idx} OR COALESCE(u.display_name, '') = $${idx})`;
+      sql += ` AND (mo.order_no = $${idx} OR mo.title = $${idx} OR u.username = $${idx} OR COALESCE(u.display_name, '') = $${idx})`;
       params.push(rawQ);
       idx += 1;
     }
@@ -540,7 +545,11 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
     }
     sql += ` ORDER BY mo.id DESC`;
     const { rows } = await query(sql, params);
-    res.json({ list: rows });
+    const list = rows.map((r: Record<string, unknown>) => ({
+      ...r,
+      work_links: normalizeWorkLinksFromDb(r.work_links),
+    }));
+    res.json({ list });
   })().catch((e) => {
     console.error("influencer market-orders my error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
@@ -594,18 +603,18 @@ router.post("/market-orders/:id/claim", (req: AuthRequest, res: Response) => {
 router.post("/market-orders/:id/complete", (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
   const orderId = Number(req.params.id);
-  const { work_link } = req.body ?? {};
-  const link = work_link != null ? String(work_link).trim() : "";
+  const workLinks = parseWorkLinksFromBody(req.body);
   if (!Number.isInteger(orderId) || orderId < 1) {
     res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
     return;
   }
-  if (!link || link.length > 2000) {
-    res.status(400).json({ error: "INVALID_LINK", message: "请填写有效作品/交付链接（1–2000 字符）。" });
+  const linkErr = validateWorkLinksForComplete(workLinks);
+  if (linkErr) {
+    res.status(400).json({ error: "INVALID_LINK", message: linkErr });
     return;
   }
   (async () => {
-    const result = await settleMarketOrderComplete({ orderId, influencerUserId: userId, workLink: link });
+    const result = await settleMarketOrderComplete({ orderId, influencerUserId: userId, workLinks });
     if (result.kind === "not_found") {
       res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
       return;
@@ -628,4 +637,45 @@ router.post("/market-orders/:id/complete", (req: AuthRequest, res: Response) => 
   });
 });
 
+
+/**
+ * PATCH /api/influencer/market-orders/:id/work-links
+ * 领取人维护多条交付链接（与管理端校验规则一致，仅本人订单）。
+ */
+router.patch(
+  "/market-orders/:id/work-links",
+  (req: AuthRequest, res: Response) => {
+    const userId = req.user!.userId;
+    const orderId = Number(req.params.id);
+    if (!Number.isInteger(orderId) || orderId < 1) {
+      res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
+      return;
+    }
+    const links = parseWorkLinksFromBody(req.body);
+    const linkErr = validateWorkLinksForAdminEdit(links);
+    if (linkErr) {
+      res.status(400).json({ error: "INVALID_WORK_LINKS", message: linkErr });
+      return;
+    }
+    (async () => {
+      const updated = await query<{ id: number }>(
+        `UPDATE client_market_orders SET work_links = $1::jsonb, updated_at = now()
+         WHERE id = $2 AND influencer_id = $3 AND is_deleted = 0
+           AND status IN ('claimed','completed')
+         RETURNING id`,
+        [JSON.stringify(links), orderId, userId]
+      );
+      if (!updated.rows[0]) {
+        res.status(404).json({ error: "NOT_FOUND", message: "订单不存在或无权限。" });
+        return;
+      }
+      res.json({ ok: true });
+    })().catch((e) => {
+      console.error("influencer market-orders work-links patch error:", e);
+      res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    });
+  }
+);
+
 export default router;
+

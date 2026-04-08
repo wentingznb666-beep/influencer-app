@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import * as api from "../adminApi";
 import { getStoredUser } from "../authApi";
+import WorkLinksModal from "../components/WorkLinksModal";
+import { normalizeWorkLinks } from "../utils/workLinks";
 
 type Row = {
   id: number;
   order_no: string | null;
   title: string | null;
-  requirements: string;
   client_id: number;
   client_username: string;
   client_display_name: string;
@@ -21,7 +22,7 @@ type Row = {
   platform_profit_points: number;
   tier: "A" | "B" | "C" | string;
   status: "open" | "claimed" | "completed" | "cancelled" | string;
-  work_link: string | null;
+  work_links: string[];
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -51,9 +52,7 @@ function isHttpUrl(value?: string | null): boolean {
  */
 export default function OrdersPage() {
   const user = getStoredUser();
-  const basePath = user?.role === "employee" ? "/employee" : "/admin";
   const isEmployee = user?.role === "employee";
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [list, setList] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,7 +60,11 @@ export default function OrdersPage() {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"" | "open" | "claimed" | "completed" | "cancelled">("");
   const [detailOrder, setDetailOrder] = useState<Row | null>(null);
+  const [detailWorkLinksDraft, setDetailWorkLinksDraft] = useState<string[]>([]);
+  const [savingWorkLinks, setSavingWorkLinks] = useState(false);
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
+  const [linksModalOpen, setLinksModalOpen] = useState(false);
+  const [linksModalLinks, setLinksModalLinks] = useState<string[]>([]);
   const [savingClientInfo, setSavingClientInfo] = useState(false);
   const hasInitLoadedRef = useRef(false);
 
@@ -76,7 +79,8 @@ export default function OrdersPage() {
         q: (nextQ ?? q).trim() || undefined,
         status: (nextStatus ?? status) || undefined,
       });
-      setList((data.list as Row[]) || []);
+      const raw = (data.list as Row[]) || [];
+      setList(raw.map((r) => ({ ...r, work_links: normalizeWorkLinks(r.work_links) })));
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     } finally {
@@ -95,6 +99,11 @@ export default function OrdersPage() {
     load(qFromUrl, statusFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!detailOrder) return;
+    setDetailWorkLinksDraft(normalizeWorkLinks(detailOrder.work_links));
+  }, [detailOrder?.id]);
 
   const statusText: Record<string, string> = {
     open: "待领取",
@@ -126,6 +135,25 @@ export default function OrdersPage() {
       setCopyMsg(`已复制：${successLabel}`);
     } catch {
       setCopyMsg("复制失败，请检查浏览器权限");
+    }
+  };
+
+  /**
+   * 保存详情中的多条交付链接（管理端 PATCH）。
+   */
+  const saveWorkLinks = async () => {
+    if (!detailOrder) return;
+    const next = detailWorkLinksDraft.map((s) => s.trim()).filter((s) => s.length > 0);
+    setSavingWorkLinks(true);
+    setError(null);
+    try {
+      await api.updateAdminOrderWorkLinks(detailOrder.id, { work_links: next });
+      setList((prev) => prev.map((row) => (row.id === detailOrder.id ? { ...row, work_links: next } : row)));
+      setDetailOrder((prev) => (prev ? { ...prev, work_links: next } : prev));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "保存失败");
+    } finally {
+      setSavingWorkLinks(false);
     }
   };
 
@@ -168,7 +196,7 @@ export default function OrdersPage() {
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="搜索：订单号/标题/要求/客户/达人（模糊）"
+          placeholder="搜索：订单号/标题/客户/达人（模糊）"
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 280 }}
         />
         <select value={status} onChange={(e) => setStatus(e.target.value as any)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", minWidth: 140 }}>
@@ -206,7 +234,7 @@ export default function OrdersPage() {
         <p>加载中…</p>
       ) : (
         <div style={{ overflowX: "auto", background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1380 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1280 }}>
             <thead>
               <tr style={{ background: "#f5f5f5" }}>
                 <th style={{ padding: 10, textAlign: "left" }}>订单号</th>
@@ -216,7 +244,6 @@ export default function OrdersPage() {
                 <th style={{ padding: 10, textAlign: "left" }}>金额</th>
                 <th style={{ padding: 10, textAlign: "left" }}>订单详情</th>
                 <th style={{ padding: 10, textAlign: "left" }}>交付链接</th>
-                <th style={{ padding: 10, textAlign: "left" }}>快速跳转</th>
                 <th style={{ padding: 10, textAlign: "left" }}>创建时间</th>
                 <th style={{ padding: 10, textAlign: "left" }}>完成时间</th>
               </tr>
@@ -279,24 +306,17 @@ export default function OrdersPage() {
                   <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", maxWidth: 380 }}>
                     <div style={{ fontWeight: 600 }}>{o.title || "未命名订单"}</div>
                     <div style={{ marginTop: 4, color: "#64748b", fontSize: 13 }}>档位：{o.tier}</div>
-                    <div style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>{o.requirements}</div>
-                  </td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", maxWidth: 220 }}>
-                    {o.work_link ? (
-                      <a href={o.work_link} target="_blank" rel="noreferrer">
-                        {o.work_link}
-                      </a>
-                    ) : (
-                      <span style={{ color: "#94a3b8" }}>—</span>
-                    )}
                   </td>
                   <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>
                     <button
                       type="button"
-                      onClick={() => navigate(`${basePath}/market-orders?q=${encodeURIComponent(o.order_no || String(o.id))}`)}
+                      onClick={() => {
+                        setLinksModalLinks(normalizeWorkLinks(o.work_links));
+                        setLinksModalOpen(true);
+                      }}
                       style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
                     >
-                      到达人领单页
+                      查看链接
                     </button>
                   </td>
                   <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>{formatDateTime(o.created_at)}</td>
@@ -305,7 +325,7 @@ export default function OrdersPage() {
               ))}
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={10} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
+                  <td colSpan={9} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
                     暂无订单
                   </td>
                 </tr>
@@ -314,6 +334,7 @@ export default function OrdersPage() {
           </table>
         </div>
       )}
+      <WorkLinksModal open={linksModalOpen} onClose={() => setLinksModalOpen(false)} links={linksModalLinks} title="交付链接" />
       {detailOrder && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "flex", justifyContent: "flex-end", zIndex: 80 }} onClick={() => setDetailOrder(null)}>
           <div
@@ -339,8 +360,12 @@ export default function OrdersPage() {
               <button type="button" onClick={() => copyText(detailOrder.influencer_username || "", "达人账号")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
                 复制达人账号
               </button>
-              <button type="button" onClick={() => copyText(detailOrder.work_link || "", "交付链接")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
-                复制交付链接
+              <button
+                type="button"
+                onClick={() => copyText(detailWorkLinksDraft.filter((s) => s.trim()).join("\n"), "全部交付链接")}
+                style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+              >
+                复制全部交付链接
               </button>
               {copyMsg && <span style={{ color: "#0f766e", fontSize: 13 }}>{copyMsg}</span>}
             </div>
@@ -386,9 +411,55 @@ export default function OrdersPage() {
                 </>
               )}
               <div style={{ color: "#64748b" }}>标题</div><div>{detailOrder.title || "未命名订单"}</div>
-              <div style={{ color: "#64748b" }}>任务要求</div><div style={{ whiteSpace: "pre-wrap" }}>{detailOrder.requirements}</div>
-              <div style={{ color: "#64748b" }}>交付链接</div>
-              <div>{detailOrder.work_link ? <a href={detailOrder.work_link} target="_blank" rel="noreferrer">{detailOrder.work_link}</a> : "—"}</div>
+              <div style={{ color: "#64748b", alignSelf: "start" }}>交付链接</div>
+              <div>
+                {detailWorkLinksDraft.map((line, idx) => (
+                  <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <input
+                      value={line}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setDetailWorkLinksDraft((prev) => prev.map((p, i) => (i === idx ? v : p)));
+                      }}
+                      placeholder="https://..."
+                      style={{ flex: 1, minWidth: 200, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setDetailWorkLinksDraft((prev) => prev.filter((_, i) => i !== idx))}
+                      style={{ padding: "4px 8px", border: "1px solid #fecaca", borderRadius: 8, background: "#fff", cursor: "pointer", color: "#b91c1c" }}
+                      aria-label="删除该条链接"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setDetailWorkLinksDraft((prev) => [...prev, ""])}
+                  style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#f8fafc", cursor: "pointer" }}
+                >
+                  + 新增链接
+                </button>
+                <div style={{ marginTop: 10 }}>
+                  <button
+                    type="button"
+                    onClick={saveWorkLinks}
+                    disabled={savingWorkLinks}
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: 8,
+                      border: "none",
+                      background: "var(--xt-accent)",
+                      color: "#fff",
+                      cursor: savingWorkLinks ? "not-allowed" : "pointer",
+                      opacity: savingWorkLinks ? 0.65 : 1,
+                    }}
+                  >
+                    {savingWorkLinks ? "保存中..." : "保存交付链接"}
+                  </button>
+                </div>
+              </div>
               <div style={{ color: "#64748b" }}>创建时间</div><div>{formatDateTime(detailOrder.created_at)}</div>
               <div style={{ color: "#64748b" }}>更新时间</div><div>{formatDateTime(detailOrder.updated_at)}</div>
               <div style={{ color: "#64748b" }}>完成时间</div><div>{formatDateTime(detailOrder.completed_at)}</div>

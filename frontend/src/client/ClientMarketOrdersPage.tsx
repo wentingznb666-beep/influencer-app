@@ -2,12 +2,13 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import * as api from "../clientApi";
 import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFilter";
+import WorkLinksModal from "../components/WorkLinksModal";
+import { normalizeWorkLinks } from "../utils/workLinks";
 
 type MarketOrder = {
   id: number;
   order_no: string | null;
   title: string | null;
-  requirements: string;
   reward_points: number;
   tier?: "A" | "B" | "C" | string;
   tiktok_link?: string | null;
@@ -19,7 +20,7 @@ type MarketOrder = {
   influencer_display_name?: string | null;
   client_shop_name?: string | null;
   client_group_chat?: string | null;
-  work_link: string | null;
+  work_links: string[];
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -73,7 +74,6 @@ export default function ClientMarketOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [requirements, setRequirements] = useState("");
   const [title, setTitle] = useState("");
   const [clientShopName, setClientShopName] = useState("");
   const [clientGroupChat, setClientGroupChat] = useState("");
@@ -87,6 +87,8 @@ export default function ClientMarketOrdersPage() {
   const [taskCount, setTaskCount] = useState(1);
   const [searchQ, setSearchQ] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
+  const [linksModalOpen, setLinksModalOpen] = useState(false);
+  const [linksModalLinks, setLinksModalLinks] = useState<string[]>([]);
   const hasInitLoadedRef = useRef(false);
   const hasInitBalanceRef = useRef(false);
   const hasInitSkusRef = useRef(false);
@@ -117,7 +119,8 @@ export default function ClientMarketOrdersPage() {
         ...resolveDateQuery(filter ?? dateFilter),
       };
       const data = await api.getMarketOrders(Object.keys(query).length > 0 ? query : undefined);
-      setList(data.list || []);
+      const rows = (data.list || []) as MarketOrder[];
+      setList(rows.map((r) => ({ ...r, work_links: normalizeWorkLinks(r.work_links) })));
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     } finally {
@@ -192,9 +195,9 @@ export default function ClientMarketOrdersPage() {
    */
   const handleCreate = async () => {
     setError(null);
-    const text = requirements.trim();
-    if (!text) {
-      setError("请填写任务要求。");
+    const titleText = title.trim();
+    if (!titleText || titleText.length > 200) {
+      setError("请填写订单标题（1–200 字）。");
       return;
     }
     if (!clientShopName.trim()) {
@@ -214,10 +217,9 @@ export default function ClientMarketOrdersPage() {
       const skuCodes = chosen.map((s) => (s.sku_name ? `${s.sku_code} / ${s.sku_name}` : s.sku_code));
       const skuImages = chosen.flatMap((s) => (Array.isArray(s.sku_images) ? s.sku_images : [])).slice(0, 100);
       await api.createMarketOrder({
-        requirements: text,
+        title: titleText,
         client_shop_name: clientShopName.trim(),
         client_group_chat: clientGroupChat.trim(),
-        title: title.trim() || undefined,
         tier,
         voice_link: tier === "A" ? (voiceLink.trim() || undefined) : undefined,
         voice_note: tier === "A" ? (voiceNote.trim() || undefined) : undefined,
@@ -229,7 +231,6 @@ export default function ClientMarketOrdersPage() {
         task_count: taskCount,
       });
       setShowForm(false);
-      setRequirements("");
       setTitle("");
       setClientShopName("");
       setClientGroupChat("");
@@ -262,7 +263,7 @@ export default function ClientMarketOrdersPage() {
     setError(null);
     try {
       await api.deleteMarketOrder(id);
-      load(searchQ);
+      load(searchQ, dateFilter);
     } catch (e) {
       setError(e instanceof Error ? e.message : "删除失败");
     }
@@ -272,7 +273,7 @@ export default function ClientMarketOrdersPage() {
     <div>
       <h2 style={{ marginTop: 0 }}>达人领单</h2>
       <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16 }}>
-        填写任务要求后发布订单，系统将生成唯一订单号；达人领取并在完成后上传交付链接。发单时将从您的积分余额中扣除{" "}
+        填写订单标题后发布订单，系统将生成唯一订单号；达人领取并在完成后上传交付链接。发单时将从您的积分余额中扣除{" "}
         <strong>20/40/60</strong> 积分（按订单档位 C/B/A）。
       </p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
@@ -281,7 +282,7 @@ export default function ClientMarketOrdersPage() {
           type="text"
           value={searchQ}
           onChange={(e) => setSearchQ(e.target.value)}
-          placeholder="搜索：订单号、标题或要求全文（精准）"
+          placeholder="搜索：订单号或标题（精准）"
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 260 }}
         />
         <button type="button" onClick={() => load(searchQ, dateFilter)} style={{ padding: "8px 16px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
@@ -312,7 +313,7 @@ export default function ClientMarketOrdersPage() {
       </div>
       {showForm && (
         <div style={{ marginBottom: 24, padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-          <label htmlFor="title">订单标题（可选，便于搜索；不填则使用要求摘要）</label>
+          <label htmlFor="title">订单标题（必填，1–200 字）</label>
           <input
             id="title"
             type="text"
@@ -320,15 +321,6 @@ export default function ClientMarketOrdersPage() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="简短标题，如：春季露脸种草视频"
             maxLength={200}
-            style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
-          />
-          <label htmlFor="req">任务要求</label>
-          <textarea
-            id="req"
-            value={requirements}
-            onChange={(e) => setRequirements(e.target.value)}
-            placeholder="说明需要达人完成的内容、风格、截止时间等"
-            rows={5}
             style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
           />
           <label htmlFor="clientShopName">客户店铺名称（必填）</label>
@@ -500,7 +492,6 @@ export default function ClientMarketOrdersPage() {
                   )}
                 </div>
               </div>
-              <p style={{ margin: "10px 0 0", fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</p>
               {(o.status === "claimed" || o.status === "completed" || !!o.influencer_id || !!o.influencer_username) && (
                 <p style={{ margin: "8px 0 0", fontSize: 14, fontWeight: 600, color: "#0f766e" }}>
                   领取达人账号昵称：{resolveClaimerText(o)}
@@ -534,14 +525,18 @@ export default function ClientMarketOrdersPage() {
               <p style={{ margin: "8px 0 0", fontSize: 13, color: "#475569" }}>
                 店铺名称：{o.client_shop_name?.trim() || "未填写"} · 对接群聊：{o.client_group_chat?.trim() || "未填写"}
               </p>
-              {o.work_link && (
-                <p style={{ margin: "8px 0 0", fontSize: 14 }}>
-                  交付链接：
-                  <a href={o.work_link} target="_blank" rel="noreferrer">
-                    {o.work_link}
-                  </a>
-                </p>
-              )}
+              <p style={{ margin: "8px 0 0", fontSize: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLinksModalLinks(normalizeWorkLinks(o.work_links));
+                    setLinksModalOpen(true);
+                  }}
+                  style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                >
+                  查看链接
+                </button>
+              </p>
               <p style={{ margin: "8px 0 0", fontSize: 12, color: "#999" }}>
                 {o.completed_at ? `完成：${formatDateTime(o.completed_at)}` : "完成：—"}
               </p>
@@ -550,6 +545,7 @@ export default function ClientMarketOrdersPage() {
         </div>
       )}
       {!loading && list.length === 0 && <p style={{ color: "#666" }}>暂无订单</p>}
+      <WorkLinksModal open={linksModalOpen} onClose={() => setLinksModalOpen(false)} links={linksModalLinks} title="交付链接" />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { Router, Response } from "express";
 import { query } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
+import { normalizeWorkLinksFromDb, parseWorkLinksFromBody, validateWorkLinksForAdminEdit } from "../marketOrderWorkLinks";
 
 const router = Router();
 router.use(requireAuth);
@@ -33,7 +34,7 @@ function normalizeClientGroupChat(value: unknown): string {
 /**
  * GET /api/admin/orders
  * 管理员/员工查看客户端发起的达人领单订单（client_market_orders），支持：
- * - q：按订单号、标题、要求、客户账号/名称、达人账号/昵称模糊匹配
+ * - q：按订单号、标题、客户账号/名称、达人账号/昵称模糊匹配
  * - status：按订单状态筛选（open/claimed/completed/cancelled）
  */
 router.get("/", (req: AuthRequest, res: Response) => {
@@ -45,7 +46,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     const params: any[] = [requesterRole];
     let idx = 2;
     let sql = `
-      SELECT mo.id, mo.order_no, mo.title, mo.requirements,
+      SELECT mo.id, mo.order_no, mo.title,
              mo.client_id,
              uc.username AS client_username,
              COALESCE(NULLIF(uc.display_name, ''), uc.username) AS client_display_name,
@@ -59,7 +60,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
              CASE WHEN $1 = 'employee' THEN NULL ELSE mo.platform_profit_points END AS platform_profit_points,
              mo.tier,
              mo.status,
-             mo.work_link,
+             mo.work_links,
              mo.created_at,
              mo.updated_at,
              mo.completed_at
@@ -78,7 +79,6 @@ router.get("/", (req: AuthRequest, res: Response) => {
       sql += ` AND (
         mo.order_no ILIKE '%' || $${idx} || '%'
         OR COALESCE(mo.title, '') ILIKE '%' || $${idx} || '%'
-        OR mo.requirements ILIKE '%' || $${idx} || '%'
         OR COALESCE(mo.client_shop_name, '') ILIKE '%' || $${idx} || '%'
         OR COALESCE(mo.client_group_chat, '') ILIKE '%' || $${idx} || '%'
         OR uc.username ILIKE '%' || $${idx} || '%'
@@ -93,7 +93,11 @@ router.get("/", (req: AuthRequest, res: Response) => {
     sql += ` ORDER BY mo.id DESC LIMIT 500`;
 
     const { rows } = await query(sql, params);
-    res.json({ list: rows });
+    const list = rows.map((r: Record<string, unknown>) => ({
+      ...r,
+      work_links: normalizeWorkLinksFromDb(r.work_links),
+    }));
+    res.json({ list });
   })().catch((e) => {
     console.error("admin orders list error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
@@ -148,5 +152,36 @@ router.patch("/:id/client-info", (req: AuthRequest, res: Response) => {
   });
 });
 
-export default router;
+/**
+ * PATCH /api/admin/orders/:id/work-links
+ * 管理员/员工维护多条交付链接（JSONB 数组）。
+ */
+router.patch("/:id/work-links", (req: AuthRequest, res: Response) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
+    return;
+  }
+  const links = parseWorkLinksFromBody(req.body);
+  const err = validateWorkLinksForAdminEdit(links);
+  if (err) {
+    res.status(400).json({ error: "INVALID_WORK_LINKS", message: err });
+    return;
+  }
+  (async () => {
+    const updated = await query<{ id: number }>(
+      `UPDATE client_market_orders SET work_links = $1::jsonb, updated_at = now() WHERE id = $2 AND is_deleted = 0 RETURNING id`,
+      [JSON.stringify(links), id]
+    );
+    if (!updated.rows[0]) {
+      res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+      return;
+    }
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("admin orders work-links patch error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
 
+export default router;

@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import * as api from "../influencerApi";
 import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFilter";
+import WorkLinksModal from "../components/WorkLinksModal";
+import { normalizeWorkLinks } from "../utils/workLinks";
 
 type OpenOrder = {
   id: number;
   order_no: string | null;
   title: string | null;
-  requirements: string;
   reward_points: number;
   tier: "A" | "B" | "C" | string;
   voice_link?: string | null;
@@ -24,7 +25,6 @@ type MyOrder = {
   id: number;
   order_no: string | null;
   title: string | null;
-  requirements: string;
   reward_points: number;
   tier: "A" | "B" | "C" | string;
   voice_link?: string | null;
@@ -35,7 +35,7 @@ type MyOrder = {
   client_username: string;
   client_display_name: string;
   status: string;
-  work_link: string | null;
+  work_links: string[];
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -141,7 +141,7 @@ function renderSkuInfo(o: { id: number; sku_codes?: string[] | null; sku_images?
 }
 
 /**
- * 达人端：客户端发单大厅与我的领单，展示订单号/标题，支持按订单号或标题或要求精准搜索。
+ * 达人端：客户端发单大厅与我的领单，展示订单号/标题，支持按订单号或标题精准搜索。
  */
 export default function ClientOrdersHallPage() {
   const [openList, setOpenList] = useState<OpenOrder[]>([]);
@@ -149,7 +149,12 @@ export default function ClientOrdersHallPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [completeId, setCompleteId] = useState<number | null>(null);
-  const [workLink, setWorkLink] = useState("");
+  const [workLinkRows, setWorkLinkRows] = useState<string[]>([""]);
+  const [linksModalOpen, setLinksModalOpen] = useState(false);
+  const [linksModalLinks, setLinksModalLinks] = useState<string[]>([]);
+  const [influencerEditId, setInfluencerEditId] = useState<number | null>(null);
+  const [influencerEditDraft, setInfluencerEditDraft] = useState<string[]>([]);
+  const [savingInfluencerLinks, setSavingInfluencerLinks] = useState(false);
   const [searchOpen, setSearchOpen] = useState("");
   const [searchMy, setSearchMy] = useState("");
   const [openDateFilter, setOpenDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
@@ -192,7 +197,8 @@ export default function ClientOrdersHallPage() {
         }),
       ]);
       setOpenList(openRes.list || []);
-      setMyList(myRes.list || []);
+      const myRows = (myRes.list || []) as MyOrder[];
+      setMyList(myRows.map((r) => ({ ...r, work_links: normalizeWorkLinks(r.work_links) })));
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     } finally {
@@ -226,19 +232,38 @@ export default function ClientOrdersHallPage() {
    */
   const handleComplete = async () => {
     if (completeId == null) return;
-    const link = workLink.trim();
-    if (!link) {
-      setError("请填写交付链接。");
+    const links = workLinkRows.map((s) => s.trim()).filter((s) => s.length > 0);
+    if (links.length === 0) {
+      setError("请至少填写一条交付链接。");
       return;
     }
     setError(null);
     try {
-      await api.completeMarketOrder(completeId, link);
+      await api.completeMarketOrder(completeId, links);
       setCompleteId(null);
-      setWorkLink("");
+      setWorkLinkRows([""]);
+      setInfluencerEditId(null);
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "提交失败");
+    }
+  };
+
+  /**
+   * 达人修改已提交的多条交付链接（已领取/已完成）。
+   */
+  const saveInfluencerWorkLinks = async (orderId: number) => {
+    const next = influencerEditDraft.map((s) => s.trim()).filter((s) => s.length > 0);
+    setSavingInfluencerLinks(true);
+    setError(null);
+    try {
+      await api.updateInfluencerOrderWorkLinks(orderId, { work_links: next });
+      setInfluencerEditId(null);
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "保存失败");
+    } finally {
+      setSavingInfluencerLinks(false);
     }
   };
 
@@ -266,7 +291,7 @@ export default function ClientOrdersHallPage() {
           type="text"
           value={searchOpen}
           onChange={(e) => setSearchOpen(e.target.value)}
-          placeholder="搜索订单号、标题或要求（精准）"
+          placeholder="搜索订单号或标题（精准）"
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 240 }}
         />
         <button type="button" onClick={() => load(searchOpen, undefined, openDateFilter, undefined)} style={{ padding: "6px 14px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
@@ -307,8 +332,6 @@ export default function ClientOrdersHallPage() {
                 <span style={{ color: "#166534", fontWeight: 600 }}>+{o.reward_points} 积分</span>
               </div>
               <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "130px 1fr", gap: 8, alignItems: "start" }}>
-                <div style={{ color: "#64748b", fontSize: 13 }}>完整订单详情</div>
-                <div style={{ fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</div>
                 <div style={{ color: "#64748b", fontSize: 13 }}>状态</div>
                 <div style={{ fontSize: 14 }}>{statusText[o.status] ?? o.status}</div>
                 <div style={{ color: "#64748b", fontSize: 13 }}>金额</div>
@@ -334,7 +357,7 @@ export default function ClientOrdersHallPage() {
           type="text"
           value={searchMy}
           onChange={(e) => setSearchMy(e.target.value)}
-          placeholder="搜索订单号、标题或要求（精准）"
+          placeholder="搜索订单号或标题（精准）"
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 240 }}
         />
         <button type="button" onClick={() => load(undefined, searchMy, undefined, myDateFilter)} style={{ padding: "6px 14px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
@@ -373,8 +396,6 @@ export default function ClientOrdersHallPage() {
                 <span style={{ color: "#666" }}>{statusText[o.status] ?? o.status}</span>
               </div>
               <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "130px 1fr", gap: 8, alignItems: "start" }}>
-                <div style={{ color: "#64748b", fontSize: 13 }}>完整订单详情</div>
-                <div style={{ fontSize: 14, whiteSpace: "pre-wrap" }}>{o.requirements}</div>
                 <div style={{ color: "#64748b", fontSize: 13 }}>状态</div>
                 <div style={{ fontSize: 14 }}>{statusText[o.status] ?? o.status}</div>
                 <div style={{ color: "#64748b", fontSize: 13 }}>金额</div>
@@ -385,34 +406,123 @@ export default function ClientOrdersHallPage() {
               {renderSkuInfo(o)}
               {renderTierStandards(String(o.tier || ""))}
               {renderVoiceEntry(o)}
-              {o.work_link && (
-                <p style={{ fontSize: 14 }}>
-                  交付：
-                  <a href={o.work_link} target="_blank" rel="noreferrer">
-                    {o.work_link}
-                  </a>
-                </p>
+              <p style={{ marginTop: 8, fontSize: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLinksModalLinks(o.work_links);
+                    setLinksModalOpen(true);
+                  }}
+                  style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                >
+                  查看链接
+                </button>
+              </p>
+              {o.status === "completed" && influencerEditId === o.id && (
+                <div style={{ marginTop: 10 }}>
+                  {influencerEditDraft.map((line, idx) => (
+                    <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <input
+                        value={line}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setInfluencerEditDraft((prev) => prev.map((p, i) => (i === idx ? v : p)));
+                        }}
+                        placeholder="https://..."
+                        style={{ flex: 1, minWidth: 200, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setInfluencerEditDraft((prev) => prev.filter((_, i) => i !== idx))}
+                        style={{ padding: "4px 8px", border: "1px solid #fecaca", borderRadius: 8, background: "#fff", cursor: "pointer", color: "#b91c1c" }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => setInfluencerEditDraft((prev) => [...prev, ""])} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#f8fafc", cursor: "pointer" }}>
+                    + 新增链接
+                  </button>
+                  <div style={{ marginTop: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => saveInfluencerWorkLinks(o.id)}
+                      disabled={savingInfluencerLinks}
+                      style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: savingInfluencerLinks ? "not-allowed" : "pointer", marginRight: 8 }}
+                    >
+                      {savingInfluencerLinks ? "保存中..." : "保存链接"}
+                    </button>
+                    <button type="button" onClick={() => setInfluencerEditId(null)} style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+                      取消
+                    </button>
+                  </div>
+                </div>
+              )}
+              {o.status === "completed" && influencerEditId !== o.id && completeId !== o.id && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInfluencerEditId(o.id);
+                    const base = o.work_links.length ? [...o.work_links] : [""];
+                    setInfluencerEditDraft(base.length ? base : [""]);
+                  }}
+                  style={{ marginTop: 8, padding: "6px 12px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                >
+                  编辑交付链接
+                </button>
               )}
               {o.status === "claimed" && (
                 <div style={{ marginTop: 12 }}>
                   {completeId === o.id ? (
                     <div>
-                      <input
-                        type="url"
-                        value={workLink}
-                        onChange={(e) => setWorkLink(e.target.value)}
-                        placeholder="https://..."
-                        style={{ width: "100%", maxWidth: 400, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", marginRight: 8 }}
-                      />
+                      {workLinkRows.map((line, idx) => (
+                        <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
+                          <input
+                            type="url"
+                            value={line}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setWorkLinkRows((prev) => prev.map((p, i) => (i === idx ? v : p)));
+                            }}
+                            placeholder="https://..."
+                            style={{ flex: 1, minWidth: 200, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setWorkLinkRows((prev) => prev.filter((_, i) => i !== idx))}
+                            style={{ padding: "4px 8px", border: "1px solid #fecaca", borderRadius: 8, background: "#fff", cursor: "pointer", color: "#b91c1c" }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => setWorkLinkRows((prev) => [...prev, ""])} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#f8fafc", cursor: "pointer", marginBottom: 8 }}>
+                        + 新增链接
+                      </button>
                       <button type="button" onClick={handleComplete} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", marginTop: 8 }}>
                         确认提交
                       </button>
-                      <button type="button" onClick={() => { setCompleteId(null); setWorkLink(""); }} style={{ marginLeft: 8, padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer", marginTop: 8 }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCompleteId(null);
+                          setWorkLinkRows([""]);
+                        }}
+                        style={{ marginLeft: 8, padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer", marginTop: 8 }}
+                      >
                         取消
                       </button>
                     </div>
                   ) : (
-                    <button type="button" onClick={() => { setCompleteId(o.id); setWorkLink(""); }} style={{ padding: "8px 16px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCompleteId(o.id);
+                        setWorkLinkRows([""]);
+                        setInfluencerEditId(null);
+                      }}
+                      style={{ padding: "8px 16px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+                    >
                       完成并上传链接
                     </button>
                   )}
@@ -423,6 +533,7 @@ export default function ClientOrdersHallPage() {
           {myList.length === 0 && <p style={{ color: "#666" }}>暂无记录</p>}
         </div>
       )}
+      <WorkLinksModal open={linksModalOpen} onClose={() => setLinksModalOpen(false)} links={linksModalLinks} title="交付链接" />
     </div>
   );
 }

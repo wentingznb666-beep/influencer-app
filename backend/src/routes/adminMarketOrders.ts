@@ -1,6 +1,7 @@
 import { Router, Response } from "express";
 import { query } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
+import { normalizeWorkLinksFromDb } from "../marketOrderWorkLinks";
 
 const router = Router();
 router.use(requireAuth);
@@ -27,7 +28,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
   const requesterRole = req.user?.role === "employee" ? "employee" : "admin";
   (async () => {
     let sql = `
-      SELECT mo.id, mo.order_no, mo.title, mo.requirements,
+      SELECT mo.id, mo.order_no, mo.title,
              mo.reward_points AS client_pay_points,
              CASE WHEN $1 = 'employee' THEN NULL ELSE mo.creator_reward_points END AS creator_reward_points,
              CASE WHEN $1 = 'employee' THEN NULL ELSE mo.platform_profit_points END AS platform_profit_points,
@@ -36,7 +37,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
              mo.client_id, uc.username AS client_username,
              mo.client_shop_name, mo.client_group_chat,
              mo.influencer_id, ui.username AS influencer_username,
-             mo.work_link, mo.created_at, mo.updated_at, mo.completed_at
+             mo.work_links, mo.created_at, mo.updated_at, mo.completed_at
       FROM client_market_orders mo
       JOIN users uc ON mo.client_id = uc.id
       LEFT JOIN users ui ON mo.influencer_id = ui.id
@@ -45,7 +46,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     const where: string[] = [];
     let idx = 2;
     if (rawQ) {
-      where.push(`(mo.order_no = $${idx} OR mo.title = $${idx} OR mo.requirements = $${idx})`);
+      where.push(`(mo.order_no = $${idx} OR mo.title = $${idx})`);
       params.push(rawQ);
       idx += 1;
     }
@@ -64,7 +65,11 @@ router.get("/", (req: AuthRequest, res: Response) => {
     }
     sql += ` ORDER BY mo.id DESC LIMIT 500`;
     const { rows } = await query(sql, params);
-    res.json({ list: rows });
+    const list = rows.map((r: Record<string, unknown>) => ({
+      ...r,
+      work_links: normalizeWorkLinksFromDb(r.work_links),
+    }));
+    res.json({ list });
   })().catch((e) => {
     console.error("admin market-orders list error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });

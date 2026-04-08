@@ -232,8 +232,7 @@ const FULL_INIT_SQL = `
     id SERIAL PRIMARY KEY,
     client_id INTEGER NOT NULL REFERENCES users(id),
     order_no TEXT,
-    title TEXT,
-    requirements TEXT NOT NULL,
+    title TEXT NOT NULL DEFAULT '未命名订单',
     /**
      * �ͻ�֧�����֣���ʷ�ֶ����� reward_points��������ƽ̨����������̨������
      */
@@ -248,7 +247,7 @@ const FULL_INIT_SQL = `
     pay_deducted INTEGER NOT NULL DEFAULT 0 CHECK (pay_deducted IN (0, 1)),
     status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'claimed', 'completed', 'cancelled')),
     influencer_id INTEGER REFERENCES users(id),
-    work_link TEXT,
+    work_links JSONB NOT NULL DEFAULT '[]'::jsonb,
     /** A ���ѡ�������ز��������� */
     voice_link TEXT,
     /** A ���ѡ������Ҫ��ע */
@@ -633,9 +632,6 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS client_shop_name TEXT`);
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS client_group_chat TEXT`);
     await query(
-      `UPDATE client_market_orders SET title = LEFT(requirements, 200) WHERE title IS NULL OR TRIM(COALESCE(title, '')) = ''`,
-    );
-    await query(
       `UPDATE client_market_orders SET order_no = 'XT-LEGACY-' || id::text WHERE order_no IS NULL`,
     );
     await query(
@@ -781,6 +777,29 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE client_showcase_creator_favorites ADD COLUMN IF NOT EXISTS is_deleted INTEGER NOT NULL DEFAULT 0`);
   await query(`ALTER TABLE client_showcase_creator_favorites ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
   await query(`CREATE INDEX IF NOT EXISTS idx_client_showcase_cc_fav ON client_showcase_creator_favorites(client_id, id DESC) WHERE is_deleted = 0`);
+
+  // 达人领单：work_links JSONB 多条交付链接；迁移 work_link；移除 requirements
+  await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS work_links JSONB NOT NULL DEFAULT '[]'::jsonb`);
+  const _wl = await query<{ exists: boolean }>(
+    `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'client_market_orders' AND column_name = 'work_link') AS exists`,
+  );
+  if (_wl.rows[0]?.exists) {
+    await query(
+      `UPDATE client_market_orders SET work_links = CASE WHEN work_link IS NOT NULL AND TRIM(work_link) <> '' THEN jsonb_build_array(TRIM(work_link)) ELSE '[]'::jsonb END`,
+    );
+    await query(`ALTER TABLE client_market_orders DROP COLUMN work_link`);
+  }
+  const _rq = await query<{ exists: boolean }>(
+    `SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'client_market_orders' AND column_name = 'requirements') AS exists`,
+  );
+  if (_rq.rows[0]?.exists) {
+    await query(
+      `UPDATE client_market_orders SET title = LEFT(TRIM(COALESCE(requirements, '')), 200) WHERE (title IS NULL OR TRIM(COALESCE(title, '')) = '') AND requirements IS NOT NULL AND TRIM(COALESCE(requirements, '')) <> ''`,
+    );
+    await query(`UPDATE client_market_orders SET title = '未命名订单' WHERE title IS NULL OR TRIM(COALESCE(title, '')) = ''`);
+    await query(`ALTER TABLE client_market_orders DROP COLUMN requirements`);
+  }
+
 
 }
 

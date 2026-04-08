@@ -6,7 +6,6 @@ type MarketOrderItem = {
   id: number;
   order_no: string | null;
   title: string | null;
-  requirements: string;
   tier: "A" | "B" | "C" | string;
   voice_link?: string | null;
   voice_note?: string | null;
@@ -31,7 +30,6 @@ export default function MarketOrderEditPage() {
   const [item, setItem] = useState<MarketOrderItem | null>(null);
   const [form, setForm] = useState({
     title: "",
-    requirements: "",
     client_shop_name: "",
     client_group_chat: "",
     tier: "C" as "C" | "B" | "A",
@@ -56,7 +54,7 @@ export default function MarketOrderEditPage() {
       setItem(it);
       setForm({
         title: it.title || "",
-        requirements: it.requirements || "",
+
         client_shop_name: (it.client_shop_name || "") as any,
         client_group_chat: (it.client_group_chat || "") as any,
         tier: (String(it.tier || "C").toUpperCase() as any) === "A" ? "A" : (String(it.tier || "C").toUpperCase() as any) === "B" ? "B" : "C",
@@ -85,10 +83,14 @@ export default function MarketOrderEditPage() {
       setError("请输入客户对接群聊（群号/链接）");
       return;
     }
+    const titleText = form.title.trim();
+    if (!titleText || titleText.length > 200) {
+      setError("请填写订单标题（1–200 字）。");
+      return;
+    }
     try {
       await api.updateMarketOrder(item.id, {
-        title: form.title.trim() || undefined,
-        requirements: form.requirements.trim() || undefined,
+        title: titleText,
         client_shop_name: form.client_shop_name.trim(),
         client_group_chat: form.client_group_chat.trim(),
         tier: form.tier,
@@ -121,12 +123,8 @@ export default function MarketOrderEditPage() {
       ) : item ? (
         <form onSubmit={onSubmit} style={{ marginTop: 14 }}>
           <div style={{ marginBottom: 10 }}>
-            <label>订单标题（可选）</label>
+            <label>订单标题（必填，1–200 字）</label>
             <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} maxLength={200} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <label>任务要求</label>
-            <textarea value={form.requirements} onChange={(e) => setForm((f) => ({ ...f, requirements: e.target.value }))} rows={5} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
           </div>
           <div style={{ marginBottom: 10 }}>
             <label>客户店铺名称（必填）</label>
