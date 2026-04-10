@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import * as api from "../adminApi";
 import { getStoredUser } from "../authApi";
@@ -14,6 +14,7 @@ type Row = {
   order_no: string | null;
   title: string | null;
   tier: "A" | "B" | "C" | string;
+  publish_method?: "client_self_publish" | "influencer_publish_with_cart" | string;
   client_pay_points: number;
   creator_reward_points: number;
   platform_profit_points: number;
@@ -141,6 +142,10 @@ export default function MarketOrdersPage() {
     completed: "已完成",
     cancelled: "已取消",
   };
+  const publishMethodText: Record<string, string> = {
+    client_self_publish: "视频拍完后客人自己发布",
+    influencer_publish_with_cart: "我们达人在TK账号发布和挂购物车",
+  };
 
   /**
    * 同步搜索词到 URL，支持按订单号深链定位。
@@ -207,9 +212,10 @@ export default function MarketOrdersPage() {
     setSavingClientInfo(true);
     setError(null);
     try {
-      await api.updateAdminOrderClientInfo(detailOrder.id, { client_shop_name: shopName, client_group_chat: groupChat });
-      setList((prev) => prev.map((row) => (row.id === detailOrder.id ? { ...row, client_shop_name: shopName, client_group_chat: groupChat } : row)));
-      setDetailOrder((prev) => (prev ? { ...prev, client_shop_name: shopName, client_group_chat: groupChat } : prev));
+      const publishMethod = String(detailOrder.publish_method || "client_self_publish") === "influencer_publish_with_cart" ? "influencer_publish_with_cart" : "client_self_publish";
+      await api.updateAdminOrderClientInfo(detailOrder.id, { client_shop_name: shopName, client_group_chat: groupChat, publish_method: publishMethod });
+      setList((prev) => prev.map((row) => (row.id === detailOrder.id ? { ...row, client_shop_name: shopName, client_group_chat: groupChat, publish_method: publishMethod } : row)));
+      setDetailOrder((prev) => (prev ? { ...prev, client_shop_name: shopName, client_group_chat: groupChat, publish_method: publishMethod } : prev));
     } catch (e) {
       setError(e instanceof Error ? e.message : "更新失败");
     } finally {
@@ -344,6 +350,7 @@ export default function MarketOrdersPage() {
                   <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
                     <div style={{ fontWeight: 600 }}>{o.title || "未命名订单"}</div>
                     <div style={{ marginTop: 4, color: "#64748b", fontSize: "0.95em" }}>档位：{o.tier}</div>
+                    <div style={{ marginTop: 4, color: "#64748b", fontSize: "0.95em" }}>发布方式：{publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}</div>
                   </td>
                   <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
                     <SkuTableCell codes={o.sku_codes} />
@@ -444,6 +451,17 @@ export default function MarketOrdersPage() {
               <div style={{ color: "#64748b" }}>领取达人</div><div>{detailOrder.influencer_username ? `${detailOrder.influencer_username} / ${detailOrder.influencer_display_name || detailOrder.influencer_username}` : "—"}</div>
               <div style={{ color: "#64748b" }}>状态</div><div>{statusText[detailOrder.status] ?? detailOrder.status}</div>
               <div style={{ color: "#64748b" }}>档位</div><div>{detailOrder.tier}</div>
+              <div style={{ color: "#64748b" }}>发布方式</div>
+              <div>
+                <select
+                  value={String(detailOrder.publish_method || "client_self_publish")}
+                  onChange={(e) => setDetailOrder((prev) => (prev ? { ...prev, publish_method: e.target.value as any } : prev))}
+                  style={{ width: "100%", maxWidth: 360, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
+                >
+                  <option value="client_self_publish">视频拍完后客人自己发布</option>
+                  <option value="influencer_publish_with_cart">我们达人在TK账号发布和挂购物车</option>
+                </select>
+              </div>
               <div style={{ color: "#64748b" }}>客户支付</div><div>{detailOrder.client_pay_points}</div>
               {!isEmployee && (
                 <>

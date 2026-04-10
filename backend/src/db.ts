@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+﻿import bcrypt from "bcryptjs";
 import { Pool, PoolClient } from "pg";
 
 /** Postgres ���ӳص��������ڴ��˷ַ� APP �û�����ɫ����������� */
@@ -266,6 +266,7 @@ const FULL_INIT_SQL = `
     client_shop_name TEXT,
     /** �ͻ��Խ�Ⱥ�ģ����Ⱥ�Ż����ӣ� */
     client_group_chat TEXT,
+    publish_method TEXT NOT NULL DEFAULT 'client_self_publish' CHECK (publish_method IN ('client_self_publish', 'influencer_publish_with_cart')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     completed_at TIMESTAMPTZ,
@@ -631,6 +632,13 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS sku_ids JSONB NOT NULL DEFAULT '[]'::jsonb`);
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS client_shop_name TEXT`);
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS client_group_chat TEXT`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS publish_method TEXT NOT NULL DEFAULT 'client_self_publish'`);
+    await query(
+      `UPDATE client_market_orders
+         SET publish_method = 'client_self_publish'
+       WHERE publish_method IS NULL
+          OR publish_method NOT IN ('client_self_publish', 'influencer_publish_with_cart')`,
+    );
     await query(
       `UPDATE client_market_orders SET order_no = 'XT-LEGACY-' || id::text WHERE order_no IS NULL`,
     );

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+﻿import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import * as api from "../clientApi";
 
@@ -7,6 +7,7 @@ type MarketOrderItem = {
   order_no: string | null;
   title: string | null;
   tier: "A" | "B" | "C" | string;
+  publish_method?: "client_self_publish" | "influencer_publish_with_cart" | string;
   voice_link?: string | null;
   voice_note?: string | null;
   tiktok_link?: string | null;
@@ -33,6 +34,7 @@ export default function MarketOrderEditPage() {
     client_shop_name: "",
     client_group_chat: "",
     tier: "C" as "C" | "B" | "A",
+    publish_method: "client_self_publish" as "client_self_publish" | "influencer_publish_with_cart",
     voice_link: "",
     voice_note: "",
     tiktok_link: "",
@@ -58,6 +60,7 @@ export default function MarketOrderEditPage() {
         client_shop_name: (it.client_shop_name || "") as any,
         client_group_chat: (it.client_group_chat || "") as any,
         tier: (String(it.tier || "C").toUpperCase() as any) === "A" ? "A" : (String(it.tier || "C").toUpperCase() as any) === "B" ? "B" : "C",
+        publish_method: String(it.publish_method || "client_self_publish") === "influencer_publish_with_cart" ? "influencer_publish_with_cart" : "client_self_publish",
         voice_link: (it.voice_link || "") as any,
         voice_note: (it.voice_note || "") as any,
         tiktok_link: (it.tiktok_link || "") as any,
@@ -94,6 +97,7 @@ export default function MarketOrderEditPage() {
         client_shop_name: form.client_shop_name.trim(),
         client_group_chat: form.client_group_chat.trim(),
         tier: form.tier,
+        publish_method: form.publish_method,
         voice_link: form.tier === "A" ? (form.voice_link.trim() || undefined) : undefined,
         voice_note: form.tier === "A" ? (form.voice_note.trim() || undefined) : undefined,
         tiktok_link: form.tiktok_link.trim() || undefined,

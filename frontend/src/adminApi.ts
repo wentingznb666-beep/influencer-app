@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 管理员端 API 请求封装：自动携带 JWT，统一 base URL。
  */
 import { getAccessToken } from "./authApi";
@@ -291,7 +291,7 @@ export async function getAdminOrders(params?: { q?: string; status?: "open" | "c
 /**
  * 管理员/员工：更新订单客户基础信息（店铺名称、对接群聊）。
  */
-export async function updateAdminOrderClientInfo(id: number, body: { client_shop_name: string; client_group_chat: string }) {
+export async function updateAdminOrderClientInfo(id: number, body: { client_shop_name: string; client_group_chat: string; publish_method: "client_self_publish" | "influencer_publish_with_cart" }) {
   const res = await fetchWithAuth(`/api/admin/orders/${id}/client-info`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },

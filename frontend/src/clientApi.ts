@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 客户端 API：合作意向、订单、积分与充值。
  */
 import { fetchWithAuth } from "./fetchWithAuth";
@@ -185,6 +185,7 @@ export async function createMarketOrder(body: {
   title: string;
   client_shop_name: string;
   client_group_chat: string;
+  publish_method: "client_self_publish" | "influencer_publish_with_cart";
   tier?: "A" | "B" | "C";
   voice_link?: string;
   voice_note?: string;
@@ -210,6 +211,7 @@ export async function updateMarketOrder(
   body: {
     client_shop_name?: string;
     client_group_chat?: string;
+    publish_method?: "client_self_publish" | "influencer_publish_with_cart";
     title?: string;
     tier?: "A" | "B" | "C";
     voice_link?: string;

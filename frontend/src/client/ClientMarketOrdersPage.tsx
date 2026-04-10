@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import * as api from "../clientApi";
 import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFilter";
@@ -11,6 +11,7 @@ type MarketOrder = {
   title: string | null;
   reward_points: number;
   tier?: "A" | "B" | "C" | string;
+  publish_method?: "client_self_publish" | "influencer_publish_with_cart" | string;
   tiktok_link?: string | null;
   sku_codes?: string[] | null;
   sku_images?: string[] | null;
@@ -78,6 +79,7 @@ export default function ClientMarketOrdersPage() {
   const [clientShopName, setClientShopName] = useState("");
   const [clientGroupChat, setClientGroupChat] = useState("");
   const [tier, setTier] = useState<"C" | "B" | "A">("C");
+  const [publishMethod, setPublishMethod] = useState<"client_self_publish" | "influencer_publish_with_cart">("client_self_publish");
   const [voiceLink, setVoiceLink] = useState("");
   const [voiceNote, setVoiceNote] = useState("");
   const [tiktokLink, setTiktokLink] = useState("");
@@ -223,6 +225,7 @@ export default function ClientMarketOrdersPage() {
         tier,
         voice_link: tier === "A" ? (voiceLink.trim() || undefined) : undefined,
         voice_note: tier === "A" ? (voiceNote.trim() || undefined) : undefined,
+        publish_method: publishMethod,
         tiktok_link: tiktokLink.trim() || undefined,
         product_images: [],
         sku_ids: selectedSkuIds,
@@ -235,6 +238,7 @@ export default function ClientMarketOrdersPage() {
       setClientShopName("");
       setClientGroupChat("");
       setTier("C");
+      setPublishMethod("client_self_publish");
       setVoiceLink("");
       setVoiceNote("");
       setTiktokLink("");

@@ -1,4 +1,4 @@
-import { Router, Response } from "express";
+﻿import { Router, Response } from "express";
 import { query, withTx } from "../db";
 import { ensurePointAccountLocked } from "../pointAccounts";
 import { allocateMarketOrderNo } from "../marketOrderNo";
@@ -27,6 +27,8 @@ const skuUpload = multer({
  * - 订单完成后，达人收益固定为 5（不随客户支付变化）
  */
 const MARKET_ORDER_CREATOR_REWARD = 5;
+const PUBLISH_METHOD_CLIENT_SELF = "client_self_publish";
+const PUBLISH_METHOD_INFLUENCER_CART = "influencer_publish_with_cart";
 
 /**
  * 获取可用于外部访问的文件 URL 根路径。
@@ -108,6 +110,15 @@ function normalizeClientShopName(input: unknown): string {
 function normalizeClientGroupChat(input: unknown): string {
   const value = input != null ? String(input).trim() : "";
   return value;
+}
+
+/**
+ * 规范化订单发布方式，仅允许固定枚举值。
+ */
+function normalizePublishMethod(input: unknown): string {
+  const value = input != null ? String(input).trim() : "";
+  if (value === PUBLISH_METHOD_CLIENT_SELF || value === PUBLISH_METHOD_INFLUENCER_CART) return value;
+  return "";
 }
 
 /**
@@ -674,7 +685,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
   const startDate = normalizeDateOnly(req.query.start_date);
   const endDate = normalizeDateOnly(req.query.end_date);
   (async () => {
-    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.reward_points, mo.tier, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images, mo.sku_ids, mo.status, mo.influencer_id, mo.work_links, mo.client_shop_name, mo.client_group_chat, mo.created_at, mo.updated_at, mo.completed_at,
+    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.reward_points, mo.tier, mo.publish_method, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images, mo.sku_ids, mo.status, mo.influencer_id, mo.work_links, mo.client_shop_name, mo.client_group_chat, mo.created_at, mo.updated_at, mo.completed_at,
                       ui.username AS influencer_username,
                       COALESCE(NULLIF(ui.display_name, ''), ui.username) AS influencer_display_name
        FROM client_market_orders mo
@@ -718,7 +729,7 @@ router.get("/market-orders/:id", (req: AuthRequest, res: Response) => {
   }
   (async () => {
     const { rows } = await query(
-      `SELECT id, order_no, title, tier, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, reward_points, status, influencer_id, work_links, client_shop_name, client_group_chat, created_at, updated_at, completed_at
+      `SELECT id, order_no, title, tier, publish_method, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, reward_points, status, influencer_id, work_links, client_shop_name, client_group_chat, created_at, updated_at, completed_at
          FROM client_market_orders WHERE id = $1 AND client_id = $2 AND is_deleted = 0`,
       [id, clientId]
     );
@@ -740,7 +751,7 @@ router.get("/market-orders/:id", (req: AuthRequest, res: Response) => {
  */
 router.post("/market-orders", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
-  const { title, tier, voice_link, voice_note, tiktok_link, product_images, task_count, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat } = req.body ?? {};
+  const { title, tier, voice_link, voice_note, tiktok_link, product_images, task_count, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, publish_method } = req.body ?? {};
   if (typeof tiktok_link === "string" && tiktok_link.trim().length > 2000) {
     res.status(400).json({ error: "INVALID_TIKTOK", message: "TikTok 链接最长 2000 字符。" });
     return;
@@ -766,6 +777,11 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
   }
   if (clientGroupChat.length > 2000) {
     res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "客户对接群聊最长 2000 字符。" });
+    return;
+  }
+  const publishMethod = normalizePublishMethod(publish_method);
+  if (!publishMethod) {
+    res.status(400).json({ error: "INVALID_PUBLISH_METHOD", message: "请选择发布方式" });
     return;
   }
   (async () => {
@@ -805,9 +821,9 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
         const orderNo = await allocateMarketOrderNo(client);
         const ins = await client.query<{ id: number; order_no: string }>(
           `INSERT INTO client_market_orders
-             (client_id, order_no, title, reward_points, tier, creator_reward_points, platform_profit_points, pay_deducted, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, status)
+             (client_id, order_no, title, reward_points, tier, creator_reward_points, platform_profit_points, pay_deducted, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, publish_method, status)
            VALUES
-             ($1, $2, $3, $4, $5, $6, $7, 0, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb, $15, $16, 'open')
+             ($1, $2, $3, $4, $5, $6, $7, 0, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb, $15, $16, $17, 'open')
            RETURNING id, order_no`,
           [
             clientId,
@@ -826,6 +842,7 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
             JSON.stringify(finalSkuIds),
             clientShopName,
             clientGroupChat,
+            publishMethod,
           ]
         );
         const orderId = ins.rows[0]!.id;
@@ -873,7 +890,7 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
     return;
   }
-  const { title, tier, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat } = req.body ?? {};
+  const { title, tier, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, publish_method } = req.body ?? {};
   const nextTitle = title !== undefined ? String(title ?? "").trim() : undefined;
   const nextTier = typeof tier === "string" ? tier.trim().toUpperCase() : undefined;
   const voiceLink = voice_link !== undefined ? String(voice_link ?? "").trim() : undefined;
@@ -885,6 +902,7 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
   const nextSkuIds = sku_ids !== undefined ? normalizeSkuIds(sku_ids) : undefined;
   const nextClientShopName = client_shop_name !== undefined ? normalizeClientShopName(client_shop_name) : undefined;
   const nextClientGroupChat = client_group_chat !== undefined ? normalizeClientGroupChat(client_group_chat) : undefined;
+  const nextPublishMethod = publish_method !== undefined ? normalizePublishMethod(publish_method) : undefined;
   if (nextTitle !== undefined && (!nextTitle || nextTitle.length > 200)) {
     res.status(400).json({ error: "INVALID_TITLE", message: "请填写订单标题（1–200 字）。" });
     return;
@@ -909,9 +927,13 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "请输入有效客户对接群聊（1-2000）。" });
     return;
   }
+  if (publish_method !== undefined && !nextPublishMethod) {
+    res.status(400).json({ error: "INVALID_PUBLISH_METHOD", message: "请选择发布方式" });
+    return;
+  }
   (async () => {
-    const row = await query<{ id: number; status: string; tier: string; client_shop_name: string | null; client_group_chat: string | null }>(
-      "SELECT id, status, tier, client_shop_name, client_group_chat FROM client_market_orders WHERE id = $1 AND client_id = $2 AND is_deleted = 0",
+    const row = await query<{ id: number; status: string; tier: string; client_shop_name: string | null; client_group_chat: string | null; publish_method: string | null }>(
+      "SELECT id, status, tier, client_shop_name, client_group_chat, publish_method FROM client_market_orders WHERE id = $1 AND client_id = $2 AND is_deleted = 0",
       [id, clientId]
     );
     const ord = row.rows[0];
@@ -996,6 +1018,11 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
       res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "请输入客户对接群聊（群号/链接）。" });
       return;
     }
+    const finalPublishMethod = nextPublishMethod !== undefined ? nextPublishMethod : normalizePublishMethod(ord.publish_method);
+    if (!finalPublishMethod) {
+      res.status(400).json({ error: "INVALID_PUBLISH_METHOD", message: "请选择发布方式" });
+      return;
+    }
     if (nextClientShopName !== undefined) {
       sets.push(`client_shop_name = $${idx++}`);
       params.push(nextClientShopName);
@@ -1003,6 +1030,10 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
     if (nextClientGroupChat !== undefined) {
       sets.push(`client_group_chat = $${idx++}`);
       params.push(nextClientGroupChat);
+    }
+    if (nextPublishMethod !== undefined) {
+      sets.push(`publish_method = $${idx++}`);
+      params.push(nextPublishMethod);
     }
     await withTx(async (client) => {
       sets.push(`updated_at = now()`);

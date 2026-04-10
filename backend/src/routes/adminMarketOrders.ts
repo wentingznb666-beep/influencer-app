@@ -1,4 +1,4 @@
-import { Router, Response } from "express";
+﻿import { Router, Response } from "express";
 import { query } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 import { normalizeWorkLinksFromDb } from "../marketOrderWorkLinks";
@@ -34,6 +34,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
              CASE WHEN $1 = 'employee' THEN NULL ELSE mo.creator_reward_points END AS creator_reward_points,
              CASE WHEN $1 = 'employee' THEN NULL ELSE mo.platform_profit_points END AS platform_profit_points,
              mo.tier,
+             mo.publish_method,
              mo.status,
              mo.client_id, uc.username AS client_username,
              mo.client_shop_name, mo.client_group_chat,

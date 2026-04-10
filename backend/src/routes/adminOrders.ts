@@ -1,4 +1,4 @@
-import { Router, Response } from "express";
+﻿import { Router, Response } from "express";
 import { query } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 import { normalizeWorkLinksFromDb, parseWorkLinksFromBody, validateWorkLinksForAdminEdit } from "../marketOrderWorkLinks";
@@ -9,6 +9,8 @@ router.use(requireAuth);
 router.use(requireRole("admin", "employee"));
 
 type OrderStatus = "open" | "claimed" | "completed" | "cancelled";
+const PUBLISH_METHOD_CLIENT_SELF = "client_self_publish";
+const PUBLISH_METHOD_INFLUENCER_CART = "influencer_publish_with_cart";
 
 /**
  * 解析订单状态筛选参数；空值表示不筛选。
@@ -30,6 +32,15 @@ function normalizeClientShopName(value: unknown): string {
  */
 function normalizeClientGroupChat(value: unknown): string {
   return value != null ? String(value).trim() : "";
+}
+
+/**
+ * 规范化发布方式，仅允许固定枚举值。
+ */
+function normalizePublishMethod(value: unknown): string {
+  const v = value != null ? String(value).trim() : "";
+  if (v === PUBLISH_METHOD_CLIENT_SELF || v === PUBLISH_METHOD_INFLUENCER_CART) return v;
+  return "";
 }
 
 /**
@@ -60,6 +71,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
              CASE WHEN $1 = 'employee' THEN NULL ELSE mo.creator_reward_points END AS creator_reward_points,
              CASE WHEN $1 = 'employee' THEN NULL ELSE mo.platform_profit_points END AS platform_profit_points,
              mo.tier,
+             mo.publish_method,
              mo.status,
              mo.sku_codes,
              mo.sku_ids,
@@ -121,7 +133,7 @@ router.patch("/:id/client-info", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
     return;
   }
-  const { client_shop_name, client_group_chat } = req.body ?? {};
+  const { client_shop_name, client_group_chat, publish_method } = req.body ?? {};
   const shopName = normalizeClientShopName(client_shop_name);
   const groupChat = normalizeClientGroupChat(client_group_chat);
   if (!shopName) {
@@ -140,13 +152,18 @@ router.patch("/:id/client-info", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "客户对接群聊最长 2000 字符。" });
     return;
   }
+  const publishMethod = normalizePublishMethod(publish_method);
+  if (!publishMethod) {
+    res.status(400).json({ error: "INVALID_PUBLISH_METHOD", message: "请选择发布方式" });
+    return;
+  }
   (async () => {
     const updated = await query<{ id: number }>(
       `UPDATE client_market_orders
-          SET client_shop_name = $1, client_group_chat = $2, updated_at = now()
-        WHERE id = $3 AND is_deleted = 0
+          SET client_shop_name = $1, client_group_chat = $2, publish_method = $3, updated_at = now()
+        WHERE id = $4 AND is_deleted = 0
         RETURNING id`,
-      [shopName, groupChat, id]
+      [shopName, groupChat, publishMethod, id]
     );
     if (!updated.rows[0]) {
       res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });

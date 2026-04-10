@@ -1,4 +1,4 @@
-import { Router, Response } from "express";
+﻿import { Router, Response } from "express";
 import { query, withTx } from "../db";
 import { ensurePointAccountLocked } from "../pointAccounts";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
@@ -472,7 +472,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
   (async () => {
     // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
-    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.tier, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images,
+    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.tier, mo.publish_method, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images,
                       mo.creator_reward_points AS reward_points, mo.status, mo.created_at,
                       mo.client_id, u.username AS client_username, COALESCE(NULLIF(u.display_name, ''), u.username) AS client_display_name,
                       mo.client_shop_name, mo.client_group_chat
@@ -520,7 +520,7 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
   (async () => {
     // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
-    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.tier, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images,
+    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.tier, mo.publish_method, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images,
                       mo.creator_reward_points AS reward_points, mo.status, mo.work_links, mo.created_at, mo.updated_at, mo.completed_at,
                       mo.client_id, u.username AS client_username, COALESCE(NULLIF(u.display_name, ''), u.username) AS client_display_name,
                       mo.client_shop_name, mo.client_group_chat

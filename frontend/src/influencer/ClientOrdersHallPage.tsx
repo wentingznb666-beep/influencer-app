@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import * as api from "../influencerApi";
 import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFilter";
 import WorkLinksModal from "../components/WorkLinksModal";
@@ -10,6 +10,7 @@ type OpenOrder = {
   title: string | null;
   reward_points: number;
   tier: "A" | "B" | "C" | string;
+  publish_method?: "client_self_publish" | "influencer_publish_with_cart" | string;
   voice_link?: string | null;
   voice_note?: string | null;
   sku_codes?: string[] | null;
@@ -27,6 +28,7 @@ type MyOrder = {
   title: string | null;
   reward_points: number;
   tier: "A" | "B" | "C" | string;
+  publish_method?: "client_self_publish" | "influencer_publish_with_cart" | string;
   voice_link?: string | null;
   voice_note?: string | null;
   sku_codes?: string[] | null;
@@ -273,6 +275,11 @@ export default function ClientOrdersHallPage() {
     completed: "已完成",
     cancelled: "已取消",
   };
+  const publishMethodText: Record<string, string> = {
+    client_self_publish: "视频拍完后客人自己发布",
+    influencer_publish_with_cart: "我们达人在TK账号发布和挂购物车",
+  };
+
 
   return (
     <div>
@@ -336,6 +343,8 @@ export default function ClientOrdersHallPage() {
                 <div style={{ fontSize: 14 }}>{statusText[o.status] ?? o.status}</div>
                 <div style={{ color: "#64748b", fontSize: 13 }}>金额</div>
                 <div style={{ fontSize: 14 }}>{o.reward_points} 积分</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>发布方式</div>
+                <div style={{ fontSize: 14 }}>{publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}</div>
                 <div style={{ color: "#64748b", fontSize: 13 }}>备注</div>
                 <div style={{ fontSize: 14 }}>{o.voice_note?.trim() ? o.voice_note : "—"}</div>
               </div>
@@ -400,6 +409,8 @@ export default function ClientOrdersHallPage() {
                 <div style={{ fontSize: 14 }}>{statusText[o.status] ?? o.status}</div>
                 <div style={{ color: "#64748b", fontSize: 13 }}>金额</div>
                 <div style={{ fontSize: 14 }}>{o.reward_points} 积分</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>发布方式</div>
+                <div style={{ fontSize: 14 }}>{publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}</div>
                 <div style={{ color: "#64748b", fontSize: 13 }}>备注</div>
                 <div style={{ fontSize: 14 }}>{o.voice_note?.trim() ? o.voice_note : "—"}</div>
               </div>
