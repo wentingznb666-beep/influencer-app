@@ -35,10 +35,10 @@ type SkuItem = {
 };
 
 /**
- * 将后端时间统一格式化为“年-月-日 时分秒”。
+ * ?????????????-?-? ?????
  */
 function formatDateTime(value?: string | null): string {
-  if (!value) return "—";
+  if (!value) return "?";
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -46,23 +46,32 @@ function formatDateTime(value?: string | null): string {
 }
 
 /**
- * 兼容不同字段命名，解析领取达人昵称（username/display/nickname）。
+ * ??????????????????username/display/nickname??
  */
 function resolveClaimerText(order: MarketOrder): string {
   const raw = order as unknown as Record<string, unknown>;
   const username = String(order.influencer_username || raw.influencer_nickname || raw.influencerName || "").trim();
   const display = String(order.influencer_display_name || raw.influencer_display || raw.influencerDisplayName || "").trim();
   if (username && display && username !== display) return `${username} / ${display}`;
-  return username || display || "—";
+  return username || display || "?";
 }
 
 /**
- * 兼容不同字段命名，解析 TikTok 链接。
+ * ??????????? TikTok ???
  */
 function resolveTikTokLink(order: MarketOrder): string {
   const raw = order as unknown as Record<string, unknown>;
   const link = String(order.tiktok_link || raw.tiktokLink || raw.tiktok_url || "").trim();
   return link;
+}
+
+/**
+ * ?????????????
+ */
+function resolvePublishMethodText(method?: string | null): string {
+
+  if (String(method || "").trim() === "influencer_publish_with_cart") return "我们达人在TK账号发布和挂购物车";
+  return "视频拍完后客人自己发布";
 }
 
 /**
@@ -190,7 +199,7 @@ export default function ClientMarketOrdersPage() {
   const consumePoints = tier === "A" ? 60 : tier === "B" ? 40 : 20;
   const totalConsumePoints = consumePoints * taskCount;
   const canAfford = balance == null ? true : balance >= totalConsumePoints;
-  const canSubmitClientInfo = clientShopName.trim().length > 0 && clientGroupChat.trim().length > 0;
+  const canSubmitClientInfo = clientShopName.trim().length > 0 && clientGroupChat.trim().length > 0 && publishMethod.trim().length > 0;
 
   /**
    * 提交新订单（需账户至少有约定奖励积分）。
@@ -360,6 +369,16 @@ export default function ClientMarketOrdersPage() {
             <option value="B">B 类：消耗 40 积分（含 C 类功能 + 场景切换 + 特效转场）</option>
             <option value="A">A 类：消耗 60 积分（含 B 类功能 + 配音服务）</option>
           </select>
+          <label htmlFor="publishMethod">{"\u53d1\u5e03\u65b9\u5f0f\uff08\u5fc5\u586b\uff09"}</label>
+          <select
+            id="publishMethod"
+            value={publishMethod}
+            onChange={(e) => setPublishMethod(e.target.value as "client_self_publish" | "influencer_publish_with_cart")}
+            style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
+          >
+            <option value="client_self_publish">{"\u89c6\u9891\u62cd\u5b8c\u540e\u5ba2\u4eba\u81ea\u5df1\u53d1\u5e03"}</option>
+            <option value="influencer_publish_with_cart">{"\u6211\u4eec\u8fbe\u4eba\u5728TK\u8d26\u53f7\u53d1\u5e03\u548c\u6302\u8d2d\u7269\u8f66"}</option>
+          </select>
           {tier === "A" && (
             <>
               <label htmlFor="voiceLink">配音素材下载链接（可选）</label>
@@ -501,6 +520,7 @@ export default function ClientMarketOrdersPage() {
                   领取达人账号昵称：{resolveClaimerText(o)}
                 </p>
               )}
+              <p style={{ margin: "8px 0 0", fontSize: 13, color: "#475569" }}>{"\u53d1\u5e03\u65b9\u5f0f\uff1a"}{resolvePublishMethodText(o.publish_method)}</p>
               {!!resolveTikTokLink(o) && (
                 <p style={{ margin: "8px 0 0", fontSize: 13 }}>
                   TikTok：
