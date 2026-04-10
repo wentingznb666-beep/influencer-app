@@ -157,8 +157,8 @@ export default function MarketOrderEditPage() {
               onChange={(e) => setForm((f) => ({ ...f, publish_method: e.target.value as "client_self_publish" | "influencer_publish_with_cart" }))}
               style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box", background: "#fff" }}
             >
-              <option value="client_self_publish">{"\u89c6\u9891\u62cd\u5b8c\u540e\u5ba2\u4eba\u81ea\u5df1\u53d1\u5e03"}</option>
-              <option value="influencer_publish_with_cart">{"\u6211\u4eec\u8fbe\u4eba\u5728TK\u8d26\u53f7\u53d1\u5e03\u548c\u6302\u8d2d\u7269\u8f66"}</option>
+              <option value="client_self_publish">{"\u89c6\u9891\u62cd\u5b8c\u540e\u81ea\u5df1\u53d1\u5e03"}</option>
+              <option value="influencer_publish_with_cart">{"\u8fbe\u4eba\u5728TikTok\u8d26\u53f7\u53d1\u5e03\u89c6\u9891\u548c\u6302\u5728\u8d2d\u7269\u8f66"}</option>
             </select>
           </div>
           {form.tier === "A" && (

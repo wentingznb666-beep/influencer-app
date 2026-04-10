@@ -276,8 +276,8 @@ export default function ClientOrdersHallPage() {
     cancelled: "已取消",
   };
   const publishMethodText: Record<string, string> = {
-    client_self_publish: "视频拍完后客人自己发布",
-    influencer_publish_with_cart: "我们达人在TK账号发布和挂购物车",
+    client_self_publish: "\u89c6\u9891\u62cd\u5b8c\u540e\u81ea\u5df1\u53d1\u5e03",
+    influencer_publish_with_cart: "\u8fbe\u4eba\u5728TikTok\u8d26\u53f7\u53d1\u5e03\u89c6\u9891\u548c\u6302\u5728\u8d2d\u7269\u8f66",
   };
 
 

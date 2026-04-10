@@ -35,7 +35,7 @@ type SkuItem = {
 };
 
 /**
- * ?????????????-?-? ?????
+ * ?????????-?-? ?????
  */
 function formatDateTime(value?: string | null): string {
   if (!value) return "?";
@@ -46,7 +46,7 @@ function formatDateTime(value?: string | null): string {
 }
 
 /**
- * ??????????????????username/display/nickname??
+ * ??????????????username/display/nickname??
  */
 function resolveClaimerText(order: MarketOrder): string {
   const raw = order as unknown as Record<string, unknown>;
@@ -57,7 +57,7 @@ function resolveClaimerText(order: MarketOrder): string {
 }
 
 /**
- * ??????????? TikTok ???
+ * ????????? TikTok ???
  */
 function resolveTikTokLink(order: MarketOrder): string {
   const raw = order as unknown as Record<string, unknown>;
@@ -66,12 +66,11 @@ function resolveTikTokLink(order: MarketOrder): string {
 }
 
 /**
- * ?????????????
+ * ?????????
  */
 function resolvePublishMethodText(method?: string | null): string {
-
-  if (String(method || "").trim() === "influencer_publish_with_cart") return "我们达人在TK账号发布和挂购物车";
-  return "视频拍完后客人自己发布";
+  if (String(method || "").trim() === "influencer_publish_with_cart") return "\u8fbe\u4eba\u5728TikTok\u8d26\u53f7\u53d1\u5e03\u89c6\u9891\u548c\u6302\u5728\u8d2d\u7269\u8f66";
+  return "\u89c6\u9891\u62cd\u5b8c\u540e\u81ea\u5df1\u53d1\u5e03";
 }
 
 /**
@@ -376,8 +375,8 @@ export default function ClientMarketOrdersPage() {
             onChange={(e) => setPublishMethod(e.target.value as "client_self_publish" | "influencer_publish_with_cart")}
             style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
           >
-            <option value="client_self_publish">{"\u89c6\u9891\u62cd\u5b8c\u540e\u5ba2\u4eba\u81ea\u5df1\u53d1\u5e03"}</option>
-            <option value="influencer_publish_with_cart">{"\u6211\u4eec\u8fbe\u4eba\u5728TK\u8d26\u53f7\u53d1\u5e03\u548c\u6302\u8d2d\u7269\u8f66"}</option>
+            <option value="client_self_publish">{"\u89c6\u9891\u62cd\u5b8c\u540e\u81ea\u5df1\u53d1\u5e03"}</option>
+            <option value="influencer_publish_with_cart">{"\u8fbe\u4eba\u5728TikTok\u8d26\u53f7\u53d1\u5e03\u89c6\u9891\u548c\u6302\u5728\u8d2d\u7269\u8f66"}</option>
           </select>
           {tier === "A" && (
             <>
