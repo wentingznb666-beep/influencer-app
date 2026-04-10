@@ -3,7 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 type OrderTableScrollAreaProps = {
   children: ReactNode;
   /**
-   * 为 true 时：不出现横向滚动条，表格由子节点以 table-layout:fixed + 换行铺满容器（客户订单列表等）。
+   * 为 true 时：宽屏不出现横向滚动条，表格铺满容器；窄屏（≤767px，与 ORDER_TABLE_MOBILE_BREAKPOINT_PX 一致）由 CSS 恢复横向滑动。
    */
   fitContent?: boolean;
 };
@@ -33,6 +33,17 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
   );
 }
 
+/** 与 index.css 中订单表移动端 @media (max-width: …) 断点一致 */
+const ORDER_TABLE_MOBILE_BREAKPOINT_PX = 767;
+
+/**
+ * 是否为窄屏（移动端）：fit 模式下需恢复横向滚轮/拖拽与顶轨。
+ */
+function isOrderTableMobileViewport(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia('(max-width: ' + String(ORDER_TABLE_MOBILE_BREAKPOINT_PX) + 'px)').matches;
+}
+
 /**
  * 订单列表宽表横向滚动容器：
  * - 顶部与底部各一条横向滚动轨道同步 scrollLeft，避免「必须滚到表格最底才能拖到底部横条」的体验问题；
@@ -46,6 +57,17 @@ export default function OrderTableScrollArea({ children, fitContent = false }: O
   const muteScrollRef = useRef(false);
   const [topInnerWidth, setTopInnerWidth] = useState(0);
   const [showTopRail, setShowTopRail] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== "undefined" ? isOrderTableMobileViewport() : false,
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${ORDER_TABLE_MOBILE_BREAKPOINT_PX}px)`);
+    const apply = () => setIsMobileViewport(mq.matches);
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
 
   /**
    * 根据底部容器尺寸更新顶部占位宽度，并在无需横滑时隐藏顶轨。
@@ -79,7 +101,7 @@ export default function OrderTableScrollArea({ children, fitContent = false }: O
     const bottom = bottomRef.current;
     if (!top || !bottom) return;
     top.scrollLeft = bottom.scrollLeft;
-  }, [showTopRail, topInnerWidth]);
+  }, [showTopRail, topInnerWidth, isMobileViewport, fitContent]);
 
   /**
    * 顶轨与底轨 scrollLeft 双向同步；muteScrollRef 避免程序化赋值时互相触发 scroll 死循环。
@@ -120,7 +142,7 @@ export default function OrderTableScrollArea({ children, fitContent = false }: O
         top.removeEventListener("scroll", onTopScroll);
       }
     };
-  }, [showTopRail]);
+  }, [showTopRail, fitContent, isMobileViewport]);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -131,7 +153,7 @@ export default function OrderTableScrollArea({ children, fitContent = false }: O
      * 包裹层捕获 wheel：事件目标在底轨或顶轨内时统一改 bottom.scrollLeft（顶轨通过 scroll 事件与底轨同步）。
      */
     const onWheel = (e: WheelEvent) => {
-      if (fitContent) return;
+      if (fitContent && !isOrderTableMobileViewport()) return;
       const top = topRef.current;
       const t = e.target as Node;
       if (!bottom.contains(t) && !(top && top.contains(t))) return;
@@ -162,7 +184,7 @@ export default function OrderTableScrollArea({ children, fitContent = false }: O
    * 先检测横向位移阈值再进入拖拽，避免轻微点击与选中文本被误判；使用 document 级 pointer 监听，指针移出表格仍可拖。
    */
   useEffect(() => {
-    if (fitContent) return;
+    if (fitContent && !isMobileViewport) return;
     const scrollEl = bottomRef.current;
     if (!scrollEl) return;
     const tableEl: HTMLDivElement = scrollEl;
@@ -271,7 +293,7 @@ export default function OrderTableScrollArea({ children, fitContent = false }: O
       document.body.style.userSelect = "";
       tableEl.style.cursor = "";
     };
-  }, [fitContent]);
+  }, [fitContent, isMobileViewport]);
 
   const wrapClass = fitContent
     ? "xt-order-table-scroll-wrap xt-order-table-scroll-wrap--fit"
@@ -282,7 +304,7 @@ export default function OrderTableScrollArea({ children, fitContent = false }: O
 
   return (
     <div ref={wrapRef} className={wrapClass}>
-      {showTopRail && !fitContent && (
+      {showTopRail && (!fitContent || (fitContent && isMobileViewport)) && (
         <div ref={topRef} className="xt-order-table-scroll-top" tabIndex={-1} aria-hidden>
           <div className="xt-order-table-scroll-top-inner" style={{ width: topInnerWidth, minHeight: 8 }} />
         </div>

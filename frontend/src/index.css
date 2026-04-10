@@ -654,3 +654,20 @@ textarea {
   }
 }
 
+
+/* 订单列表移动端（<768px，与 responsive.ts 一致）：fit 模式下恢复横向滑动，与 OrderTableScrollArea 中断点一致 */
+@media (max-width: 767px) {
+  .xt-order-table-scroll-wrap--fit .xt-order-table-scroll--fit {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .xt-client-orders-table {
+    min-width: 960px;
+    width: 960px;
+    max-width: none;
+    table-layout: fixed;
+  }
+}
