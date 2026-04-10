@@ -247,35 +247,47 @@ export default function OrdersPage() {
       {loading ? (
         <p>加载中…</p>
       ) : (
-<OrderTableScrollArea>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1480 }}>
+        <OrderTableScrollArea fitContent>
+          <table className="xt-client-orders-table">
+            <colgroup>
+              <col style={{ width: "6%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "17%" }} />
+              <col style={{ width: "14%" }} />
+              <col style={{ width: "7%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "6%" }} />
+            </colgroup>
             <thead>
-              <tr style={{ background: "#f5f5f5" }}>
-                <th style={{ padding: 10, textAlign: "left" }}>订单号</th>
-                <th style={{ padding: 10, textAlign: "left" }}>客户账号/名称</th>
-                <th style={{ padding: 10, textAlign: "left" }}>领取达人</th>
-                <th style={{ padding: 10, textAlign: "left" }}>状态</th>
-                <th style={{ padding: 10, textAlign: "left" }}>金额</th>
-                <th style={{ padding: 10, textAlign: "left" }}>订单详情</th>
-                <th style={{ padding: 10, textAlign: "left" }}>SKU信息</th>
-                <th style={{ padding: 10, textAlign: "left" }}>交付链接</th>
-                <th style={{ padding: 10, textAlign: "left" }}>创建时间</th>
-                <th style={{ padding: 10, textAlign: "left" }}>完成时间</th>
+              <tr>
+                <th style={{ padding: 8, textAlign: "left" }}>订单号</th>
+                <th style={{ padding: 8, textAlign: "left" }}>客户账号/名称</th>
+                <th style={{ padding: 8, textAlign: "left" }}>领取达人</th>
+                <th style={{ padding: 8, textAlign: "left" }}>状态</th>
+                <th style={{ padding: 8, textAlign: "left" }}>金额</th>
+                <th style={{ padding: 8, textAlign: "left" }}>订单详情</th>
+                <th style={{ padding: 8, textAlign: "left" }}>SKU信息</th>
+                <th style={{ padding: 8, textAlign: "left" }}>交付链接</th>
+                <th style={{ padding: 8, textAlign: "left" }}>创建时间</th>
+                <th style={{ padding: 8, textAlign: "left" }}>完成时间</th>
               </tr>
             </thead>
             <tbody>
               {list.map((o) => (
                 <tr key={o.id}>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
                     <button
                       type="button"
                       onClick={() => setDetailOrder(o)}
-                      style={{ padding: 0, border: "none", background: "transparent", color: "var(--xt-accent)", cursor: "pointer", textDecoration: "underline" }}
+                      style={{ padding: 0, border: "none", background: "transparent", color: "var(--xt-accent)", cursor: "pointer", textDecoration: "underline", textAlign: "left", whiteSpace: "normal", maxWidth: "100%" }}
                     >
                       {o.order_no || `#${o.id}`}
                     </button>
                   </td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
                     {o.client_username}
                     <br />
                     <span style={{ color: "#64748b" }}>{o.client_display_name}（ID:{o.client_id}）</span>
@@ -293,7 +305,7 @@ export default function OrdersPage() {
                       )}
                     </span>
                   </td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
                     {o.influencer_username ? (
                       <span>
                         {o.influencer_username}
@@ -304,12 +316,12 @@ export default function OrdersPage() {
                       <span style={{ color: "#94a3b8" }}>—</span>
                     )}
                   </td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>
-                    <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 12, background: o.status === "open" ? "#ffedd5" : o.status === "claimed" ? "#dbeafe" : "#dcfce7", color: "#334155" }}>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
+                    <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.95em", display: "inline-block", background: o.status === "open" ? "#ffedd5" : o.status === "claimed" ? "#dbeafe" : "#dcfce7", color: "#334155" }}>
                       {statusText[o.status] ?? o.status}
                     </span>
                   </td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
                     客户支付：{o.client_pay_points}
                     {!isEmployee && (
                       <>
@@ -318,27 +330,27 @@ export default function OrdersPage() {
                       </>
                     )}
                   </td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", maxWidth: 380 }}>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
                     <div style={{ fontWeight: 600 }}>{o.title || "未命名订单"}</div>
-                    <div style={{ marginTop: 4, color: "#64748b", fontSize: 13 }}>档位：{o.tier}</div>
+                    <div style={{ marginTop: 4, color: "#64748b", fontSize: "0.95em" }}>档位：{o.tier}</div>
                   </td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", maxWidth: 260, verticalAlign: "top" }}>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
                     <SkuTableCell codes={o.sku_codes} />
                   </td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
                     <button
                       type="button"
                       onClick={() => {
                         setLinksModalLinks(normalizeWorkLinks(o.work_links));
                         setLinksModalOpen(true);
                       }}
-                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer", whiteSpace: "normal", maxWidth: "100%" }}
                     >
                       查看链接
                     </button>
                   </td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>{formatDateTime(o.created_at)}</td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>{formatDateTime(o.completed_at)}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>{formatDateTime(o.created_at)}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>{formatDateTime(o.completed_at)}</td>
                 </tr>
               ))}
               {list.length === 0 && (

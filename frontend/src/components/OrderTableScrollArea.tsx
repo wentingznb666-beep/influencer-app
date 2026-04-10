@@ -2,6 +2,10 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 
 type OrderTableScrollAreaProps = {
   children: ReactNode;
+  /**
+   * 为 true 时：不出现横向滚动条，表格由子节点以 table-layout:fixed + 换行铺满容器（客户订单列表等）。
+   */
+  fitContent?: boolean;
 };
 
 /**
@@ -35,7 +39,7 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
  * - 在捕获阶段于包裹层处理 wheel，顶轨/表格区域均可触发横向滚动，优先响应 Shift+纵轮与触控板横滑；
  * - 桌面端：仅在表格列区域（bottom 横向滚动容器）内，按住鼠标左键拖拽即可实时改变 scrollLeft（与地图「抓手」一致）。
  */
-export default function OrderTableScrollArea({ children }: OrderTableScrollAreaProps) {
+export default function OrderTableScrollArea({ children, fitContent = false }: OrderTableScrollAreaProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLDivElement>(null);
@@ -127,6 +131,7 @@ export default function OrderTableScrollArea({ children }: OrderTableScrollAreaP
      * 包裹层捕获 wheel：事件目标在底轨或顶轨内时统一改 bottom.scrollLeft（顶轨通过 scroll 事件与底轨同步）。
      */
     const onWheel = (e: WheelEvent) => {
+      if (fitContent) return;
       const top = topRef.current;
       const t = e.target as Node;
       if (!bottom.contains(t) && !(top && top.contains(t))) return;
@@ -150,13 +155,14 @@ export default function OrderTableScrollArea({ children }: OrderTableScrollAreaP
 
     wrap.addEventListener("wheel", onWheel, { passive: false, capture: true });
     return () => wrap.removeEventListener("wheel", onWheel, { capture: true } as AddEventListenerOptions);
-  }, [showTopRail]);
+  }, [showTopRail, fitContent]);
 
   /**
    * 桌面端：在表格列区域（bottom 横向滚动容器）内按住左键拖拽，实时同步 scrollLeft；
    * 先检测横向位移阈值再进入拖拽，避免轻微点击与选中文本被误判；使用 document 级 pointer 监听，指针移出表格仍可拖。
    */
   useEffect(() => {
+    if (fitContent) return;
     const scrollEl = bottomRef.current;
     if (!scrollEl) return;
     const tableEl: HTMLDivElement = scrollEl;
@@ -265,16 +271,23 @@ export default function OrderTableScrollArea({ children }: OrderTableScrollAreaP
       document.body.style.userSelect = "";
       tableEl.style.cursor = "";
     };
-  }, []);
+  }, [fitContent]);
+
+  const wrapClass = fitContent
+    ? "xt-order-table-scroll-wrap xt-order-table-scroll-wrap--fit"
+    : "xt-order-table-scroll-wrap";
+  const bottomClass = fitContent
+    ? "xt-order-table-scroll xt-order-table-scroll--fit"
+    : "xt-order-table-scroll";
 
   return (
-    <div ref={wrapRef} className="xt-order-table-scroll-wrap">
-      {showTopRail && (
+    <div ref={wrapRef} className={wrapClass}>
+      {showTopRail && !fitContent && (
         <div ref={topRef} className="xt-order-table-scroll-top" tabIndex={-1} aria-hidden>
           <div className="xt-order-table-scroll-top-inner" style={{ width: topInnerWidth, minHeight: 8 }} />
         </div>
       )}
-      <div ref={bottomRef} className="xt-order-table-scroll">
+      <div ref={bottomRef} className={bottomClass}>
         {children}
       </div>
     </div>
