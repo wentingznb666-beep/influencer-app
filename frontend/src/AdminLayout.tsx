@@ -4,12 +4,10 @@ import { getStoredUser } from "./authApi";
 
 export const BASE_ADMIN_NAV = [
   { to: "/admin/influencers", label: "\u8fbe\u4eba\u7ba1\u7406" },
-  { to: "/admin/creator-permissions", label: "\u8fbe\u4eba\u53d1\u5e03\u6743\u9650" },
-  { to: "/admin/demand-review", label: "\u5408\u4f5c\u9700\u6c42\u5ba1\u6838" },
   { to: "/admin/models", label: "\u6a21\u7279\u5c55\u793a" },
   { to: "/admin/showcase-influencers", label: "Influencer" },
   { to: "/admin/showcase-content-creators", label: "Content Creator" },
-  { to: "/admin/orders", label: "\u5ba2\u6237\u8ba2\u5355" },
+  { to: "/admin/orders", label: "\u5546\u5bb6\u8ba2\u5355" },
   { to: "/admin/market-orders", label: "\u8fbe\u4eba\u9886\u5355" },
   { to: "/admin/skus", label: "SKU \u5217\u8868" },
   { to: "/admin/points", label: "\u79ef\u5206\u4e0e\u7ed3\u7b97" },
@@ -21,7 +19,7 @@ export const BASE_ADMIN_NAV = [
 ];
 
 /**
- * ??????????? + ??????
+ * Admin layout wrapper and navigation container.
  */
 export default function AdminLayout() {
   const user = getStoredUser();

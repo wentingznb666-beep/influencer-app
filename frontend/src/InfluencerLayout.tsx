@@ -5,7 +5,7 @@ import DashboardShell from "./DashboardShell";
 import { xtOutlineBtn } from "./brandTheme";
 
 /**
- * ????????????? hover ?? chunk????????
+ * Preload common influencer pages for faster navigation.
  */
 function preloadInfluencerRoutes(): Record<string, () => void> {
   if (!import.meta.env.PROD) return {};
@@ -13,13 +13,11 @@ function preloadInfluencerRoutes(): Record<string, () => void> {
     "/influencer/client-orders": () => import("./influencer/ClientOrdersHallPage"),
     "/influencer/points": () => import("./influencer/PointsPage"),
     "/influencer/withdraw": () => import("./influencer/WithdrawPage"),
-    "/influencer/business-match": () => import("./influencer/BusinessMatchPage"),
-    "/influencer/demands": () => import("./influencer/InfluencerDemandsPage"),
   };
 }
 
 /**
- * ?????????? + ??????
+ * Influencer layout with navigation and balance header.
  */
 export default function InfluencerLayout() {
   const [balance, setBalance] = useState<number | null>(null);
@@ -27,7 +25,7 @@ export default function InfluencerLayout() {
   const preloadMap = preloadInfluencerRoutes();
 
   /**
-   * ?????????????????????
+   * Load influencer points balance for header display.
    */
   const loadBalance = async () => {
     try {
@@ -40,10 +38,9 @@ export default function InfluencerLayout() {
 
   useEffect(() => {
     /**
-     * ?????????????????????????????? 200ms?
-     * ???????/??????????? 200ms ??????????????
+     * Delay balance request slightly on compact screens.
      */
-    /** ???????????????? */
+    /** Trigger the balance load exactly once. */
     const fire = () => {
       if (balanceTimerRef.fired) return;
       balanceTimerRef.fired = true;
@@ -53,7 +50,7 @@ export default function InfluencerLayout() {
       fire();
       return;
     }
-    /** ?????????????????????????? */
+    /** Listen for first user intent to preload balance. */
     const onUserIntent = () => fire();
     window.addEventListener("pointerdown", onUserIntent, { passive: true, once: true });
     window.addEventListener("keydown", onUserIntent, { passive: true, once: true } as any);
@@ -70,8 +67,6 @@ export default function InfluencerLayout() {
       roleTitle="\u8fbe\u4eba\u7aef"
       navItems={[
         { to: "/influencer/client-orders", label: "\u5546\u5bb6\u7aef\u53d1\u5355", preload: preloadMap["/influencer/client-orders"] },
-        { to: "/influencer/business-match", label: "\u5546\u5355\u64ae\u5408", preload: preloadMap["/influencer/business-match"] },
-        { to: "/influencer/demands", label: "\u53d1\u5e03\u5408\u4f5c\u9700\u6c42", preload: preloadMap["/influencer/demands"] },
         { to: "/influencer/points", label: "\u79ef\u5206\u4e0e\u6536\u76ca", preload: preloadMap["/influencer/points"] },
         { to: "/influencer/withdraw", label: "\u7533\u8bf7\u63d0\u73b0", preload: preloadMap["/influencer/withdraw"] },
         { to: "/influencer/op-logs", label: "\u6211\u7684\u64cd\u4f5c\u65e5\u5fd7" },

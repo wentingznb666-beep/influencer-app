@@ -37,7 +37,7 @@ type SkuItem = {
 };
 
 /**
- * ?????????-?-? ?????
+ * Format timestamp as YYYY-MM-DD HH:mm:ss.
  */
 function formatDateTime(value?: string | null): string {
   if (!value) return "?";
@@ -48,7 +48,7 @@ function formatDateTime(value?: string | null): string {
 }
 
 /**
- * ??????????????username/display/nickname??
+ * Resolve claimer display text from available fields.
  */
 function resolveClaimerText(order: MarketOrder): string {
   const raw = order as unknown as Record<string, unknown>;
@@ -59,7 +59,7 @@ function resolveClaimerText(order: MarketOrder): string {
 }
 
 /**
- * ????????? TikTok ???
+ * Resolve TikTok link from compatible field names.
  */
 function resolveTikTokLink(order: MarketOrder): string {
   const raw = order as unknown as Record<string, unknown>;
@@ -68,7 +68,7 @@ function resolveTikTokLink(order: MarketOrder): string {
 }
 
 /**
- * ?????????
+ * Resolve publish method display text.
  */
 function resolvePublishMethodText(method?: string | null): string {
   if (String(method || "").trim() === "influencer_publish_with_cart") return "\u8fbe\u4eba\u5728TikTok\u8d26\u53f7\u53d1\u5e03\u89c6\u9891\u548c\u6302\u5728\u8d2d\u7269\u8f66";

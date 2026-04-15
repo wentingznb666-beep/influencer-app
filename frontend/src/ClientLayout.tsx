@@ -9,21 +9,20 @@ const CLIENT_NAV = [
   { to: "/client/showcase-influencers", label: "Influencer" },
   { to: "/client/showcase-content-creators", label: "Content Creator" },
   { to: "/client/market-orders", label: "\u8fbe\u4eba\u9886\u5355" },
-  { to: "/client/collab-pool", label: "\u8fbe\u4eba\u5408\u4f5c\u6c60" },
   { to: "/client/skus", label: "SKU \u5217\u8868" },
   { to: "/client/points", label: "\u79ef\u5206\u5145\u503c" },
   { to: "/client/op-logs", label: "\u6211\u7684\u64cd\u4f5c\u65e5\u5fd7" },
 ];
 
 /**
- * ?????????? + ??????
+ * Merchant layout with navigation and balance header.
  */
 export default function ClientLayout() {
   const [balance, setBalance] = useState<number | null>(null);
   const balanceTimerRef = useState<{ id: number | null; fired: boolean }>({ id: null, fired: false })[0];
 
   /**
-   * ??????????????????????
+   * Load merchant points balance for header display.
    */
   const loadBalance = async () => {
     try {
@@ -36,10 +35,9 @@ export default function ClientLayout() {
 
   useEffect(() => {
     /**
-     * ?????????????????????????????? 200ms?
-     * ???????/??????????? 200ms ??????????????
+     * Delay balance request slightly on compact screens.
      */
-    /** ???????????????? */
+    /** Trigger the balance load exactly once. */
     const fire = () => {
       if (balanceTimerRef.fired) return;
       balanceTimerRef.fired = true;
@@ -49,7 +47,7 @@ export default function ClientLayout() {
       fire();
       return;
     }
-    /** ?????????????????????????? */
+    /** Listen for first user intent to preload balance. */
     const onUserIntent = () => fire();
     window.addEventListener("pointerdown", onUserIntent, { passive: true, once: true });
     window.addEventListener("keydown", onUserIntent, { passive: true, once: true } as any);

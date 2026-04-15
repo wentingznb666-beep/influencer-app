@@ -21,7 +21,6 @@ import ClientMarketOrdersPage from "./client/ClientMarketOrdersPage";
 import MarketOrderEditPage from "./client/MarketOrderEditPage";
 import ClientSkusPage from "./client/SkusPage";
 import ClientPointsPage from "./client/PointsPage";
-import CollabPoolPage from "./client/CollabPoolPage";
 import ClientModelsPage from "./client/ModelsPage";
 import ShowcaseInfluencersPage from "./admin/ShowcaseInfluencersPage";
 import ShowcaseContentCreatorsPage from "./admin/ShowcaseContentCreatorsPage";
@@ -35,18 +34,12 @@ import InfluencerLayout from "./InfluencerLayout";
 import ClientOrdersHallPageDev from "./influencer/ClientOrdersHallPage";
 import InfluencerPointsPageDev from "./influencer/PointsPage";
 import WithdrawPageDev from "./influencer/WithdrawPage";
-import BusinessMatchPageDev from "./influencer/BusinessMatchPage";
-import InfluencerDemandsPageDev from "./influencer/InfluencerDemandsPage";
-import CreatorPublishPermissionsPage from "./admin/CreatorPublishPermissionsPage";
-import InfluencerDemandsReviewPage from "./admin/InfluencerDemandsReviewPage";
 
 const ClientOrdersHallPage = import.meta.env.PROD
   ? lazy(() => import("./influencer/ClientOrdersHallPage"))
   : ClientOrdersHallPageDev;
 const InfluencerPointsPage = import.meta.env.PROD ? lazy(() => import("./influencer/PointsPage")) : InfluencerPointsPageDev;
 const WithdrawPage = import.meta.env.PROD ? lazy(() => import("./influencer/WithdrawPage")) : WithdrawPageDev;
-const BusinessMatchPage = import.meta.env.PROD ? lazy(() => import("./influencer/BusinessMatchPage")) : BusinessMatchPageDev;
-const InfluencerDemandsPage = import.meta.env.PROD ? lazy(() => import("./influencer/InfluencerDemandsPage")) : InfluencerDemandsPageDev;
 import ProtectedRoute from "./ProtectedRoute";
 import App from "./App";
 import { LanguageProvider } from "./i18n";
@@ -62,8 +55,6 @@ createRoot(document.getElementById("root")!).render(
             <Route index element={<Navigate to="/admin/orders" replace />} />
             <Route path="influencers" element={<InfluencersPage />} />
             <Route path="points" element={<PointsPage />} />
-            <Route path="creator-permissions" element={<CreatorPublishPermissionsPage />} />
-            <Route path="demand-review" element={<InfluencerDemandsReviewPage />} />
             <Route path="settlement" element={<SettlementPage />} />
             <Route path="withdrawals" element={<WithdrawalsPage />} />
             <Route path="risk" element={<RiskPage />} />
@@ -86,8 +77,6 @@ createRoot(document.getElementById("root")!).render(
             <Route path="market-orders" element={<MarketOrdersPage />} />
             <Route path="skus" element={<AdminSkusPage />} />
             <Route path="points" element={<PointsPage />} />
-            <Route path="creator-permissions" element={<CreatorPublishPermissionsPage />} />
-            <Route path="demand-review" element={<InfluencerDemandsReviewPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
           </Route>
           <Route path="/client" element={<ProtectedRoute roles={["client"]}><ClientLayout /></ProtectedRoute>}>
@@ -99,7 +88,6 @@ createRoot(document.getElementById("root")!).render(
             <Route path="showcase-influencers" element={<ClientShowcaseInfluencersPage />} />
             <Route path="showcase-content-creators" element={<ClientShowcaseContentCreatorsPage />} />
             <Route path="market-orders" element={<ClientMarketOrdersPage />} />
-            <Route path="collab-pool" element={<CollabPoolPage />} />
             <Route path="skus" element={<ClientSkusPage />} />
             <Route path="market-orders/:id/edit" element={<MarketOrderEditPage />} />
             <Route path="points" element={<ClientPointsPage />} />
@@ -110,8 +98,6 @@ createRoot(document.getElementById("root")!).render(
             <Route path="client-orders" element={<Suspense fallback={<p>加载中…</p>}><ClientOrdersHallPage /></Suspense>} />
             <Route path="points" element={<Suspense fallback={<p>加载中…</p>}><InfluencerPointsPage /></Suspense>} />
             <Route path="withdraw" element={<Suspense fallback={<p>加载中…</p>}><WithdrawPage /></Suspense>} />
-            <Route path="business-match" element={<Suspense fallback={<p>????</p>}><BusinessMatchPage /></Suspense>} />
-            <Route path="demands" element={<Suspense fallback={<p>????</p>}><InfluencerDemandsPage /></Suspense>} />
             <Route path="op-logs" element={<OperationLogsPage />} />
           </Route>
           <Route path="/translate" element={<App />} />
