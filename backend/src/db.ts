@@ -281,9 +281,20 @@ const FULL_INIT_SQL = `
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_client ON client_market_orders (client_id);
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_influencer ON client_market_orders (influencer_id);
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_created_at ON client_market_orders (created_at DESC);
-  CREATE INDEX IF NOT EXISTS idx_client_market_orders_match_status ON client_market_orders (match_status, created_at DESC) WHERE is_deleted = 0;
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_client_created ON client_market_orders (client_id, created_at DESC) WHERE is_deleted = 0;
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_influencer_created ON client_market_orders (influencer_id, created_at DESC) WHERE is_deleted = 0;
+  DO $$
+  BEGIN
+    IF EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'client_market_orders'
+        AND column_name = 'match_status'
+    ) THEN
+      CREATE INDEX IF NOT EXISTS idx_client_market_orders_match_status ON client_market_orders (match_status, created_at DESC) WHERE is_deleted = 0;
+    END IF;
+  END $$;
 
   CREATE TABLE IF NOT EXISTS operation_log (
     id SERIAL PRIMARY KEY,
