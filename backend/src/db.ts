@@ -100,6 +100,8 @@ const FULL_INIT_SQL = `
     platforms TEXT,
     blacklisted INTEGER NOT NULL DEFAULT 0,
     level INTEGER NOT NULL DEFAULT 1,
+    is_premium INTEGER NOT NULL DEFAULT 0,
+    can_publish_demand INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
