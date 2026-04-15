@@ -2,6 +2,8 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import os from "os";
+import fs from "fs";
+import path from "path";
 import { translateBatchWithDeepseek, translateTextWithDeepseek } from "./translate";
 import { synthesizeSpeechWithAzure } from "./ttsAzure";
 import { requestId, auditLog, loginRateLimit } from "./middlewares";
@@ -227,6 +229,31 @@ app.post("/api/tts", async (req: Request, res: Response) => {
 app.get("/health", (_req: Request, res: Response) => {
   res.json({ ok: true });
 });
+
+/**
+ * ???????????????? frontend/dist ????
+ * ???? Render ????? Web Service ????????????? API ?????
+ */
+function serveFrontendIfBuilt(appInstance: express.Express): void {
+  const frontendDist = path.resolve(__dirname, "../../frontend/dist");
+  if (!fs.existsSync(frontendDist)) {
+    console.warn(`[frontend.static] dist not found: ${frontendDist}`);
+    return;
+  }
+
+  appInstance.use(express.static(frontendDist));
+
+  /**
+   * SPA ???? /api ?? /uploads ?????? index.html?
+   */
+  appInstance.get(/^(?!\/api)(?!\/uploads).*/, (_req: Request, res: Response) => {
+    res.sendFile(path.join(frontendDist, "index.html"));
+  });
+
+  console.log(`[frontend.static] serving from ${frontendDist}`);
+}
+
+serveFrontendIfBuilt(app);
 
 app.use(errorHandler);
 
