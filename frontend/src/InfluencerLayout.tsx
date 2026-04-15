@@ -5,7 +5,7 @@ import DashboardShell from "./DashboardShell";
 import { xtOutlineBtn } from "./brandTheme";
 
 /**
- * 达人端路由预加载：用于侧栏 hover 预取 chunk（仅生产环境）。
+ * ????????????? hover ?? chunk????????
  */
 function preloadInfluencerRoutes(): Record<string, () => void> {
   if (!import.meta.env.PROD) return {};
@@ -19,7 +19,7 @@ function preloadInfluencerRoutes(): Record<string, () => void> {
 }
 
 /**
- * 达人端布局：侧栏导航 + 子路由出口。
+ * ?????????? + ??????
  */
 export default function InfluencerLayout() {
   const [balance, setBalance] = useState<number | null>(null);
@@ -27,7 +27,7 @@ export default function InfluencerLayout() {
   const preloadMap = preloadInfluencerRoutes();
 
   /**
-   * 加载达人当前积分余额，用于在导航顶部展示。
+   * ?????????????????????
    */
   const loadBalance = async () => {
     try {
@@ -40,10 +40,10 @@ export default function InfluencerLayout() {
 
   useEffect(() => {
     /**
-     * 性能优化（仅生产环境）：登录跳转到达人端首屏时，余额请求延后 200ms，
-     * 避免与首屏资源/路由渲染竞争；若用户在 200ms 内发生交互，则立即触发请求。
+     * ?????????????????????????????? 200ms?
+     * ???????/??????????? 200ms ??????????????
      */
-    /** 触发余额请求（确保只触发一次）。 */
+    /** ???????????????? */
     const fire = () => {
       if (balanceTimerRef.fired) return;
       balanceTimerRef.fired = true;
@@ -53,7 +53,7 @@ export default function InfluencerLayout() {
       fire();
       return;
     }
-    /** 用户意图触发：在用户交互前置拉取余额，避免感知延迟。 */
+    /** ?????????????????????????? */
     const onUserIntent = () => fire();
     window.addEventListener("pointerdown", onUserIntent, { passive: true, once: true });
     window.addEventListener("keydown", onUserIntent, { passive: true, once: true } as any);
@@ -67,20 +67,22 @@ export default function InfluencerLayout() {
 
   return (
     <DashboardShell
-      roleTitle="达人端"
+      roleTitle="\u8fbe\u4eba\u7aef"
       navItems={[
-        { to: "/influencer/client-orders", label: "商家端发单", preload: preloadMap["/influencer/client-orders"] },
-        { to: "/influencer/points", label: "积分与收益", preload: preloadMap["/influencer/points"] },
-        { to: "/influencer/withdraw", label: "申请提现", preload: preloadMap["/influencer/withdraw"] },
-        { to: "/influencer/op-logs", label: "我的操作日志" },
+        { to: "/influencer/client-orders", label: "\u5546\u5bb6\u7aef\u53d1\u5355", preload: preloadMap["/influencer/client-orders"] },
+        { to: "/influencer/business-match", label: "\u5546\u5355\u64ae\u5408", preload: preloadMap["/influencer/business-match"] },
+        { to: "/influencer/demands", label: "\u53d1\u5e03\u5408\u4f5c\u9700\u6c42", preload: preloadMap["/influencer/demands"] },
+        { to: "/influencer/points", label: "\u79ef\u5206\u4e0e\u6536\u76ca", preload: preloadMap["/influencer/points"] },
+        { to: "/influencer/withdraw", label: "\u7533\u8bf7\u63d0\u73b0", preload: preloadMap["/influencer/withdraw"] },
+        { to: "/influencer/op-logs", label: "\u6211\u7684\u64cd\u4f5c\u65e5\u5fd7" },
       ]}
       mainMaxWidth={900}
       headerExtra={
         <>
           <span style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>
-            余额：
+            \u4f59\u989d?
             <span style={{ fontWeight: 700, color: "var(--xt-primary)" }}>
-              {balance == null ? "—" : balance}
+              {balance == null ? "?" : balance}
             </span>
           </span>
           <button
@@ -88,7 +90,7 @@ export default function InfluencerLayout() {
             onClick={loadBalance}
             style={{ ...xtOutlineBtn, padding: "6px 10px", fontSize: 13 }}
           >
-            刷新余额
+            \u5237\u65b0\u4f59\u989d
           </button>
         </>
       }

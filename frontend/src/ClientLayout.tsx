@@ -5,24 +5,25 @@ import DashboardShell from "./DashboardShell";
 import { xtOutlineBtn } from "./brandTheme";
 
 const CLIENT_NAV = [
-  { to: "/client/models", label: "模特展示" },
+  { to: "/client/models", label: "\u6a21\u7279\u5c55\u793a" },
   { to: "/client/showcase-influencers", label: "Influencer" },
   { to: "/client/showcase-content-creators", label: "Content Creator" },
-  { to: "/client/market-orders", label: "达人领单" },
-  { to: "/client/skus", label: "SKU 列表" },
-  { to: "/client/points", label: "积分充值" },
-  { to: "/client/op-logs", label: "我的操作日志" },
+  { to: "/client/market-orders", label: "\u8fbe\u4eba\u9886\u5355" },
+  { to: "/client/collab-pool", label: "\u8fbe\u4eba\u5408\u4f5c\u6c60" },
+  { to: "/client/skus", label: "SKU \u5217\u8868" },
+  { to: "/client/points", label: "\u79ef\u5206\u5145\u503c" },
+  { to: "/client/op-logs", label: "\u6211\u7684\u64cd\u4f5c\u65e5\u5fd7" },
 ];
 
 /**
- * 商家端布局：侧栏导航 + 子路由出口。
+ * ?????????? + ??????
  */
 export default function ClientLayout() {
   const [balance, setBalance] = useState<number | null>(null);
   const balanceTimerRef = useState<{ id: number | null; fired: boolean }>({ id: null, fired: false })[0];
 
   /**
-   * 加载商家端当前积分余额，用于在导航顶部展示。
+   * ??????????????????????
    */
   const loadBalance = async () => {
     try {
@@ -35,10 +36,10 @@ export default function ClientLayout() {
 
   useEffect(() => {
     /**
-     * 性能优化（仅生产环境）：登录跳转到商家端首屏时，余额请求延后 200ms，
-     * 避免与首屏资源/路由渲染竞争；若用户在 200ms 内发生交互，则立即触发请求。
+     * ?????????????????????????????? 200ms?
+     * ???????/??????????? 200ms ??????????????
      */
-    /** 触发余额请求（确保只触发一次）。 */
+    /** ???????????????? */
     const fire = () => {
       if (balanceTimerRef.fired) return;
       balanceTimerRef.fired = true;
@@ -48,7 +49,7 @@ export default function ClientLayout() {
       fire();
       return;
     }
-    /** 用户意图触发：在用户交互前置拉取余额，避免感知延迟。 */
+    /** ?????????????????????????? */
     const onUserIntent = () => fire();
     window.addEventListener("pointerdown", onUserIntent, { passive: true, once: true });
     window.addEventListener("keydown", onUserIntent, { passive: true, once: true } as any);
@@ -62,16 +63,16 @@ export default function ClientLayout() {
 
   return (
     <DashboardShell
-      roleTitle="商家端"
+      roleTitle="\u5546\u5bb6\u7aef"
       navItems={CLIENT_NAV}
       mainMaxWidth={1200}
       logoutVariant="danger"
       headerExtra={
         <>
           <span style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>
-            余额：
+            \u4f59\u989d?
             <span style={{ fontWeight: 700, color: "var(--xt-primary)" }}>
-              {balance == null ? "—" : balance}
+              {balance == null ? "?" : balance}
             </span>
           </span>
           <button
@@ -79,7 +80,7 @@ export default function ClientLayout() {
             onClick={loadBalance}
             style={{ ...xtOutlineBtn, padding: "6px 10px", fontSize: 13 }}
           >
-            刷新余额
+            \u5237\u65b0\u4f59\u989d
           </button>
         </>
       }
