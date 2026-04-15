@@ -35,8 +35,8 @@ import InfluencerLayout from "./InfluencerLayout";
 import ClientOrdersHallPageDev from "./influencer/ClientOrdersHallPage";
 import InfluencerPointsPageDev from "./influencer/PointsPage";
 import WithdrawPageDev from "./influencer/WithdrawPage";
-import BusinessMatchPage from "./influencer/BusinessMatchPage";
-import InfluencerDemandsPage from "./influencer/InfluencerDemandsPage";
+import BusinessMatchPageDev from "./influencer/BusinessMatchPage";
+import InfluencerDemandsPageDev from "./influencer/InfluencerDemandsPage";
 import CreatorPublishPermissionsPage from "./admin/CreatorPublishPermissionsPage";
 import InfluencerDemandsReviewPage from "./admin/InfluencerDemandsReviewPage";
 
@@ -45,6 +45,8 @@ const ClientOrdersHallPage = import.meta.env.PROD
   : ClientOrdersHallPageDev;
 const InfluencerPointsPage = import.meta.env.PROD ? lazy(() => import("./influencer/PointsPage")) : InfluencerPointsPageDev;
 const WithdrawPage = import.meta.env.PROD ? lazy(() => import("./influencer/WithdrawPage")) : WithdrawPageDev;
+const BusinessMatchPage = import.meta.env.PROD ? lazy(() => import("./influencer/BusinessMatchPage")) : BusinessMatchPageDev;
+const InfluencerDemandsPage = import.meta.env.PROD ? lazy(() => import("./influencer/InfluencerDemandsPage")) : InfluencerDemandsPageDev;
 import ProtectedRoute from "./ProtectedRoute";
 import App from "./App";
 import { LanguageProvider } from "./i18n";
@@ -108,8 +110,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="client-orders" element={<Suspense fallback={<p>加载中…</p>}><ClientOrdersHallPage /></Suspense>} />
             <Route path="points" element={<Suspense fallback={<p>加载中…</p>}><InfluencerPointsPage /></Suspense>} />
             <Route path="withdraw" element={<Suspense fallback={<p>加载中…</p>}><WithdrawPage /></Suspense>} />
-            <Route path="business-match" element={<BusinessMatchPage />} />
-            <Route path="demands" element={<InfluencerDemandsPage />} />
+            <Route path="business-match" element={<Suspense fallback={<p>????</p>}><BusinessMatchPage /></Suspense>} />
+            <Route path="demands" element={<Suspense fallback={<p>????</p>}><InfluencerDemandsPage /></Suspense>} />
             <Route path="op-logs" element={<OperationLogsPage />} />
           </Route>
           <Route path="/translate" element={<App />} />
