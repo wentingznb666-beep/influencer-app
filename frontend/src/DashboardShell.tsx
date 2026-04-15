@@ -9,6 +9,17 @@ import { DeferredBlock, useDeferredInCompact, useResponsive } from "./responsive
 /** 侧栏导航项：路径与文案（可选 hover 预加载） */
 export type DashboardNavItem = { to: string; label: string; preload?: () => void };
 
+
+
+/**
+ * ?????? Unicode ????? "\u4f59\u989d"?????????
+ * ???????????????????
+ */
+function decodeEscapedUnicode(text: string | null | undefined): string {
+  if (!text) return "";
+  return text.replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+}
+
 type DashboardShellProps = {
   /** 侧栏展示的角色名称，如「管理员端」 */
   roleTitle: string;
@@ -137,7 +148,7 @@ export default function DashboardShell({
           </div>
           <div className="xt-header-actions" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <LanguageSwitch />
-            <span style={{ color: "var(--xt-text-muted)" }}>{user?.username}</span>
+            <span style={{ color: "var(--xt-text-muted)" }}>{decodeEscapedUnicode(user?.username)}</span>
             <DeferredBlock ready={headerExtrasReady}>{headerExtra}</DeferredBlock>
             <button
               type="button"

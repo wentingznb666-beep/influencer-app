@@ -80,9 +80,9 @@ export default function InfluencerLayout() {
       headerExtra={
         <>
           <span style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>
-            \u4f59\u989d?
+            \u4f59\u989d\uff1a
             <span style={{ fontWeight: 700, color: "var(--xt-primary)" }}>
-              {balance == null ? "?" : balance}
+              {balance == null ? "\u2014" : balance}
             </span>
           </span>
           <button
