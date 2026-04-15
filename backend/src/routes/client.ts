@@ -685,7 +685,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
   const startDate = normalizeDateOnly(req.query.start_date);
   const endDate = normalizeDateOnly(req.query.end_date);
   (async () => {
-    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.reward_points, mo.tier, mo.publish_method, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images, mo.sku_ids, mo.status, mo.influencer_id, mo.work_links, mo.client_shop_name, mo.client_group_chat, mo.created_at, mo.updated_at, mo.completed_at,
+    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.reward_points, mo.tier, mo.publish_method, mo.is_public_apply, mo.match_status, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images, mo.sku_ids, mo.status, mo.influencer_id, mo.work_links, mo.client_shop_name, mo.client_group_chat, mo.created_at, mo.updated_at, mo.completed_at,
                       ui.username AS influencer_username,
                       COALESCE(NULLIF(ui.display_name, ''), ui.username) AS influencer_display_name
        FROM client_market_orders mo
@@ -729,7 +729,7 @@ router.get("/market-orders/:id", (req: AuthRequest, res: Response) => {
   }
   (async () => {
     const { rows } = await query(
-      `SELECT id, order_no, title, tier, publish_method, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, reward_points, status, influencer_id, work_links, client_shop_name, client_group_chat, created_at, updated_at, completed_at
+      `SELECT id, order_no, title, tier, publish_method, is_public_apply, match_status, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, reward_points, status, influencer_id, work_links, client_shop_name, client_group_chat, created_at, updated_at, completed_at
          FROM client_market_orders WHERE id = $1 AND client_id = $2 AND is_deleted = 0`,
       [id, clientId]
     );
@@ -751,7 +751,7 @@ router.get("/market-orders/:id", (req: AuthRequest, res: Response) => {
  */
 router.post("/market-orders", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
-  const { title, tier, voice_link, voice_note, tiktok_link, product_images, task_count, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, publish_method } = req.body ?? {};
+  const { title, tier, voice_link, voice_note, tiktok_link, product_images, task_count, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, publish_method, is_public_apply } = req.body ?? {};
   if (typeof tiktok_link === "string" && tiktok_link.trim().length > 2000) {
     res.status(400).json({ error: "INVALID_TIKTOK", message: "TikTok 链接最长 2000 字符。" });
     return;
@@ -780,6 +780,7 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
     return;
   }
   const publishMethod = normalizePublishMethod(publish_method);
+  const isPublicApply = is_public_apply ? 1 : 0;
   if (!publishMethod) {
     res.status(400).json({ error: "INVALID_PUBLISH_METHOD", message: "请选择发布方式" });
     return;
@@ -821,9 +822,9 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
         const orderNo = await allocateMarketOrderNo(client);
         const ins = await client.query<{ id: number; order_no: string }>(
           `INSERT INTO client_market_orders
-             (client_id, order_no, title, reward_points, tier, creator_reward_points, platform_profit_points, pay_deducted, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, publish_method, status)
+             (client_id, order_no, title, reward_points, tier, creator_reward_points, platform_profit_points, pay_deducted, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, publish_method, is_public_apply, match_status, status)
            VALUES
-             ($1, $2, $3, $4, $5, $6, $7, 0, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb, $15, $16, $17, 'open')
+             ($1, $2, $3, $4, $5, $6, $7, 0, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb, $15, $16, $17, $18, 'open', 'open')
            RETURNING id, order_no`,
           [
             clientId,
@@ -843,6 +844,7 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
             clientShopName,
             clientGroupChat,
             publishMethod,
+            isPublicApply,
           ]
         );
         const orderId = ins.rows[0]!.id;
@@ -890,7 +892,7 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
     return;
   }
-  const { title, tier, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, publish_method } = req.body ?? {};
+  const { title, tier, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, publish_method, is_public_apply } = req.body ?? {};
   const nextTitle = title !== undefined ? String(title ?? "").trim() : undefined;
   const nextTier = typeof tier === "string" ? tier.trim().toUpperCase() : undefined;
   const voiceLink = voice_link !== undefined ? String(voice_link ?? "").trim() : undefined;
@@ -903,6 +905,7 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
   const nextClientShopName = client_shop_name !== undefined ? normalizeClientShopName(client_shop_name) : undefined;
   const nextClientGroupChat = client_group_chat !== undefined ? normalizeClientGroupChat(client_group_chat) : undefined;
   const nextPublishMethod = publish_method !== undefined ? normalizePublishMethod(publish_method) : undefined;
+  const nextIsPublicApply = is_public_apply !== undefined ? (is_public_apply ? 1 : 0) : undefined;
   if (nextTitle !== undefined && (!nextTitle || nextTitle.length > 200)) {
     res.status(400).json({ error: "INVALID_TITLE", message: "请填写订单标题（1–200 字）。" });
     return;
@@ -1034,6 +1037,11 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
     if (nextPublishMethod !== undefined) {
       sets.push(`publish_method = $${idx++}`);
       params.push(nextPublishMethod);
+    }
+    if (nextIsPublicApply !== undefined) {
+      sets.push(`is_public_apply = $${idx++}`);
+      params.push(nextIsPublicApply);
+      sets.push(`match_status = CASE WHEN $${idx-1} = 1 AND match_status = 'open' THEN 'pending_selection' ELSE match_status END`);
     }
     await withTx(async (client) => {
       sets.push(`updated_at = now()`);

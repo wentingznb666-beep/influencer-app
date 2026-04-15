@@ -13,6 +13,8 @@ function preloadInfluencerRoutes(): Record<string, () => void> {
     "/influencer/client-orders": () => import("./influencer/ClientOrdersHallPage"),
     "/influencer/points": () => import("./influencer/PointsPage"),
     "/influencer/withdraw": () => import("./influencer/WithdrawPage"),
+    "/influencer/business-match": () => import("./influencer/BusinessMatchPage"),
+    "/influencer/demands": () => import("./influencer/InfluencerDemandsPage"),
   };
 }
 

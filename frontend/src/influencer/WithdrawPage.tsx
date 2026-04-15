@@ -1,6 +1,19 @@
 import { useEffect, useState, type FormEvent } from "react";
 import * as api from "../influencerApi";
 
+const THAI_BANKS = [
+  "Bangkok Bank",
+  "Kasikornbank",
+  "Krungthai Bank",
+  "Siam Commercial Bank",
+  "Bank of Ayudhya (Krungsri)",
+  "TMBThanachart Bank",
+  "Government Savings Bank",
+  "BAAC",
+  "CIMB Thai",
+  "UOB Thailand",
+];
+
 type WithdrawalRow = {
   id: number;
   amount: number;
@@ -100,13 +113,15 @@ export default function WithdrawPage() {
           style={{ width: 280, maxWidth: "100%", padding: "8px 10px", boxSizing: "border-box", marginBottom: 12 }}
         />
         <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>银行名称</label>
-        <input
-          type="text"
+        <select
           value={bankName}
           onChange={(e) => setBankName(e.target.value)}
           required
           style={{ width: 280, maxWidth: "100%", padding: "8px 10px", boxSizing: "border-box", marginBottom: 12 }}
-        />
+        >
+          <option value="">请选择银行</option>
+          {THAI_BANKS.map((bank) => (<option key={bank} value={bank}>{bank}</option>))}
+        </select>
         <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>银行账号</label>
         <input
           type="text"

@@ -26,6 +26,7 @@ import showcaseInfluencersRoutes from "./routes/showcaseInfluencers";
 import showcaseContentCreatorsRoutes from "./routes/showcaseContentCreators";
 import clientShowcaseInfluencersRoutes from "./routes/clientShowcaseInfluencers";
 import clientShowcaseContentCreatorsRoutes from "./routes/clientShowcaseContentCreators";
+import matchingRoutes from "./routes/matching";
 import { initDb } from "./db";
 import { ensureUploadsSubdirs, getUploadsRoot } from "./uploadsConfig";
 
@@ -80,6 +81,8 @@ app.use("/api/client/showcase-influencers", clientShowcaseInfluencersRoutes);
 app.use("/api/client/showcase-content-creators", clientShowcaseContentCreatorsRoutes);
 /** 通用：我的操作日志 */
 app.use("/api/operation-logs", operationLogsRoutes);
+/** ??????????/???????? */
+app.use("/api/matching", matchingRoutes);
 
 /**
  * 统一错误处理中间件，确保接口返回结构化错误信息。

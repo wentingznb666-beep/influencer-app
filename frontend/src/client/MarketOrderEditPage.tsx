@@ -8,6 +8,7 @@ type MarketOrderItem = {
   title: string | null;
   tier: "A" | "B" | "C" | string;
   publish_method?: "client_self_publish" | "influencer_publish_with_cart" | string;
+  is_public_apply?: number;
   voice_link?: string | null;
   voice_note?: string | null;
   tiktok_link?: string | null;
@@ -35,6 +36,7 @@ export default function MarketOrderEditPage() {
     client_group_chat: "",
     tier: "C" as "C" | "B" | "A",
     publish_method: "client_self_publish" as "client_self_publish" | "influencer_publish_with_cart",
+    is_public_apply: true,
     voice_link: "",
     voice_note: "",
     tiktok_link: "",
@@ -61,6 +63,7 @@ export default function MarketOrderEditPage() {
         client_group_chat: (it.client_group_chat || "") as any,
         tier: (String(it.tier || "C").toUpperCase() as any) === "A" ? "A" : (String(it.tier || "C").toUpperCase() as any) === "B" ? "B" : "C",
         publish_method: String(it.publish_method || "client_self_publish") === "influencer_publish_with_cart" ? "influencer_publish_with_cart" : "client_self_publish",
+        is_public_apply: Number(it.is_public_apply || 0) === 1,
         voice_link: (it.voice_link || "") as any,
         voice_note: (it.voice_note || "") as any,
         tiktok_link: (it.tiktok_link || "") as any,
@@ -87,7 +90,7 @@ export default function MarketOrderEditPage() {
       return;
     }
     if (!(form.publish_method === "client_self_publish" || form.publish_method === "influencer_publish_with_cart")) {
-      setError("???????");
+      setError("请选择发布方式");
       return;
     }
     const titleText = form.title.trim();
@@ -102,6 +105,7 @@ export default function MarketOrderEditPage() {
         client_group_chat: form.client_group_chat.trim(),
         tier: form.tier,
         publish_method: form.publish_method,
+        is_public_apply: form.is_public_apply,
         voice_link: form.tier === "A" ? (form.voice_link.trim() || undefined) : undefined,
         voice_note: form.tier === "A" ? (form.voice_note.trim() || undefined) : undefined,
         tiktok_link: form.tiktok_link.trim() || undefined,
@@ -160,6 +164,12 @@ export default function MarketOrderEditPage() {
               <option value="client_self_publish">{"\u89c6\u9891\u62cd\u5b8c\u540e\u81ea\u5df1\u53d1\u5e03"}</option>
               <option value="influencer_publish_with_cart">{"\u8fbe\u4eba\u5728TikTok\u8d26\u53f7\u53d1\u5e03\u89c6\u9891\u548c\u6302\u5728\u8d2d\u7269\u8f66"}</option>
             </select>
+          </div>
+                    <div style={{ marginBottom: 10 }}>
+            <label>
+              <input type="checkbox" checked={form.is_public_apply} onChange={(e) => setForm((f) => ({ ...f, is_public_apply: e.target.checked }))} style={{ marginRight: 8 }} />
+              公开报名（开启后达人先报名，商家后选择）
+            </label>
           </div>
           {form.tier === "A" && (
             <>

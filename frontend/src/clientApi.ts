@@ -195,6 +195,7 @@ export async function createMarketOrder(body: {
   sku_images?: string[];
   sku_ids?: number[];
   task_count?: number;
+  is_public_apply?: boolean;
 }) {
   const res = await fetchWithAuth("/api/client/market-orders", {
     method: "POST",
@@ -221,6 +222,7 @@ export async function updateMarketOrder(
     sku_codes?: string[];
     sku_images?: string[];
     sku_ids?: number[];
+    is_public_apply?: boolean;
   }
 ) {
   const res = await fetchWithAuth(`/api/client/market-orders/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });

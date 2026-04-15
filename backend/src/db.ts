@@ -267,6 +267,8 @@ const FULL_INIT_SQL = `
     /** �ͻ��Խ�Ⱥ�ģ����Ⱥ�Ż����ӣ� */
     client_group_chat TEXT,
     publish_method TEXT NOT NULL DEFAULT 'client_self_publish' CHECK (publish_method IN ('client_self_publish', 'influencer_publish_with_cart')),
+    is_public_apply INTEGER NOT NULL DEFAULT 0 CHECK (is_public_apply IN (0, 1)),
+    match_status TEXT NOT NULL DEFAULT 'open' CHECK (match_status IN ('open', 'pending_selection', 'matched', 'completed', 'cancelled')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     completed_at TIMESTAMPTZ,
@@ -277,6 +279,7 @@ const FULL_INIT_SQL = `
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_client ON client_market_orders (client_id);
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_influencer ON client_market_orders (influencer_id);
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_created_at ON client_market_orders (created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_client_market_orders_match_status ON client_market_orders (match_status, created_at DESC) WHERE is_deleted = 0;
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_client_created ON client_market_orders (client_id, created_at DESC) WHERE is_deleted = 0;
   CREATE INDEX IF NOT EXISTS idx_client_market_orders_influencer_created ON client_market_orders (influencer_id, created_at DESC) WHERE is_deleted = 0;
 
@@ -354,6 +357,62 @@ const FULL_INIT_SQL = `
     UNIQUE(client_id, model_id)
   );
   CREATE INDEX IF NOT EXISTS idx_client_model_favorites_client ON client_model_favorites(client_id, id DESC) WHERE is_deleted = 0;
+
+  CREATE TABLE IF NOT EXISTS market_order_applications (
+    id SERIAL PRIMARY KEY,
+    market_order_id INTEGER NOT NULL REFERENCES client_market_orders(id),
+    influencer_id INTEGER NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'selected', 'rejected')),
+    note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(market_order_id, influencer_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_market_order_applications_order ON market_order_applications(market_order_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_market_order_applications_influencer ON market_order_applications(influencer_id, created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS influencer_collab_demands (
+    id SERIAL PRIMARY KEY,
+    influencer_id INTEGER NOT NULL REFERENCES users(id),
+    title TEXT NOT NULL,
+    demand_detail TEXT,
+    expected_points INTEGER NOT NULL DEFAULT 5 CHECK (expected_points > 0),
+    status TEXT NOT NULL DEFAULT 'pending_review' CHECK (status IN ('pending_review', 'open', 'matched', 'rejected', 'closed')),
+    selected_client_id INTEGER REFERENCES users(id),
+    review_note TEXT,
+    reviewed_by INTEGER REFERENCES users(id),
+    reviewed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS idx_influencer_collab_demands_status ON influencer_collab_demands(status, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_influencer_collab_demands_inf ON influencer_collab_demands(influencer_id, created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS influencer_demand_applications (
+    id SERIAL PRIMARY KEY,
+    demand_id INTEGER NOT NULL REFERENCES influencer_collab_demands(id),
+    client_id INTEGER NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'selected', 'rejected')),
+    note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(demand_id, client_id)
+  );
+  CREATE INDEX IF NOT EXISTS idx_influencer_demand_applications_demand ON influencer_demand_applications(demand_id, created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_influencer_demand_applications_client ON influencer_demand_applications(client_id, created_at DESC);
+
+  CREATE TABLE IF NOT EXISTS system_messages (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    category TEXT NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT,
+    related_type TEXT,
+    related_id INTEGER,
+    is_read INTEGER NOT NULL DEFAULT 0 CHECK (is_read IN (0, 1)),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  );
+  CREATE INDEX IF NOT EXISTS idx_system_messages_user_created ON system_messages(user_id, created_at DESC);
 `;
 
 /**
@@ -633,6 +692,8 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS client_shop_name TEXT`);
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS client_group_chat TEXT`);
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS publish_method TEXT NOT NULL DEFAULT 'client_self_publish'`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS is_public_apply INTEGER NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS match_status TEXT NOT NULL DEFAULT 'open'`);
     await query(
       `UPDATE client_market_orders
          SET publish_method = 'client_self_publish'
@@ -653,6 +714,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     await query(`CREATE INDEX IF NOT EXISTS idx_client_market_orders_created_at ON client_market_orders(created_at DESC)`);
     await query(`CREATE INDEX IF NOT EXISTS idx_client_market_orders_client_created ON client_market_orders(client_id, created_at DESC) WHERE is_deleted = 0`);
     await query(`CREATE INDEX IF NOT EXISTS idx_client_market_orders_influencer_created ON client_market_orders(influencer_id, created_at DESC) WHERE is_deleted = 0`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_client_market_orders_match_status ON client_market_orders (match_status, created_at DESC) WHERE is_deleted = 0`);
   }
   await query(`CREATE TABLE IF NOT EXISTS client_skus (
     id SERIAL PRIMARY KEY,
