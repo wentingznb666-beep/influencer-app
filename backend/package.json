@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "npm run build && node dist/index.js",
+    "start": "npm --prefix ../frontend install && npm --prefix ../frontend run build && npm run build && node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "ngrok": "node start-ngrok.js",
     "tunnel": "node start-localtunnel.js",
