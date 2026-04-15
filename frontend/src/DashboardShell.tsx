@@ -6,17 +6,33 @@ import { BrandLogo } from "./BrandLogo";
 import { xtLayout, xtOutlineBtn } from "./brandTheme";
 import { DeferredBlock, useDeferredInCompact, useResponsive } from "./responsive";
 
-/** 侧栏导航项：路径与文案（可选 hover 预加载） */
+/** ?????????????? hover ???? */
 export type DashboardNavItem = { to: string; label: string; preload?: () => void };
 
-
-
 /**
- * Decode escaped unicode sequences in usernames.
+ * Normalize username text to avoid mojibake in header.
  */
-function decodeEscapedUnicode(text: string | null | undefined): string {
+function normalizeUsername(text: string | null | undefined): string {
   if (!text) return "";
-  return text.replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+
+  // 1) Decode escaped unicode like "\u4f59\u989d"
+  let value = text;
+  for (let i = 0; i < 2; i += 1) {
+    const decoded = value.replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+    if (decoded === value) break;
+    value = decoded;
+  }
+
+  // 2) Remove unprintable control chars except common whitespace
+  value = value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+
+  // 3) If username is polluted by trailing garbage, keep first sane token
+  const parts = value.split(/\s+/).filter(Boolean);
+  if (parts.length > 1 && /^[A-Za-z0-9_.@-]{2,}$/.test(parts[0])) {
+    return parts[0];
+  }
+
+  return value;
 }
 
 type DashboardShellProps = {
@@ -147,7 +163,7 @@ export default function DashboardShell({
           </div>
           <div className="xt-header-actions" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <LanguageSwitch />
-            <span style={{ color: "var(--xt-text-muted)" }}>{decodeEscapedUnicode(user?.username)}</span>
+            <span style={{ color: "var(--xt-text-muted)" }}>{normalizeUsername(user?.username)}</span>
             <DeferredBlock ready={headerExtrasReady}>{headerExtra}</DeferredBlock>
             <button
               type="button"
