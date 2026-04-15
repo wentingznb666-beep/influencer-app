@@ -50,7 +50,7 @@ export default function AdminSkusPage() {
   }, []);
 
   /**
-   * 拉取客户下拉数据。
+   * 拉取商家下拉数据。
    */
   const loadClients = async () => {
     try {
@@ -68,7 +68,7 @@ export default function AdminSkusPage() {
   return (
     <div>
       <h2 style={{ marginTop: 0 }}>SKU 列表（只读）</h2>
-      <p style={{ fontSize: 14, color: "#64748b" }}>支持按客户账号、客户ID、SKU 编码/名称精准搜索。</p>
+      <p style={{ fontSize: 14, color: "#64748b" }}>支持按商家账号、商家ID、SKU 编码/名称精准搜索。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       <div style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <select
@@ -76,14 +76,14 @@ export default function AdminSkusPage() {
           onChange={(e) => setClientId(e.target.value ? Number(e.target.value) : "")}
           style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 220, background: "#fff" }}
         >
-          <option value="">全部客户</option>
+          <option value="">全部商家</option>
           {clientList.map((c) => (
             <option key={c.id} value={c.id}>
               {c.username}（ID:{c.id}）
             </option>
           ))}
         </select>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索客户账号/ID/SKU编码/名称" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 300 }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索商家账号/ID/SKU编码/名称" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 300 }} />
         <button type="button" onClick={() => load(q, clientId)} style={{ padding: "8px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer" }}>
           搜索
         </button>
@@ -106,7 +106,7 @@ export default function AdminSkusPage() {
           {list.map((s) => (
             <div key={s.id} style={{ background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
               <div style={{ fontSize: 13, color: "#64748b" }}>
-                客户：{s.client_username}（ID:{s.client_id}）
+                商家：{s.client_username}（ID:{s.client_id}）
               </div>
               <div style={{ marginTop: 4 }}>
                 <strong>{s.sku_code}</strong>

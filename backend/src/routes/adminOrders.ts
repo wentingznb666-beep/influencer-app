@@ -21,14 +21,14 @@ function normalizeOrderStatus(value: unknown): OrderStatus | "" {
 }
 
 /**
- * 规范化客户店铺名称输入。
+ * 规范化商家店铺名称输入。
  */
 function normalizeClientShopName(value: unknown): string {
   return value != null ? String(value).trim() : "";
 }
 
 /**
- * 规范化客户对接群聊输入（群号或链接）。
+ * 规范化商家对接群聊输入（群号或链接）。
  */
 function normalizeClientGroupChat(value: unknown): string {
   return value != null ? String(value).trim() : "";
@@ -46,7 +46,7 @@ function normalizePublishMethod(value: unknown): string {
 /**
  * GET /api/admin/orders
  * 管理员/员工查看商家端发起的达人领单订单（client_market_orders），支持：
- * - q：按订单号、标题、客户账号/名称、达人账号/昵称模糊匹配
+ * - q：按订单号、标题、商家账号/名称、达人账号/昵称模糊匹配
  * - status：按订单状态筛选（open/claimed/completed/cancelled）
  */
 router.get("/", (req: AuthRequest, res: Response) => {
@@ -125,7 +125,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
 
 /**
  * PATCH /api/admin/orders/:id/client-info
- * 管理员/员工编辑客户基础信息（店铺名称、对接群聊）。
+ * 管理员/员工编辑商家基础信息（店铺名称、对接群聊）。
  */
 router.patch("/:id/client-info", (req: AuthRequest, res: Response) => {
   const id = Number(req.params.id);
@@ -137,19 +137,19 @@ router.patch("/:id/client-info", (req: AuthRequest, res: Response) => {
   const shopName = normalizeClientShopName(client_shop_name);
   const groupChat = normalizeClientGroupChat(client_group_chat);
   if (!shopName) {
-    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "请输入客户店铺名称。" });
+    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "请输入商家店铺名称。" });
     return;
   }
   if (shopName.length > 200) {
-    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "客户店铺名称最长 200 字符。" });
+    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "商家店铺名称最长 200 字符。" });
     return;
   }
   if (!groupChat) {
-    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "请输入客户对接群聊（群号/链接）。" });
+    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "请输入商家对接群聊（群号/链接）。" });
     return;
   }
   if (groupChat.length > 2000) {
-    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "客户对接群聊最长 2000 字符。" });
+    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "商家对接群聊最长 2000 字符。" });
     return;
   }
   const publishMethod = normalizePublishMethod(publish_method);

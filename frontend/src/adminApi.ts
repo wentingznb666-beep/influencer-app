@@ -276,8 +276,8 @@ export async function getAdminMarketOrders(params?: { q?: string; start_date?: s
 }
 
 /**
- * 管理员：客户订单列表（达人领单订单）。
- * 支持按订单号/标题/客户/达人等模糊搜索，按状态筛选。
+ * 管理员：商家订单列表（达人领单订单）。
+ * 支持按订单号/标题/商家/达人等模糊搜索，按状态筛选。
  */
 export async function getAdminOrders(params?: { q?: string; status?: "open" | "claimed" | "completed" | "cancelled" | "" }) {
   const q = new URLSearchParams();
@@ -289,7 +289,7 @@ export async function getAdminOrders(params?: { q?: string; status?: "open" | "c
 }
 
 /**
- * 管理员/员工：更新订单客户基础信息（店铺名称、对接群聊）。
+ * 管理员/员工：更新订单商家基础信息（店铺名称、对接群聊）。
  */
 export async function updateAdminOrderClientInfo(id: number, body: { client_shop_name: string; client_group_chat: string; publish_method: "client_self_publish" | "influencer_publish_with_cart" }) {
   const res = await fetchWithAuth(`/api/admin/orders/${id}/client-info`, {
@@ -400,7 +400,7 @@ export async function updateUserStatus(id: number, disabled: boolean) {
 }
 
 /**
- * 管理员/员工：客户 SKU 列表，支持关键词与客户 ID 搜索。
+ * 管理员/员工：商家 SKU 列表，支持关键词与商家 ID 搜索。
  */
 export async function getAdminSkus(params?: { q?: string; client_id?: number }) {
   const q = new URLSearchParams();
@@ -412,7 +412,7 @@ export async function getAdminSkus(params?: { q?: string; client_id?: number }) 
 }
 
 /**
- * 管理员/员工：拉取客户下拉选项（用于 SKU 精准筛选）。
+ * 管理员/员工：拉取商家下拉选项（用于 SKU 精准筛选）。
  */
 export async function getAdminSkuClients() {
   const res = await fetchWithAuth("/api/admin/skus/clients");

@@ -26,7 +26,7 @@ export default function SkusPage() {
   const [dragging, setDragging] = useState(false);
 
   /**
-   * 加载当前客户 SKU。
+   * 加载当前商家 SKU。
    */
   const load = async () => {
     setLoading(true);

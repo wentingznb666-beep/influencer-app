@@ -332,7 +332,7 @@ export default function ClientOrdersHallPage() {
                   <div style={{ fontWeight: 600 }}>订单号：{o.order_no || `#${o.id}`}</div>
                   {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>}
                   <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
-                    下单客户账号：{o.client_username} ｜ 客户名称：{o.client_display_name}
+                    下单商家账号：{o.client_username} ｜ 商家名称：{o.client_display_name}
                   </div>
                   <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>订单创建日期：{formatDateTime(o.created_at)}</div>
                 </div>
@@ -398,7 +398,7 @@ export default function ClientOrdersHallPage() {
                   <div style={{ fontWeight: 600 }}>订单号：{o.order_no || `#${o.id}`}</div>
                   {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>}
                   <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
-                    下单客户账号：{o.client_username} ｜ 客户名称：{o.client_display_name}
+                    下单商家账号：{o.client_username} ｜ 商家名称：{o.client_display_name}
                   </div>
                   <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>订单创建日期：{formatDateTime(o.created_at)}</div>
                 </div>

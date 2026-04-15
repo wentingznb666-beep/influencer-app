@@ -54,7 +54,7 @@ function isHttpUrl(value?: string | null): boolean {
 }
 
 /**
- * 管理员端：达人领单全量列表，采用与客户订单一致的表格风格。
+ * 管理员端：达人领单全量列表，采用与商家订单一致的表格风格。
  */
 export default function MarketOrdersPage() {
   const user = getStoredUser();
@@ -195,18 +195,18 @@ export default function MarketOrdersPage() {
   };
 
   /**
-   * 管理员端回写客户基础信息并同步更新当前列表。
+   * 管理员端回写商家基础信息并同步更新当前列表。
    */
   const saveClientInfo = async () => {
     if (!detailOrder) return;
     const shopName = String(detailOrder.client_shop_name ?? "").trim();
     const groupChat = String(detailOrder.client_group_chat ?? "").trim();
     if (!shopName) {
-      setError("请输入客户店铺名称");
+      setError("请输入商家店铺名称");
       return;
     }
     if (!groupChat) {
-      setError("请输入客户对接群聊（群号/链接）");
+      setError("请输入商家对接群聊（群号/链接）");
       return;
     }
     setSavingClientInfo(true);
@@ -226,7 +226,7 @@ export default function MarketOrdersPage() {
   return (
     <div>
       <h2 style={{ marginTop: 0 }}>达人领单</h2>
-      <p style={{ fontSize: 14, color: "#64748b" }}>查看商家端发布的达人领单；布局与“客户订单”页保持一致，便于跨页核对。</p>
+      <p style={{ fontSize: 14, color: "#64748b" }}>查看商家端发布的达人领单；布局与“商家订单”页保持一致，便于跨页核对。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       <div style={{ marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <input
@@ -281,7 +281,7 @@ export default function MarketOrdersPage() {
             <thead>
               <tr>
                 <th style={{ padding: 8, textAlign: "left" }}>订单号</th>
-                <th style={{ padding: 8, textAlign: "left" }}>客户账号/名称</th>
+                <th style={{ padding: 8, textAlign: "left" }}>商家账号/名称</th>
                 <th style={{ padding: 8, textAlign: "left" }}>领取达人</th>
                 <th style={{ padding: 8, textAlign: "left" }}>状态</th>
                 <th style={{ padding: 8, textAlign: "left" }}>金额</th>
@@ -339,7 +339,7 @@ export default function MarketOrdersPage() {
                     </span>
                   </td>
                   <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
-                    客户支付：{o.client_pay_points}
+                    商家支付：{o.client_pay_points}
                     {!isEmployee && (
                       <>
                         <br />
@@ -402,8 +402,8 @@ export default function MarketOrdersPage() {
               <button type="button" onClick={() => copyText(detailOrder.order_no || "", `订单号 ${detailOrder.order_no || ""}`)} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
                 复制订单号
               </button>
-              <button type="button" onClick={() => copyText(detailOrder.client_username || "", "客户账号")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
-                复制客户账号
+              <button type="button" onClick={() => copyText(detailOrder.client_username || "", "商家账号")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+                复制商家账号
               </button>
               <button type="button" onClick={() => copyText(detailOrder.influencer_username || "", "达人账号")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
                 复制达人账号
@@ -420,17 +420,17 @@ export default function MarketOrdersPage() {
             <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 10, alignItems: "start", fontSize: 14 }}>
               <div style={{ color: "#64748b" }}>订单ID</div><div>{detailOrder.id}</div>
               <div style={{ color: "#64748b" }}>订单号</div><div>{detailOrder.order_no || "—"}</div>
-              <div style={{ color: "#64748b" }}>客户账号/名称</div><div>{detailOrder.client_username} / {detailOrder.client_display_name || detailOrder.client_username}</div>
-              <div style={{ color: "#64748b" }}>客户店铺名称</div>
+              <div style={{ color: "#64748b" }}>商家账号/名称</div><div>{detailOrder.client_username} / {detailOrder.client_display_name || detailOrder.client_username}</div>
+              <div style={{ color: "#64748b" }}>商家店铺名称</div>
               <div>
                 <input
                   value={detailOrder.client_shop_name || ""}
                   onChange={(e) => setDetailOrder((prev) => (prev ? { ...prev, client_shop_name: e.target.value } : prev))}
-                  placeholder="请输入客户店铺名称"
+                  placeholder="请输入商家店铺名称"
                   style={{ width: "100%", maxWidth: 360, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }}
                 />
               </div>
-              <div style={{ color: "#64748b" }}>客户对接群聊</div>
+              <div style={{ color: "#64748b" }}>商家对接群聊</div>
               <div>
                 <input
                   value={detailOrder.client_group_chat || ""}
@@ -462,7 +462,7 @@ export default function MarketOrdersPage() {
                   <option value="influencer_publish_with_cart">{"\u8fbe\u4eba\u5728TikTok\u8d26\u53f7\u53d1\u5e03\u89c6\u9891\u548c\u6302\u5728\u8d2d\u7269\u8f66"}</option>
                 </select>
               </div>
-              <div style={{ color: "#64748b" }}>客户支付</div><div>{detailOrder.client_pay_points}</div>
+              <div style={{ color: "#64748b" }}>商家支付</div><div>{detailOrder.client_pay_points}</div>
               {!isEmployee && (
                 <>
                   <div style={{ color: "#64748b" }}>达人收益</div><div>{detailOrder.creator_reward_points}</div>
@@ -534,7 +534,7 @@ export default function MarketOrdersPage() {
                 disabled={savingClientInfo}
                 style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "var(--xt-accent)", color: "#fff", cursor: savingClientInfo ? "not-allowed" : "pointer", opacity: savingClientInfo ? 0.65 : 1 }}
               >
-                {savingClientInfo ? "保存中..." : "保存客户信息"}
+                {savingClientInfo ? "保存中..." : "保存商家信息"}
               </button>
             </div>
           </div>

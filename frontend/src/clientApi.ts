@@ -41,7 +41,7 @@ export async function deleteRequest(id: number) {
   return res.json();
 }
 
-/** 客户 SKU 列表 */
+/** 商家 SKU 列表 */
 export async function getSkus() {
   const res = await fetchWithAuth("/api/client/skus");
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");

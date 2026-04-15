@@ -8,7 +8,7 @@ router.use(requireRole("admin", "employee"));
 
 /**
  * GET /api/admin/skus/clients
- * 管理员/员工获取客户下拉选项（仅返回商家端账号）。
+ * 管理员/员工获取商家下拉选项（仅返回商家端账号）。
  */
 router.get("/clients", (_req: AuthRequest, res: Response) => {
   (async () => {
@@ -31,7 +31,7 @@ router.get("/clients", (_req: AuthRequest, res: Response) => {
 
 /**
  * GET /api/admin/skus
- * 管理员/员工查看客户 SKU 列表，支持按客户或 SKU 关键词搜索。
+ * 管理员/员工查看商家 SKU 列表，支持按商家或 SKU 关键词搜索。
  */
 router.get("/", (req: AuthRequest, res: Response) => {
   const q = typeof req.query.q === "string" ? req.query.q.trim() : "";

@@ -44,7 +44,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
 
 /**
  * GET /api/client/models/my
- * 商家端我的长期合作模特列表（仅当前客户自己的选择）。
+ * 商家端我的长期合作模特列表（仅当前商家自己的选择）。
  */
 router.get("/my", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
@@ -73,7 +73,7 @@ router.get("/my", (req: AuthRequest, res: Response) => {
 
 /**
  * PUT /api/client/models/:id/cooperation
- * 客户标记或取消“长期合作”模特。
+ * 商家标记或取消“长期合作”模特。
  */
 router.put("/:id/cooperation", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;

@@ -241,7 +241,7 @@ export default function UsersPage() {
       </div>
       {!isEmployee && (
         <p style={{ fontSize: 14, color: "#64748b", marginTop: 4, marginBottom: 8 }}>
-          达人/商家（含客户）的积分加分与扣分请在侧边栏「积分与结算」中操作；扣分现已支持客户账号。
+          达人/商家（含商家）的积分加分与扣分请在侧边栏「积分与结算」中操作；扣分现已支持商家账号。
         </p>
       )}
       {error && <p style={{ color: "#c00" }}>{error}</p>}

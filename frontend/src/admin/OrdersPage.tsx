@@ -55,7 +55,7 @@ function isHttpUrl(value?: string | null): boolean {
 }
 
 /**
- * 管理员端：客户订单列表（达人领单），支持搜索与状态筛选，并与商家端/达人端订单实时同步。
+ * 管理员端：商家订单列表（达人领单），支持搜索与状态筛选，并与商家端/达人端订单实时同步。
  */
 export default function OrdersPage() {
   const user = getStoredUser();
@@ -177,18 +177,18 @@ export default function OrdersPage() {
   };
 
   /**
-   * 管理员端回写客户基础信息并同步更新当前列表。
+   * 管理员端回写商家基础信息并同步更新当前列表。
    */
   const saveClientInfo = async () => {
     if (!detailOrder) return;
     const shopName = String(detailOrder.client_shop_name ?? "").trim();
     const groupChat = String(detailOrder.client_group_chat ?? "").trim();
     if (!shopName) {
-      setError("请输入客户店铺名称");
+      setError("请输入商家店铺名称");
       return;
     }
     if (!groupChat) {
-      setError("请输入客户对接群聊（群号/链接）");
+      setError("请输入商家对接群聊（群号/链接）");
       return;
     }
     setSavingClientInfo(true);
@@ -207,7 +207,7 @@ export default function OrdersPage() {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>客户订单列表</h2>
+      <h2 style={{ marginTop: 0 }}>商家订单列表</h2>
       <p style={{ fontSize: 14, color: "#64748b" }}>展示商家端发布的所有达人任务订单，状态与领取达人信息与商家端/达人端实时互通。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
@@ -216,7 +216,7 @@ export default function OrdersPage() {
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="搜索：订单号/标题/客户/达人（模糊）"
+          placeholder="搜索：订单号/标题/商家/达人（模糊）"
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 280 }}
         />
         <select value={status} onChange={(e) => setStatus(e.target.value as any)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", minWidth: 140 }}>
@@ -270,7 +270,7 @@ export default function OrdersPage() {
             <thead>
               <tr>
                 <th style={{ padding: 8, textAlign: "left" }}>订单号</th>
-                <th style={{ padding: 8, textAlign: "left" }}>客户账号/名称</th>
+                <th style={{ padding: 8, textAlign: "left" }}>商家账号/名称</th>
                 <th style={{ padding: 8, textAlign: "left" }}>领取达人</th>
                 <th style={{ padding: 8, textAlign: "left" }}>状态</th>
                 <th style={{ padding: 8, textAlign: "left" }}>金额</th>
@@ -328,7 +328,7 @@ export default function OrdersPage() {
                     </span>
                   </td>
                   <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
-                    客户支付：{o.client_pay_points}
+                    商家支付：{o.client_pay_points}
                     {!isEmployee && (
                       <>
                         <br />
@@ -391,8 +391,8 @@ export default function OrdersPage() {
               <button type="button" onClick={() => copyText(detailOrder.order_no || "", `订单号 ${detailOrder.order_no || ""}`)} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
                 复制订单号
               </button>
-              <button type="button" onClick={() => copyText(detailOrder.client_username || "", "客户账号")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
-                复制客户账号
+              <button type="button" onClick={() => copyText(detailOrder.client_username || "", "商家账号")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+                复制商家账号
               </button>
               <button type="button" onClick={() => copyText(detailOrder.influencer_username || "", "达人账号")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
                 复制达人账号
@@ -409,17 +409,17 @@ export default function OrdersPage() {
             <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 10, alignItems: "start", fontSize: 14 }}>
               <div style={{ color: "#64748b" }}>订单ID</div><div>{detailOrder.id}</div>
               <div style={{ color: "#64748b" }}>订单号</div><div>{detailOrder.order_no || "—"}</div>
-              <div style={{ color: "#64748b" }}>客户账号/名称</div><div>{detailOrder.client_username} / {detailOrder.client_display_name}</div>
-              <div style={{ color: "#64748b" }}>客户店铺名称</div>
+              <div style={{ color: "#64748b" }}>商家账号/名称</div><div>{detailOrder.client_username} / {detailOrder.client_display_name}</div>
+              <div style={{ color: "#64748b" }}>商家店铺名称</div>
               <div>
                 <input
                   value={detailOrder.client_shop_name || ""}
                   onChange={(e) => setDetailOrder((prev) => (prev ? { ...prev, client_shop_name: e.target.value } : prev))}
-                  placeholder="请输入客户店铺名称"
+                  placeholder="请输入商家店铺名称"
                   style={{ width: "100%", maxWidth: 360, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }}
                 />
               </div>
-              <div style={{ color: "#64748b" }}>客户对接群聊</div>
+              <div style={{ color: "#64748b" }}>商家对接群聊</div>
               <div>
                 <input
                   value={detailOrder.client_group_chat || ""}
@@ -451,7 +451,7 @@ export default function OrdersPage() {
                   <option value="influencer_publish_with_cart">{"\u8fbe\u4eba\u5728TikTok\u8d26\u53f7\u53d1\u5e03\u89c6\u9891\u548c\u6302\u5728\u8d2d\u7269\u8f66"}</option>
                 </select>
               </div>
-              <div style={{ color: "#64748b" }}>客户支付</div><div>{detailOrder.client_pay_points}</div>
+              <div style={{ color: "#64748b" }}>商家支付</div><div>{detailOrder.client_pay_points}</div>
               {!isEmployee && (
                 <>
                   <div style={{ color: "#64748b" }}>达人收益</div><div>{detailOrder.creator_reward_points}</div>
@@ -523,7 +523,7 @@ export default function OrdersPage() {
                 disabled={savingClientInfo}
                 style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "var(--xt-accent)", color: "#fff", cursor: savingClientInfo ? "not-allowed" : "pointer", opacity: savingClientInfo ? 0.65 : 1 }}
               >
-                {savingClientInfo ? "保存中..." : "保存客户信息"}
+                {savingClientInfo ? "保存中..." : "保存商家信息"}
               </button>
             </div>
           </div>

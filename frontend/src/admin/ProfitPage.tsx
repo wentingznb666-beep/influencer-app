@@ -164,7 +164,7 @@ export default function ProfitPage() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(160px, 1fr))", gap: 10, marginBottom: 14 }}>
         <div style={{ background: "#fff", borderRadius: 12, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>订单数：<strong>{summary.total_orders}</strong></div>
-        <div style={{ background: "#fff", borderRadius: 12, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>客户支付：<strong>{summary.total_client_pay}</strong></div>
+        <div style={{ background: "#fff", borderRadius: 12, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>商家支付：<strong>{summary.total_client_pay}</strong></div>
         <div style={{ background: "#fff", borderRadius: 12, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>达人收益：<strong>{summary.total_creator_reward}</strong></div>
         <div style={{ background: "#fff", borderRadius: 12, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>平台利润：<strong>{summary.total_profit}</strong></div>
       </div>
@@ -213,9 +213,9 @@ export default function ProfitPage() {
             <tr style={{ background: "#f5f5f5" }}>
               <th style={{ padding: 10, textAlign: "left" }}>订单号</th>
               <th style={{ padding: 10, textAlign: "left" }}>完成时间</th>
-              <th style={{ padding: 10, textAlign: "left" }}>客户</th>
+              <th style={{ padding: 10, textAlign: "left" }}>商家</th>
               <th style={{ padding: 10, textAlign: "left" }}>达人</th>
-              <th style={{ padding: 10, textAlign: "left" }}>客户支付</th>
+              <th style={{ padding: 10, textAlign: "left" }}>商家支付</th>
               <th style={{ padding: 10, textAlign: "left" }}>达人收益</th>
               <th style={{ padding: 10, textAlign: "left" }}>平台利润</th>
             </tr>

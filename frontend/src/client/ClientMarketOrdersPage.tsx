@@ -168,7 +168,7 @@ export default function ClientMarketOrdersPage() {
   }, []);
 
   /**
-   * 加载客户维护的 SKU 列表，供发单时勾选。
+   * 加载商家维护的 SKU 列表，供发单时勾选。
    */
   const loadSkus = async () => {
     try {
@@ -214,11 +214,11 @@ export default function ClientMarketOrdersPage() {
       return;
     }
     if (!clientShopName.trim()) {
-      setError("请输入客户店铺名称");
+      setError("请输入商家店铺名称");
       return;
     }
     if (!clientGroupChat.trim()) {
-      setError("请输入客户对接群聊（群号/链接）");
+      setError("请输入商家对接群聊（群号/链接）");
       return;
     }
     if (balance != null && balance < consumePoints) {
@@ -341,28 +341,28 @@ export default function ClientMarketOrdersPage() {
             maxLength={200}
             style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
           />
-          <label htmlFor="clientShopName">客户店铺名称（必填）</label>
+          <label htmlFor="clientShopName">商家店铺名称（必填）</label>
           <input
             id="clientShopName"
             type="text"
             value={clientShopName}
             onChange={(e) => setClientShopName(e.target.value)}
-            placeholder="请输入客户店铺名称"
+            placeholder="请输入商家店铺名称"
             maxLength={200}
             style={{ display: "block", marginTop: 8, marginBottom: 4, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
           />
-          {!clientShopName.trim() && <div style={{ marginBottom: 10, fontSize: 12, color: "#b91c1c" }}>请输入客户店铺名称</div>}
-          <label htmlFor="clientGroupChat">客户对接群聊（必填）</label>
+          {!clientShopName.trim() && <div style={{ marginBottom: 10, fontSize: 12, color: "#b91c1c" }}>请输入商家店铺名称</div>}
+          <label htmlFor="clientGroupChat">商家对接群聊（必填）</label>
           <input
             id="clientGroupChat"
             type="text"
             value={clientGroupChat}
             onChange={(e) => setClientGroupChat(e.target.value)}
-            placeholder="请输入客户对接群聊（群号/链接）"
+            placeholder="请输入商家对接群聊（群号/链接）"
             maxLength={2000}
             style={{ display: "block", marginTop: 8, marginBottom: 4, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
           />
-          {!clientGroupChat.trim() && <div style={{ marginBottom: 10, fontSize: 12, color: "#b91c1c" }}>请输入客户对接群聊（群号/链接）</div>}
+          {!clientGroupChat.trim() && <div style={{ marginBottom: 10, fontSize: 12, color: "#b91c1c" }}>请输入商家对接群聊（群号/链接）</div>}
           <label htmlFor="tier">订单档位（决定扣除积分）</label>
           <select
             id="tier"

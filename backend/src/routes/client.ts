@@ -23,8 +23,8 @@ const skuUpload = multer({
 
 /**
  * 达人领单类订单积分规则：
- * - 客户发单即扣积分（按档位 A/B/C：60/40/20）
- * - 订单完成后，达人收益固定为 5（不随客户支付变化）
+ * - 商家发单即扣积分（按档位 A/B/C：60/40/20）
+ * - 订单完成后，达人收益固定为 5（不随商家支付变化）
  */
 const MARKET_ORDER_CREATOR_REWARD = 5;
 const PUBLISH_METHOD_CLIENT_SELF = "client_self_publish";
@@ -50,7 +50,7 @@ function extByMime(mime: string): string | null {
 }
 
 /**
- * 将档位映射为客户支付积分。
+ * 将档位映射为商家支付积分。
  */
 function resolveMarketOrderPayPoints(tier: string): { tier: "A" | "B" | "C"; payPoints: number } {
   if (tier === "A") return { tier: "A", payPoints: 60 };
@@ -97,7 +97,7 @@ function normalizeSkuIds(input: unknown): number[] {
 }
 
 /**
- * 解析并校验客户店铺名称（必填）。
+ * 解析并校验商家店铺名称（必填）。
  */
 function normalizeClientShopName(input: unknown): string {
   const value = input != null ? String(input).trim() : "";
@@ -105,7 +105,7 @@ function normalizeClientShopName(input: unknown): string {
 }
 
 /**
- * 解析并校验客户对接群聊（必填，可为群号或链接）。
+ * 解析并校验商家对接群聊（必填，可为群号或链接）。
  */
 function normalizeClientGroupChat(input: unknown): string {
   const value = input != null ? String(input).trim() : "";
@@ -132,7 +132,7 @@ function normalizeDateOnly(value: unknown): string {
 }
 
 /**
- * 根据 SKU ID 列表读取当前客户 SKU（用于发单时快照）。
+ * 根据 SKU ID 列表读取当前商家 SKU（用于发单时快照）。
  */
 async function resolveSkuSnapshotByIds(clientId: number, skuIds: number[]): Promise<{ ids: number[]; codes: string[]; images: string[] }> {
   if (skuIds.length === 0) return { ids: [], codes: [], images: [] };
@@ -151,7 +151,7 @@ async function resolveSkuSnapshotByIds(clientId: number, skuIds: number[]): Prom
 
 /**
  * GET /api/client/requests
- * 当前客户的需求/合作意向列表。
+ * 当前商家的需求/合作意向列表。
  */
 router.get("/requests", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
@@ -362,7 +362,7 @@ router.post("/skus/upload", (req: AuthRequest, res: Response) => {
 
 /**
  * GET /api/client/skus
- * 当前客户的 SKU 列表。
+ * 当前商家的 SKU 列表。
  */
 router.get("/skus", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
@@ -557,7 +557,7 @@ router.post("/orders", (req: AuthRequest, res: Response) => {
 
 /**
  * PATCH /api/client/orders/:id
- * 更新订单状态（客户可更新备注，状态一般由管理员或流程更新，此处允许客户更新便于协作）。
+ * 更新订单状态（商家可更新备注，状态一般由管理员或流程更新，此处允许商家更新便于协作）。
  */
 router.patch("/orders/:id", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
@@ -677,7 +677,7 @@ router.post("/recharge", (req: AuthRequest, res: Response) => {
 
 /**
  * GET /api/client/market-orders
- * 当前客户发布的「达人领单」订单列表（含要求、状态、奖励积分）。
+ * 当前商家发布的「达人领单」订单列表（含要求、状态、奖励积分）。
  */
 router.get("/market-orders", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
@@ -763,20 +763,20 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
   }
   const clientShopName = normalizeClientShopName(client_shop_name);
   if (!clientShopName) {
-    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "请输入客户店铺名称。" });
+    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "请输入商家店铺名称。" });
     return;
   }
   if (clientShopName.length > 200) {
-    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "客户店铺名称最长 200 字符。" });
+    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "商家店铺名称最长 200 字符。" });
     return;
   }
   const clientGroupChat = normalizeClientGroupChat(client_group_chat);
   if (!clientGroupChat) {
-    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "请输入客户对接群聊（群号/链接）。" });
+    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "请输入商家对接群聊（群号/链接）。" });
     return;
   }
   if (clientGroupChat.length > 2000) {
-    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "客户对接群聊最长 2000 字符。" });
+    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "商家对接群聊最长 2000 字符。" });
     return;
   }
   const publishMethod = normalizePublishMethod(publish_method);
@@ -923,11 +923,11 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
       return;
     }
   if (nextClientShopName !== undefined && (!nextClientShopName || nextClientShopName.length > 200)) {
-    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "请输入有效客户店铺名称（1-200）。" });
+    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "请输入有效商家店铺名称（1-200）。" });
     return;
   }
   if (nextClientGroupChat !== undefined && (!nextClientGroupChat || nextClientGroupChat.length > 2000)) {
-    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "请输入有效客户对接群聊（1-2000）。" });
+    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "请输入有效商家对接群聊（1-2000）。" });
     return;
   }
   if (publish_method !== undefined && !nextPublishMethod) {
@@ -1014,11 +1014,11 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
     const finalClientShopName = nextClientShopName !== undefined ? nextClientShopName : String(ord.client_shop_name ?? "").trim();
     const finalClientGroupChat = nextClientGroupChat !== undefined ? nextClientGroupChat : String(ord.client_group_chat ?? "").trim();
     if (!finalClientShopName) {
-      res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "请输入客户店铺名称。" });
+      res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "请输入商家店铺名称。" });
       return;
     }
     if (!finalClientGroupChat) {
-      res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "请输入客户对接群聊（群号/链接）。" });
+      res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "请输入商家对接群聊（群号/链接）。" });
       return;
     }
     const finalPublishMethod = nextPublishMethod !== undefined ? nextPublishMethod : normalizePublishMethod(ord.publish_method);

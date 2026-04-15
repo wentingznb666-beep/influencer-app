@@ -622,14 +622,14 @@ textarea {
 }
 
 
-/* 客户订单列表（fit）：禁止横向滚动，仅纵向手势 */
+/* 商家订单列表（fit）：禁止横向滚动，仅纵向手势 */
 .xt-order-table-scroll-wrap--fit .xt-order-table-scroll--fit {
   overflow-x: hidden;
   overscroll-behavior-x: none;
   touch-action: pan-y;
 }
 
-/* 客户订单列表表格：列宽按百分比分配，内容自动换行（中/泰） */
+/* 商家订单列表表格：列宽按百分比分配，内容自动换行（中/泰） */
 .xt-client-orders-table {
   width: 100%;
   min-width: 0;

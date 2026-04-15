@@ -8,7 +8,7 @@ router.use(requireRole("admin", "employee"));
 
 /**
  * GET /api/admin/points/summary
- * 积分汇总：各用户（达人/客户）当前余额及可选按周统计。
+ * 积分汇总：各用户（达人/商家）当前余额及可选按周统计。
  */
 router.get("/summary", (req: AuthRequest, res: Response) => {
   const { week } = req.query as { week?: string };

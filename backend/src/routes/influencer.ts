@@ -21,9 +21,9 @@ function normalizeDateOnly(value: unknown): string {
 
 /**
  * 将 client_market_orders 完成结算：
- * - 若发单时尚未扣款（历史订单 pay_deducted=0），则先从商家端扣除客户支付积分（reward_points）
+ * - 若发单时尚未扣款（历史订单 pay_deducted=0），则先从商家端扣除商家支付积分（reward_points）
  * - 达人收益固定为 5（creator_reward_points）
- * - 平台利润记录为（客户支付 - 5）
+ * - 平台利润记录为（商家支付 - 5）
  */
 async function settleMarketOrderComplete(params: {
   orderId: number;
@@ -66,7 +66,7 @@ async function settleMarketOrderComplete(params: {
     const accHigh = await ensurePointAccountLocked(client, high);
     const clientAcc = clientUid === low ? accLow : accHigh;
     const infAcc = infUid === low ? accLow : accHigh;
-    // 兼容历史：若未在发单时扣款，则在完单时扣除客户支付积分
+    // 兼容历史：若未在发单时扣款，则在完单时扣除商家支付积分
     if (Number(ord.pay_deducted) !== 1) {
       if (clientAcc.balance < clientPay) {
         return { kind: "insufficient", balance: clientAcc.balance, need: clientPay };
@@ -470,7 +470,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
   const startDate = normalizeDateOnly(req.query.start_date);
   const endDate = normalizeDateOnly(req.query.end_date);
   (async () => {
-    // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
+    // 达人侧脱敏：不返回商家支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
     let sql = `SELECT mo.id, mo.order_no, mo.title, mo.tier, mo.publish_method, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images,
                       mo.creator_reward_points AS reward_points, mo.status, mo.created_at,
@@ -518,7 +518,7 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
   const startDate = normalizeDateOnly(req.query.start_date);
   const endDate = normalizeDateOnly(req.query.end_date);
   (async () => {
-    // 达人侧脱敏：不返回客户支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
+    // 达人侧脱敏：不返回商家支付积分 reward_points，仅返回达人固定收益 creator_reward_points（命名为 reward_points 兼容前端）
     // 允许返回 tier（A/B/C）用于展示制作标准，但不解释积分档位规则
     let sql = `SELECT mo.id, mo.order_no, mo.title, mo.tier, mo.publish_method, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images,
                       mo.creator_reward_points AS reward_points, mo.status, mo.work_links, mo.created_at, mo.updated_at, mo.completed_at,

@@ -82,11 +82,11 @@ export default function MarketOrderEditPage() {
     if (!item) return;
     setError(null);
     if (!form.client_shop_name.trim()) {
-      setError("请输入客户店铺名称");
+      setError("请输入商家店铺名称");
       return;
     }
     if (!form.client_group_chat.trim()) {
-      setError("请输入客户对接群聊（群号/链接）");
+      setError("请输入商家对接群聊（群号/链接）");
       return;
     }
     if (!(form.publish_method === "client_self_publish" || form.publish_method === "influencer_publish_with_cart")) {
@@ -139,11 +139,11 @@ export default function MarketOrderEditPage() {
             <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} maxLength={200} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
           </div>
           <div style={{ marginBottom: 10 }}>
-            <label>客户店铺名称（必填）</label>
+            <label>商家店铺名称（必填）</label>
             <input value={form.client_shop_name} onChange={(e) => setForm((f) => ({ ...f, client_shop_name: e.target.value }))} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
           </div>
           <div style={{ marginBottom: 10 }}>
-            <label>客户对接群聊（必填）</label>
+            <label>商家对接群聊（必填）</label>
             <input value={form.client_group_chat} onChange={(e) => setForm((f) => ({ ...f, client_group_chat: e.target.value }))} placeholder="群号或链接" style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
           </div>
           <div style={{ marginBottom: 10 }}>

@@ -36,7 +36,7 @@
 ## 阶段 3 已实现（商家端）
 
 - **表**：client_requests（合作意向/需求）、sample_orders（样品与订单跟踪）。
-- **接口**（需客户 JWT）：
+- **接口**（需商家 JWT）：
   - `GET /api/client/requests`、`POST /api/client/requests` 合作意向列表与提交。
   - `GET /api/client/orders`、`POST /api/client/orders`、`PATCH /api/client/orders/:id` 订单列表、创建、更新状态/备注。
   - `GET /api/client/works` 达人已发布作品列表（已通过审核的投稿，含作品链接、达人、平台等）。
