@@ -33,7 +33,7 @@
   - `POST /api/influencer/submissions` 投稿（作品链接 + 可选备注）。
   - `GET /api/influencer/points` 当前积分、本周已获得、最近流水。
 
-## 阶段 3 已实现（客户端）
+## 阶段 3 已实现（商家端）
 
 - **表**：client_requests（合作意向/需求）、sample_orders（样品与订单跟踪）。
 - **接口**（需客户 JWT）：

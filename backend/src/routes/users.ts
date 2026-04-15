@@ -64,7 +64,7 @@ function normalizeRole(value: string): UserRole | null {
 
 /**
  * POST /api/admin/users
- * 管理员开通账号（可创建管理员/员工/达人/客户端）。
+ * 管理员开通账号（可创建管理员/员工/达人/商家端）。
  */
 router.post("/", (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "admin") {

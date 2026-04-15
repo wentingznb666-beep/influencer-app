@@ -55,7 +55,7 @@ function isHttpUrl(value?: string | null): boolean {
 }
 
 /**
- * 管理员端：客户订单列表（达人领单），支持搜索与状态筛选，并与客户端/达人端订单实时同步。
+ * 管理员端：客户订单列表（达人领单），支持搜索与状态筛选，并与商家端/达人端订单实时同步。
  */
 export default function OrdersPage() {
   const user = getStoredUser();
@@ -208,7 +208,7 @@ export default function OrdersPage() {
   return (
     <div>
       <h2 style={{ marginTop: 0 }}>客户订单列表</h2>
-      <p style={{ fontSize: 14, color: "#64748b" }}>展示客户端发布的所有达人任务订单，状态与领取达人信息与客户端/达人端实时互通。</p>
+      <p style={{ fontSize: 14, color: "#64748b" }}>展示商家端发布的所有达人任务订单，状态与领取达人信息与商家端/达人端实时互通。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
       <div style={{ marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>

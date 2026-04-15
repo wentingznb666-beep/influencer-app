@@ -8,7 +8,7 @@ router.use(requireRole("client"));
 
 /**
  * GET /api/client/models
- * 客户端查看已启用模特资料（支持关键词搜索）。
+ * 商家端查看已启用模特资料（支持关键词搜索）。
  */
 router.get("/", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
@@ -44,7 +44,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
 
 /**
  * GET /api/client/models/my
- * 客户端我的长期合作模特列表（仅当前客户自己的选择）。
+ * 商家端我的长期合作模特列表（仅当前客户自己的选择）。
  */
 router.get("/my", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;

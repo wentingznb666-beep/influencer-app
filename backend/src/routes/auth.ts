@@ -95,7 +95,7 @@ router.get("/me", requireAuth, (req: AuthRequest, res: Response) => {
 });
 
 /**
- * 将公开注册角色映射到角色 ID，仅允许客户端/达人自助注册。
+ * 将公开注册角色映射到角色 ID，仅允许商家端/达人自助注册。
  */
 function mapPublicRegisterRoleToId(role: string): number | null {
   if (role === "client") return 2;

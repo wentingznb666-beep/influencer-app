@@ -226,7 +226,7 @@ export default function MarketOrdersPage() {
   return (
     <div>
       <h2 style={{ marginTop: 0 }}>达人领单</h2>
-      <p style={{ fontSize: 14, color: "#64748b" }}>查看客户端发布的达人领单；布局与“客户订单”页保持一致，便于跨页核对。</p>
+      <p style={{ fontSize: 14, color: "#64748b" }}>查看商家端发布的达人领单；布局与“客户订单”页保持一致，便于跨页核对。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       <div style={{ marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <input

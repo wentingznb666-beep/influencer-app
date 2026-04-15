@@ -120,7 +120,7 @@ router.get("/recharge-orders", (req: AuthRequest, res: Response) => {
 
 /**
  * PATCH /api/admin/points/recharge-orders/:id
- * 管理员确认或驳回充值订单，确认后才入账到客户端余额。
+ * 管理员确认或驳回充值订单，确认后才入账到商家端余额。
  */
 router.patch("/recharge-orders/:id", (req: AuthRequest, res: Response) => {
   const id = Number(req.params.id);

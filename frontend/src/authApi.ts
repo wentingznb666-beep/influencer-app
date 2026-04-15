@@ -116,7 +116,7 @@ export async function fetchMe(): Promise<AuthUser> {
 }
 
 /**
- * 公开注册账号，仅支持客户端或达人角色。
+ * 公开注册账号，仅支持商家端或达人角色。
  */
 export async function registerAccount(username: string, password: string, role: PublicRegisterRole): Promise<RegisterAccountResult> {
   const res = await fetch(`${getApiBaseUrl()}/api/auth/register`, {

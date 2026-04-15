@@ -15,14 +15,14 @@ const CLIENT_NAV = [
 ];
 
 /**
- * 客户端布局：侧栏导航 + 子路由出口。
+ * 商家端布局：侧栏导航 + 子路由出口。
  */
 export default function ClientLayout() {
   const [balance, setBalance] = useState<number | null>(null);
   const balanceTimerRef = useState<{ id: number | null; fired: boolean }>({ id: null, fired: false })[0];
 
   /**
-   * 加载客户端当前积分余额，用于在导航顶部展示。
+   * 加载商家端当前积分余额，用于在导航顶部展示。
    */
   const loadBalance = async () => {
     try {
@@ -35,7 +35,7 @@ export default function ClientLayout() {
 
   useEffect(() => {
     /**
-     * 性能优化（仅生产环境）：登录跳转到客户端首屏时，余额请求延后 200ms，
+     * 性能优化（仅生产环境）：登录跳转到商家端首屏时，余额请求延后 200ms，
      * 避免与首屏资源/路由渲染竞争；若用户在 200ms 内发生交互，则立即触发请求。
      */
     /** 触发余额请求（确保只触发一次）。 */
@@ -62,7 +62,7 @@ export default function ClientLayout() {
 
   return (
     <DashboardShell
-      roleTitle="客户端"
+      roleTitle="商家端"
       navItems={CLIENT_NAV}
       mainMaxWidth={1200}
       logoutVariant="danger"

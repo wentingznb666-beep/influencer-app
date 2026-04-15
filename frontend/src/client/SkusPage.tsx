@@ -11,7 +11,7 @@ type SkuRow = {
 };
 
 /**
- * 客户端 SKU 列表：新增、编辑、删除 SKU 及图片。
+ * 商家端 SKU 列表：新增、编辑、删除 SKU 及图片。
  */
 export default function SkusPage() {
   const [list, setList] = useState<SkuRow[]>([]);

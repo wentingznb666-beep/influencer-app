@@ -71,7 +71,7 @@ app.use("/api/admin/photos", adminPhotosRouter);
 app.use("/api/employee/photos", employeePhotosRouter);
 /** 达人端：任务大厅、领取、我的任务、投稿、积分 */
 app.use("/api/influencer", influencerRoutes);
-/** 客户端：合作意向、订单跟踪、达人作品、积分充值 */
+/** 商家端：合作意向、订单跟踪、达人作品、积分充值 */
 app.use("/api/client", clientRoutes);
 app.use("/api/client/models", clientModelsRoutes);
 app.use("/api/admin/showcase-influencers", showcaseInfluencersRoutes);

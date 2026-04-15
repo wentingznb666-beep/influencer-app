@@ -1,5 +1,5 @@
 ﻿/**
- * 客户端 API：合作意向、订单、积分与充值。
+ * 商家端 API：合作意向、订单、积分与充值。
  */
 import { fetchWithAuth } from "./fetchWithAuth";
 import { getAccessToken, refreshAccessToken } from "./authApi";
@@ -236,7 +236,7 @@ export async function deleteMarketOrder(id: number) {
 }
 
 /**
- * 客户端：获取模特展示列表（仅启用状态）。
+ * 商家端：获取模特展示列表（仅启用状态）。
  */
 export async function getClientModels(params?: { q?: string }) {
   const q = new URLSearchParams();
@@ -247,7 +247,7 @@ export async function getClientModels(params?: { q?: string }) {
 }
 
 /**
- * 客户端：获取我的长期合作模特列表。
+ * 商家端：获取我的长期合作模特列表。
  */
 export async function getMyCooperationModels() {
   const res = await fetchWithAuth("/api/client/models/my");
@@ -256,7 +256,7 @@ export async function getMyCooperationModels() {
 }
 
 /**
- * 客户端：设置或取消长期合作模特。
+ * 商家端：设置或取消长期合作模特。
  */
 export async function updateModelCooperation(id: number, selected: boolean) {
   const res = await fetchWithAuth(`/api/client/models/${id}/cooperation`, {
@@ -269,7 +269,7 @@ export async function updateModelCooperation(id: number, selected: boolean) {
 }
 
 /**
- * 客户端：Influencer 展示列表（仅启用）。
+ * 商家端：Influencer 展示列表（仅启用）。
  */
 export async function getClientShowcaseInfluencers(params?: { q?: string }) {
   const q = new URLSearchParams();
@@ -280,7 +280,7 @@ export async function getClientShowcaseInfluencers(params?: { q?: string }) {
 }
 
 /**
- * 客户端：已预约的 Influencer 列表。
+ * 商家端：已预约的 Influencer 列表。
  */
 export async function getMyShowcaseInfluencers() {
   const res = await fetchWithAuth("/api/client/showcase-influencers/my");
@@ -289,7 +289,7 @@ export async function getMyShowcaseInfluencers() {
 }
 
 /**
- * 客户端：预约或取消预约 Influencer。
+ * 商家端：预约或取消预约 Influencer。
  */
 export async function updateShowcaseInfluencerSelection(id: number, selected: boolean) {
   const res = await fetchWithAuth(`/api/client/showcase-influencers/${id}/selection`, {
@@ -302,7 +302,7 @@ export async function updateShowcaseInfluencerSelection(id: number, selected: bo
 }
 
 /**
- * 客户端：Content Creator 展示列表（仅启用）。
+ * 商家端：Content Creator 展示列表（仅启用）。
  */
 export async function getClientShowcaseContentCreators(params?: { q?: string }) {
   const q = new URLSearchParams();
@@ -313,7 +313,7 @@ export async function getClientShowcaseContentCreators(params?: { q?: string }) 
 }
 
 /**
- * 客户端：已预约的 Content Creator 列表。
+ * 商家端：已预约的 Content Creator 列表。
  */
 export async function getMyShowcaseContentCreators() {
   const res = await fetchWithAuth("/api/client/showcase-content-creators/my");
@@ -322,7 +322,7 @@ export async function getMyShowcaseContentCreators() {
 }
 
 /**
- * 客户端：预约或取消预约 Content Creator。
+ * 商家端：预约或取消预约 Content Creator。
  */
 export async function updateShowcaseContentCreatorSelection(id: number, selected: boolean) {
   const res = await fetchWithAuth(`/api/client/showcase-content-creators/${id}/selection`, {

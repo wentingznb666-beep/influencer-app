@@ -45,7 +45,7 @@ function normalizePublishMethod(value: unknown): string {
 
 /**
  * GET /api/admin/orders
- * 管理员/员工查看客户端发起的达人领单订单（client_market_orders），支持：
+ * 管理员/员工查看商家端发起的达人领单订单（client_market_orders），支持：
  * - q：按订单号、标题、客户账号/名称、达人账号/昵称模糊匹配
  * - status：按订单状态筛选（open/claimed/completed/cancelled）
  */

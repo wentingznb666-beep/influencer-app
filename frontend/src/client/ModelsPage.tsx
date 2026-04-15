@@ -13,7 +13,7 @@ type ModelRow = {
 };
 
 /**
- * 客户端模特展示页：浏览、筛选并选择长期合作模特。
+ * 商家端模特展示页：浏览、筛选并选择长期合作模特。
  */
 export default function ClientModelsPage() {
   const [list, setList] = useState<ModelRow[]>([]);

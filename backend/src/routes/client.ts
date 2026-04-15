@@ -871,7 +871,7 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
       });
       return;
     }
-    // 返回给客户端：显示其支付积分（reward_points 字段历史沿用）
+    // 返回给商家端：显示其支付积分（reward_points 字段历史沿用）
     res.status(201).json({ id: result.id, order_no: result.order_no, created_count: result.created_count });
   })().catch((e) => {
     console.error("client market-orders create error:", e);

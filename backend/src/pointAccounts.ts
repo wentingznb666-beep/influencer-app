@@ -2,7 +2,7 @@ import { PoolClient } from "pg";
 
 /**
  * 在事务内按用户锁定积分账户；若不存在则创建余额为 0 的账户并锁定。
- * @param client 已开启事务的 PG 客户端
+ * @param client 已开启事务的 PG 商家端
  * @param userId 用户 ID
  */
 export async function ensurePointAccountLocked(client: PoolClient, userId: number): Promise<{ id: number; balance: number }> {

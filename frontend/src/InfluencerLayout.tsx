@@ -67,7 +67,7 @@ export default function InfluencerLayout() {
     <DashboardShell
       roleTitle="达人端"
       navItems={[
-        { to: "/influencer/client-orders", label: "客户端发单", preload: preloadMap["/influencer/client-orders"] },
+        { to: "/influencer/client-orders", label: "商家端发单", preload: preloadMap["/influencer/client-orders"] },
         { to: "/influencer/points", label: "积分与收益", preload: preloadMap["/influencer/points"] },
         { to: "/influencer/withdraw", label: "申请提现", preload: preloadMap["/influencer/withdraw"] },
         { to: "/influencer/op-logs", label: "我的操作日志" },

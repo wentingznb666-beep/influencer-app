@@ -74,7 +74,7 @@ function resolvePublishMethodText(method?: string | null): string {
 }
 
 /**
- * 客户端「达人领单」页面：发布要求、查看订单号与标题、搜索、查看状态与交付链接。
+ * 商家端「达人领单」页面：发布要求、查看订单号与标题、搜索、查看状态与交付链接。
  */
 export default function ClientMarketOrdersPage() {
   const nav = useNavigate();

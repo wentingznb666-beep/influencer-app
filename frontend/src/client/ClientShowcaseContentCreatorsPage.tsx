@@ -14,7 +14,7 @@ type Row = {
 };
 
 /**
- * 客户端 Content Creator 展示：仅浏览与预约；卡片排版与「模特展示」一致。
+ * 商家端 Content Creator 展示：仅浏览与预约；卡片排版与「模特展示」一致。
  */
 export default function ClientShowcaseContentCreatorsPage() {
   const [list, setList] = useState<Row[]>([]);

@@ -8,7 +8,7 @@ router.use(requireRole("client"));
 
 /**
  * GET /api/client/showcase-influencers
- * 客户端浏览已启用的 Influencer（含本人是否已预约）。
+ * 商家端浏览已启用的 Influencer（含本人是否已预约）。
  */
 router.get("/", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
@@ -44,7 +44,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
 
 /**
  * GET /api/client/showcase-influencers/my
- * 客户端已预约的 Influencer 列表。
+ * 商家端已预约的 Influencer 列表。
  */
 router.get("/my", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;

@@ -8,7 +8,7 @@ router.use(requireRole("client"));
 
 /**
  * GET /api/client/showcase-content-creators
- * 客户端浏览已启用的 Content Creator。
+ * 商家端浏览已启用的 Content Creator。
  */
 router.get("/", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;
@@ -43,7 +43,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
 
 /**
  * GET /api/client/showcase-content-creators/my
- * 客户端已预约的 Content Creator 列表。
+ * 商家端已预约的 Content Creator 列表。
  */
 router.get("/my", (req: AuthRequest, res: Response) => {
   const clientId = req.user!.userId;

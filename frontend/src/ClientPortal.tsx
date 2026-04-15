@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { getStoredUser, clearAuth } from "./authApi";
 
 /**
- * 客户端占位页：展示当前用户并提供登出与后续功能入口。
+ * 商家端占位页：展示当前用户并提供登出与后续功能入口。
  */
 export default function ClientPortal() {
   const navigate = useNavigate();
@@ -16,7 +16,7 @@ export default function ClientPortal() {
   return (
     <div style={{ padding: 24, maxWidth: 800, margin: "0 auto" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
-        <h1 style={{ margin: 0, fontSize: 24 }}>客户端</h1>
+        <h1 style={{ margin: 0, fontSize: 24 }}>商家端</h1>
         <span style={{ color: "#666" }}>{user?.username}（客户）</span>
         <button type="button" onClick={handleLogout} style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
           退出登录

@@ -16,7 +16,7 @@ type Row = {
 };
 
 /**
- * 客户端 Influencer 展示：仅浏览与预约；卡片排版与「模特展示」客户端/管理端列表一致。
+ * 商家端 Influencer 展示：仅浏览与预约；卡片排版与「模特展示」商家端/管理端列表一致。
  */
 export default function ClientShowcaseInfluencersPage() {
   const [list, setList] = useState<Row[]>([]);

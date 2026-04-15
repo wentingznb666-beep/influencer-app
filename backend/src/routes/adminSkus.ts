@@ -8,7 +8,7 @@ router.use(requireRole("admin", "employee"));
 
 /**
  * GET /api/admin/skus/clients
- * 管理员/员工获取客户下拉选项（仅返回客户端账号）。
+ * 管理员/员工获取客户下拉选项（仅返回商家端账号）。
  */
 router.get("/clients", (_req: AuthRequest, res: Response) => {
   (async () => {

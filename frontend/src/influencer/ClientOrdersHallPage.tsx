@@ -143,7 +143,7 @@ function renderSkuInfo(o: { id: number; sku_codes?: string[] | null; sku_images?
 }
 
 /**
- * 达人端：客户端发单大厅与我的领单，展示订单号/标题，支持按订单号或标题精准搜索。
+ * 达人端：商家端发单大厅与我的领单，展示订单号/标题，支持按订单号或标题精准搜索。
  */
 export default function ClientOrdersHallPage() {
   const [openList, setOpenList] = useState<OpenOrder[]>([]);
@@ -283,7 +283,7 @@ export default function ClientOrdersHallPage() {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>客户端发单</h2>
+      <h2 style={{ marginTop: 0 }}>商家端发单</h2>
       <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16 }}>
         领取商家发布的任务，完成后提交交付链接即可获得固定 <strong>5</strong> 积分收益。可使用搜索或手动刷新保持最新数据。
       </p>

@@ -19,7 +19,7 @@ type MarketOrderItem = {
 };
 
 /**
- * 客户端发单编辑页：仅用于回显并提交更新（后端会校验仅 open 可编辑）。
+ * 商家端发单编辑页：仅用于回显并提交更新（后端会校验仅 open 可编辑）。
  */
 export default function MarketOrderEditPage() {
   const { id } = useParams();

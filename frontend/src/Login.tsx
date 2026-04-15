@@ -102,7 +102,7 @@ export default function Login() {
   };
 
   /**
-   * 处理公开注册：仅支持注册客户端或达人账号。
+   * 处理公开注册：仅支持注册商家端或达人账号。
    */
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();

@@ -351,7 +351,7 @@ export async function updateProfitExclusions(user_ids: number[]) {
 }
 
 /**
- * 获取全量账号列表（管理员/员工/达人/客户端）。
+ * 获取全量账号列表（管理员/员工/达人/商家端）。
  */
 export async function getUsers(params?: { role?: string; keyword?: string; disabled?: "0" | "1" | "" }) {
   const q = new URLSearchParams();

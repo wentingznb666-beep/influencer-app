@@ -33,7 +33,7 @@ export async function getPoints() {
 }
 
 /**
- * 客户端发单大厅（待领取）。
+ * 商家端发单大厅（待领取）。
  * - q：订单号/标题/要求全文精准匹配
  * - start_date/end_date：创建日期筛选（YYYY-MM-DD）
  */
@@ -48,7 +48,7 @@ export async function getMarketOrders(params?: { q?: string; start_date?: string
 }
 
 /**
- * 我领取的客户端发单。
+ * 我领取的商家端发单。
  * - q：订单号/标题/要求全文精准匹配
  * - start_date/end_date：创建日期筛选（YYYY-MM-DD）
  */
@@ -63,7 +63,7 @@ export async function getMyMarketOrders(params?: { q?: string; start_date?: stri
 }
 
 /**
- * 领取客户端发单。
+ * 领取商家端发单。
  * @param orderId 订单 ID
  */
 export async function claimMarketOrder(orderId: number) {

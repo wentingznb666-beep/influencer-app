@@ -21,7 +21,7 @@ function normalizeDateOnly(value: unknown): string {
 
 /**
  * 将 client_market_orders 完成结算：
- * - 若发单时尚未扣款（历史订单 pay_deducted=0），则先从客户端扣除客户支付积分（reward_points）
+ * - 若发单时尚未扣款（历史订单 pay_deducted=0），则先从商家端扣除客户支付积分（reward_points）
  * - 达人收益固定为 5（creator_reward_points）
  * - 平台利润记录为（客户支付 - 5）
  */
@@ -463,7 +463,7 @@ router.post("/withdrawals", (req: AuthRequest, res: Response) => {
 
 /**
  * GET /api/influencer/market-orders
- * 达人订单大厅：仅展示待领取（open）的客户端发单。
+ * 达人订单大厅：仅展示待领取（open）的商家端发单。
  */
 router.get("/market-orders", (req: AuthRequest, res: Response) => {
   const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
@@ -510,7 +510,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
 
 /**
  * GET /api/influencer/market-orders/my
- * 当前达人领取或已完成的客户端发单。
+ * 当前达人领取或已完成的商家端发单。
  */
 router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
@@ -558,7 +558,7 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
 
 /**
  * POST /api/influencer/market-orders/:id/claim
- * 领取一条客户端发单（先到先得）。
+ * 领取一条商家端发单（先到先得）。
  */
 router.post("/market-orders/:id/claim", (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
@@ -598,7 +598,7 @@ router.post("/market-orders/:id/claim", (req: AuthRequest, res: Response) => {
 
 /**
  * POST /api/influencer/market-orders/:id/complete
- * 提交完成与作品链接：达人获得 reward_points 积分，同时从客户端等额扣除。
+ * 提交完成与作品链接：达人获得 reward_points 积分，同时从商家端等额扣除。
  */
 router.post("/market-orders/:id/complete", (req: AuthRequest, res: Response) => {
   const userId = req.user!.userId;
@@ -626,7 +626,7 @@ router.post("/market-orders/:id/complete", (req: AuthRequest, res: Response) => 
     if (result.kind === "insufficient") {
       res.status(409).json({
         error: "CLIENT_INSUFFICIENT",
-        message: `客户端积分不足，无法结算（需 ${result.need}，当前 ${result.balance}）。请联系商家充值后再试。`,
+        message: `商家端积分不足，无法结算（需 ${result.need}，当前 ${result.balance}）。请联系商家充值后再试。`,
       });
       return;
     }
