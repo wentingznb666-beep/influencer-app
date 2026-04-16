@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getPoints as getInfluencerPoints } from "./influencerApi";
 import DashboardShell from "./DashboardShell";
 import { xtOutlineBtn } from "./brandTheme";
+import { normalizeAccountText } from "./utils/accountText";
 
 /**
  * Preload common influencer pages for faster navigation.
@@ -37,9 +38,6 @@ export default function InfluencerLayout() {
   };
 
   useEffect(() => {
-    /**
-     * Delay balance request slightly on compact screens.
-     */
     /** Trigger the balance load exactly once. */
     const fire = () => {
       if (balanceTimerRef.fired) return;
@@ -64,20 +62,20 @@ export default function InfluencerLayout() {
 
   return (
     <DashboardShell
-      roleTitle="\u8fbe\u4eba\u7aef"
+      roleTitle="达人端"
       navItems={[
-        { to: "/influencer/client-orders", label: "\u5546\u5bb6\u7aef\u53d1\u5355", preload: preloadMap["/influencer/client-orders"] },
-        { to: "/influencer/points", label: "\u79ef\u5206\u4e0e\u6536\u76ca", preload: preloadMap["/influencer/points"] },
-        { to: "/influencer/withdraw", label: "\u7533\u8bf7\u63d0\u73b0", preload: preloadMap["/influencer/withdraw"] },
-        { to: "/influencer/op-logs", label: "\u6211\u7684\u64cd\u4f5c\u65e5\u5fd7" },
+        { to: "/influencer/client-orders", label: "商家端发单", preload: preloadMap["/influencer/client-orders"] },
+        { to: "/influencer/points", label: "积分与收益", preload: preloadMap["/influencer/points"] },
+        { to: "/influencer/withdraw", label: "申请提现", preload: preloadMap["/influencer/withdraw"] },
+        { to: "/influencer/op-logs", label: "我的操作日志" },
       ]}
       mainMaxWidth={900}
       headerExtra={
         <>
           <span data-no-auto-translate style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>
-            \u4f59\u989d
+            {normalizeAccountText("余额")}
             <span style={{ fontWeight: 700, color: "var(--xt-primary)" }}>
-              {balance == null ? "\u2014" : balance}
+              {balance == null ? "—" : balance}
             </span>
           </span>
           <button
@@ -86,7 +84,7 @@ export default function InfluencerLayout() {
             onClick={loadBalance}
             style={{ ...xtOutlineBtn, padding: "6px 10px", fontSize: 13 }}
           >
-            \u5237\u65b0\u4f59\u989d
+            {normalizeAccountText("刷新余额")}
           </button>
         </>
       }
@@ -94,4 +92,4 @@ export default function InfluencerLayout() {
       <Outlet />
     </DashboardShell>
   );
-}
+}

@@ -34,16 +34,19 @@ import InfluencerLayout from "./InfluencerLayout";
 import ClientOrdersHallPageDev from "./influencer/ClientOrdersHallPage";
 import InfluencerPointsPageDev from "./influencer/PointsPage";
 import WithdrawPageDev from "./influencer/WithdrawPage";
+import ProtectedRoute from "./ProtectedRoute";
+import App from "./App";
+import { LanguageProvider } from "./i18n";
+import OperationLogsPage from "./OperationLogsPage";
+import { runStorageSelfHealMigration } from "./utils/storageMigration";
 
 const ClientOrdersHallPage = import.meta.env.PROD
   ? lazy(() => import("./influencer/ClientOrdersHallPage"))
   : ClientOrdersHallPageDev;
 const InfluencerPointsPage = import.meta.env.PROD ? lazy(() => import("./influencer/PointsPage")) : InfluencerPointsPageDev;
 const WithdrawPage = import.meta.env.PROD ? lazy(() => import("./influencer/WithdrawPage")) : WithdrawPageDev;
-import ProtectedRoute from "./ProtectedRoute";
-import App from "./App";
-import { LanguageProvider } from "./i18n";
-import OperationLogsPage from "./OperationLogsPage";
+
+runStorageSelfHealMigration();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -107,4 +110,4 @@ createRoot(document.getElementById("root")!).render(
       </LanguageProvider>
     </BrowserRouter>
   </StrictMode>
-);
+);

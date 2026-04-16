@@ -180,15 +180,15 @@ export default function SkusPage() {
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       <div style={{ marginBottom: 16, padding: 14, background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
         <div style={{ marginBottom: 8 }}>
-          <label>SKU 编码</label>
-          <input value={form.sku_code} onChange={(e) => setForm((f) => ({ ...f, sku_code: e.target.value }))} style={{ marginLeft: 8, padding: "6px 8px", minWidth: 220 }} />
+          <label htmlFor="sku-code-input">SKU 编码</label>
+          <input id="sku-code-input" name="sku_code" value={form.sku_code} onChange={(e) => setForm((f) => ({ ...f, sku_code: e.target.value }))} style={{ marginLeft: 8, padding: "6px 8px", minWidth: 220 }} />
         </div>
         <div style={{ marginBottom: 8 }}>
-          <label>SKU 名称</label>
-          <input value={form.sku_name} onChange={(e) => setForm((f) => ({ ...f, sku_name: e.target.value }))} style={{ marginLeft: 8, padding: "6px 8px", minWidth: 220 }} />
+          <label htmlFor="sku-name-input">SKU 名称</label>
+          <input id="sku-name-input" name="sku_name" value={form.sku_name} onChange={(e) => setForm((f) => ({ ...f, sku_name: e.target.value }))} style={{ marginLeft: 8, padding: "6px 8px", minWidth: 220 }} />
         </div>
         <div style={{ marginBottom: 10 }}>
-          <label>SKU 图片上传（jpg/png/webp，单张≤10MB）</label>
+          <label htmlFor="sku-images-input">SKU 图片上传（jpg/png/webp，单张≤10MB）</label>
           <div
             onDragOver={(e) => {
               e.preventDefault();
@@ -212,6 +212,8 @@ export default function SkusPage() {
             }}
           >
             <input
+              id="sku-images-input"
+              name="sku_images"
               type="file"
               accept="image/jpeg,image/png,image/webp"
               multiple

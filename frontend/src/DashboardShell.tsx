@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+﻿import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { getStoredUser, clearAuth } from "./authApi";
 import LanguageSwitch from "./LanguageSwitch";
@@ -7,27 +7,22 @@ import { xtLayout, xtOutlineBtn } from "./brandTheme";
 import { DeferredBlock, useDeferredInCompact, useResponsive } from "./responsive";
 import { normalizeAccountText } from "./utils/accountText";
 
-/** ?????????????? hover ???? */
+/** 顶栏/侧栏导航项定义，支持 hover 预加载。 */
 export type DashboardNavItem = { to: string; label: string; preload?: () => void };
 
 /**
- * Normalize username text to avoid mojibake in header.
+ * 标准化用户名，避免头部显示 unicode 转义残留或乱码。
  */
 function normalizeUsername(text: string | null | undefined): string {
   if (!text) return "";
-
-  // 1) Decode escaped unicode like "\u4f59\u989d"
   let value = text;
   for (let i = 0; i < 2; i += 1) {
     const decoded = value.replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)));
     if (decoded === value) break;
     value = decoded;
   }
-
-  // 2) Remove unprintable control chars except common whitespace
   value = value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
 
-  // 3) If username is polluted by trailing garbage, keep first sane token
   const parts = value.split(/\s+/).filter(Boolean);
   if (parts.length > 1 && /^[A-Za-z0-9_.@-]{2,}$/.test(parts[0])) return parts[0];
 
@@ -35,6 +30,27 @@ function normalizeUsername(text: string | null | undefined): string {
   if (leadingAscii && leadingAscii[1].length < value.length) return leadingAscii[1];
 
   return normalizeAccountText(value);
+}
+
+/**
+ * 判断文本节点是否包含可疑的转义残留片段。
+ */
+function hasEscapedFragment(text: string): boolean {
+  return /\\u[0-9a-fA-F]{4}|u[0-9a-fA-F]{4}|�/.test(text);
+}
+
+/**
+ * 清洗容器内所有可疑文本节点。
+ */
+function sanitizeEscapedTextNodes(root: HTMLElement): void {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let cur: Node | null = walker.nextNode();
+  while (cur) {
+    const node = cur as Text;
+    const raw = node.nodeValue ?? "";
+    if (hasEscapedFragment(raw)) node.nodeValue = normalizeAccountText(raw);
+    cur = walker.nextNode();
+  }
 }
 
 type DashboardShellProps = {
@@ -53,7 +69,7 @@ type DashboardShellProps = {
 };
 
 /**
- * 三端通用后台壳：左侧深靛蓝侧栏 + 顶栏 + 主内容区（带呼吸间距）。
+ * 三端通用后台壳：左侧深靛蓝侧栏 + 顶栏 + 主内容区。
  */
 export default function DashboardShell({
   roleTitle,
@@ -69,6 +85,7 @@ export default function DashboardShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isCompact } = useResponsive();
   const headerExtrasReady = useDeferredInCompact(isCompact, 280);
+  const shellRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!isCompact) setSidebarOpen(false);
@@ -82,6 +99,28 @@ export default function DashboardShell({
       document.body.style.overflow = origin;
     };
   }, [isCompact, sidebarOpen]);
+
+  /**
+   * 全区域文本兜底清洗：修复运行时注入或历史缓存导致的 uXXXX 脏串。
+   */
+  useEffect(() => {
+    const root = shellRef.current;
+    if (!root) return;
+
+    sanitizeEscapedTextNodes(root);
+
+    const observer = new MutationObserver(() => {
+      sanitizeEscapedTextNodes(root);
+    });
+
+    observer.observe(root, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+    });
+
+    return () => observer.disconnect();
+  }, [user?.username, roleTitle, navItems, headerExtra]);
 
   /**
    * 清除登录态并回到登录页。
@@ -113,7 +152,7 @@ export default function DashboardShell({
       : xtOutlineBtn;
 
   return (
-    <div style={xtLayout.dashboardShell}>
+    <div ref={shellRef} style={xtLayout.dashboardShell}>
       {isCompact && sidebarOpen && (
         <button
           type="button"
@@ -127,12 +166,12 @@ export default function DashboardShell({
         style={xtLayout.sidebar}
         aria-hidden={isCompact ? !sidebarOpen : false}
       >
-        <div className="xt-sidebar-brand">
+        <div className="xt-sidebar-brand" data-no-auto-translate>
           <div className="xt-sidebar-logo-wrap">
             <BrandLogo height={40} />
           </div>
           <div className="xt-sidebar-app">达人分发</div>
-          <div className="xt-sidebar-role">{roleTitle}</div>
+          <div className="xt-sidebar-role">{normalizeAccountText(roleTitle)}</div>
         </div>
         <nav className="xt-sidebar-nav">
           {navItems.map((item) => (
@@ -143,7 +182,7 @@ export default function DashboardShell({
               onClick={handleNavClick}
               onMouseEnter={() => item.preload?.()}
             >
-              {item.label}
+              {normalizeAccountText(item.label)}
             </NavLink>
           ))}
         </nav>
@@ -178,10 +217,7 @@ export default function DashboardShell({
             </button>
           </div>
         </header>
-        <main
-          className="xt-dashboard-main"
-          style={{ ...xtLayout.mainContent, maxWidth: mainMaxWidth }}
-        >
+        <main className="xt-dashboard-main" style={{ ...xtLayout.mainContent, maxWidth: mainMaxWidth }}>
           {children}
         </main>
       </div>

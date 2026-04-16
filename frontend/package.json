@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:encoding": "python ../backend/scripts/encoding_audit.py --root .."
   },
   "dependencies": {
     "react": "^19.2.0",

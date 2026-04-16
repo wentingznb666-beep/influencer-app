@@ -1,211 +1,211 @@
-﻿import { Router, Response } from "express";
-import { query } from "../db";
-import { requireAuth, requireRole, type AuthRequest } from "../auth";
-import { normalizeWorkLinksFromDb, parseWorkLinksFromBody, validateWorkLinksForAdminEdit } from "../marketOrderWorkLinks";
-import { normalizeSkuCodesFromDb, normalizeSkuIdsFromDb, normalizeSkuImagesFromDb } from "../marketOrderSku";
-
-const router = Router();
-router.use(requireAuth);
-router.use(requireRole("admin", "employee"));
-
-type OrderStatus = "open" | "claimed" | "completed" | "cancelled";
-const PUBLISH_METHOD_CLIENT_SELF = "client_self_publish";
-const PUBLISH_METHOD_INFLUENCER_CART = "influencer_publish_with_cart";
-
-/**
- * 解析订单状态筛选参数；空值表示不筛选。
- */
-function normalizeOrderStatus(value: unknown): OrderStatus | "" {
-  if (value === "open" || value === "claimed" || value === "completed" || value === "cancelled") return value;
-  return "";
-}
-
-/**
- * 规范化商家店铺名称输入。
- */
-function normalizeClientShopName(value: unknown): string {
-  return value != null ? String(value).trim() : "";
-}
-
-/**
- * 规范化商家对接群聊输入（群号或链接）。
- */
-function normalizeClientGroupChat(value: unknown): string {
-  return value != null ? String(value).trim() : "";
-}
-
-/**
- * 规范化发布方式，仅允许固定枚举值。
- */
-function normalizePublishMethod(value: unknown): string {
-  const v = value != null ? String(value).trim() : "";
-  if (v === PUBLISH_METHOD_CLIENT_SELF || v === PUBLISH_METHOD_INFLUENCER_CART) return v;
-  return "";
-}
-
-/**
- * GET /api/admin/orders
- * 管理员/员工查看商家端发起的达人领单订单（client_market_orders），支持：
- * - q：按订单号、标题、商家账号/名称、达人账号/昵称模糊匹配
- * - status：按订单状态筛选（open/claimed/completed/cancelled）
- */
-router.get("/", (req: AuthRequest, res: Response) => {
-  const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
-  const status = normalizeOrderStatus(req.query.status);
-  const requesterRole = req.user?.role === "employee" ? "employee" : "admin";
-
-  (async () => {
-    const params: any[] = [requesterRole];
-    let idx = 2;
-    let sql = `
-      SELECT mo.id, mo.order_no, mo.title,
-             mo.client_id,
-             uc.username AS client_username,
-             COALESCE(NULLIF(uc.display_name, ''), uc.username) AS client_display_name,
-             mo.client_shop_name,
-             mo.client_group_chat,
-             mo.influencer_id,
-             ui.username AS influencer_username,
-             COALESCE(NULLIF(ui.display_name, ''), ui.username) AS influencer_display_name,
-             mo.reward_points AS client_pay_points,
-             CASE WHEN $1 = 'employee' THEN NULL ELSE mo.creator_reward_points END AS creator_reward_points,
-             CASE WHEN $1 = 'employee' THEN NULL ELSE mo.platform_profit_points END AS platform_profit_points,
-             mo.tier,
-             mo.publish_method,
-             mo.status,
-             mo.sku_codes,
-             mo.sku_ids,
-             mo.sku_images,
-             mo.work_links,
-             mo.created_at,
-             mo.updated_at,
-             mo.completed_at
-      FROM client_market_orders mo
-      JOIN users uc ON mo.client_id = uc.id
-      LEFT JOIN users ui ON mo.influencer_id = ui.id
-      WHERE 1=1
-    `;
-
-    if (status) {
-      sql += ` AND mo.status = $${idx++}`;
-      params.push(status);
-    }
-
-    if (rawQ) {
-      sql += ` AND (
-        mo.order_no ILIKE '%' || $${idx} || '%'
-        OR COALESCE(mo.title, '') ILIKE '%' || $${idx} || '%'
-        OR COALESCE(mo.client_shop_name, '') ILIKE '%' || $${idx} || '%'
-        OR COALESCE(mo.client_group_chat, '') ILIKE '%' || $${idx} || '%'
-        OR uc.username ILIKE '%' || $${idx} || '%'
-        OR COALESCE(uc.display_name, '') ILIKE '%' || $${idx} || '%'
-        OR COALESCE(ui.username, '') ILIKE '%' || $${idx} || '%'
-        OR COALESCE(ui.display_name, '') ILIKE '%' || $${idx} || '%'
-      )`;
-      params.push(rawQ);
-      idx += 1;
-    }
-
-    sql += ` ORDER BY mo.id DESC LIMIT 500`;
-
-    const { rows } = await query(sql, params);
-    const list = rows.map((r: Record<string, unknown>) => ({
-      ...r,
-      sku_codes: normalizeSkuCodesFromDb(r.sku_codes),
-      sku_ids: normalizeSkuIdsFromDb(r.sku_ids),
-      sku_images: normalizeSkuImagesFromDb(r.sku_images),
-      work_links: normalizeWorkLinksFromDb(r.work_links),
-    }));
-    res.json({ list });
-  })().catch((e) => {
-    console.error("admin orders list error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-  });
-});
-
-/**
- * PATCH /api/admin/orders/:id/client-info
- * 管理员/员工编辑商家基础信息（店铺名称、对接群聊）。
- */
-router.patch("/:id/client-info", (req: AuthRequest, res: Response) => {
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id) || id < 1) {
-    res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
-    return;
-  }
-  const { client_shop_name, client_group_chat, publish_method } = req.body ?? {};
-  const shopName = normalizeClientShopName(client_shop_name);
-  const groupChat = normalizeClientGroupChat(client_group_chat);
-  if (!shopName) {
-    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "请输入商家店铺名称。" });
-    return;
-  }
-  if (shopName.length > 200) {
-    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "商家店铺名称最长 200 字符。" });
-    return;
-  }
-  if (!groupChat) {
-    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "请输入商家对接群聊（群号/链接）。" });
-    return;
-  }
-  if (groupChat.length > 2000) {
-    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "商家对接群聊最长 2000 字符。" });
-    return;
-  }
-  const publishMethod = normalizePublishMethod(publish_method);
-  if (!publishMethod) {
-    res.status(400).json({ error: "INVALID_PUBLISH_METHOD", message: "请选择发布方式" });
-    return;
-  }
-  (async () => {
-    const updated = await query<{ id: number }>(
-      `UPDATE client_market_orders
-          SET client_shop_name = $1, client_group_chat = $2, publish_method = $3, updated_at = now()
-        WHERE id = $4 AND is_deleted = 0
-        RETURNING id`,
-      [shopName, groupChat, publishMethod, id]
-    );
-    if (!updated.rows[0]) {
-      res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-      return;
-    }
-    res.json({ ok: true });
-  })().catch((e) => {
-    console.error("admin orders client-info patch error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-  });
-});
-
-/**
- * PATCH /api/admin/orders/:id/work-links
- * 管理员/员工维护多条交付链接（JSONB 数组）。
- */
-router.patch("/:id/work-links", (req: AuthRequest, res: Response) => {
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id) || id < 1) {
-    res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
-    return;
-  }
-  const links = parseWorkLinksFromBody(req.body);
-  const err = validateWorkLinksForAdminEdit(links);
-  if (err) {
-    res.status(400).json({ error: "INVALID_WORK_LINKS", message: err });
-    return;
-  }
-  (async () => {
-    const updated = await query<{ id: number }>(
-      `UPDATE client_market_orders SET work_links = $1::jsonb, updated_at = now() WHERE id = $2 AND is_deleted = 0 RETURNING id`,
-      [JSON.stringify(links), id]
-    );
-    if (!updated.rows[0]) {
-      res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-      return;
-    }
-    res.json({ ok: true });
-  })().catch((e) => {
-    console.error("admin orders work-links patch error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-  });
-});
-
-export default router;
+import { Router, Response } from "express";
+import { query } from "../db";
+import { requireAuth, requireRole, type AuthRequest } from "../auth";
+import { normalizeWorkLinksFromDb, parseWorkLinksFromBody, validateWorkLinksForAdminEdit } from "../marketOrderWorkLinks";
+import { normalizeSkuCodesFromDb, normalizeSkuIdsFromDb, normalizeSkuImagesFromDb } from "../marketOrderSku";
+
+const router = Router();
+router.use(requireAuth);
+router.use(requireRole("admin", "employee"));
+
+type OrderStatus = "open" | "claimed" | "completed" | "cancelled";
+const PUBLISH_METHOD_CLIENT_SELF = "client_self_publish";
+const PUBLISH_METHOD_INFLUENCER_CART = "influencer_publish_with_cart";
+
+/**
+ * 解析订单状态筛选参数；空值表示不筛选。
+ */
+function normalizeOrderStatus(value: unknown): OrderStatus | "" {
+  if (value === "open" || value === "claimed" || value === "completed" || value === "cancelled") return value;
+  return "";
+}
+
+/**
+ * 规范化商家店铺名称输入。
+ */
+function normalizeClientShopName(value: unknown): string {
+  return value != null ? String(value).trim() : "";
+}
+
+/**
+ * 规范化商家对接群聊输入（群号或链接）。
+ */
+function normalizeClientGroupChat(value: unknown): string {
+  return value != null ? String(value).trim() : "";
+}
+
+/**
+ * 规范化发布方式，仅允许固定枚举值。
+ */
+function normalizePublishMethod(value: unknown): string {
+  const v = value != null ? String(value).trim() : "";
+  if (v === PUBLISH_METHOD_CLIENT_SELF || v === PUBLISH_METHOD_INFLUENCER_CART) return v;
+  return "";
+}
+
+/**
+ * GET /api/admin/orders
+ * 管理员/员工查看商家端发起的达人领单订单（client_market_orders），支持：
+ * - q：按订单号、标题、商家账号/名称、达人账号/昵称模糊匹配
+ * - status：按订单状态筛选（open/claimed/completed/cancelled）
+ */
+router.get("/", (req: AuthRequest, res: Response) => {
+  const rawQ = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  const status = normalizeOrderStatus(req.query.status);
+  const requesterRole = req.user?.role === "employee" ? "employee" : "admin";
+
+  (async () => {
+    const params: any[] = [requesterRole];
+    let idx = 2;
+    let sql = `
+      SELECT mo.id, mo.order_no, mo.title,
+             mo.client_id,
+             uc.username AS client_username,
+             COALESCE(NULLIF(uc.display_name, ''), uc.username) AS client_display_name,
+             mo.client_shop_name,
+             mo.client_group_chat,
+             mo.influencer_id,
+             ui.username AS influencer_username,
+             COALESCE(NULLIF(ui.display_name, ''), ui.username) AS influencer_display_name,
+             mo.reward_points AS client_pay_points,
+             CASE WHEN $1 = 'employee' THEN NULL ELSE mo.creator_reward_points END AS creator_reward_points,
+             CASE WHEN $1 = 'employee' THEN NULL ELSE mo.platform_profit_points END AS platform_profit_points,
+             mo.tier,
+             mo.publish_method,
+             mo.status,
+             mo.sku_codes,
+             mo.sku_ids,
+             mo.sku_images,
+             mo.work_links,
+             mo.created_at,
+             mo.updated_at,
+             mo.completed_at
+      FROM client_market_orders mo
+      JOIN users uc ON mo.client_id = uc.id
+      LEFT JOIN users ui ON mo.influencer_id = ui.id
+      WHERE 1=1
+    `;
+
+    if (status) {
+      sql += ` AND mo.status = $${idx++}`;
+      params.push(status);
+    }
+
+    if (rawQ) {
+      sql += ` AND (
+        mo.order_no ILIKE '%' || $${idx} || '%'
+        OR COALESCE(mo.title, '') ILIKE '%' || $${idx} || '%'
+        OR COALESCE(mo.client_shop_name, '') ILIKE '%' || $${idx} || '%'
+        OR COALESCE(mo.client_group_chat, '') ILIKE '%' || $${idx} || '%'
+        OR uc.username ILIKE '%' || $${idx} || '%'
+        OR COALESCE(uc.display_name, '') ILIKE '%' || $${idx} || '%'
+        OR COALESCE(ui.username, '') ILIKE '%' || $${idx} || '%'
+        OR COALESCE(ui.display_name, '') ILIKE '%' || $${idx} || '%'
+      )`;
+      params.push(rawQ);
+      idx += 1;
+    }
+
+    sql += ` ORDER BY mo.id DESC LIMIT 500`;
+
+    const { rows } = await query(sql, params);
+    const list = rows.map((r: Record<string, unknown>) => ({
+      ...r,
+      sku_codes: normalizeSkuCodesFromDb(r.sku_codes),
+      sku_ids: normalizeSkuIdsFromDb(r.sku_ids),
+      sku_images: normalizeSkuImagesFromDb(r.sku_images),
+      work_links: normalizeWorkLinksFromDb(r.work_links),
+    }));
+    res.json({ list });
+  })().catch((e) => {
+    console.error("admin orders list error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * PATCH /api/admin/orders/:id/client-info
+ * 管理员/员工编辑商家基础信息（店铺名称、对接群聊）。
+ */
+router.patch("/:id/client-info", (req: AuthRequest, res: Response) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
+    return;
+  }
+  const { client_shop_name, client_group_chat, publish_method } = req.body ?? {};
+  const shopName = normalizeClientShopName(client_shop_name);
+  const groupChat = normalizeClientGroupChat(client_group_chat);
+  if (!shopName) {
+    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "请输入商家店铺名称。" });
+    return;
+  }
+  if (shopName.length > 200) {
+    res.status(400).json({ error: "INVALID_CLIENT_SHOP_NAME", message: "商家店铺名称最长 200 字符。" });
+    return;
+  }
+  if (!groupChat) {
+    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "请输入商家对接群聊（群号/链接）。" });
+    return;
+  }
+  if (groupChat.length > 2000) {
+    res.status(400).json({ error: "INVALID_CLIENT_GROUP_CHAT", message: "商家对接群聊最长 2000 字符。" });
+    return;
+  }
+  const publishMethod = normalizePublishMethod(publish_method);
+  if (!publishMethod) {
+    res.status(400).json({ error: "INVALID_PUBLISH_METHOD", message: "请选择发布方式" });
+    return;
+  }
+  (async () => {
+    const updated = await query<{ id: number }>(
+      `UPDATE client_market_orders
+          SET client_shop_name = $1, client_group_chat = $2, publish_method = $3, updated_at = now()
+        WHERE id = $4 AND is_deleted = 0
+        RETURNING id`,
+      [shopName, groupChat, publishMethod, id]
+    );
+    if (!updated.rows[0]) {
+      res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+      return;
+    }
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("admin orders client-info patch error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * PATCH /api/admin/orders/:id/work-links
+ * 管理员/员工维护多条交付链接（JSONB 数组）。
+ */
+router.patch("/:id/work-links", (req: AuthRequest, res: Response) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
+    return;
+  }
+  const links = parseWorkLinksFromBody(req.body);
+  const err = validateWorkLinksForAdminEdit(links);
+  if (err) {
+    res.status(400).json({ error: "INVALID_WORK_LINKS", message: err });
+    return;
+  }
+  (async () => {
+    const updated = await query<{ id: number }>(
+      `UPDATE client_market_orders SET work_links = $1::jsonb, updated_at = now() WHERE id = $2 AND is_deleted = 0 RETURNING id`,
+      [JSON.stringify(links), id]
+    );
+    if (!updated.rows[0]) {
+      res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+      return;
+    }
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("admin orders work-links patch error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+export default router;

@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "backend",
   "version": "1.0.0",
   "description": "",
@@ -9,7 +9,10 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "ngrok": "node start-ngrok.js",
     "tunnel": "node start-localtunnel.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "check:encoding": "python scripts/encoding_audit.py --root ..",
+    "check:build": "npm --prefix ../frontend run build && npm run build",
+    "check:release-text": "npm run check:encoding && npm run check:build"
   },
   "keywords": [],
   "author": "",

@@ -3,15 +3,16 @@ import { useEffect, useState } from "react";
 import { getPoints as getClientPoints } from "./clientApi";
 import DashboardShell from "./DashboardShell";
 import { xtOutlineBtn } from "./brandTheme";
+import { normalizeAccountText } from "./utils/accountText";
 
 const CLIENT_NAV = [
-  { to: "/client/models", label: "\u6a21\u7279\u5c55\u793a" },
+  { to: "/client/models", label: "模特展示" },
   { to: "/client/showcase-influencers", label: "Influencer" },
   { to: "/client/showcase-content-creators", label: "Content Creator" },
-  { to: "/client/market-orders", label: "\u8fbe\u4eba\u9886\u5355" },
-  { to: "/client/skus", label: "SKU \u5217\u8868" },
-  { to: "/client/points", label: "\u79ef\u5206\u5145\u503c" },
-  { to: "/client/op-logs", label: "\u6211\u7684\u64cd\u4f5c\u65e5\u5fd7" },
+  { to: "/client/market-orders", label: "达人领单" },
+  { to: "/client/skus", label: "SKU 列表" },
+  { to: "/client/points", label: "积分充值" },
+  { to: "/client/op-logs", label: "我的操作日志" },
 ];
 
 /**
@@ -34,9 +35,6 @@ export default function ClientLayout() {
   };
 
   useEffect(() => {
-    /**
-     * Delay balance request slightly on compact screens.
-     */
     /** Trigger the balance load exactly once. */
     const fire = () => {
       if (balanceTimerRef.fired) return;
@@ -61,16 +59,16 @@ export default function ClientLayout() {
 
   return (
     <DashboardShell
-      roleTitle="\u5546\u5bb6\u7aef"
+      roleTitle="商家端"
       navItems={CLIENT_NAV}
       mainMaxWidth={1200}
       logoutVariant="danger"
       headerExtra={
         <>
           <span data-no-auto-translate style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>
-            \u4f59\u989d
+            {normalizeAccountText("余额")}
             <span style={{ fontWeight: 700, color: "var(--xt-primary)" }}>
-              {balance == null ? "\u2014" : balance}
+              {balance == null ? "—" : balance}
             </span>
           </span>
           <button
@@ -79,7 +77,7 @@ export default function ClientLayout() {
             onClick={loadBalance}
             style={{ ...xtOutlineBtn, padding: "6px 10px", fontSize: 13 }}
           >
-            \u5237\u65b0\u4f59\u989d
+            {normalizeAccountText("刷新余额")}
           </button>
         </>
       }
@@ -87,4 +85,4 @@ export default function ClientLayout() {
       <Outlet />
     </DashboardShell>
   );
-}
+}
