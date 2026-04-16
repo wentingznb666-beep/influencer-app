@@ -68,7 +68,7 @@ export default function ClientLayout() {
       headerExtra={
         <>
           <span data-no-auto-translate style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>
-            \u4f59\u989d\uff1a
+            \u4f59\u989d
             <span style={{ fontWeight: 700, color: "var(--xt-primary)" }}>
               {balance == null ? "\u2014" : balance}
             </span>
