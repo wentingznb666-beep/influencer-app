@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+﻿import { Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getPoints as getInfluencerPoints } from "./influencerApi";
 import DashboardShell from "./DashboardShell";
@@ -22,6 +22,8 @@ function preloadInfluencerRoutes(): Record<string, () => void> {
  */
 export default function InfluencerLayout() {
   const [balance, setBalance] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [balanceError, setBalanceError] = useState<string | null>(null);
   const balanceTimerRef = useState<{ id: number | null; fired: boolean }>({ id: null, fired: false })[0];
   const preloadMap = preloadInfluencerRoutes();
 
@@ -29,11 +31,16 @@ export default function InfluencerLayout() {
    * Load influencer points balance for header display.
    */
   const loadBalance = async () => {
+    setBalanceLoading(true);
+    setBalanceError(null);
     try {
       const data = await getInfluencerPoints();
       setBalance(typeof data?.balance === "number" ? data.balance : 0);
     } catch {
       setBalance(null);
+      setBalanceError("刷新失败");
+    } finally {
+      setBalanceLoading(false);
     }
   };
 
@@ -42,7 +49,7 @@ export default function InfluencerLayout() {
     const fire = () => {
       if (balanceTimerRef.fired) return;
       balanceTimerRef.fired = true;
-      loadBalance();
+      void loadBalance();
     };
     if (!import.meta.env.PROD) {
       fire();
@@ -72,24 +79,25 @@ export default function InfluencerLayout() {
       mainMaxWidth={900}
       headerExtra={
         <>
-          <span data-no-auto-translate style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>
+          <span style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>
             {normalizeAccountText("余额")}
             <span style={{ fontWeight: 700, color: "var(--xt-primary)" }}>
-              {balance == null ? "—" : balance}
+              {balanceLoading ? "..." : balance == null ? "—" : balance}
             </span>
           </span>
           <button
-            data-no-auto-translate
             type="button"
-            onClick={loadBalance}
-            style={{ ...xtOutlineBtn, padding: "6px 10px", fontSize: 13 }}
+            onClick={() => void loadBalance()}
+            disabled={balanceLoading}
+            style={{ ...xtOutlineBtn, padding: "6px 10px", fontSize: 13, opacity: balanceLoading ? 0.7 : 1 }}
           >
-            {normalizeAccountText("刷新余额")}
+            {balanceLoading ? "刷新中..." : normalizeAccountText("刷新余额")}
           </button>
+          {balanceError && <span style={{ fontSize: 12, color: "#b91c1c" }}>{balanceError}</span>}
         </>
       }
     >
       <Outlet />
     </DashboardShell>
   );
-}
+}

@@ -166,7 +166,7 @@ export default function DashboardShell({
         style={xtLayout.sidebar}
         aria-hidden={isCompact ? !sidebarOpen : false}
       >
-        <div className="xt-sidebar-brand" data-no-auto-translate>
+        <div className="xt-sidebar-brand">
           <div className="xt-sidebar-logo-wrap">
             <BrandLogo height={40} />
           </div>
@@ -224,3 +224,4 @@ export default function DashboardShell({
     </div>
   );
 }
+
