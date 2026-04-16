@@ -11,7 +11,7 @@ type LangContextValue = {
 
 const LangContext = createContext<LangContextValue | null>(null);
 
-const TEXT_CACHE_KEY = "influencer_app_i18n_th_cache_v1";
+const TEXT_CACHE_KEY = "influencer_app_i18n_th_cache_v2";
 const translatedCache = new Map<string, string>();
 const originalTextByNode = new WeakMap<Text, string>();
 
@@ -229,6 +229,14 @@ function ensureAttrOriginal(el: Element, attr: AttrName): string {
 /**
  * 在保持首尾空白的前提下，用译文替换 trim 后的 key 对应片段。
  */
+
+/**
+ * ?????????????????????/??/ID ??????
+ */
+function hasCjk(text: string): boolean {
+  return /[㐀-鿿]/.test(text);
+}
+
 function applyTranslatedToString(full: string, keyTrim: string, target: string): string {
   if (!keyTrim) return full;
   if (full.trim() !== keyTrim) return full;
@@ -248,7 +256,7 @@ function applyThaiSync(root: HTMLElement): void {
     const fullSource = originalTextByNode.get(node) ?? current;
     if (!originalTextByNode.has(node)) originalTextByNode.set(node, fullSource);
     const key = fullSource.trim();
-    if (!key) continue;
+    if (!key || !hasCjk(key)) continue;
     const target = translatedCache.get(key);
     if (target) node.nodeValue = applyTranslatedToString(fullSource, key, normalizeTranslatedText(target));
   }
@@ -256,7 +264,7 @@ function applyThaiSync(root: HTMLElement): void {
   for (const { el, attr } of collectAttrJobs(root)) {
     const full = ensureAttrOriginal(el, attr);
     const key = full.trim();
-    if (!key) continue;
+    if (!key || !hasCjk(key)) continue;
     const target = translatedCache.get(key);
     if (target) writeAttr(el, attr, applyTranslatedToString(full, key, normalizeTranslatedText(target)));
   }
@@ -285,7 +293,7 @@ function collectPendingChineseKeys(root: HTMLElement): string[] {
   const seen = new Set<string>();
   const push = (raw: string) => {
     const key = raw.trim();
-    if (!key || translatedCache.has(key) || seen.has(key)) return;
+    if (!key || !hasCjk(key) || translatedCache.has(key) || seen.has(key)) return;
     seen.add(key);
     pending.push(key);
   };
