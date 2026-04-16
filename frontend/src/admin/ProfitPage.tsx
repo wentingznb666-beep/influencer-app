@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as api from "../adminApi";
+import { normalizeAccountText } from "../utils/accountText";
 
 type ProfitRow = {
   id: number;
@@ -68,7 +69,7 @@ export default function ProfitPage() {
       api.getUsers(),
       api.getProfitExclusions(),
     ]);
-    setAllUsers((usersRes.list || []).filter((u: UserRow) => ["client", "influencer", "employee"].includes(u.role)));
+    setAllUsers((usersRes.list || []).filter((u: UserRow) => ["client", "influencer", "employee"].includes(u.role)).map((u: UserRow) => ({ ...u, username: normalizeAccountText(u.username), display_name: u.display_name ? normalizeAccountText(u.display_name) : u.display_name })));
     const rows = (exclusionRes.list || []) as ExclusionRow[];
     setExcludedIds(rows.map((r) => r.user_id));
   };
@@ -87,7 +88,7 @@ export default function ProfitPage() {
       });
       setSummary(data.summary || { total_orders: 0, total_client_pay: 0, total_creator_reward: 0, total_profit: 0 });
       setMonthly(data.monthly || []);
-      setList(data.list || []);
+      setList((data.list || []).map((r: ProfitRow) => ({ ...r, client_username: normalizeAccountText(r.client_username), influencer_username: r.influencer_username ? normalizeAccountText(r.influencer_username) : r.influencer_username })));
       if (Array.isArray(data.excluded_user_ids)) setExcludedIds(data.excluded_user_ids);
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
@@ -225,7 +226,7 @@ export default function ProfitPage() {
               <tr key={r.id}>
                 <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.order_no || `#${r.id}`}</td>
                 <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>{formatDateTime(r.completed_at)}</td>
-                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.client_username}</td>
+                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}><span data-no-auto-translate>{r.client_username}</span></td>
                 <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.influencer_username || "—"}</td>
                 <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.client_pay_points}</td>
                 <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.creator_reward_points}</td>

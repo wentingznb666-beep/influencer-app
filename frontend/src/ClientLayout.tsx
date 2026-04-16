@@ -67,13 +67,14 @@ export default function ClientLayout() {
       logoutVariant="danger"
       headerExtra={
         <>
-          <span style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>
+          <span data-no-auto-translate style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>
             \u4f59\u989d\uff1a
             <span style={{ fontWeight: 700, color: "var(--xt-primary)" }}>
               {balance == null ? "\u2014" : balance}
             </span>
           </span>
           <button
+            data-no-auto-translate
             type="button"
             onClick={loadBalance}
             style={{ ...xtOutlineBtn, padding: "6px 10px", fontSize: 13 }}

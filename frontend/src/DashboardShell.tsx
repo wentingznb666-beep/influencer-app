@@ -5,6 +5,7 @@ import LanguageSwitch from "./LanguageSwitch";
 import { BrandLogo } from "./BrandLogo";
 import { xtLayout, xtOutlineBtn } from "./brandTheme";
 import { DeferredBlock, useDeferredInCompact, useResponsive } from "./responsive";
+import { normalizeAccountText } from "./utils/accountText";
 
 /** ?????????????? hover ???? */
 export type DashboardNavItem = { to: string; label: string; preload?: () => void };
@@ -33,7 +34,7 @@ function normalizeUsername(text: string | null | undefined): string {
   const leadingAscii = value.match(/^([A-Za-z0-9_.@-]{2,})/);
   if (leadingAscii && leadingAscii[1].length < value.length) return leadingAscii[1];
 
-  return value;
+  return normalizeAccountText(value);
 }
 
 type DashboardShellProps = {

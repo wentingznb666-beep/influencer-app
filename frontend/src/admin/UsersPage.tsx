@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import * as api from "../adminApi";
 import { getStoredUser } from "../authApi";
+import { normalizeAccountText } from "../utils/accountText";
 
 type UserRole = "admin" | "employee" | "influencer" | "client";
 
@@ -103,7 +104,7 @@ export default function UsersPage() {
     setError(null);
     try {
       const data = await api.getUsers({ keyword: keyword.trim(), role: roleFilter, disabled: disabledFilter });
-      setList((data.list || []) as UserItem[]);
+      setList(((data.list || []) as UserItem[]).map((item) => ({ ...item, username: normalizeAccountText(item.username), display_name: item.display_name ? normalizeAccountText(item.display_name) : item.display_name })));
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     } finally {
@@ -351,7 +352,7 @@ export default function UsersPage() {
               {displayList.map((item) => (
                 <tr key={item.id}>
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{item.id}</td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{item.username}</td>
+                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}><span data-no-auto-translate>{item.username}</span></td>
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{item.display_name || "—"}</td>
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{roleTextMap[item.role] ?? item.role}</td>
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1", color: item.disabled ? "#c00" : "#0a7a2a" }}>
@@ -424,7 +425,7 @@ export default function UsersPage() {
               重置密码
             </h3>
             <p style={{ margin: "0 0 12px", fontSize: 14, color: "#64748b" }}>
-              账号：<strong>{resetModal.username}</strong>
+              账号：<strong data-no-auto-translate>{resetModal.username}</strong>
             </p>
             <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 600 }}>新密码</label>
             <PasswordFieldWithToggle

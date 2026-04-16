@@ -23,6 +23,30 @@ let persistCacheTimer: number | null = null;
 let translateGeneration = 0;
 let networkInFlight = false;
 
+
+/**
+ * ??????? unicode ??????????
+ */
+function decodeEscapedText(input: string): string {
+  let value = input;
+  for (let i = 0; i < 2; i += 1) {
+    const decoded = value
+      .replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)))
+      .replace(/\\x([0-9a-fA-F]{2})/g, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+    if (decoded === value) break;
+    value = decoded;
+  }
+  return value;
+}
+
+/**
+ * ?????????????\u4f59\u989d????????
+ */
+function normalizeTranslatedText(input: string): string {
+  if (!input) return "";
+  return decodeEscapedText(input).trim();
+}
+
 /**
  * 判断是否为低端设备（useLayoutEffect 降级为 useEffect，避免阻塞绘制）。
  */
@@ -41,7 +65,7 @@ function seedThaiDictionary(): void {
   Object.entries(TH_UI_DICT).forEach(([k, v]) => {
     if (typeof k !== "string" || !k.trim()) return;
     if (typeof v !== "string" || !v.trim()) return;
-    translatedCache.set(k, v);
+    translatedCache.set(k, normalizeTranslatedText(v));
   });
 }
 
@@ -53,7 +77,7 @@ function loadCache(): void {
     const raw = localStorage.getItem(TEXT_CACHE_KEY);
     if (!raw) return;
     const obj = JSON.parse(raw) as Record<string, string>;
-    Object.keys(obj).forEach((k) => translatedCache.set(k, obj[k]));
+    Object.keys(obj).forEach((k) => translatedCache.set(k, normalizeTranslatedText(obj[k])));
   } catch {
     // ignore
   }
@@ -111,7 +135,7 @@ async function requestBatchTranslate(texts: string[], targetLang: "th"): Promise
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data.message as string) || "翻译失败");
-  return (data.translated || []) as string[];
+  return ((data.translated || []) as string[]).map((t) => normalizeTranslatedText(typeof t === "string" ? t : ""));
 }
 
 /**
@@ -226,7 +250,7 @@ function applyThaiSync(root: HTMLElement): void {
     const key = fullSource.trim();
     if (!key) continue;
     const target = translatedCache.get(key);
-    if (target) node.nodeValue = applyTranslatedToString(fullSource, key, target);
+    if (target) node.nodeValue = applyTranslatedToString(fullSource, key, normalizeTranslatedText(target));
   }
 
   for (const { el, attr } of collectAttrJobs(root)) {
@@ -234,7 +258,7 @@ function applyThaiSync(root: HTMLElement): void {
     const key = full.trim();
     if (!key) continue;
     const target = translatedCache.get(key);
-    if (target) writeAttr(el, attr, applyTranslatedToString(full, key, target));
+    if (target) writeAttr(el, attr, applyTranslatedToString(full, key, normalizeTranslatedText(target)));
   }
 }
 
@@ -303,7 +327,7 @@ function UiAutoTranslator({ lang }: { lang: Lang }) {
         try {
           const translated = await requestBatchTranslate(pending, "th");
           if (destroyed || gen !== translateGeneration) return;
-          pending.forEach((t, i) => translatedCache.set(t, translated[i] ?? t));
+          pending.forEach((t, i) => translatedCache.set(t, normalizeTranslatedText(translated[i] ?? t)));
           schedulePersistCache();
           applyThaiSync(root);
           const more = collectPendingChineseKeys(root);

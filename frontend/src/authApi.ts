@@ -3,6 +3,8 @@
  * 使用 localStorage 存储 accessToken / refreshToken，请求时自动携带。
  */
 
+import { normalizeAccountText } from "./utils/accountText";
+
 export type RoleName = "admin" | "employee" | "client" | "influencer";
 
 export interface AuthUser {
@@ -22,24 +24,10 @@ const STORAGE_REFRESH = "influencer_app_refresh_token";
 const STORAGE_USER = "influencer_app_user";
 
 /**
- * ????????????????? unicode / ???? / ??????
+ * ???????????????
  */
 function normalizeAuthUsername(input: unknown): string {
-  const raw = typeof input === "string" ? input : "";
-  if (!raw) return "";
-
-  let value = raw;
-  for (let i = 0; i < 2; i += 1) {
-    const decoded = value.replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)));
-    if (decoded === value) break;
-    value = decoded;
-  }
-
-  value = value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").replace(/\uFFFD+/g, "").trim();
-
-  const token = value.match(/^([A-Za-z0-9_.@-]{2,})/)?.[1];
-  if (token && token.length < value.length) return token;
-  return value;
+  return normalizeAccountText(input);
 }
 
 /**

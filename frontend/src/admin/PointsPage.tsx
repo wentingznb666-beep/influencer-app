@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import * as api from "../adminApi";
 import { getStoredUser } from "../authApi";
+import { normalizeAccountText } from "../utils/accountText";
 
 type Account = { id: number; user_id: number; balance: number; updated_at: string; username: string; role: string };
 type WeekRow = { user_id: number; username: string; role: string; total_added: number };
@@ -30,8 +31,8 @@ export default function PointsPage() {
     setError(null);
     try {
       const data = await api.getPointsSummary(week || undefined);
-      setAccounts(data.accounts || []);
-      setWeekSummary(data.weekSummary || []);
+      setAccounts((data.accounts || []).map((a: Account) => ({ ...a, username: normalizeAccountText(a.username) })));
+      setWeekSummary((data.weekSummary || []).map((w: WeekRow) => ({ ...w, username: normalizeAccountText(w.username) })));
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     }
@@ -40,7 +41,7 @@ export default function PointsPage() {
   const loadLedger = async () => {
     try {
       const data = await api.getPointsLedger({ user_id: ledgerUserId ? Number(ledgerUserId) : undefined, limit: 50 });
-      setLedger(data.list || []);
+      setLedger((data.list || []).map((l: LedgerRow) => ({ ...l, username: normalizeAccountText(l.username) })));
     } catch (e) {
       setError(e instanceof Error ? e.message : "流水加载失败");
     }
@@ -49,7 +50,7 @@ export default function PointsPage() {
   const loadRechargeOrders = async () => {
     try {
       const data = await api.getRechargeOrders({ status: rechargeStatus === "all" ? undefined : rechargeStatus, limit: 200 });
-      setRechargeOrders(data.list || []);
+      setRechargeOrders((data.list || []).map((o: RechargeOrderRow) => ({ ...o, username: normalizeAccountText(o.username) })));
     } catch (e) {
       setError(e instanceof Error ? e.message : "充值订单加载失败");
     }
@@ -210,7 +211,7 @@ export default function PointsPage() {
                 const weekRow = weekSummary.find((w) => w.user_id === a.user_id);
                 return (
                   <tr key={a.id}>
-                    <td style={{ padding: 10 }}>{a.username}</td>
+                    <td style={{ padding: 10 }}><span data-no-auto-translate>{a.username}</span></td>
                     <td style={{ padding: 10 }}>{a.role}</td>
                     <td style={{ padding: 10 }}>{a.balance}</td>
                     {week && <td style={{ padding: 10 }}>{weekRow?.total_added ?? 0}</td>}
@@ -250,7 +251,7 @@ export default function PointsPage() {
             {rechargeOrders.map((o) => (
               <tr key={o.id}>
                 <td style={{ padding: 10 }}>{o.order_no || `XT-待生成-${o.id}`}</td>
-                <td style={{ padding: 10 }}>{o.username}</td>
+                <td style={{ padding: 10 }}><span data-no-auto-translate>{o.username}</span></td>
                 <td style={{ padding: 10, textAlign: "right" }}>{o.amount}</td>
                 <td style={{ padding: 10 }}>{o.status === "approved" ? "已确认" : o.status === "rejected" ? "已驳回" : "待确认"}</td>
                 <td style={{ padding: 10 }}>{o.created_at}</td>
@@ -295,7 +296,7 @@ export default function PointsPage() {
             {ledger.map((l) => (
               <tr key={l.id}>
                 <td style={{ padding: 10 }}>{l.id}</td>
-                <td style={{ padding: 10 }}>{l.username}</td>
+                <td style={{ padding: 10 }}><span data-no-auto-translate>{l.username}</span></td>
                 <td style={{ padding: 10 }}>{l.amount > 0 ? "+" : ""}{l.amount}</td>
                 <td style={{ padding: 10 }}>{l.type}</td>
                 <td style={{ padding: 10 }}>{l.created_at}</td>
