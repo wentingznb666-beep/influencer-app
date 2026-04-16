@@ -21,6 +21,38 @@ const STORAGE_ACCESS = "influencer_app_access_token";
 const STORAGE_REFRESH = "influencer_app_refresh_token";
 const STORAGE_USER = "influencer_app_user";
 
+/**
+ * ????????????????? unicode / ???? / ??????
+ */
+function normalizeAuthUsername(input: unknown): string {
+  const raw = typeof input === "string" ? input : "";
+  if (!raw) return "";
+
+  let value = raw;
+  for (let i = 0; i < 2; i += 1) {
+    const decoded = value.replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)));
+    if (decoded === value) break;
+    value = decoded;
+  }
+
+  value = value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").replace(/\uFFFD+/g, "").trim();
+
+  const token = value.match(/^([A-Za-z0-9_.@-]{2,})/)?.[1];
+  if (token && token.length < value.length) return token;
+  return value;
+}
+
+/**
+ * ???????????????????????????
+ */
+function normalizeAuthUser(user: AuthUser): AuthUser {
+  return {
+    ...user,
+    username: normalizeAuthUsername(user.username),
+  };
+}
+
+
 function getApiBaseUrl(): string {
   return (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin;
 }
@@ -38,7 +70,7 @@ export function getAccessToken(): string | null {
 export function setAuth(accessToken: string, refreshToken: string, user: AuthUser): void {
   localStorage.setItem(STORAGE_ACCESS, accessToken);
   localStorage.setItem(STORAGE_REFRESH, refreshToken);
-  localStorage.setItem(STORAGE_USER, JSON.stringify(user));
+  localStorage.setItem(STORAGE_USER, JSON.stringify(normalizeAuthUser(user)));
 }
 
 /**
@@ -57,7 +89,7 @@ export function getStoredUser(): AuthUser | null {
   const raw = localStorage.getItem(STORAGE_USER);
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as AuthUser;
+    return normalizeAuthUser(JSON.parse(raw) as AuthUser);
   } catch {
     return null;
   }
@@ -75,8 +107,9 @@ export async function login(username: string, password: string): Promise<AuthUse
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((data.message as string) || "登录失败");
   const { accessToken, refreshToken, user } = data;
-  setAuth(accessToken, refreshToken, user);
-  return user;
+  const safeUser = normalizeAuthUser(user);
+  setAuth(accessToken, refreshToken, safeUser);
+  return safeUser;
 }
 
 /**

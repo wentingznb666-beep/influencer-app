@@ -28,9 +28,10 @@ function normalizeUsername(text: string | null | undefined): string {
 
   // 3) If username is polluted by trailing garbage, keep first sane token
   const parts = value.split(/\s+/).filter(Boolean);
-  if (parts.length > 1 && /^[A-Za-z0-9_.@-]{2,}$/.test(parts[0])) {
-    return parts[0];
-  }
+  if (parts.length > 1 && /^[A-Za-z0-9_.@-]{2,}$/.test(parts[0])) return parts[0];
+
+  const leadingAscii = value.match(/^([A-Za-z0-9_.@-]{2,})/);
+  if (leadingAscii && leadingAscii[1].length < value.length) return leadingAscii[1];
 
   return value;
 }
@@ -163,7 +164,7 @@ export default function DashboardShell({
           </div>
           <div className="xt-header-actions" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <LanguageSwitch />
-            <span style={{ color: "var(--xt-text-muted)" }}>{normalizeUsername(user?.username)}</span>
+            <span data-no-auto-translate style={{ color: "var(--xt-text-muted)" }}>{normalizeUsername(user?.username)}</span>
             <DeferredBlock ready={headerExtrasReady}>{headerExtra}</DeferredBlock>
             <button
               type="button"
