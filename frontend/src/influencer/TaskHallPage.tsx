@@ -11,7 +11,7 @@ type TaskItem = {
 };
 
 /**
- * 模式一任务大厅：达人无需审核可直接报名。
+ * 任务大厅：达人无需审核可直接报名。
  */
 export default function TaskHallPage() {
   const [list, setList] = useState<TaskItem[]>([]);
@@ -54,7 +54,7 @@ export default function TaskHallPage() {
   return (
     <div>
       <h2 style={{ marginTop: 0 }}>任务大厅</h2>
-      <p style={{ color: "#64748b", fontSize: 14 }}>模式一：无需申请、无需审核，登录即可报名。</p>
+      <p style={{ color: "#64748b", fontSize: 14 }}>无需申请、无需审核，登录即可报名。</p>
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
       <button type="button" onClick={() => void load()} style={{ marginBottom: 12 }}>刷新</button>
       {loading ? <p>加载中…</p> : null}

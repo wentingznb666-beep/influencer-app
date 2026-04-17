@@ -141,7 +141,7 @@ export default function MatchingCenterPage() {
   return (
     <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
       <h2 style={{ marginTop: 0 }}>撮合中心（免积分）</h2>
-      {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
+            {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
       {msg && <p style={{ color: "#166534" }}>{msg}</p>}
       <p>会员等级：{profile?.member_level ?? 0} ｜ 到期：{profile?.member_expire_time || "-"}</p>
       <p>保证金：{profile?.deposit_amount ?? 0} ｜ 已冻结：{profile?.deposit_frozen ?? 0}</p>
@@ -204,3 +204,4 @@ export default function MatchingCenterPage() {
     </div>
   );
 }
+

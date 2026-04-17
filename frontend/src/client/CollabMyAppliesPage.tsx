@@ -43,7 +43,7 @@ export default function CollabMyAppliesPage() {
   return (
     <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
       <h2 style={{ marginTop: 0 }}>我的需求报名</h2>
-      <p style={{ color: "#64748b", marginTop: 0 }}>查看模式二里我报名过的达人需求及最新状态。</p>
+      <p style={{ color: "#64748b", marginTop: 0 }}>查看我报名过的达人需求及最新状态。</p>
       {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
       {loading ? <p>加载中…</p> : null}
       {!loading && list.length === 0 ? <p>暂无报名记录</p> : null}

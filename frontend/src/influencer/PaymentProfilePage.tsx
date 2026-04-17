@@ -63,7 +63,7 @@ export default function PaymentProfilePage() {
     }
   };
 
-  /** 跳转到模式一任务大厅。 */
+  /** 跳转到任务大厅。 */
   const goTaskHall = () => {
     navigate("/influencer/task-hall");
   };
@@ -90,7 +90,7 @@ export default function PaymentProfilePage() {
       <h2 style={{ marginTop: 0 }}>收款信息与撮合大厅</h2>
       {msg && <p>{msg}</p>}
       <div style={{ marginBottom: 10 }}>
-        <button type="button" onClick={goTaskHall} style={{ padding: "8px 12px", borderRadius: 8 }}>前往模式一任务大厅</button>
+        <button type="button" onClick={goTaskHall} style={{ padding: "8px 12px", borderRadius: 8 }}>前往任务大厅</button>
       </div>
       <form onSubmit={onSubmit} style={{ display: "grid", gap: 8, maxWidth: 460 }}>
         <input value={form.real_name} onChange={(e) => setForm((f) => ({ ...f, real_name: e.target.value }))} placeholder="姓名" />
@@ -100,7 +100,7 @@ export default function PaymentProfilePage() {
         <button type="submit">保存收款信息</button>
       </form>
 
-      <h3>模式一任务大厅（免积分）</h3>
+      <h3>任务大厅（免积分）</h3>
       <ul>
         {hall.map((it) => (
           <li key={it.id}>

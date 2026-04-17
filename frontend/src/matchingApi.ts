@@ -266,7 +266,6 @@ export async function applyInfluencerPermission(body: {
   tiktok_account: string;
   tiktok_fans: string;
   category: string;
-  contact_info: string;
   bio: string;
 }) {
   const res = await fetchWithAuth('/api/matching/influencer/permission-apply', {

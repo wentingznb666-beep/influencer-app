@@ -956,8 +956,7 @@ router.get("/influencer/permission-status", async (req: AuthRequest, res: Respon
       tiktok_account: string | null;
       tiktok_fans: string | null;
       category: string | null;
-      contact_info: string | null;
-    }>(`SELECT influencer_status, is_influencer_verified, tiktok_account, tiktok_fans, category, contact_info FROM users WHERE id=$1`, [req.user.userId]);
+    }>(`SELECT influencer_status, is_influencer_verified, tiktok_account, tiktok_fans, category FROM users WHERE id=$1`, [req.user.userId]);
     const row = ret.rows[0];
     if (!row) return res.status(404).json({ error: "NOT_FOUND", message: "用户不存在。" });
     return res.json({ status: row.influencer_status, profile: row });
@@ -973,11 +972,10 @@ router.post("/influencer/permission-apply", async (req: AuthRequest, res: Respon
   const tiktokAccount = String(req.body?.tiktok_account || "").trim();
   const tiktokFans = String(req.body?.tiktok_fans || "").trim();
   const category = String(req.body?.category || "").trim();
-  const contactInfo = String(req.body?.contact_info || "").trim();
   const bio = String(req.body?.bio || "").trim();
-  if (!tiktokAccount || !tiktokFans || !category || !contactInfo || !bio) return res.status(400).json({ error: "INVALID_INPUT", message: "请完整填写申请资料。" });
+  if (!tiktokAccount || !tiktokFans || !category || !bio) return res.status(400).json({ error: "INVALID_INPUT", message: "请完整填写申请资料。" });
   try {
-    await query(`UPDATE users SET influencer_status='pending', is_influencer_verified=0, tiktok_account=$2, tiktok_fans=$3, category=$4, contact_info=$5, display_name=COALESCE(display_name, username) WHERE id=$1`, [req.user.userId, tiktokAccount, tiktokFans, `${category} | ${bio}`, contactInfo]);
+    await query(`UPDATE users SET influencer_status='pending', is_influencer_verified=0, tiktok_account=$2, tiktok_fans=$3, category=$4, display_name=COALESCE(display_name, username) WHERE id=$1`, [req.user.userId, tiktokAccount, tiktokFans, `${category} | ${bio}`]);
     const admins = await query<{ id: number }>(`SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' AND u.disabled=0`);
     await Promise.all(admins.rows.map((a) => createMessage(a.id, "permission_apply", "达人撮合权限待审核", `达人 #${req.user!.userId} 提交了撮合权限申请。`, "permission", req.user!.userId)));
     return res.status(201).json({ ok: true, status: "pending" });
@@ -1003,7 +1001,7 @@ router.get("/influencer/task-hall", async (req: AuthRequest, res: Response) => {
 router.get("/admin/influencer-permissions", async (req: AuthRequest, res: Response) => {
   if (!isAdminLike(req.user?.role || "")) return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
-    const rows = await query(`SELECT u.id, u.username, COALESCE(NULLIF(u.display_name,''),u.username) AS display_name, u.influencer_status, u.is_influencer_verified, u.tiktok_account, u.tiktok_fans, u.category, u.contact_info, u.real_name, u.bank_name, u.bank_branch, u.bank_card, u.disabled FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='influencer' ORDER BY u.id DESC`);
+    const rows = await query(`SELECT u.id, u.username, COALESCE(NULLIF(u.display_name,''),u.username) AS display_name, u.influencer_status, u.is_influencer_verified, u.tiktok_account, u.tiktok_fans, u.category, u.real_name, u.bank_name, u.bank_branch, u.bank_card, u.disabled FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='influencer' ORDER BY u.id DESC`);
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("admin influencer permissions error:", e);
@@ -1022,7 +1020,7 @@ router.post("/admin/influencer-permissions/:id/review", async (req: AuthRequest,
   try {
     const status = action === "approve" ? "approved" : "rejected";
     await query(`UPDATE users SET influencer_status=$2, is_influencer_verified=$3 WHERE id=$1`, [userId, status, action === "approve" ? 1 : 0]);
-    await createMessage(userId, "permission_review", action === "approve" ? "达人撮合权限审核通过" : "达人撮合权限审核驳回", note || (action === "approve" ? "您已可使用模式二撮合功能。" : "审核未通过，可重新申请。"), "permission", userId);
+    await createMessage(userId, "permission_review", action === "approve" ? "达人撮合权限审核通过" : "达人撮合权限审核驳回", note || (action === "approve" ? "您已可使用撮合功能。" : "审核未通过，可重新申请。"), "permission", userId);
     return res.json({ ok: true });
   } catch (e) {
     console.error("admin review influencer permission error:", e);

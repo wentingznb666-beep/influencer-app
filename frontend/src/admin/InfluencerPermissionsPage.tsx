@@ -48,7 +48,7 @@ export default function InfluencerPermissionsPage() {
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr>
-            <th>达人</th><th>状态</th><th>TikTok账号</th><th>粉丝数</th><th>类目/简介</th><th>联系方式</th><th>收款信息</th><th>操作</th>
+            <th>达人</th><th>状态</th><th>TikTok账号</th><th>粉丝数</th><th>类目/简介</th><th>收款信息</th><th>操作</th>
           </tr>
         </thead>
         <tbody>
@@ -59,7 +59,6 @@ export default function InfluencerPermissionsPage() {
               <td>{it.tiktok_account || "-"}</td>
               <td>{it.tiktok_fans || "-"}</td>
               <td>{it.category || "-"}</td>
-              <td>{it.contact_info || "-"}</td>
               <td>{[it.real_name, it.bank_name, it.bank_branch].filter(Boolean).join(" / ") || "未填写"}</td>
               <td>
                 <button type="button" onClick={() => void review(it.id, "approve")}>通过</button>

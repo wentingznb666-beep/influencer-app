@@ -39,7 +39,7 @@ export default function CollabPoolPage() {
   return (
     <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
       <h2 style={{ marginTop: 0 }}>达人合作需求广场</h2>
-      {msg && <p>{msg}</p>}
+            {msg && <p>{msg}</p>}
       {loading ? <p>加载中…</p> : null}
       {!loading && list.length === 0 ? <p>暂无开放需求</p> : null}
       <ul>
@@ -55,3 +55,4 @@ export default function CollabPoolPage() {
     </div>
   );
 }
+
