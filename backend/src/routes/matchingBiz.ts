@@ -179,7 +179,7 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
       const ins = await client.query<{ id: number; order_no: string }>(
         `INSERT INTO client_market_orders
            (client_id, order_no, title, reward_points, tier, creator_reward_points, platform_profit_points, pay_deducted, status, match_status, order_type, allow_apply, task_amount, deposit_frozen)
-         VALUES ($1, 'MH-' || to_char(now(),'YYYYMMDD') || '-' || floor(random()*900000+100000)::text, $2, 0, 'C', 0, 0, 0, 'open', 'open', 1, $3, $4, $4)
+         VALUES ($1, 'MH-' || to_char(now(),'YYYYMMDD') || '-' || floor(random()*900000+100000)::text, $2, 10, 'C', 5, 5, 0, 'open', 'open', 1, $3, $4, $4)
          RETURNING id, order_no`,
         [req.user!.userId, requirement ? `${title}｜${requirement}` : title, allowApply, taskAmount]
       );

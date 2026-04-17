@@ -1,12 +1,12 @@
 ﻿import { useEffect, useState } from "react";
-import { applyInfluencerMarketOrder, getInfluencerTaskHall } from "../matchingApi";
+import { applyMatchingOrder, getInfluencerMatchingTaskHall } from "../influencerApi";
 
 type TaskItem = {
   id: number;
   order_no: string | null;
   title: string | null;
   client_name: string;
-  reward_points: number;
+  task_amount: number | string | null;
   created_at: string;
 };
 
@@ -25,7 +25,7 @@ export default function TaskHallPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getInfluencerTaskHall();
+      const data = await getInfluencerMatchingTaskHall();
       setList((data.list || []) as TaskItem[]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
@@ -44,7 +44,7 @@ export default function TaskHallPage() {
   const apply = async (id: number) => {
     setError(null);
     try {
-      await applyInfluencerMarketOrder(id);
+      await applyMatchingOrder(id);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "报名失败");
@@ -56,7 +56,9 @@ export default function TaskHallPage() {
       <h2 style={{ marginTop: 0 }}>任务大厅</h2>
       <p style={{ color: "#64748b", fontSize: 14 }}>无需申请、无需审核，登录即可报名。</p>
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
-      <button type="button" onClick={() => void load()} style={{ marginBottom: 12 }}>刷新</button>
+      <button type="button" onClick={() => void load()} style={{ marginBottom: 12 }}>
+        刷新
+      </button>
       {loading ? <p>加载中…</p> : null}
       {!loading && list.length === 0 ? <p>暂无可报名任务</p> : null}
       <div style={{ display: "grid", gap: 10 }}>
@@ -65,8 +67,10 @@ export default function TaskHallPage() {
             <div style={{ fontWeight: 600 }}>订单号：{item.order_no || `#${item.id}`}</div>
             <div>标题：{item.title || "未命名"}</div>
             <div>商家：{item.client_name}</div>
-            <div>积分：{item.reward_points}</div>
-            <button type="button" onClick={() => void apply(item.id)} style={{ marginTop: 8 }}>一键报名</button>
+            <div>金额：{item.task_amount ?? "-"}</div>
+            <button type="button" onClick={() => void apply(item.id)} style={{ marginTop: 8 }}>
+              一键报名
+            </button>
           </div>
         ))}
       </div>
