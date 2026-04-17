@@ -534,7 +534,7 @@ router.post("/influencer/demands", async (req: AuthRequest, res: Response) => {
 
       `INSERT INTO influencer_collab_demands (influencer_id, title, demand_detail, expected_points, status)
 
-       VALUES ($1, $2, $3, $4, 'pending_review') RETURNING id`,
+       VALUES ($1, $2, $3, $4, 'open') RETURNING id`,
 
       [req.user.userId, title, demandDetail || null, expected]
 

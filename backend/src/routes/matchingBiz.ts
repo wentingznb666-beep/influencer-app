@@ -215,7 +215,7 @@ router.get("/client/matching-orders", async (req: AuthRequest, res: Response) =>
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
     const rows = await query(
-      `SELECT id, order_no, title, status, match_status, order_type, allow_apply, task_amount, deposit_frozen, influencer_id, created_at, updated_at
+      `SELECT id, order_no, title, status, match_status, order_type, allow_apply, task_amount, deposit_frozen, influencer_id, work_links, created_at, updated_at
          FROM client_market_orders
         WHERE client_id=$1 AND is_deleted=0 AND COALESCE(order_type,0)=1
         ORDER BY id DESC`,
@@ -460,6 +460,34 @@ router.post("/client/matching-orders/:id/accept", async (req: AuthRequest, res: 
   }
 });
 
+
+/** 商家端：验收驳回，任务退回执行中。 */
+router.post("/client/matching-orders/:id/reject", async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+  const orderId = Number(req.params.id);
+  if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
+  try {
+    const ret = await withTx(async (client) => {
+      const ord = await client.query<{ influencer_id: number | null }>(
+        `SELECT influencer_id
+           FROM client_market_orders
+          WHERE id=$1 AND client_id=$2 AND is_deleted=0 AND COALESCE(order_type,0)=1 AND status='completed'
+          FOR UPDATE`,
+        [orderId, req.user!.userId]
+      );
+      const row = ord.rows[0];
+      if (!row || !row.influencer_id) return { kind: "not_found" as const };
+      await client.query(`UPDATE client_market_orders SET status='claimed', match_status='matched', work_links='[]'::jsonb, updated_at=now() WHERE id=$1`, [orderId]);
+      return { kind: "ok" as const, influencerId: row.influencer_id };
+    });
+    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "未找到可驳回订单。" });
+    await createMessage(ret.influencerId, "matching_reject_accept", "撮合订单验收未通过", `撮合订单 #${orderId} 验收未通过，请补充后再次提交。`, "matching_order", orderId);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("client reject matching order error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
 
 /** 管理员/员工：商家会员与保证金总览。 */
 router.get("/admin/merchant-members", async (req: AuthRequest, res: Response) => {

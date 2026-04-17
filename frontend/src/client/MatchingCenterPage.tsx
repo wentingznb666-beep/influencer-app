@@ -7,6 +7,7 @@ import {
   getMatchingOrders,
   purchaseClientMember,
   rejectMatchingOrderApplicant,
+  rejectMatchingOrderAccept,
   selectMatchingOrderApplicant,
   topupClientDeposit,
 } from "../clientApi";
@@ -125,6 +126,20 @@ export default function MatchingCenterPage() {
     }
   };
 
+
+  /** 验收驳回并退回任务执行。 */
+  const rejectOrder = async (orderId: number) => {
+    setError(null);
+    try {
+      await rejectMatchingOrderAccept(orderId);
+      setPaymentInfo(null);
+      await loadAll();
+      setMsg("已驳回，任务退回执行中");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "驳回失败");
+    }
+  };
+
   /** 验收通过并显示达人收款信息。 */
   const acceptOrder = async (orderId: number) => {
     setError(null);
@@ -141,7 +156,7 @@ export default function MatchingCenterPage() {
   return (
     <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
       <h2 style={{ marginTop: 0 }}>撮合中心（免积分）</h2>
-            {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
+      {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
       {msg && <p style={{ color: "#166534" }}>{msg}</p>}
       <p>会员等级：{profile?.member_level ?? 0} ｜ 到期：{profile?.member_expire_time || "-"}</p>
       <p>保证金：{profile?.deposit_amount ?? 0} ｜ 已冻结：{profile?.deposit_frozen ?? 0}</p>
@@ -168,7 +183,15 @@ export default function MatchingCenterPage() {
           <li key={it.id}>
             {it.order_no}｜{it.title}｜金额 {it.task_amount}｜状态 {it.status}
             <button type="button" onClick={() => openApplicants(it.id)} style={{ marginLeft: 8 }}>报名管理</button>
-            {it.status === "completed" && <button type="button" onClick={() => acceptOrder(it.id)} style={{ marginLeft: 8 }}>验收通过</button>}
+            {Array.isArray(it.work_links) && it.work_links.length > 0 && (
+              <a href={String(it.work_links[0])} target="_blank" rel="noreferrer" style={{ marginLeft: 8 }}>查看回传短视频</a>
+            )}
+            {it.status === "completed" && (
+              <>
+                <button type="button" onClick={() => acceptOrder(it.id)} style={{ marginLeft: 8 }}>验收通过</button>
+                <button type="button" onClick={() => rejectOrder(it.id)} style={{ marginLeft: 8 }}>验收驳回</button>
+              </>
+            )}
           </li>
         ))}
       </ul>

@@ -744,6 +744,14 @@ export async function rejectMatchingOrderApplicant(orderId: number, appId: numbe
   return res.json();
 }
 
+
+/** 商家端验收驳回并退回任务。 */
+export async function rejectMatchingOrderAccept(orderId: number) {
+  const res = await fetchWithAuth(`/api/matching/client/matching-orders/${orderId}/reject`, { method: 'POST' });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '驳回失败');
+  return res.json();
+}
+
 /** 商家端验收通过并获取达人收款信息。 */
 export async function acceptMatchingOrder(orderId: number) {
   const res = await fetchWithAuth(`/api/matching/client/matching-orders/${orderId}/accept`, { method: 'POST' });
