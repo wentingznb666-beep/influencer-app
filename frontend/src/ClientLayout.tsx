@@ -10,6 +10,7 @@ const CLIENT_NAV = [
   { to: "/client/showcase-influencers", label: "Influencer" },
   { to: "/client/showcase-content-creators", label: "Content Creator" },
   { to: "/client/market-orders", label: "达人领单" },
+  { to: "/client/matching-orders", label: "我的撮合订单" },
   { to: "/client/skus", label: "SKU 列表" },
   { to: "/client/points", label: "积分充值" },
   { to: "/client/matching-center", label: "撮合中心" },

@@ -24,6 +24,7 @@ import ClientPointsPage from "./client/PointsPage";
 import CollabPoolPage from "./client/CollabPoolPage";
 import CollabMyAppliesPage from "./client/CollabMyAppliesPage";
 import MatchingCenterPage from "./client/MatchingCenterPage";
+import MatchingOrdersPage from "./client/MatchingOrdersPage";
 import ClientModelsPage from "./client/ModelsPage";
 import ShowcaseInfluencersPage from "./admin/ShowcaseInfluencersPage";
 import ShowcaseContentCreatorsPage from "./admin/ShowcaseContentCreatorsPage";
@@ -81,7 +82,6 @@ createRoot(document.getElementById("root")!).render(
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
             <Route path="influencer-permissions" element={<InfluencerPermissionsPage />} />
-            <Route path="influencer-permissions" element={<InfluencerPermissionsPage />} />
           </Route>
           <Route path="/employee" element={<ProtectedRoute roles={["employee"]}><EmployeeLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/employee/orders" replace />} />
@@ -105,6 +105,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="showcase-influencers" element={<ClientShowcaseInfluencersPage />} />
             <Route path="showcase-content-creators" element={<ClientShowcaseContentCreatorsPage />} />
             <Route path="market-orders" element={<ClientMarketOrdersPage />} />
+            <Route path="matching-orders" element={<MatchingOrdersPage />} />
             <Route path="skus" element={<ClientSkusPage />} />
             <Route path="market-orders/:id/edit" element={<MarketOrderEditPage />} />
             <Route path="points" element={<ClientPointsPage />} />

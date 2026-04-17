@@ -705,7 +705,7 @@ export async function topupClientDeposit(amount: number) {
 }
 
 /** 新建撮合免积分订单。 */
-export async function createMatchingOrder(body: { title: string; task_amount: number; requirement?: string; allow_apply?: boolean }) {
+export async function createMatchingOrder(body: { title: string; task_amount: number; requirement?: string; allow_apply?: boolean; detail?: Record<string, unknown>; attachments?: string[] }) {
   const res = await fetchWithAuth('/api/matching/client/matching-orders', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
@@ -756,5 +756,32 @@ export async function rejectMatchingOrderAccept(orderId: number) {
 export async function acceptMatchingOrder(orderId: number) {
   const res = await fetchWithAuth(`/api/matching/client/matching-orders/${orderId}/accept`, { method: 'POST' });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '验收失败');
+  return res.json();
+}
+
+
+/** 商家端上传撮合任务图片/短视频。 */
+export async function uploadMatchingOrderAssets(files: File[]) {
+  const fd = new FormData();
+  for (const file of files) fd.append('files', file);
+  const res = await fetchWithAuth('/api/matching/client/matching-orders/upload', {
+    method: 'POST',
+    body: fd,
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '上传失败');
+  return res.json();
+}
+
+/** 读取当前账号消息列表。 */
+export async function getSystemMessages() {
+  const res = await fetchWithAuth('/api/matching/messages');
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '请求失败');
+  return res.json();
+}
+
+/** 标记消息为已读。 */
+export async function markSystemMessageRead(messageId: number) {
+  const res = await fetchWithAuth(`/api/matching/messages/${messageId}/read`, { method: 'POST' });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '操作失败');
   return res.json();
 }

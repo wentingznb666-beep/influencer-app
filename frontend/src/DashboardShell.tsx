@@ -6,6 +6,7 @@ import { BrandLogo } from "./BrandLogo";
 import { xtLayout, xtOutlineBtn } from "./brandTheme";
 import { DeferredBlock, useDeferredInCompact, useResponsive } from "./responsive";
 import { normalizeAccountText } from "./utils/accountText";
+import { getSystemMessages, markSystemMessageRead, type SystemMessage } from "./systemMessageApi";
 
 /** 顶栏/侧栏导航项定义，支持 hover 预加载。 */
 export type DashboardNavItem = { to: string; label: string; preload?: () => void };
@@ -86,10 +87,47 @@ export default function DashboardShell({
   const { isCompact } = useResponsive();
   const headerExtrasReady = useDeferredInCompact(isCompact, 280);
   const shellRef = useRef<HTMLDivElement | null>(null);
+  const [messages, setMessages] = useState<SystemMessage[]>([]);
+  const [msgOpen, setMsgOpen] = useState(false);
+  const [msgLoading, setMsgLoading] = useState(false);
+  const [msgError, setMsgError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isCompact) setSidebarOpen(false);
   }, [isCompact]);
+
+  /** 读取系统消息列表。 */
+  const loadMessages = async () => {
+    setMsgLoading(true);
+    setMsgError(null);
+    try {
+      const data = await getSystemMessages();
+      setMessages(Array.isArray(data?.list) ? data.list : []);
+    } catch (e) {
+      setMsgError(e instanceof Error ? e.message : "消息加载失败");
+    } finally {
+      setMsgLoading(false);
+    }
+  };
+
+  /** 标记某条消息已读。 */
+  const readMessage = async (messageId: number) => {
+    try {
+      await markSystemMessageRead(messageId);
+      setMessages((prev) => prev.map((it) => (it.id === messageId ? { ...it, is_read: 1 } : it)));
+    } catch (e) {
+      setMsgError(e instanceof Error ? e.message : "已读失败");
+    }
+  };
+
+  /** 未读数量，用于右上角红点提示。 */
+  const unreadCount = messages.filter((it) => Number(it.is_read) !== 1).length;
+
+  useEffect(() => {
+    void loadMessages();
+    const timer = window.setInterval(() => void loadMessages(), 20000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!isCompact || !sidebarOpen) return;
@@ -204,6 +242,87 @@ export default function DashboardShell({
           </div>
           <div className="xt-header-actions" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <LanguageSwitch />
+            <div style={{ position: "relative" }}>
+              <button
+                type="button"
+                onClick={() => setMsgOpen((v) => !v)}
+                style={{ ...xtOutlineBtn, padding: "6px 10px", fontSize: 13, position: "relative" }}
+              >
+                消息通知
+                {unreadCount > 0 && (
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: -6,
+                      right: -6,
+                      minWidth: 16,
+                      height: 16,
+                      borderRadius: 8,
+                      background: "#dc2626",
+                      color: "#fff",
+                      fontSize: 11,
+                      lineHeight: "16px",
+                      textAlign: "center",
+                      padding: "0 4px",
+                    }}
+                  >
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </button>
+              {msgOpen && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 38,
+                    right: 0,
+                    width: 360,
+                    maxHeight: 420,
+                    overflow: "auto",
+                    background: "#fff",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: 10,
+                    boxShadow: "0 10px 24px rgba(15,23,42,0.12)",
+                    zIndex: 20,
+                    padding: 10,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <strong>消息通知</strong>
+                    <button type="button" onClick={() => void loadMessages()} style={{ ...xtOutlineBtn, padding: "4px 8px", fontSize: 12 }}>
+                      刷新
+                    </button>
+                  </div>
+                  {msgError && <p style={{ color: "#b91c1c", margin: "6px 0" }}>{msgError}</p>}
+                  {msgLoading && <p style={{ margin: "6px 0" }}>加载中…</p>}
+                  {!msgLoading && messages.length === 0 && <p style={{ margin: "6px 0", color: "#64748b" }}>暂无消息</p>}
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {messages.map((it) => (
+                      <div
+                        key={it.id}
+                        style={{
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 8,
+                          padding: 8,
+                          background: Number(it.is_read) === 1 ? "#fff" : "#eff6ff",
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                          <strong style={{ fontSize: 13 }}>{it.title || "系统通知"}</strong>
+                          {Number(it.is_read) !== 1 && (
+                            <button type="button" onClick={() => void readMessage(it.id)} style={{ ...xtOutlineBtn, padding: "2px 8px", fontSize: 12 }}>
+                              标记已读
+                            </button>
+                          )}
+                        </div>
+                        <p style={{ margin: "6px 0", fontSize: 13 }}>{it.content || "-"}</p>
+                        <div style={{ fontSize: 12, color: "#64748b" }}>{String(it.created_at || "")}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             <span data-no-auto-translate style={{ color: "var(--xt-text-muted)" }}>{normalizeUsername(user?.username)}</span>
             <DeferredBlock ready={headerExtrasReady}>{headerExtra}</DeferredBlock>
             <button

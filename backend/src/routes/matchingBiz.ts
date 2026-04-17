@@ -1,9 +1,14 @@
 ﻿import { Router, Response } from "express";
+import multer from "multer";
+import path from "path";
+import { promises as fs } from "fs";
 import { requireAuth, type AuthRequest } from "../auth";
 import { query, withTx } from "../db";
+import { getUploadsRoot } from "../uploadsConfig";
 
 const router = Router();
 router.use(requireAuth);
+const matchingUpload = multer({ storage: multer.memoryStorage() });
 
 /** 创建系统通知消息。 */
 async function createMessage(userId: number, category: string, title: string, content: string, relatedType?: string, relatedId?: number): Promise<void> {
@@ -163,6 +168,10 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
   const taskAmount = Number(req.body?.task_amount);
   const allowApply = req.body?.allow_apply === false ? 0 : 1;
   const requirement = String(req.body?.requirement || "").trim();
+  const detailPayload = req.body?.detail && typeof req.body.detail === "object" ? req.body.detail : null;
+  const attachments = Array.isArray(req.body?.attachments)
+    ? (req.body.attachments as unknown[]).map((x) => String(x || "").trim()).filter(Boolean).slice(0, 20)
+    : [];
   if (!title || title.length > 200) return res.status(400).json({ error: "INVALID_TITLE", message: "请填写任务标题（1-200字）。" });
   if (!Number.isFinite(taskAmount) || taskAmount <= 0) return res.status(400).json({ error: "INVALID_AMOUNT", message: "请填写有效任务金额。" });
   try {
@@ -183,6 +192,15 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
          RETURNING id, order_no`,
         [req.user!.userId, requirement ? `${title}｜${requirement}` : title, allowApply, taskAmount]
       );
+      const inserted = ins.rows[0];
+      if (!inserted) return { kind: "db_error" as const };
+      await client.query(
+        `INSERT INTO matching_order_details (order_id, detail_json, attachment_urls)
+         VALUES ($1, $2::jsonb, $3::jsonb)
+         ON CONFLICT (order_id)
+         DO UPDATE SET detail_json=EXCLUDED.detail_json, attachment_urls=EXCLUDED.attachment_urls, updated_at=now()`,
+        [inserted.id, JSON.stringify(detailPayload || {}), JSON.stringify(attachments)]
+      );
       await client.query(
         `UPDATE merchant_profiles
             SET deposit_frozen = deposit_frozen + $2,
@@ -191,8 +209,6 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
           WHERE client_id=$1`,
         [req.user!.userId, taskAmount]
       );
-      const inserted = ins.rows[0];
-      if (!inserted) return { kind: "db_error" as const };
       await client.query(
         `INSERT INTO deposit_log (client_id, change_amount, type, ref_order_id, note)
          VALUES ($1, $2, 'freeze', $3, '发布撮合单冻结保证金')`,
@@ -210,15 +226,50 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
   }
 });
 
+
+
+/** 商家端：上传撮合任务图片/短视频（落盘）。 */
+router.post("/client/matching-orders/upload", (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+  matchingUpload.array("files", 20)(req as any, res as any, async (uploadErr: unknown) => {
+    if (uploadErr) {
+      const msg = uploadErr instanceof Error ? uploadErr.message : "上传失败";
+      return res.status(400).json({ error: "UPLOAD_FAILED", message: msg });
+    }
+    try {
+      const files = ((req as any).files || []) as Express.Multer.File[];
+      if (!files.length) return res.status(400).json({ error: "NO_FILES", message: "请选择文件。" });
+      const uploadDir = path.join(getUploadsRoot(), "matching-orders", String(req.user!.userId));
+      await fs.mkdir(uploadDir, { recursive: true });
+      const base = `${req.protocol}://${req.get("host")}`;
+      const urls: string[] = [];
+      for (const f of files) {
+        const ext = path.extname(f.originalname || "").toLowerCase();
+        const safeExt = ext && ext.length <= 10 ? ext : "";
+        const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${safeExt}`;
+        const filepath = path.join(uploadDir, filename);
+        await fs.writeFile(filepath, f.buffer);
+        urls.push(`${base}/uploads/matching-orders/${req.user!.userId}/${filename}`);
+      }
+      return res.json({ urls });
+    } catch (e) {
+      console.error("client matching order upload error:", e);
+      return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    }
+  });
+});
+
 /** 商家端：撮合免积分订单列表。 */
 router.get("/client/matching-orders", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
     const rows = await query(
-      `SELECT id, order_no, title, status, match_status, order_type, allow_apply, task_amount, deposit_frozen, influencer_id, work_links, created_at, updated_at
-         FROM client_market_orders
-        WHERE client_id=$1 AND is_deleted=0 AND COALESCE(order_type,0)=1
-        ORDER BY id DESC`,
+      `SELECT mo.id, mo.order_no, mo.title, mo.status, mo.match_status, mo.order_type, mo.allow_apply, mo.task_amount, mo.deposit_frozen, mo.influencer_id, mo.work_links, mo.created_at, mo.updated_at,
+              md.detail_json, md.attachment_urls
+         FROM client_market_orders mo
+         LEFT JOIN matching_order_details md ON md.order_id=mo.id
+        WHERE mo.client_id=$1 AND mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1
+        ORDER BY mo.id DESC`,
       [req.user.userId]
     );
     return res.json({ list: rows.rows });
@@ -507,6 +558,47 @@ router.get("/admin/merchant-members", async (req: AuthRequest, res: Response) =>
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("admin merchant members error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
+
+/** 统一消息列表：四端均可读取。 */
+router.get("/messages", async (req: AuthRequest, res: Response) => {
+  if (!req.user?.userId) return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+  try {
+    const rows = await query(
+      `SELECT id, category, title, content, related_type, related_id, is_read, created_at
+         FROM system_messages
+        WHERE user_id=$1
+        ORDER BY id DESC
+        LIMIT 100`,
+      [req.user.userId]
+    );
+    return res.json({ list: rows.rows });
+  } catch (e) {
+    console.error("list messages error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
+/** 标记消息已读。 */
+router.post("/messages/:id/read", async (req: AuthRequest, res: Response) => {
+  if (!req.user?.userId) return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+  const messageId = Number(req.params.id);
+  if (!Number.isInteger(messageId) || messageId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的消息ID。" });
+  try {
+    const ret = await query<{ id: number }>(
+      `UPDATE system_messages
+          SET is_read=1, read_at=now()
+        WHERE id=$1 AND user_id=$2
+      RETURNING id`,
+      [messageId, req.user.userId]
+    );
+    if (!ret.rows[0]) return res.status(404).json({ error: "NOT_FOUND", message: "消息不存在。" });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("read message error:", e);
     return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   }
 });
