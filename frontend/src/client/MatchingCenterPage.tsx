@@ -1,21 +1,56 @@
-﻿import { useEffect, useMemo, useState, type FormEvent } from "react";
-import {
-  createMatchingOrder,
-  getClientMemberProfile,
-  purchaseClientMember,
-  topupClientDeposit,
-  uploadMatchingOrderAssets,
-} from "../clientApi";
+﻿import { useMemo, useState, type FormEvent } from "react";
+import { createMatchingOrder, uploadMatchingOrderAssets } from "../clientApi";
 
-/** 商家端撮合中心：仅保留发布撮合免积分订单。 */
+type MatchingFormState = {
+  task_name: string;
+  task_type: string;
+  industry: string;
+  recruit_count: number;
+  start_date: string;
+  apply_deadline: string;
+  publish_deadline: string;
+  brand_name: string;
+  core_selling_points: string;
+  content_format: string;
+  video_duration: string;
+  copy_requirement: string;
+  required_elements: string[];
+  forbidden_content: string;
+  provide_sample: string;
+  sample_count: number;
+  sample_recycle: string;
+  freight_bearer: string;
+  must_publish_on_time: boolean;
+  quality_requirements: boolean;
+  keep_days: number;
+  revise_times: number;
+  fail_handle: string;
+  copyright_use: boolean;
+  anti_cheat: boolean;
+  violation_handle: string;
+  task_amount: string;
+  cooperation_requirement: string;
+  allow_apply: boolean;
+};
+
+/** 判断是否是图片 URL。 */
+function isImageUrl(url: string): boolean {
+  return /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
+}
+
+/** 判断是否是视频 URL。 */
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|mov|m4v|avi)(\?|$)/i.test(url);
+}
+
+/** 商家端撮合中心：仅发布撮合订单表单。 */
 export default function MatchingCenterPage() {
-  const [profile, setProfile] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
-  const [form, setForm] = useState<any>({
+  const [form, setForm] = useState<MatchingFormState>({
     task_name: "",
     task_type: "短视频",
     industry: "美妆",
@@ -47,72 +82,36 @@ export default function MatchingCenterPage() {
     allow_apply: true,
   });
 
-  /** 页面初始化读取会员与保证金信息。 */
-  const loadProfile = async () => {
-    try {
-      const p = await getClientMemberProfile();
-      setProfile(p?.profile || null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败");
-    }
-  };
-
-  useEffect(() => {
-    void loadProfile();
-  }, []);
-
-  /** 购买会员。 */
-  const buy = async (level: 1 | 2 | 3) => {
-    setError(null);
-    setMsg("");
-    try {
-      await purchaseClientMember(level, 1);
-      await loadProfile();
-      setMsg("会员开通成功");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "购买失败");
-    }
-  };
-
-  /** 充值保证金。 */
-  const topup = async () => {
-    setError(null);
-    setMsg("");
-    try {
-      await topupClientDeposit(1000);
-      await loadProfile();
-      setMsg("保证金充值成功");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "充值失败");
-    }
+  /** 字段通用更新器。 */
+  const setField = <K extends keyof MatchingFormState>(key: K, value: MatchingFormState[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   /** 勾选元素变更。 */
   const toggleElement = (value: string) => {
-    setForm((f: any) => {
-      const set = new Set<string>(f.required_elements || []);
-      if (set.has(value)) set.delete(value);
-      else set.add(value);
-      return { ...f, required_elements: Array.from(set) };
-    });
+    const set = new Set<string>(form.required_elements || []);
+    if (set.has(value)) set.delete(value);
+    else set.add(value);
+    setField("required_elements", Array.from(set));
   };
 
   /** 上传图片/短视频到服务器磁盘。 */
   const doUpload = async () => {
     if (!uploadFiles.length) {
-      setError("请先选择文件");
+      setError("请先选择文件 / Please choose files first");
       return;
     }
     setUploading(true);
     setError(null);
+    setMsg("");
     try {
       const ret = await uploadMatchingOrderAssets(uploadFiles);
       const urls = Array.isArray(ret?.urls) ? ret.urls : [];
       setUploadedUrls((prev) => [...prev, ...urls]);
       setUploadFiles([]);
-      setMsg("上传成功");
+      setMsg("上传成功 / Upload success");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "上传失败");
+      setError(e instanceof Error ? e.message : "上传失败 / Upload failed");
     } finally {
       setUploading(false);
     }
@@ -170,10 +169,10 @@ export default function MatchingCenterPage() {
         detail,
         attachments: uploadedUrls,
       });
-      setMsg("发布成功");
+      setMsg("发布成功 / Published");
       setUploadedUrls([]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "创建失败");
+      setError(err instanceof Error ? err.message : "创建失败 / Create failed");
     }
   };
 
@@ -182,83 +181,139 @@ export default function MatchingCenterPage() {
 
   return (
     <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
-      <h2 style={{ marginTop: 0 }}>撮合中心</h2>
+      <h2 style={{ marginTop: 0 }}>发布撮合免积分订单 / Publish Matching Order</h2>
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
       {msg && <p style={{ color: "#166534" }}>{msg}</p>}
-      <p>会员等级：{profile?.member_level ?? 0} ｜ 到期：{profile?.member_expire_time || "-"}</p>
-      <p>保证金：{profile?.deposit_amount ?? 0} ｜ 已冻结：{profile?.deposit_frozen ?? 0}</p>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        <button type="button" onClick={() => void buy(1)}>开通基础会员</button>
-        <button type="button" onClick={() => void buy(2)}>开通高级会员</button>
-        <button type="button" onClick={() => void buy(3)}>开通旗舰会员</button>
-        <button type="button" onClick={() => void topup()}>充值保证金 +1000</button>
-      </div>
 
-      <form onSubmit={onCreate} style={{ display: "grid", gap: 10 }}>
-        <h3>任务基础信息</h3>
-        <input value={form.task_name} onChange={(e) => setForm((f: any) => ({ ...f, task_name: e.target.value }))} placeholder="任务名称" required />
-        <select value={form.task_type} onChange={(e) => setForm((f: any) => ({ ...f, task_type: e.target.value }))}>
-          <option>短视频</option><option>图文</option><option>直播</option><option>探店</option>
-        </select>
-        <select value={form.industry} onChange={(e) => setForm((f: any) => ({ ...f, industry: e.target.value }))}>
-          <option>美妆</option><option>服饰</option><option>美食</option><option>家居</option><option>其他</option>
-        </select>
-        <input type="number" min={1} value={form.recruit_count} onChange={(e) => setForm((f: any) => ({ ...f, recruit_count: e.target.value }))} placeholder="招募达人数量" />
-        <input type="date" value={form.start_date} onChange={(e) => setForm((f: any) => ({ ...f, start_date: e.target.value }))} />
-        <input type="date" value={form.apply_deadline} onChange={(e) => setForm((f: any) => ({ ...f, apply_deadline: e.target.value }))} />
-        <input type="date" value={form.publish_deadline} onChange={(e) => setForm((f: any) => ({ ...f, publish_deadline: e.target.value }))} />
+      <form onSubmit={onCreate} style={{ display: "grid", gap: 14 }}>
+        <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+          <h3 style={{ marginTop: 0 }}>任务基础信息 / Basic Info</h3>
+          <label htmlFor="task_name">任务名称 / Task Name</label>
+          <input id="task_name" name="task_name" value={form.task_name} onChange={(e) => setField("task_name", e.target.value)} required />
 
-        <h3>合作内容要求</h3>
-        <input value={form.brand_name} onChange={(e) => setForm((f: any) => ({ ...f, brand_name: e.target.value }))} placeholder="推广产品/品牌名称" />
-        <textarea value={form.core_selling_points} onChange={(e) => setForm((f: any) => ({ ...f, core_selling_points: e.target.value }))} placeholder="产品核心卖点（必填）" required />
-        <select value={form.content_format} onChange={(e) => setForm((f: any) => ({ ...f, content_format: e.target.value }))}>
-          <option>短视频</option><option>图文笔记</option><option>直播</option>
-        </select>
-        <input value={form.video_duration} onChange={(e) => setForm((f: any) => ({ ...f, video_duration: e.target.value }))} placeholder="视频时长要求" />
-        <textarea value={form.copy_requirement} onChange={(e) => setForm((f: any) => ({ ...f, copy_requirement: e.target.value }))} placeholder="文案/标题要求" />
-        <div>
-          必须包含元素：
-          {['产品出镜', '口播', '字幕', '话题标签'].map((v) => (
-            <label key={v} style={{ marginLeft: 8 }}><input type="checkbox" checked={(form.required_elements || []).includes(v)} onChange={() => toggleElement(v)} /> {v}</label>
-          ))}
-        </div>
-        <textarea value={form.forbidden_content} onChange={(e) => setForm((f: any) => ({ ...f, forbidden_content: e.target.value }))} placeholder="禁止内容" />
+          <label htmlFor="task_type">任务类型 / Task Type</label>
+          <select id="task_type" name="task_type" value={form.task_type} onChange={(e) => setField("task_type", e.target.value)}>
+            <option value="短视频">短视频</option><option value="图文">图文</option><option value="直播">直播</option><option value="探店">探店</option>
+          </select>
 
-        <h3>样品与发货</h3>
-        <select value={form.provide_sample} onChange={(e) => setForm((f: any) => ({ ...f, provide_sample: e.target.value }))}><option>是</option><option>否</option></select>
-        <input type="number" min={0} value={form.sample_count} onChange={(e) => setForm((f: any) => ({ ...f, sample_count: e.target.value }))} placeholder="样品数量" />
-        <select value={form.sample_recycle} onChange={(e) => setForm((f: any) => ({ ...f, sample_recycle: e.target.value }))}><option>是</option><option>否</option></select>
-        <select value={form.freight_bearer} onChange={(e) => setForm((f: any) => ({ ...f, freight_bearer: e.target.value }))}><option>商家承担</option><option>达人承担</option></select>
+          <label htmlFor="industry">所属行业 / Industry</label>
+          <select id="industry" name="industry" value={form.industry} onChange={(e) => setField("industry", e.target.value)}>
+            <option value="美妆">美妆</option><option value="服饰">服饰</option><option value="美食">美食</option><option value="家居">家居</option><option value="其他">其他</option>
+          </select>
 
-        <h3>验收标准</h3>
-        <label><input type="checkbox" checked={!!form.must_publish_on_time} onChange={(e) => setForm((f: any) => ({ ...f, must_publish_on_time: e.target.checked }))} /> 内容必须按时发布</label>
-        <label><input type="checkbox" checked={!!form.quality_requirements} onChange={(e) => setForm((f: any) => ({ ...f, quality_requirements: e.target.checked }))} /> 画面清晰、无水印、无违规</label>
-        <input type="number" min={0} value={form.keep_days} onChange={(e) => setForm((f: any) => ({ ...f, keep_days: e.target.value }))} placeholder="必须保留内容不少于 X 天" />
-        <input type="number" min={0} value={form.revise_times} onChange={(e) => setForm((f: any) => ({ ...f, revise_times: e.target.value }))} placeholder="允许修改次数" />
-        <select value={form.fail_handle} onChange={(e) => setForm((f: any) => ({ ...f, fail_handle: e.target.value }))}><option>驳回修改</option><option>取消合作</option><option>扣除佣金</option></select>
+          <label htmlFor="recruit_count">招募达人数量 / Recruit Count</label>
+          <input id="recruit_count" name="recruit_count" type="number" min={1} value={form.recruit_count} onChange={(e) => setField("recruit_count", Number(e.target.value || 1))} />
 
-        <h3>版权与规则</h3>
-        <label><input type="checkbox" checked={!!form.copyright_use} onChange={(e) => setForm((f: any) => ({ ...f, copyright_use: e.target.checked }))} /> 商家拥有作品使用权、剪辑权、宣传使用权</label>
-        <label><input type="checkbox" checked={!!form.anti_cheat} onChange={(e) => setForm((f: any) => ({ ...f, anti_cheat: e.target.checked }))} /> 达人不得抄袭、搬运、刷数据</label>
-        <select value={form.violation_handle} onChange={(e) => setForm((f: any) => ({ ...f, violation_handle: e.target.value }))}><option>取消佣金并拉黑</option><option>取消合作</option><option>警告</option></select>
+          <label htmlFor="start_date">任务开始时间 / Start Date</label>
+          <input id="start_date" name="start_date" type="date" value={form.start_date} onChange={(e) => setField("start_date", e.target.value)} />
 
-        <h3>发布设置</h3>
-        <input value={form.task_amount} onChange={(e) => setForm((f: any) => ({ ...f, task_amount: e.target.value }))} placeholder="任务金额" required />
-        <textarea value={form.cooperation_requirement} onChange={(e) => setForm((f: any) => ({ ...f, cooperation_requirement: e.target.value }))} placeholder="合作要求" />
-        <label><input type="checkbox" checked={!!form.allow_apply} onChange={(e) => setForm((f: any) => ({ ...f, allow_apply: e.target.checked }))} /> 允许任务大厅报名</label>
+          <label htmlFor="apply_deadline">接单截止时间 / Apply Deadline</label>
+          <input id="apply_deadline" name="apply_deadline" type="date" value={form.apply_deadline} onChange={(e) => setField("apply_deadline", e.target.value)} />
 
-        <h3>上传图片/短视频</h3>
-        <input type="file" multiple accept="image/*,video/*" onChange={(e) => setUploadFiles(Array.from(e.target.files || []))} />
-        <button type="button" onClick={() => void doUpload()} disabled={uploading}>{uploading ? "上传中..." : "上传文件"}</button>
-        {previews.length > 0 && (
-          <div style={{ display: "grid", gap: 6 }}>
-            {previews.map((url) => (
-              <div key={url}><a href={url} target="_blank" rel="noreferrer">查看文件</a></div>
+          <label htmlFor="publish_deadline">内容发布截止时间 / Publish Deadline</label>
+          <input id="publish_deadline" name="publish_deadline" type="date" value={form.publish_deadline} onChange={(e) => setField("publish_deadline", e.target.value)} />
+        </section>
+
+        <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+          <h3 style={{ marginTop: 0 }}>合作内容要求 / Content Requirement</h3>
+          <label htmlFor="brand_name">推广产品/品牌名称 / Brand Name</label>
+          <input id="brand_name" name="brand_name" value={form.brand_name} onChange={(e) => setField("brand_name", e.target.value)} />
+
+          <label htmlFor="core_selling_points">产品核心卖点（必填） / Core Selling Points</label>
+          <textarea id="core_selling_points" name="core_selling_points" value={form.core_selling_points} onChange={(e) => setField("core_selling_points", e.target.value)} required />
+
+          <label htmlFor="content_format">内容形式 / Content Format</label>
+          <select id="content_format" name="content_format" value={form.content_format} onChange={(e) => setField("content_format", e.target.value)}>
+            <option value="短视频">短视频</option><option value="图文笔记">图文笔记</option><option value="直播">直播</option>
+          </select>
+
+          <label htmlFor="video_duration">视频时长要求 / Video Duration</label>
+          <input id="video_duration" name="video_duration" value={form.video_duration} onChange={(e) => setField("video_duration", e.target.value)} />
+
+          <label htmlFor="copy_requirement">文案/标题要求 / Copy Requirement</label>
+          <textarea id="copy_requirement" name="copy_requirement" value={form.copy_requirement} onChange={(e) => setField("copy_requirement", e.target.value)} />
+
+          <div>
+            <span>必须包含元素 / Required Elements：</span>
+            {['产品出镜', '口播', '字幕', '话题标签'].map((v) => (
+              <label key={v} style={{ marginLeft: 8 }}>
+                <input type="checkbox" checked={(form.required_elements || []).includes(v)} onChange={() => toggleElement(v)} /> {v}
+              </label>
             ))}
           </div>
-        )}
 
-        <button type="submit">发布撮合免积分订单</button>
+          <label htmlFor="forbidden_content">禁止内容 / Forbidden Content</label>
+          <textarea id="forbidden_content" name="forbidden_content" value={form.forbidden_content} onChange={(e) => setField("forbidden_content", e.target.value)} />
+        </section>
+
+        <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+          <h3 style={{ marginTop: 0 }}>样品与发货 / Samples & Shipping</h3>
+          <label htmlFor="provide_sample">是否提供样品 / Provide Sample</label>
+          <select id="provide_sample" name="provide_sample" value={form.provide_sample} onChange={(e) => setField("provide_sample", e.target.value)}><option value="是">是</option><option value="否">否</option></select>
+
+          <label htmlFor="sample_count">样品数量 / Sample Count</label>
+          <input id="sample_count" name="sample_count" type="number" min={0} value={form.sample_count} onChange={(e) => setField("sample_count", Number(e.target.value || 0))} />
+
+          <label htmlFor="sample_recycle">样品是否回收 / Recycle Sample</label>
+          <select id="sample_recycle" name="sample_recycle" value={form.sample_recycle} onChange={(e) => setField("sample_recycle", e.target.value)}><option value="是">是</option><option value="否">否</option></select>
+
+          <label htmlFor="freight_bearer">运费承担 / Freight Bearer</label>
+          <select id="freight_bearer" name="freight_bearer" value={form.freight_bearer} onChange={(e) => setField("freight_bearer", e.target.value)}><option value="商家承担">商家承担</option><option value="达人承担">达人承担</option></select>
+        </section>
+
+        <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+          <h3 style={{ marginTop: 0 }}>验收标准 / Acceptance Rules</h3>
+          <label><input type="checkbox" checked={!!form.must_publish_on_time} onChange={(e) => setField("must_publish_on_time", e.target.checked)} /> 内容必须按时发布</label>
+          <label><input type="checkbox" checked={!!form.quality_requirements} onChange={(e) => setField("quality_requirements", e.target.checked)} /> 画面清晰无水印无违规</label>
+
+          <label htmlFor="keep_days">内容保留天数 / Keep Days</label>
+          <input id="keep_days" name="keep_days" type="number" min={0} value={form.keep_days} onChange={(e) => setField("keep_days", Number(e.target.value || 0))} />
+
+          <label htmlFor="revise_times">允许修改次数 / Revise Times</label>
+          <input id="revise_times" name="revise_times" type="number" min={0} value={form.revise_times} onChange={(e) => setField("revise_times", Number(e.target.value || 0))} />
+
+          <label htmlFor="fail_handle">未达标处理 / If Failed</label>
+          <select id="fail_handle" name="fail_handle" value={form.fail_handle} onChange={(e) => setField("fail_handle", e.target.value)}><option value="驳回修改">驳回修改</option><option value="取消合作">取消合作</option><option value="扣除佣金">扣除佣金</option></select>
+        </section>
+
+        <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+          <h3 style={{ marginTop: 0 }}>版权与规则 / Rights & Rules</h3>
+          <label><input type="checkbox" checked={!!form.copyright_use} onChange={(e) => setField("copyright_use", e.target.checked)} /> 商家拥有使用权、剪辑权、宣传使用权</label>
+          <label><input type="checkbox" checked={!!form.anti_cheat} onChange={(e) => setField("anti_cheat", e.target.checked)} /> 达人不得抄袭搬运刷数据</label>
+
+          <label htmlFor="violation_handle">违规行为处理 / Violation Handling</label>
+          <select id="violation_handle" name="violation_handle" value={form.violation_handle} onChange={(e) => setField("violation_handle", e.target.value)}><option value="取消佣金并拉黑">取消佣金并拉黑</option><option value="取消合作">取消合作</option><option value="警告">警告</option></select>
+        </section>
+
+        <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+          <h3 style={{ marginTop: 0 }}>附件上传 / Attachments</h3>
+          <input type="file" multiple accept="image/*,video/*" onChange={(e) => setUploadFiles(Array.from(e.target.files || []))} />
+          <button type="button" onClick={() => void doUpload()} disabled={uploading}>{uploading ? "上传中..." : "上传文件"}</button>
+          {previews.length > 0 && (
+            <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+              {previews.map((url) => (
+                <div key={url} style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: 8 }}>
+                  <div style={{ marginBottom: 6 }}><a href={url} target="_blank" rel="noreferrer">查看文件</a></div>
+                  {isImageUrl(url) && <img src={url} alt="attachment" style={{ maxWidth: 240, maxHeight: 160, borderRadius: 6 }} />}
+                  {isVideoUrl(url) && <video src={url} controls style={{ maxWidth: 320, maxHeight: 180, borderRadius: 6 }} />}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+          <h3 style={{ marginTop: 0 }}>发布设置 / Publish</h3>
+          <label htmlFor="task_amount">任务金额 / Task Amount</label>
+          <input id="task_amount" name="task_amount" value={form.task_amount} onChange={(e) => setField("task_amount", e.target.value)} required />
+
+          <label htmlFor="cooperation_requirement">合作要求 / Cooperation Requirement</label>
+          <textarea id="cooperation_requirement" name="cooperation_requirement" value={form.cooperation_requirement} onChange={(e) => setField("cooperation_requirement", e.target.value)} />
+
+          <label><input type="checkbox" checked={!!form.allow_apply} onChange={(e) => setField("allow_apply", e.target.checked)} /> 允许任务大厅报名</label>
+        </section>
+
+        <button type="submit" style={{ height: 42, fontWeight: 700 }}>发布撮合免积分订单</button>
       </form>
     </div>
   );

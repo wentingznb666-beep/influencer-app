@@ -1570,6 +1570,14 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`CREATE INDEX IF NOT EXISTS idx_member_orders_client ON member_orders(client_id, created_at DESC)`);
   await query(`CREATE INDEX IF NOT EXISTS idx_deposit_log_client ON deposit_log(client_id, created_at DESC)`);
 
+  await query(`CREATE TABLE IF NOT EXISTS matching_order_details (
+    order_id INTEGER PRIMARY KEY REFERENCES client_market_orders(id) ON DELETE CASCADE,
+    detail_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    attachment_urls JSONB NOT NULL DEFAULT '[]'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+
   await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS order_type INTEGER NOT NULL DEFAULT 0`);
   await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS allow_apply INTEGER NOT NULL DEFAULT 1`);
   await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS task_amount NUMERIC(18,2)`);

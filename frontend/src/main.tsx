@@ -25,6 +25,7 @@ import CollabPoolPage from "./client/CollabPoolPage";
 import CollabMyAppliesPage from "./client/CollabMyAppliesPage";
 import MatchingCenterPage from "./client/MatchingCenterPage";
 import MatchingOrdersPage from "./client/MatchingOrdersPage";
+import MemberCenterPage from "./client/MemberCenterPage";
 import ClientModelsPage from "./client/ModelsPage";
 import ShowcaseInfluencersPage from "./admin/ShowcaseInfluencersPage";
 import ShowcaseContentCreatorsPage from "./admin/ShowcaseContentCreatorsPage";
@@ -109,6 +110,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="skus" element={<ClientSkusPage />} />
             <Route path="market-orders/:id/edit" element={<MarketOrderEditPage />} />
             <Route path="points" element={<ClientPointsPage />} />
+            <Route path="member-center" element={<MemberCenterPage />} />
             <Route path="matching-center" element={<MatchingCenterPage />} />
             <Route path="collab-pool" element={<CollabPoolPage />} />
             <Route path="collab-my-applies" element={<CollabMyAppliesPage />} />
