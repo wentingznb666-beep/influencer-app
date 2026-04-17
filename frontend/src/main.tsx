@@ -38,6 +38,7 @@ import ClientOrdersHallPageDev from "./influencer/ClientOrdersHallPage";
 import InfluencerPointsPageDev from "./influencer/PointsPage";
 import WithdrawPageDev from "./influencer/WithdrawPage";
 import PaymentProfilePage from "./influencer/PaymentProfilePage";
+import TaskHallPage from "./influencer/TaskHallPage";
 import InfluencerPermissionPage from "./influencer/InfluencerPermissionPage";
 import CollabDemandsPage from "./influencer/CollabDemandsPage";
 import MerchantMembersPage from "./admin/MerchantMembersPage";
@@ -93,6 +94,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="points" element={<PointsPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
+            <Route path="influencer-permissions" element={<InfluencerPermissionsPage />} />
           </Route>
           <Route path="/client" element={<ProtectedRoute roles={["client"]}><ClientLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/client/market-orders" replace />} />
@@ -117,6 +119,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="client-orders" element={<Suspense fallback={<p>加载中…</p>}><ClientOrdersHallPage /></Suspense>} />
             <Route path="points" element={<Suspense fallback={<p>加载中…</p>}><InfluencerPointsPage /></Suspense>} />
             <Route path="withdraw" element={<Suspense fallback={<p>加载中…</p>}><WithdrawPage /></Suspense>} />
+            <Route path="task-hall" element={<TaskHallPage />} />
             <Route path="payment-profile" element={<PaymentProfilePage />} />
             <Route path="permission" element={<InfluencerPermissionPage />} />
             <Route path="demands" element={<CollabDemandsPage />} />

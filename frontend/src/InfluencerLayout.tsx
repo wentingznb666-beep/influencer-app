@@ -74,6 +74,7 @@ export default function InfluencerLayout() {
         { to: "/influencer/client-orders", label: "商家端发单", preload: preloadMap["/influencer/client-orders"] },
         { to: "/influencer/points", label: "积分与收益", preload: preloadMap["/influencer/points"] },
         { to: "/influencer/withdraw", label: "申请提现", preload: preloadMap["/influencer/withdraw"] },
+        { to: "/influencer/task-hall", label: "任务大厅（模式一）" },
         { to: "/influencer/payment-profile", label: "收款信息" },
         { to: "/influencer/permission", label: "撮合权限申请" },
         { to: "/influencer/demands", label: "发布合作需求" },

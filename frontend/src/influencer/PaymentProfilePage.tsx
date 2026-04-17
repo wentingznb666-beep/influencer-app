@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState, type FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   applyMatchingOrder,
   getInfluencerMatchingTaskHall,
@@ -10,6 +11,7 @@ import {
 
 /** 达人端收款资料与撮合任务大厅页面。 */
 export default function PaymentProfilePage() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({ real_name: "", bank_name: "", bank_branch: "", bank_card: "" });
   const [hall, setHall] = useState<any[]>([]);
   const [myApplies, setMyApplies] = useState<any[]>([]);
@@ -61,6 +63,11 @@ export default function PaymentProfilePage() {
     }
   };
 
+  /** 跳转到模式一任务大厅。 */
+  const goTaskHall = () => {
+    navigate("/influencer/task-hall");
+  };
+
   /** 提交完成回传短视频。 */
   const submitProof = async (orderId: number) => {
     const videoUrl = (proofMap[orderId] || "").trim();
@@ -82,6 +89,9 @@ export default function PaymentProfilePage() {
     <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
       <h2 style={{ marginTop: 0 }}>收款信息与撮合大厅</h2>
       {msg && <p>{msg}</p>}
+      <div style={{ marginBottom: 10 }}>
+        <button type="button" onClick={goTaskHall} style={{ padding: "8px 12px", borderRadius: 8 }}>前往模式一任务大厅</button>
+      </div>
       <form onSubmit={onSubmit} style={{ display: "grid", gap: 8, maxWidth: 460 }}>
         <input value={form.real_name} onChange={(e) => setForm((f) => ({ ...f, real_name: e.target.value }))} placeholder="姓名" />
         <input value={form.bank_name} onChange={(e) => setForm((f) => ({ ...f, bank_name: e.target.value }))} placeholder="银行名称" />

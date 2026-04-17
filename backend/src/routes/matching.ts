@@ -462,15 +462,15 @@ router.get("/influencer/demands", async (req: AuthRequest, res: Response) => {
 
   try {
 
-    const profile = await query<{ is_premium: number; can_publish_demand: number }>(
+    const permission = await query<{ influencer_status: string }>(
 
-      `SELECT is_premium, can_publish_demand FROM influencer_profiles WHERE user_id=$1`,
+      `SELECT influencer_status FROM users WHERE id=$1`,
 
       [req.user.userId]
 
     );
 
-    const canCreate = Number(profile.rows[0]?.is_premium || 0) === 1 && Number(profile.rows[0]?.can_publish_demand || 0) === 1;
+    const canCreate = permission.rows[0]?.influencer_status === "approved";
 
     const rows = await query(
 
@@ -518,15 +518,15 @@ router.post("/influencer/demands", async (req: AuthRequest, res: Response) => {
 
   try {
 
-    const profile = await query<{ is_premium: number; can_publish_demand: number }>(
+    const permission = await query<{ influencer_status: string }>(
 
-      `SELECT is_premium, can_publish_demand FROM influencer_profiles WHERE user_id=$1`,
+      `SELECT influencer_status FROM users WHERE id=$1`,
 
       [req.user.userId]
 
     );
 
-    const canCreate = Number(profile.rows[0]?.is_premium || 0) === 1 && Number(profile.rows[0]?.can_publish_demand || 0) === 1;
+    const canCreate = permission.rows[0]?.influencer_status === "approved";
 
     if (!canCreate) return res.status(403).json({ error: "FORBIDDEN", message: "当前账号没有发布权限。" });
 
