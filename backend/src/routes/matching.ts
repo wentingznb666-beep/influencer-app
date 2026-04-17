@@ -305,6 +305,30 @@ router.post("/client/collab-pool/:demandId/apply", async (req: AuthRequest, res:
 
 
 /** 商家端：我的需求报名记录（模式二）。 */
+
+
+/** 商家咨询达人需求。 */
+router.post("/client/collab-pool/:demandId/consult", async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+  const demandId = Number(req.params.demandId);
+  const note = String(req.body?.note || "").trim();
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的ID。" });
+  if (!note) return res.status(400).json({ error: "INVALID_NOTE", message: "咨询内容不能为空。" });
+  try {
+    const d = await query<{ influencer_id: number }>(
+      `SELECT influencer_id FROM influencer_collab_demands WHERE id=$1 AND status='open'`,
+      [demandId]
+    );
+    const row = d.rows[0];
+    if (!row) return res.status(404).json({ error: "NOT_FOUND", message: "需求不存在。" });
+    await createMessage(row.influencer_id, "demand_consult", "商家咨询了您的需求", `需求 #${demandId} 收到咨询：${note}`, "demand", demandId);
+    return res.status(201).json({ ok: true });
+  } catch (e) {
+    console.error("client consult demand error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
 router.get("/client/collab-pool/my-applies", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
@@ -503,57 +527,56 @@ router.get("/influencer/demands", async (req: AuthRequest, res: Response) => {
 /** 商家查看达人合作池 */
 
 router.post("/influencer/demands", async (req: AuthRequest, res: Response) => {
-
   if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
 
-  const title = String(req.body?.title || "").trim();
+  const specialty = String(req.body?.specialty || "").trim();
+  const fansLevel = String(req.body?.fans_level || "").trim();
+  const taskTypes = Array.isArray(req.body?.task_types)
+    ? (req.body.task_types as unknown[]).map((x) => String(x || "").trim()).filter(Boolean).slice(0, 10)
+    : [];
+  const categoriesCanDo = String(req.body?.categories_can_do || "").trim();
+  const categoriesNotDo = String(req.body?.categories_not_do || "").trim();
+  const needSample = String(req.body?.need_sample || "").trim();
+  const unitPrice = Number(req.body?.unit_price);
+  const deliveryDays = Number(req.body?.delivery_days);
+  const reviseTimes = Number(req.body?.revise_times);
+  const intro = String(req.body?.intro || "").trim();
 
-  const demandDetail = String(req.body?.demand_detail || "").trim();
-
-  const expected = Number(req.body?.expected_points);
-
-  if (!title || title.length > 200) return res.status(400).json({ error: "INVALID_TITLE", message: "标题长度需在 1-200 之间。" });
-
-  if (!Number.isInteger(expected) || expected < 1) return res.status(400).json({ error: "INVALID_POINTS", message: "该订单暂不可报名。" });
+  if (!specialty || !fansLevel || taskTypes.length === 0 || !categoriesCanDo || !categoriesNotDo || (needSample !== "是" && needSample !== "否") || !Number.isFinite(unitPrice) || unitPrice <= 0 || !Number.isInteger(deliveryDays) || deliveryDays < 1 || !Number.isInteger(reviseTimes) || reviseTimes < 0 || !intro) {
+    return res.status(400).json({ error: "INVALID_INPUT", message: "请完整填写需求信息。" });
+  }
 
   try {
-
     const permission = await query<{ influencer_status: string }>(
-
       `SELECT influencer_status FROM users WHERE id=$1`,
-
       [req.user.userId]
-
     );
-
     const canCreate = permission.rows[0]?.influencer_status === "approved";
-
     if (!canCreate) return res.status(403).json({ error: "FORBIDDEN", message: "当前账号没有发布权限。" });
 
+    const detail = {
+      fans_level: fansLevel,
+      task_types: taskTypes,
+      categories_can_do: categoriesCanDo,
+      categories_not_do: categoriesNotDo,
+      need_sample: needSample,
+      delivery_days: deliveryDays,
+      revise_times: reviseTimes,
+      intro,
+    };
+
     const created = await query<{ id: number }>(
-
       `INSERT INTO influencer_collab_demands (influencer_id, title, demand_detail, expected_points, status)
-
        VALUES ($1, $2, $3, $4, 'open') RETURNING id`,
-
-      [req.user.userId, title, demandDetail || null, expected]
-
+      [req.user.userId, specialty, JSON.stringify(detail), Math.round(unitPrice)]
     );
 
     return res.status(201).json({ id: created.rows[0]?.id });
-
   } catch (e) {
-
     console.error("influencer create demand error:", e);
-
     return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-
   }
-
 });
-
-
-
 /** 创建系统消息 */
 
 router.get("/influencer/demands/:id/applications", async (req: AuthRequest, res: Response) => {

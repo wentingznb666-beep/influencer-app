@@ -1569,6 +1569,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
 
   await query(`CREATE INDEX IF NOT EXISTS idx_member_orders_client ON member_orders(client_id, created_at DESC)`);
   await query(`CREATE INDEX IF NOT EXISTS idx_deposit_log_client ON deposit_log(client_id, created_at DESC)`);
+  await query(`ALTER TABLE system_messages ADD COLUMN IF NOT EXISTS read_at TIMESTAMPTZ`);
 
   await query(`CREATE TABLE IF NOT EXISTS matching_order_details (
     order_id INTEGER PRIMARY KEY REFERENCES client_market_orders(id) ON DELETE CASCADE,

@@ -135,7 +135,18 @@ export async function getInfluencerDemands() {
 
 
 
-export async function createInfluencerDemand(body: { title: string; demand_detail?: string; expected_points: number }) {
+export async function createInfluencerDemand(body: {
+  specialty: string;
+  fans_level: string;
+  task_types: string[];
+  categories_can_do: string;
+  categories_not_do: string;
+  need_sample: "是" | "否";
+  unit_price: number;
+  delivery_days: number;
+  revise_times: number;
+  intro: string;
+}) {
 
   const res = await fetchWithAuth("/api/matching/influencer/demands", {
 
@@ -306,5 +317,17 @@ export async function toggleAdminInfluencerPermission(id: number, enabled: boole
     body: JSON.stringify({ enabled }),
   });
   if (!res.ok) throw new Error(await readError(res, 'Toggle failed'));
+  return res.json();
+}
+
+
+/** 商家咨询达人需求。 */
+export async function consultClientCollabPool(demandId: number, note: string) {
+  const res = await fetchWithAuth(`/api/matching/client/collab-pool/${demandId}/consult`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+    body: JSON.stringify({ note }),
+  });
+  if (!res.ok) throw new Error(await readError(res, "Consult failed"));
   return res.json();
 }
