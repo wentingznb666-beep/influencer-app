@@ -25,3 +25,11 @@ export async function markSystemMessageRead(messageId: number) {
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
   return res.json();
 }
+
+
+/** 清空当前账号全部系统消息。 */
+export async function clearAllSystemMessages() {
+  const res = await fetchWithAuth("/api/matching/messages/clear", { method: "POST" });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  return res.json();
+}

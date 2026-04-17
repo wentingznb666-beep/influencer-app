@@ -43,6 +43,7 @@ import PaymentProfilePage from "./influencer/PaymentProfilePage";
 import TaskHallPage from "./influencer/TaskHallPage";
 import InfluencerPermissionPage from "./influencer/InfluencerPermissionPage";
 import CollabDemandsPage from "./influencer/CollabDemandsPage";
+import InfluencerMyDemandsPage from "./influencer/InfluencerMyDemandsPage";
 import MerchantMembersPage from "./admin/MerchantMembersPage";
 import InfluencerPermissionsPage from "./admin/InfluencerPermissionsPage";
 import ProtectedRoute from "./ProtectedRoute";
@@ -126,6 +127,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="payment-profile" element={<PaymentProfilePage />} />
             <Route path="permission" element={<InfluencerPermissionPage />} />
             <Route path="demands" element={<CollabDemandsPage />} />
+            <Route path="my-demands" element={<InfluencerMyDemandsPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
           </Route>

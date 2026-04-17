@@ -78,6 +78,7 @@ export default function InfluencerLayout() {
         { to: "/influencer/payment-profile", label: "收款信息" },
         { to: "/influencer/permission", label: "撮合权限申请" },
         { to: "/influencer/demands", label: "发布合作需求" },
+        { to: "/influencer/my-demands", label: "我的需求" },
         { to: "/influencer/op-logs", label: "我的操作日志" },
       ]}
       mainMaxWidth={900}

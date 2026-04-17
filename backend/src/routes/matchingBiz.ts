@@ -582,6 +582,20 @@ router.get("/messages", async (req: AuthRequest, res: Response) => {
   }
 });
 
+
+
+/** 清空当前账号全部系统消息。 */
+router.post("/messages/clear", async (req: AuthRequest, res: Response) => {
+  if (!req.user?.userId) return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+  try {
+    await query(`DELETE FROM system_messages WHERE user_id=$1`, [req.user.userId]);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("clear messages error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
 /** 标记消息已读。 */
 router.post("/messages/:id/read", async (req: AuthRequest, res: Response) => {
   if (!req.user?.userId) return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });

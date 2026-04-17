@@ -6,7 +6,7 @@ import { BrandLogo } from "./BrandLogo";
 import { xtLayout, xtOutlineBtn } from "./brandTheme";
 import { DeferredBlock, useDeferredInCompact, useResponsive } from "./responsive";
 import { normalizeAccountText } from "./utils/accountText";
-import { getSystemMessages, markSystemMessageRead, type SystemMessage } from "./systemMessageApi";
+import { clearAllSystemMessages, getSystemMessages, markSystemMessageRead, type SystemMessage } from "./systemMessageApi";
 
 /** 顶栏/侧栏导航项定义，支持 hover 预加载。 */
 export type DashboardNavItem = { to: string; label: string; preload?: () => void };
@@ -117,6 +117,18 @@ export default function DashboardShell({
       setMessages((prev) => prev.map((it) => (it.id === messageId ? { ...it, is_read: 1 } : it)));
     } catch (e) {
       setMsgError(e instanceof Error ? e.message : "已读失败");
+    }
+  };
+
+  /** 清空当前账号全部消息。 */
+  const clearAllMessages = async () => {
+    if (!window.confirm("确认清空全部消息吗？")) return;
+    setMsgError(null);
+    try {
+      await clearAllSystemMessages();
+      setMessages([]);
+    } catch (e) {
+      setMsgError(e instanceof Error ? e.message : "清空失败");
     }
   };
 
@@ -289,9 +301,14 @@ export default function DashboardShell({
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                     <strong>消息通知</strong>
-                    <button type="button" onClick={() => void loadMessages()} style={{ ...xtOutlineBtn, padding: "4px 8px", fontSize: 12 }}>
-                      刷新
-                    </button>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button type="button" onClick={() => void loadMessages()} style={{ ...xtOutlineBtn, padding: "4px 8px", fontSize: 12 }}>
+                        刷新
+                      </button>
+                      <button type="button" onClick={() => void clearAllMessages()} style={{ ...xtOutlineBtn, padding: "4px 8px", fontSize: 12 }}>
+                        清空全部
+                      </button>
+                    </div>
                   </div>
                   {msgError && <p style={{ color: "#b91c1c", margin: "6px 0" }}>{msgError}</p>}
                   {msgLoading && <p style={{ margin: "6px 0" }}>加载中…</p>}
