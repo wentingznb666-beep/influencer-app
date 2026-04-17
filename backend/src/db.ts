@@ -1205,6 +1205,28 @@ async function runLightweightInit(): Promise<void> {
 async function applyOnlineSchemaPatches(): Promise<void> {
 
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS disabled INTEGER NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS influencer_status TEXT NOT NULL DEFAULT 'unapplied'`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_influencer_verified INTEGER NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS tiktok_account TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS tiktok_fans TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS category TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS contact_info TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS real_name TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_name TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_branch TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_card TEXT`);
+  await query(
+    `UPDATE users
+        SET influencer_status = CASE
+          WHEN influencer_status IN ('unapplied','pending','approved','rejected','disabled') THEN influencer_status
+          ELSE 'unapplied'
+        END`
+  );
+  await query(
+    `ALTER TABLE users
+      ADD CONSTRAINT users_influencer_status_check
+      CHECK (influencer_status IN ('unapplied','pending','approved','rejected','disabled'))`
+  ).catch(() => undefined);
 
   await query(`CREATE TABLE IF NOT EXISTS operation_log (
 
@@ -1327,6 +1349,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS publish_method TEXT NOT NULL DEFAULT 'client_self_publish'`);
 
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS is_public_apply INTEGER NOT NULL DEFAULT 0`);
+    await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS allow_apply INTEGER NOT NULL DEFAULT 1`);
 
     await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS match_status TEXT NOT NULL DEFAULT 'open'`);
 
@@ -1497,6 +1520,89 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE client_model_favorites ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
 
   await query(`CREATE INDEX IF NOT EXISTS idx_client_model_favorites_client ON client_model_favorites(client_id, id DESC) WHERE is_deleted = 0`);
+
+  await query(`CREATE TABLE IF NOT EXISTS merchant_profiles (
+    client_id INTEGER PRIMARY KEY REFERENCES users(id),
+    member_level INTEGER NOT NULL DEFAULT 0 CHECK (member_level IN (0,1,2,3)),
+    member_expire_time TIMESTAMPTZ,
+    deposit_amount NUMERIC(18,2) NOT NULL DEFAULT 0,
+    deposit_frozen NUMERIC(18,2) NOT NULL DEFAULT 0,
+    deposit_status TEXT NOT NULL DEFAULT 'none' CHECK (deposit_status IN ('none','active','frozen','warning')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+
+  await query(`CREATE TABLE IF NOT EXISTS member_orders (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES users(id),
+    member_level INTEGER NOT NULL CHECK (member_level IN (1,2,3)),
+    amount NUMERIC(18,2) NOT NULL,
+    months INTEGER NOT NULL DEFAULT 1 CHECK (months > 0),
+    status TEXT NOT NULL DEFAULT 'paid' CHECK (status IN ('paid','refunded')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expire_time TIMESTAMPTZ
+  )`);
+
+  await query(`CREATE TABLE IF NOT EXISTS deposit_log (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES users(id),
+    change_amount NUMERIC(18,2) NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('pay','freeze','unfreeze','deduct','refund')),
+    ref_order_id INTEGER,
+    note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+
+  await query(`CREATE INDEX IF NOT EXISTS idx_member_orders_client ON member_orders(client_id, created_at DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_deposit_log_client ON deposit_log(client_id, created_at DESC)`);
+
+  await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS order_type INTEGER NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS allow_apply INTEGER NOT NULL DEFAULT 1`);
+  await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS task_amount NUMERIC(18,2)`);
+  await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS deposit_frozen NUMERIC(18,2) NOT NULL DEFAULT 0`);
+
+  await query(`CREATE TABLE IF NOT EXISTS task_applies (
+    id SERIAL PRIMARY KEY,
+    task_id INTEGER NOT NULL REFERENCES client_market_orders(id),
+    influencer_id INTEGER NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','selected','rejected','in_progress','completed')),
+    note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(task_id, influencer_id)
+  )`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_task_applies_task ON task_applies(task_id, created_at DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_task_applies_influencer ON task_applies(influencer_id, created_at DESC)`);
+
+  await query(`CREATE TABLE IF NOT EXISTS demand (
+    id SERIAL PRIMARY KEY,
+    influencer_id INTEGER NOT NULL REFERENCES users(id),
+    category TEXT NOT NULL,
+    expected_commission TEXT NOT NULL,
+    requirement TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending_review' CHECK (status IN ('pending_review','open','matched','rejected','closed')),
+    selected_client_id INTEGER REFERENCES users(id),
+    review_note TEXT,
+    reviewed_by INTEGER REFERENCES users(id),
+    reviewed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_demand_influencer ON demand(influencer_id, created_at DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_demand_status ON demand(status, created_at DESC)`);
+
+  await query(`CREATE TABLE IF NOT EXISTS demand_applies (
+    id SERIAL PRIMARY KEY,
+    demand_id INTEGER NOT NULL REFERENCES demand(id),
+    client_id INTEGER NOT NULL REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','selected','rejected')),
+    note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(demand_id, client_id)
+  )`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_demand_applies_demand ON demand_applies(demand_id, created_at DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_demand_applies_client ON demand_applies(client_id, created_at DESC)`);
 
   await query(`CREATE TABLE IF NOT EXISTS showcase_influencers (
 

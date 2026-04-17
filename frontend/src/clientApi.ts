@@ -674,3 +674,79 @@ export async function updateShowcaseContentCreatorSelection(id: number, selected
 
 
 
+
+/** 读取商家会员与保证金信息。 */
+export async function getClientMemberProfile() {
+  const res = await fetchWithAuth('/api/matching/client/member');
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '请求失败');
+  return res.json();
+}
+
+/** 购买或续费商家会员。 */
+export async function purchaseClientMember(level: 1 | 2 | 3, months = 1) {
+  const res = await fetchWithAuth('/api/matching/client/member/purchase', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify({ level, months }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '购买失败');
+  return res.json();
+}
+
+/** 商家保证金充值。 */
+export async function topupClientDeposit(amount: number) {
+  const res = await fetchWithAuth('/api/matching/client/deposit/topup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify({ amount }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '充值失败');
+  return res.json();
+}
+
+/** 新建撮合免积分订单。 */
+export async function createMatchingOrder(body: { title: string; task_amount: number; requirement?: string; allow_apply?: boolean }) {
+  const res = await fetchWithAuth('/api/matching/client/matching-orders', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '创建失败');
+  return res.json();
+}
+
+/** 商家端读取撮合免积分订单列表。 */
+export async function getMatchingOrders() {
+  const res = await fetchWithAuth('/api/matching/client/matching-orders');
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '请求失败');
+  return res.json();
+}
+
+
+/** 商家端读取撮合订单报名列表。 */
+export async function getMatchingOrderApplicants(orderId: number) {
+  const res = await fetchWithAuth(`/api/matching/client/matching-orders/${orderId}/applicants`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '请求失败');
+  return res.json();
+}
+
+/** 商家端选中撮合报名达人。 */
+export async function selectMatchingOrderApplicant(orderId: number, appId: number) {
+  const res = await fetchWithAuth(`/api/matching/client/matching-orders/${orderId}/applicants/${appId}/select`, { method: 'POST' });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '操作失败');
+  return res.json();
+}
+
+/** 商家端驳回撮合报名达人。 */
+export async function rejectMatchingOrderApplicant(orderId: number, appId: number) {
+  const res = await fetchWithAuth(`/api/matching/client/matching-orders/${orderId}/applicants/${appId}/reject`, { method: 'POST' });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '操作失败');
+  return res.json();
+}
+
+/** 商家端验收通过并获取达人收款信息。 */
+export async function acceptMatchingOrder(orderId: number) {
+  const res = await fetchWithAuth(`/api/matching/client/matching-orders/${orderId}/accept`, { method: 'POST' });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '验收失败');
+  return res.json();
+}

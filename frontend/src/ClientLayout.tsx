@@ -12,6 +12,9 @@ const CLIENT_NAV = [
   { to: "/client/market-orders", label: "达人领单" },
   { to: "/client/skus", label: "SKU 列表" },
   { to: "/client/points", label: "积分充值" },
+  { to: "/client/matching-center", label: "撮合中心" },
+  { to: "/client/collab-pool", label: "达人需求广场" },
+  { to: "/client/collab-my-applies", label: "我的需求报名" },
   { to: "/client/op-logs", label: "我的操作日志" },
 ];
 

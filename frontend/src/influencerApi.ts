@@ -262,3 +262,54 @@ export async function createWithdrawal(body: { amount: number; bank_account_name
 
 }
 
+
+/** 读取达人收款信息。 */
+export async function getInfluencerPaymentProfile() {
+  const res = await fetchWithAuth('/api/matching/influencer/payment-profile');
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '请求失败');
+  return res.json();
+}
+
+/** 保存达人收款信息。 */
+export async function saveInfluencerPaymentProfile(body: { real_name: string; bank_name: string; bank_branch: string; bank_card: string }) {
+  const res = await fetchWithAuth('/api/matching/influencer/payment-profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '保存失败');
+  return res.json();
+}
+
+/** 达人读取撮合任务大厅（免积分）。 */
+export async function getInfluencerMatchingTaskHall() {
+  const res = await fetchWithAuth('/api/matching/influencer/matching-task-hall');
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '请求失败');
+  return res.json();
+}
+
+
+/** 达人报名撮合任务。 */
+export async function applyMatchingOrder(orderId: number) {
+  const res = await fetchWithAuth(`/api/matching/influencer/matching-orders/${orderId}/apply`, { method: 'POST' });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '报名失败');
+  return res.json();
+}
+
+/** 达人查看我的撮合报名。 */
+export async function getMyMatchingApplies() {
+  const res = await fetchWithAuth('/api/matching/influencer/my-matching-applies');
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '请求失败');
+  return res.json();
+}
+
+/** 达人提交撮合完成凭证。 */
+export async function submitMatchingProof(orderId: number, video_url: string) {
+  const res = await fetchWithAuth(`/api/matching/influencer/matching-orders/${orderId}/submit-proof`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify({ video_url }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '提交失败');
+  return res.json();
+}

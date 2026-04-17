@@ -60,6 +60,17 @@ export async function getClientCollabPool() {
 
 
 
+
+export async function getClientCollabMyApplies() {
+
+  const res = await fetchWithAuth("/api/matching/client/collab-pool/my-applies");
+
+  if (!res.ok) throw new Error(await readError(res, "Request failed"));
+
+  return res.json();
+
+}
+
 export async function applyClientCollabPool(demandId: number, note?: string) {
 
   const res = await fetchWithAuth(`/api/matching/client/collab-pool/${demandId}/apply`, {
@@ -244,3 +255,57 @@ export async function updateAdminPremiumCreator(id: number, can_publish_demand: 
 
 }
 
+
+export async function getInfluencerPermissionStatus() {
+  const res = await fetchWithAuth('/api/matching/influencer/permission-status');
+  if (!res.ok) throw new Error(await readError(res, 'Request failed'));
+  return res.json();
+}
+
+export async function applyInfluencerPermission(body: {
+  tiktok_account: string;
+  tiktok_fans: string;
+  category: string;
+  contact_info: string;
+  bio: string;
+}) {
+  const res = await fetchWithAuth('/api/matching/influencer/permission-apply', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await readError(res, 'Apply failed'));
+  return res.json();
+}
+
+export async function getInfluencerTaskHall() {
+  const res = await fetchWithAuth('/api/matching/influencer/task-hall');
+  if (!res.ok) throw new Error(await readError(res, 'Request failed'));
+  return res.json();
+}
+
+export async function getAdminInfluencerPermissions() {
+  const res = await fetchWithAuth('/api/matching/admin/influencer-permissions');
+  if (!res.ok) throw new Error(await readError(res, 'Request failed'));
+  return res.json();
+}
+
+export async function reviewAdminInfluencerPermission(id: number, action: 'approve' | 'reject', note?: string) {
+  const res = await fetchWithAuth(`/api/matching/admin/influencer-permissions/${id}/review`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify({ action, note }),
+  });
+  if (!res.ok) throw new Error(await readError(res, 'Review failed'));
+  return res.json();
+}
+
+export async function toggleAdminInfluencerPermission(id: number, enabled: boolean) {
+  const res = await fetchWithAuth(`/api/matching/admin/influencer-permissions/${id}/toggle`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify({ enabled }),
+  });
+  if (!res.ok) throw new Error(await readError(res, 'Toggle failed'));
+  return res.json();
+}

@@ -1300,3 +1300,11 @@ export async function deleteAdminShowcaseContentCreator(id: number) {
 
 
 
+
+/** 管理员/员工读取商家会员与保证金信息。 */
+export async function getAdminMerchantMembers() {
+  const res = await fetchWithAuth('/api/matching/admin/merchant-members');
+  if (!res.ok) throw new Error(await readErrorMessage(res, '请求失败'));
+  return res.json();
+}
+

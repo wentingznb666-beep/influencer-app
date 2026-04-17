@@ -59,6 +59,7 @@ import clientShowcaseInfluencersRoutes from "./routes/clientShowcaseInfluencers"
 import clientShowcaseContentCreatorsRoutes from "./routes/clientShowcaseContentCreators";
 
 import matchingRoutes from "./routes/matching";
+import matchingBizRoutes from "./routes/matchingBiz";
 
 import { initDb } from "./db";
 
@@ -181,6 +182,7 @@ app.use("/api/operation-logs", operationLogsRoutes);
 /** 商单撮合/达人合作池相关接口 */
 
 app.use("/api/matching", matchingRoutes);
+app.use("/api/matching", matchingBizRoutes);
 
 
 
