@@ -146,6 +146,8 @@ export async function createInfluencerDemand(body: {
   delivery_days: number;
   revise_times: number;
   intro: string;
+  tiktok_account: string;
+  tiktok_fans: number;
 }) {
 
   const res = await fetchWithAuth("/api/matching/influencer/demands", {

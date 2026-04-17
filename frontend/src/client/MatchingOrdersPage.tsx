@@ -147,7 +147,6 @@ export default function MatchingOrdersPage() {
           <h4 style={{ marginTop: 0 }}>达人收款信息（请商家线下转账）</h4>
           <p>姓名：{paymentInfo.real_name || "-"}</p>
           <p>银行：{paymentInfo.bank_name || "-"}</p>
-          <p>支行：{paymentInfo.bank_branch || "-"}</p>
           <p>银行卡号：{paymentInfo.bank_card || "-"}</p>
         </div>
       )}

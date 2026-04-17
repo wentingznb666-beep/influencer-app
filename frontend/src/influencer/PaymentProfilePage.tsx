@@ -3,7 +3,7 @@ import { getInfluencerPaymentProfile, saveInfluencerPaymentProfile } from "../in
 
 /** 达人端收款信息页面。 */
 export default function PaymentProfilePage() {
-  const [form, setForm] = useState({ real_name: "", bank_name: "", bank_branch: "", bank_card: "" });
+  const [form, setForm] = useState({ real_name: "", bank_name: "", bank_card: "" });
   const [msg, setMsg] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
@@ -15,7 +15,6 @@ export default function PaymentProfilePage() {
       setForm({
         real_name: p?.profile?.real_name || "",
         bank_name: p?.profile?.bank_name || "",
-        bank_branch: p?.profile?.bank_branch || "",
         bank_card: p?.profile?.bank_card || "",
       });
     } catch (e) {
@@ -48,7 +47,6 @@ export default function PaymentProfilePage() {
       <form onSubmit={onSubmit} style={{ display: "grid", gap: 8, maxWidth: 460 }}>
         <input value={form.real_name} onChange={(e) => setForm((f) => ({ ...f, real_name: e.target.value }))} placeholder="姓名" required />
         <input value={form.bank_name} onChange={(e) => setForm((f) => ({ ...f, bank_name: e.target.value }))} placeholder="银行名称" required />
-        <input value={form.bank_branch} onChange={(e) => setForm((f) => ({ ...f, bank_branch: e.target.value }))} placeholder="支行" required />
         <input value={form.bank_card} onChange={(e) => setForm((f) => ({ ...f, bank_card: e.target.value }))} placeholder="银行卡号" required />
         <button type="submit">保存收款信息</button>
       </form>

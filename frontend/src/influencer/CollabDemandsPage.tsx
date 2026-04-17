@@ -15,6 +15,8 @@ type DemandFormState = {
   delivery_days: string;
   revise_times: string;
   intro: string;
+  tiktok_account: string;
+  tiktok_fans: string;
 };
 
 /** 达人发布合作需求页（仅发布）。 */
@@ -33,6 +35,8 @@ export default function CollabDemandsPage() {
     delivery_days: "3",
     revise_times: "2",
     intro: "",
+    tiktok_account: "",
+    tiktok_fans: "",
   });
 
   /** 拉取权限状态。 */
@@ -77,6 +81,8 @@ export default function CollabDemandsPage() {
         delivery_days: Number(form.delivery_days),
         revise_times: Number(form.revise_times),
         intro: form.intro,
+        tiktok_account: form.tiktok_account,
+        tiktok_fans: Number(form.tiktok_fans),
       });
       setForm({
         specialty: "",
@@ -89,6 +95,8 @@ export default function CollabDemandsPage() {
         delivery_days: "3",
         revise_times: "2",
         intro: "",
+        tiktok_account: "",
+        tiktok_fans: "",
       });
       setMsg("发布成功");
     } catch (e) {
@@ -149,6 +157,12 @@ export default function CollabDemandsPage() {
 
         <label htmlFor="intro">自我介绍/个人优势 <span style={{ color: "#dc2626" }}>*</span></label>
         <textarea id="intro" rows={4} disabled={status !== "approved"} value={form.intro} onChange={(e) => setForm((f) => ({ ...f, intro: e.target.value }))} />
+
+        <label htmlFor="tiktok_account">TikTok 账号 <span style={{ color: "#dc2626" }}>*</span></label>
+        <input id="tiktok_account" disabled={status !== "approved"} value={form.tiktok_account} onChange={(e) => setForm((f) => ({ ...f, tiktok_account: e.target.value }))} />
+
+        <label htmlFor="tiktok_fans">粉丝数量 <span style={{ color: "#dc2626" }}>*</span></label>
+        <input id="tiktok_fans" type="number" min={0} disabled={status !== "approved"} value={form.tiktok_fans} onChange={(e) => setForm((f) => ({ ...f, tiktok_fans: e.target.value }))} />
       </div>
       <button type="button" disabled={status !== "approved"} onClick={() => void create()} style={{ marginTop: 10 }}>
         发布需求

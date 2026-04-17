@@ -271,7 +271,7 @@ export async function getInfluencerPaymentProfile() {
 }
 
 /** 保存达人收款信息。 */
-export async function saveInfluencerPaymentProfile(body: { real_name: string; bank_name: string; bank_branch: string; bank_card: string }) {
+export async function saveInfluencerPaymentProfile(body: { real_name: string; bank_name: string; bank_card: string }) {
   const res = await fetchWithAuth('/api/matching/influencer/payment-profile', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json; charset=utf-8' },

@@ -122,7 +122,7 @@ router.get("/influencer/payment-profile", async (req: AuthRequest, res: Response
   if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
     const ret = await query(
-      `SELECT real_name, bank_name, bank_branch, bank_card
+      `SELECT real_name, bank_name, bank_card
          FROM users
         WHERE id=$1`,
       [req.user.userId]
@@ -139,9 +139,8 @@ router.put("/influencer/payment-profile", async (req: AuthRequest, res: Response
   if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   const realName = String(req.body?.real_name || "").trim();
   const bankName = String(req.body?.bank_name || "").trim();
-  const bankBranch = String(req.body?.bank_branch || "").trim();
   const bankCard = String(req.body?.bank_card || "").trim();
-  if (!realName || !bankName || !bankBranch || !bankCard) {
+  if (!realName || !bankName || !bankCard) {
     return res.status(400).json({ error: "INVALID_INPUT", message: "请完整填写收款信息。" });
   }
   try {
@@ -149,10 +148,9 @@ router.put("/influencer/payment-profile", async (req: AuthRequest, res: Response
       `UPDATE users
           SET real_name=$2,
               bank_name=$3,
-              bank_branch=$4,
-              bank_card=$5
+              bank_card=$4
         WHERE id=$1`,
-      [req.user.userId, realName, bankName, bankBranch, bankCard]
+      [req.user.userId, realName, bankName, bankCard]
     );
     return res.json({ ok: true });
   } catch (e) {
@@ -395,7 +393,7 @@ router.get("/client/matching-orders/:id/applicants", async (req: AuthRequest, re
     if (!own.rows[0]) return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
     const rows = await query(
       `SELECT a.id, a.status, a.note, a.created_at,
-              u.id AS influencer_id, u.username, u.real_name, u.bank_name, u.bank_branch, u.bank_card
+              u.id AS influencer_id, u.username, u.real_name, u.bank_name, u.bank_card
          FROM market_order_applications a
          JOIN users u ON u.id=a.influencer_id
         WHERE a.market_order_id=$1
@@ -496,8 +494,8 @@ router.post("/client/matching-orders/:id/accept", async (req: AuthRequest, res: 
           [req.user!.userId, amount, orderId]
         );
       }
-      const inf = await client.query<{ id: number; username: string; real_name: string | null; bank_name: string | null; bank_branch: string | null; bank_card: string | null }>(
-        `SELECT id, username, real_name, bank_name, bank_branch, bank_card FROM users WHERE id=$1`,
+      const inf = await client.query<{ id: number; username: string; real_name: string | null; bank_name: string | null; bank_card: string | null }>(
+        `SELECT id, username, real_name, bank_name, bank_card FROM users WHERE id=$1`,
         [row.influencer_id]
       );
       return { kind: "ok" as const, payment: inf.rows[0] || null, influencerId: row.influencer_id };
