@@ -33,8 +33,8 @@ import ClientShowcaseInfluencersPage from "./client/ClientShowcaseInfluencersPag
 import ClientShowcaseContentCreatorsPage from "./client/ClientShowcaseContentCreatorsPage";
 import InfluencerLayout from "./InfluencerLayout";
 /**
- * 鎬ц兘浼樺寲锛堜粎鐢熶骇鐜锛夛細杈句汉绔矾鐢辨噿鍔犺浇锛屽噺灏忕櫥褰曞悗棣栧睆 JS 浣撶Н銆?
- * - 浠呭奖鍝嶅姞杞芥椂鏈猴紝涓嶆敼鍙樹换浣曚笟鍔￠€昏緫涓庨〉闈㈠竷灞€銆?
+ * 性能优化（仅生产环境）：达人端路由懒加载，减小登录后首屏 JS 体积。
+ * 仅影响加载时机，不改变业务逻辑与页面布局。
  */
 import ClientOrdersHallPageDev from "./influencer/ClientOrdersHallPage";
 import InfluencerPointsPageDev from "./influencer/PointsPage";
@@ -48,6 +48,8 @@ import MerchantMembersPage from "./admin/MerchantMembersPage";
 import InfluencerPermissionsPage from "./admin/InfluencerPermissionsPage";
 import ProtectedRoute from "./ProtectedRoute";
 import App from "./App";
+import { I18nextProvider } from "react-i18next";
+import { appI18n } from "./i18n/i18nApp";
 import { LanguageProvider } from "./i18n";
 import OperationLogsPage from "./OperationLogsPage";
 import { runStorageSelfHealMigration } from "./utils/storageMigration";
@@ -63,7 +65,8 @@ runStorageSelfHealMigration();
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
-      <LanguageProvider>
+      <I18nextProvider i18n={appI18n}>
+        <LanguageProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminLayout /></ProtectedRoute>}>
@@ -136,6 +139,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </LanguageProvider>
+      </I18nextProvider>
     </BrowserRouter>
   </StrictMode>
 );

@@ -8,11 +8,14 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "check:encoding": "python ../backend/scripts/encoding_audit.py --root .."
+    "check:encoding": "python ../backend/scripts/encoding_audit.py --root ..",
+    "test": "vitest run"
   },
   "dependencies": {
+    "i18next": "^26.0.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-i18next": "^17.0.4",
     "react-router-dom": "^7.13.1"
   },
   "devDependencies": {
@@ -27,6 +30,7 @@
     "globals": "^16.5.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
-    "vite": "^7.3.2"
+    "vite": "^7.3.2",
+    "vitest": "^4.1.4"
   }
 }
