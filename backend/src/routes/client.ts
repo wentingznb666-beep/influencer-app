@@ -685,7 +685,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
   const startDate = normalizeDateOnly(req.query.start_date);
   const endDate = normalizeDateOnly(req.query.end_date);
   (async () => {
-    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.reward_points, mo.tier, mo.publish_method, mo.is_public_apply, mo.match_status, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images, mo.sku_ids, mo.status, mo.influencer_id, mo.work_links, mo.client_shop_name, mo.client_group_chat, mo.created_at, mo.updated_at, mo.completed_at,
+    let sql = `SELECT mo.id, mo.order_no, mo.title, mo.reward_points, mo.tier, mo.publish_method, mo.is_public_apply, mo.match_status, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images, mo.sku_ids, mo.task_count, (mo.reward_points * GREATEST(COALESCE(mo.task_count, 1), 1))::integer AS reward_points_total, mo.status, mo.influencer_id, mo.work_links, mo.client_shop_name, mo.client_group_chat, mo.created_at, mo.updated_at, mo.completed_at,
                       ui.username AS influencer_username,
                       COALESCE(NULLIF(ui.display_name, ''), ui.username) AS influencer_display_name
        FROM client_market_orders mo
@@ -729,7 +729,7 @@ router.get("/market-orders/:id", (req: AuthRequest, res: Response) => {
   }
   (async () => {
     const { rows } = await query(
-      `SELECT id, order_no, title, tier, publish_method, is_public_apply, match_status, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, reward_points, status, influencer_id, work_links, client_shop_name, client_group_chat, created_at, updated_at, completed_at
+      `SELECT id, order_no, title, tier, publish_method, is_public_apply, match_status, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, task_count, reward_points, (reward_points * GREATEST(COALESCE(task_count, 1), 1))::integer AS reward_points_total, status, influencer_id, work_links, client_shop_name, client_group_chat, created_at, updated_at, completed_at
          FROM client_market_orders WHERE id = $1 AND client_id = $2 AND is_deleted = 0`,
       [id, clientId]
     );
@@ -790,10 +790,11 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
       const acc = await ensurePointAccountLocked(client, clientId);
       const resolved = resolveMarketOrderPayPoints(typeof tier === "string" ? tier.trim().toUpperCase() : "");
       const payPoints = resolved.payPoints;
-      const platformProfit = Math.max(payPoints - MARKET_ORDER_CREATOR_REWARD, 0);
+      const platformProfitUnit = Math.max(payPoints - MARKET_ORDER_CREATOR_REWARD, 0);
       const countRaw = task_count == null ? 1 : Number(task_count);
       const taskCount = Number.isInteger(countRaw) ? Math.min(Math.max(countRaw, 1), 100) : 1;
       const totalPayPoints = payPoints * taskCount;
+      const platformProfitTotal = platformProfitUnit * taskCount;
       if (acc.balance < totalPayPoints) {
         return { kind: "insufficient" as const, balance: acc.balance, need: totalPayPoints };
       }
@@ -816,52 +817,52 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
           return { kind: "bad_voice" as const, message: "配音要求备注最长 2000 字符。" };
         }
       }
-      const createdIds: number[] = [];
-      const createdNos: string[] = [];
-      for (let i = 0; i < taskCount; i++) {
-        const orderNo = await allocateMarketOrderNo(client);
-        const ins = await client.query<{ id: number; order_no: string }>(
-          `INSERT INTO client_market_orders
-             (client_id, order_no, title, reward_points, tier, creator_reward_points, platform_profit_points, pay_deducted, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, publish_method, is_public_apply, match_status, status)
-           VALUES
-             ($1, $2, $3, $4, $5, $6, $7, 0, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb, $15, $16, $17, $18, 'open', 'open')
-           RETURNING id, order_no`,
-          [
-            clientId,
-            orderNo,
-            titleText,
-            payPoints,
-            resolved.tier,
-            MARKET_ORDER_CREATOR_REWARD,
-            platformProfit,
-            resolved.tier === "A" ? (voiceLink || null) : null,
-            resolved.tier === "A" ? (voiceNote || null) : null,
-            tiktokLink || null,
-            JSON.stringify(productImages),
-            JSON.stringify(finalSkuCodes),
-            JSON.stringify(finalSkuImages),
-            JSON.stringify(finalSkuIds),
-            clientShopName,
-            clientGroupChat,
-            publishMethod,
-            isPublicApply,
-          ]
-        );
-        const orderId = ins.rows[0]!.id;
-        createdIds.push(orderId);
-        createdNos.push(ins.rows[0]!.order_no);
-        await recordOperationLogTx(client, { userId: clientId, actionType: "create", targetType: "order", targetId: orderId });
-      }
-      // 批量发单一次性扣总积分，减少流水噪音
-      await client.query("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES ($1, $2, 'market_order_client_pay', $3)", [
-        acc.id,
-        -totalPayPoints,
-        createdIds[0],
-      ]);
-      await client.query("UPDATE point_accounts SET balance = balance - $1, updated_at = now() WHERE id = $2", [totalPayPoints, acc.id]);
-      await client.query("UPDATE client_market_orders SET pay_deducted = 1, updated_at = now() WHERE id = ANY($1::int[])", [createdIds]);
-      return { kind: "ok" as const, id: createdIds[0], order_no: createdNos[0], created_count: taskCount };
-    });
+      const orderNo = await allocateMarketOrderNo(client);
+      const ins = await client.query<{ id: number; order_no: string }>(
+        `INSERT INTO client_market_orders
+           (client_id, order_no, title, reward_points, tier, creator_reward_points, platform_profit_points, pay_deducted, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, task_count, client_shop_name, client_group_chat, publish_method, is_public_apply, match_status, status)
+         VALUES
+           ($1, $2, $3, $4, $5, $6, $7, 0, $8, $9, $10, $11::jsonb, $12::jsonb, $13::jsonb, $14::jsonb, $15, $16, $17, $18, $19, 'open', 'open')
+         RETURNING id, order_no`,
+        [
+          clientId,
+          orderNo,
+          titleText,
+          payPoints,
+          resolved.tier,
+          MARKET_ORDER_CREATOR_REWARD,
+          platformProfitTotal,
+          resolved.tier === "A" ? (voiceLink || null) : null,
+          resolved.tier === "A" ? (voiceNote || null) : null,
+          tiktokLink || null,
+          JSON.stringify(productImages),
+          JSON.stringify(finalSkuCodes),
+          JSON.stringify(finalSkuImages),
+          JSON.stringify(finalSkuIds),
+          taskCount,
+          clientShopName,
+          clientGroupChat,
+          publishMethod,
+          isPublicApply,
+        ]
+      );
+      const row0 = ins.rows[0];
+      if (!row0) return { kind: "db_error" as const };
+      const orderId = row0.id;
+      await recordOperationLogTx(client, { userId: clientId, actionType: "create", targetType: "order", targetId: orderId });
+      await client.query("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES ($1, $2, 'market_order_client_pay', $3)", [
+        acc.id,
+        -totalPayPoints,
+        orderId,
+      ]);
+      await client.query("UPDATE point_accounts SET balance = balance - $1, updated_at = now() WHERE id = $2", [totalPayPoints, acc.id]);
+      await client.query("UPDATE client_market_orders SET pay_deducted = 1, updated_at = now() WHERE id = $1", [orderId]);
+      return { kind: "ok" as const, id: orderId, order_no: row0.order_no, task_count: taskCount };
+    });
+    if (result.kind === "db_error") {
+      res.status(500).json({ error: "DB_ERROR", message: "创建订单失败，请重试。" });
+      return;
+    }
     if (result.kind === "bad_voice") {
       res.status(400).json({ error: "INVALID_VOICE", message: result.message });
       return;
@@ -874,7 +875,7 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
       return;
     }
     // 返回给商家端：显示其支付积分（reward_points 字段历史沿用）
-    res.status(201).json({ id: result.id, order_no: result.order_no, created_count: result.created_count });
+    res.status(201).json({ id: result.id, order_no: result.order_no, created_count: 1, task_count: result.task_count });
   })().catch((e) => {
     console.error("client market-orders create error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });

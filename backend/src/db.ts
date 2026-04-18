@@ -1583,6 +1583,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS allow_apply INTEGER NOT NULL DEFAULT 1`);
   await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS task_amount NUMERIC(18,2)`);
   await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS deposit_frozen NUMERIC(18,2) NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS task_count INTEGER NOT NULL DEFAULT 1`);
 
   await query(`CREATE TABLE IF NOT EXISTS task_applies (
     id SERIAL PRIMARY KEY,

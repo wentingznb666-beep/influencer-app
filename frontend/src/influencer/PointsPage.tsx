@@ -28,7 +28,7 @@ export default function PointsPage() {
     <div>
       <h2 style={{ marginTop: 0 }}>积分与收益</h2>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
-      <p style={{ fontSize: 14, color: "#666" }}>1 积分 = 1 泰铢，按周结算。</p>
+      <p style={{ fontSize: 14, color: "#666" }}>1 积分 = 1 泰铢，按周结算。达人领单结算金额为单套收益×数量（合并订单仅一条流水）。</p>
       {loading ? (
         <p>加载中…</p>
       ) : (

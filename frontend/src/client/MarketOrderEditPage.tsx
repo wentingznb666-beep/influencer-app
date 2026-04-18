@@ -15,9 +15,21 @@ type MarketOrderItem = {
   client_shop_name?: string | null;
   client_group_chat?: string | null;
   product_images?: string[] | null;
+  task_count?: number;
+  reward_points?: number;
+  reward_points_total?: number;
   status: string;
   created_at: string;
 };
+
+/**
+ * 解析发单套数用于展示。
+ */
+function resolveEditPageTaskCount(it: { task_count?: number | null }): number {
+  const n = Number(it.task_count);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.min(100, Math.floor(n));
+}
 
 /**
  * 商家端发单编辑页：仅用于回显并提交更新（后端会校验仅 open 可编辑）。
@@ -133,7 +145,12 @@ export default function MarketOrderEditPage() {
       {loading ? (
         <p>加载中…</p>
       ) : item ? (
-        <form onSubmit={onSubmit} style={{ marginTop: 14 }}>
+        <form onSubmit={onSubmit} style={{ marginTop: 14 }}>
+          <div style={{ marginBottom: 14, padding: 12, background: "#f8fafc", borderRadius: 10, fontSize: 14, color: "#334155", lineHeight: 1.6 }}>
+            <div>数量（套）：{resolveEditPageTaskCount(item)}</div>
+            <div>单套支付积分：{item.reward_points ?? "—"}</div>
+            <div>本单合计支付积分：{item.reward_points_total ?? "—"}</div>
+          </div>
           <div style={{ marginBottom: 10 }}>
             <label>订单标题（必填，1–200 字）</label>
             <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} maxLength={200} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />

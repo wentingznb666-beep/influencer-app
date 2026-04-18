@@ -9,7 +9,8 @@ type ProfitRow = {
   client_id: number;
   client_username: string;
   influencer_id: number | null;
-  influencer_username: string | null;
+  influencer_username: string | null;
+  task_count: number;
   client_pay_points: number;
   creator_reward_points: number;
   platform_profit_points: number;
@@ -215,9 +216,10 @@ export default function ProfitPage() {
               <th style={{ padding: 10, textAlign: "left" }}>订单号</th>
               <th style={{ padding: 10, textAlign: "left" }}>完成时间</th>
               <th style={{ padding: 10, textAlign: "left" }}>商家</th>
-              <th style={{ padding: 10, textAlign: "left" }}>达人</th>
-              <th style={{ padding: 10, textAlign: "left" }}>商家支付</th>
-              <th style={{ padding: 10, textAlign: "left" }}>达人收益</th>
+              <th style={{ padding: 10, textAlign: "left" }}>达人</th>
+              <th style={{ padding: 10, textAlign: "left" }}>数量</th>
+              <th style={{ padding: 10, textAlign: "left" }}>商家支付（合计）</th>
+              <th style={{ padding: 10, textAlign: "left" }}>达人收益（合计）</th>
               <th style={{ padding: 10, textAlign: "left" }}>平台利润</th>
             </tr>
           </thead>
@@ -227,15 +229,16 @@ export default function ProfitPage() {
                 <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.order_no || `#${r.id}`}</td>
                 <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>{formatDateTime(r.completed_at)}</td>
                 <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}><span data-no-auto-translate>{r.client_username}</span></td>
-                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.influencer_username || "—"}</td>
-                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.client_pay_points}</td>
+                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.influencer_username || "—"}</td>
+                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.task_count}</td>
+                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.client_pay_points}</td>
                 <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.creator_reward_points}</td>
                 <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", fontWeight: 700 }}>{r.platform_profit_points}</td>
               </tr>
             ))}
             {!loading && list.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ padding: 14, color: "#64748b" }}>暂无数据</td>
+                <td colSpan={8} style={{ padding: 14, color: "#64748b" }}>暂无数据</td>
               </tr>
             )}
           </tbody>

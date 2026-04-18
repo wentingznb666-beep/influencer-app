@@ -20,6 +20,7 @@ type OpenOrder = {
   client_display_name: string;
   status: string;
   created_at: string;
+  task_count?: number;
 };
 
 type MyOrder = {
@@ -41,6 +42,7 @@ type MyOrder = {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  task_count?: number;
 };
 
 /**
@@ -52,6 +54,28 @@ function formatDateTime(value?: string | null): string {
   if (Number.isNaN(d.getTime())) return value;
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+/**
+ * 解析领单大厅订单的合并套数（默认 1，上限 100）。
+ */
+function hallMarketOrderTaskCount(o: { reward_points: number; task_count?: number }): number {
+  const n = Number(o.task_count);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.min(100, Math.floor(n));
+}
+
+/**
+ * 达人侧展示的订单总积分：单套积分 × 套数。
+ */
+function hallMarketOrderTotalPoints(o: {
+  reward_points: number;
+  task_count?: number;
+  reward_points_total?: number;
+}): number {
+  const t = Number(o.reward_points_total);
+  if (Number.isFinite(t) && t >= 0) return t;
+  return hallMarketOrderTaskCount(o) * (o.reward_points || 0);
 }
 
 /**
@@ -336,13 +360,13 @@ export default function ClientOrdersHallPage() {
                   </div>
                   <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>订单创建日期：{formatDateTime(o.created_at)}</div>
                 </div>
-                <span style={{ color: "#166534", fontWeight: 600 }}>+{o.reward_points} 积分</span>
+                <span style={{ color: "#166534", fontWeight: 600 }}>+{hallMarketOrderTotalPoints(o)} 积分</span>
               </div>
               <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "130px 1fr", gap: 8, alignItems: "start" }}>
                 <div style={{ color: "#64748b", fontSize: 13 }}>状态</div>
                 <div style={{ fontSize: 14 }}>{statusText[o.status] ?? o.status}</div>
                 <div style={{ color: "#64748b", fontSize: 13 }}>金额</div>
-                <div style={{ fontSize: 14 }}>{o.reward_points} 积分</div>
+                <div style={{ fontSize: 14 }}>{hallMarketOrderTotalPoints(o)} 积分（单套 {o.reward_points} × {hallMarketOrderTaskCount(o)}）</div>
                 <div style={{ color: "#64748b", fontSize: 13 }}>发布方式</div>
                 <div style={{ fontSize: 14 }}>{publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}</div>
                 <div style={{ color: "#64748b", fontSize: 13 }}>备注</div>
@@ -408,7 +432,7 @@ export default function ClientOrdersHallPage() {
                 <div style={{ color: "#64748b", fontSize: 13 }}>状态</div>
                 <div style={{ fontSize: 14 }}>{statusText[o.status] ?? o.status}</div>
                 <div style={{ color: "#64748b", fontSize: 13 }}>金额</div>
-                <div style={{ fontSize: 14 }}>{o.reward_points} 积分</div>
+                <div style={{ fontSize: 14 }}>{hallMarketOrderTotalPoints(o)} 积分（单套 {o.reward_points} × {hallMarketOrderTaskCount(o)}）</div>
                 <div style={{ color: "#64748b", fontSize: 13 }}>发布方式</div>
                 <div style={{ fontSize: 14 }}>{publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}</div>
                 <div style={{ color: "#64748b", fontSize: 13 }}>备注</div>

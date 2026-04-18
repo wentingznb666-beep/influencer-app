@@ -142,8 +142,8 @@ router.get("/summary", (req: AuthRequest, res: Response) => {
       `
       SELECT
         COUNT(*)::text AS total_orders,
-        COALESCE(SUM(mo.reward_points), 0)::text AS total_client_pay,
-        COALESCE(SUM(mo.creator_reward_points), 0)::text AS total_creator_reward,
+        COALESCE(SUM(mo.reward_points * GREATEST(COALESCE(mo.task_count, 1), 1)), 0)::text AS total_client_pay,
+        COALESCE(SUM(mo.creator_reward_points * GREATEST(COALESCE(mo.task_count, 1), 1)), 0)::text AS total_creator_reward,
         COALESCE(SUM(mo.platform_profit_points), 0)::text AS total_profit
       FROM client_market_orders mo
       WHERE mo.is_deleted = 0
@@ -191,9 +191,10 @@ router.get("/summary", (req: AuthRequest, res: Response) => {
       `
       SELECT mo.id, mo.order_no, mo.completed_at,
              mo.client_id, uc.username AS client_username,
-             mo.influencer_id, ui.username AS influencer_username,
-             mo.reward_points AS client_pay_points,
-             mo.creator_reward_points,
+             mo.influencer_id, ui.username AS influencer_username,
+             GREATEST(COALESCE(mo.task_count, 1), 1) AS task_count,
+             (mo.reward_points * GREATEST(COALESCE(mo.task_count, 1), 1))::integer AS client_pay_points,
+             (mo.creator_reward_points * GREATEST(COALESCE(mo.task_count, 1), 1))::integer AS creator_reward_points,
              mo.platform_profit_points
       FROM client_market_orders mo
       JOIN users uc ON mo.client_id = uc.id

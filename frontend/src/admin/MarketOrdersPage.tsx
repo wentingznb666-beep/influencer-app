@@ -15,9 +15,12 @@ type Row = {
   title: string | null;
   tier: "A" | "B" | "C" | string;
   publish_method?: "client_self_publish" | "influencer_publish_with_cart" | string;
-  client_pay_points: number;
-  creator_reward_points: number;
-  platform_profit_points: number;
+  task_count?: number;
+  client_pay_unit: number;
+  client_pay_total: number;
+  creator_reward_unit: number | null;
+  creator_reward_total: number | null;
+  platform_profit_points: number | null;
   status: string;
   client_username: string;
   client_display_name?: string | null;
@@ -271,7 +274,9 @@ export default function MarketOrdersPage() {
               <col style={{ width: "14%" }} />
               <col style={{ width: "12%" }} />
               <col style={{ width: "7%" }} />
-              <col style={{ width: "8%" }} />
+              <col style={{ width: "8%" }} />
+              <col style={{ width: "5%" }} />
+              <col style={{ width: "8%" }} />
               <col style={{ width: "17%" }} />
               <col style={{ width: "14%" }} />
               <col style={{ width: "7%" }} />
@@ -283,8 +288,9 @@ export default function MarketOrdersPage() {
                 <th style={{ padding: 8, textAlign: "left" }}>订单号</th>
                 <th style={{ padding: 8, textAlign: "left" }}>商家账号/名称</th>
                 <th style={{ padding: 8, textAlign: "left" }}>领取达人</th>
-                <th style={{ padding: 8, textAlign: "left" }}>状态</th>
-                <th style={{ padding: 8, textAlign: "left" }}>金额</th>
+                <th style={{ padding: 8, textAlign: "left" }}>状态</th>
+                <th style={{ padding: 8, textAlign: "left" }}>数量</th>
+                <th style={{ padding: 8, textAlign: "left" }}>积分</th>
                 <th style={{ padding: 8, textAlign: "left" }}>订单详情</th>
                 <th style={{ padding: 8, textAlign: "left" }}>SKU信息</th>
                 <th style={{ padding: 8, textAlign: "left" }}>交付链接</th>
@@ -333,19 +339,28 @@ export default function MarketOrdersPage() {
                       <span style={{ color: "#94a3b8" }}>—</span>
                     )}
                   </td>
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
-                    <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.95em", display: "inline-block", background: o.status === "open" ? "#ffedd5" : o.status === "claimed" ? "#dbeafe" : "#dcfce7", color: "#334155" }}>
-                      {statusText[o.status] ?? o.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
-                    商家支付：{o.client_pay_points}
-                    {!isEmployee && (
-                      <>
-                        <br />
-                        达人收益：{o.creator_reward_points}
-                      </>
-                    )}
+                                    <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
+                    <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.95em", display: "inline-block", background: o.status === "open" ? "#ffedd5" : o.status === "claimed" ? "#dbeafe" : "#dcfce7", color: "#334155" }}>
+                      {statusText[o.status] ?? o.status}
+                    </span>
+                  </td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
+                    {Math.max(1, Math.min(100, Number(o.task_count) || 1))}
+                  </td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top", fontSize: "0.95em" }}>
+                    商家合计：{o.client_pay_total}
+                    <br />
+                    <span style={{ color: "#64748b" }}>单套 {o.client_pay_unit}</span>
+                    {!isEmployee && (
+                      <>
+                        <br />
+                        达人合计：{o.creator_reward_total ?? "—"}
+                        <br />
+                        <span style={{ color: "#64748b" }}>单套 {o.creator_reward_unit ?? "—"}</span>
+                        <br />
+                        平台利润：{o.platform_profit_points ?? "—"}
+                      </>
+                    )}
                   </td>
                   <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
                     <div style={{ fontWeight: 600 }}>{o.title || "未命名订单"}</div>
@@ -373,7 +388,7 @@ export default function MarketOrdersPage() {
               ))}
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={10} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
+                  <td colSpan={11} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
                     暂无数据
                   </td>
                 </tr>
@@ -462,12 +477,13 @@ export default function MarketOrdersPage() {
                   <option value="influencer_publish_with_cart">{"达人在TikTok账号发布视频和挂在购物车"}</option>
                 </select>
               </div>
-              <div style={{ color: "#64748b" }}>商家支付</div><div>{detailOrder.client_pay_points}</div>
-              {!isEmployee && (
-                <>
-                  <div style={{ color: "#64748b" }}>达人收益</div><div>{detailOrder.creator_reward_points}</div>
-                  <div style={{ color: "#64748b" }}>平台利润</div><div>{detailOrder.platform_profit_points}</div>
-                </>
+              <div style={{ color: "#64748b" }}>数量（套）</div><div>{Math.max(1, Math.min(100, Number(detailOrder.task_count) || 1))}</div>
+              <div style={{ color: "#64748b" }}>商家支付合计</div><div>{detailOrder.client_pay_total}（单套 {detailOrder.client_pay_unit}）</div>
+              {!isEmployee && (
+                <>
+                  <div style={{ color: "#64748b" }}>达人收益合计</div><div>{detailOrder.creator_reward_total ?? "—"}（单套 {detailOrder.creator_reward_unit ?? "—"}）</div>
+                  <div style={{ color: "#64748b" }}>平台利润</div><div>{detailOrder.platform_profit_points ?? "—"}</div>
+                </>
               )}
               <div style={{ color: "#64748b" }}>标题</div><div>{detailOrder.title || "未命名订单"}</div>
               <div style={{ color: "#64748b", alignSelf: "start" }}>SKU信息</div>
