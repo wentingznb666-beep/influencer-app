@@ -733,7 +733,20 @@ function UiAutoTranslator({ lang }: { lang: Lang }) {
 
     let destroyed = false;
 
+    let retryTimer = 0;
 
+    /**
+     * 防抖调度：同一帧内多次 DOM 变化仅执行一次翻译扫描。
+     */
+    let scheduledRun = 0;
+    const scheduleRun = () => {
+      if (destroyed) return;
+      if (scheduledRun) return;
+      scheduledRun = window.requestAnimationFrame(() => {
+        scheduledRun = 0;
+        run();
+      });
+    };
 
     const runThaiNetworkIfNeeded = () => {
 
@@ -771,7 +784,13 @@ function UiAutoTranslator({ lang }: { lang: Lang }) {
 
         } catch {
 
-          // ignore
+          // 网络波动时自动轻量重试，避免用户手动多次触发翻译。
+          if (!destroyed && lang === "th" && retryTimer === 0) {
+            retryTimer = window.setTimeout(() => {
+              retryTimer = 0;
+              runThaiNetworkIfNeeded();
+            }, 800);
+          }
 
         } finally {
 
@@ -825,15 +844,30 @@ function UiAutoTranslator({ lang }: { lang: Lang }) {
 
     });
 
-
+    /**
+     * 监听同路由下的弹窗/抽屉/异步渲染内容，确保新增节点自动参与翻译。
+     */
+    const observer = new MutationObserver(() => {
+      scheduleRun();
+    });
+    observer.observe(root, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["placeholder", "title", "aria-label", "alt"],
+    });
 
     return () => {
 
       destroyed = true;
 
+      observer.disconnect();
       window.cancelAnimationFrame(raf1);
 
       window.cancelAnimationFrame(raf2);
+      if (scheduledRun) window.cancelAnimationFrame(scheduledRun);
+      if (retryTimer) window.clearTimeout(retryTimer);
 
     };
 
