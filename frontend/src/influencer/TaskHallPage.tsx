@@ -1,4 +1,5 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { applyMatchingOrder, getInfluencerMatchingTaskHall, getMyMatchingApplies, submitMatchingProof } from "../influencerApi";
 
 type TaskItem = {
@@ -15,7 +16,7 @@ type TaskItem = {
   work_links?: string[];
 };
 
-/** 统一报名状态文案。 */
+/** 统一报名状态文案（中文键，供 t() 映射）。 */
 function formatApplyStatus(status: string | undefined): string {
   if (status === "pending") return "待选择";
   if (status === "selected") return "已选中";
@@ -23,7 +24,7 @@ function formatApplyStatus(status: string | undefined): string {
   return status || "-";
 }
 
-/** 统一订单状态文案。 */
+/** 统一订单状态文案（中文键，供 t() 映射）。 */
 function formatOrderStatus(status: string | undefined): string {
   if (status === "claimed") return "进行中";
   if (status === "completed") return "已完成";
@@ -42,6 +43,7 @@ function appliedAccentBorder(status: string | undefined) {
 
 /** 达人任务大厅：可报名与已报名双标签。 */
 export default function TaskHallPage() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<"available" | "applied">("available");
   const [list, setList] = useState<TaskItem[]>([]);
   const [myApplies, setMyApplies] = useState<TaskItem[]>([]);
@@ -59,7 +61,7 @@ export default function TaskHallPage() {
       setList((hallData?.list || []) as TaskItem[]);
       setMyApplies((myData?.list || []) as TaskItem[]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
     } finally {
       setLoading(false);
     }
@@ -77,9 +79,9 @@ export default function TaskHallPage() {
       await applyMatchingOrder(id);
       await load();
       setTab("applied");
-      setMsg("报名成功");
+      setMsg(t("报名成功"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "报名失败");
+      setError(e instanceof Error ? e.message : t("报名失败"));
     }
   };
 
@@ -87,7 +89,7 @@ export default function TaskHallPage() {
   const submitProof = async (orderId: number) => {
     const videoUrl = (proofMap[orderId] || "").trim();
     if (!videoUrl) {
-      setError("请先填写短视频链接");
+      setError(t("请先填写短视频链接"));
       return;
     }
     setError(null);
@@ -95,9 +97,9 @@ export default function TaskHallPage() {
     try {
       await submitMatchingProof(orderId, videoUrl);
       await load();
-      setMsg("回传成功，等待商家验收");
+      setMsg(t("回传成功，等待商家验收"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "提交失败");
+      setError(e instanceof Error ? e.message : t("提交失败"));
     }
   };
 
@@ -106,16 +108,44 @@ export default function TaskHallPage() {
 
   return (
     <div>
-      <h2 className="xt-inf-page-title">任务大厅（撮合模式）</h2>
-      <p className="xt-inf-lead">浏览可报名任务或查看已报名进度；收益与状态以卡片内展示为准。</p>
+      <h2 className="xt-inf-page-title">{t("任务大厅（撮合模式）")}</h2>
+      <p className="xt-inf-lead">{t("浏览可报名任务或查看已报名进度；收益与状态以卡片内展示为准。")}</p>
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
       {msg && <p style={{ color: "#166534" }}>{msg}</p>}
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
-        <button type="button" onClick={() => setTab("available")} disabled={tab === "available"} style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid var(--xt-border)", background: tab === "available" ? "rgba(21,42,69,0.08)" : "#fff", fontWeight: 700 }}>可报名</button>
-        <button type="button" onClick={() => setTab("applied")} disabled={tab === "applied"} style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid var(--xt-border)", background: tab === "applied" ? "rgba(21,42,69,0.08)" : "#fff", fontWeight: 700 }}>已报名</button>
-        <button type="button" className="xt-accent-btn" onClick={() => void load()} style={{ marginLeft: "auto" }}>刷新</button>
+        <button
+          type="button"
+          onClick={() => setTab("available")}
+          disabled={tab === "available"}
+          style={{
+            padding: "8px 14px",
+            borderRadius: 8,
+            border: "1px solid var(--xt-border)",
+            background: tab === "available" ? "rgba(21,42,69,0.08)" : "#fff",
+            fontWeight: 700,
+          }}
+        >
+          {t("可报名")}
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("applied")}
+          disabled={tab === "applied"}
+          style={{
+            padding: "8px 14px",
+            borderRadius: 8,
+            border: "1px solid var(--xt-border)",
+            background: tab === "applied" ? "rgba(21,42,69,0.08)" : "#fff",
+            fontWeight: 700,
+          }}
+        >
+          {t("已报名")}
+        </button>
+        <button type="button" className="xt-accent-btn" onClick={() => void load()} style={{ marginLeft: "auto" }}>
+          {t("刷新")}
+        </button>
       </div>
-      {loading ? <p>加载中…</p> : null}
+      {loading ? <p>{t("加载中…")}</p> : null}
 
       {!loading && tab === "available" && (
         <>
@@ -124,17 +154,31 @@ export default function TaskHallPage() {
               <div className="xt-inf-empty-icon" aria-hidden>
                 📋
               </div>
-              <div>暂无可报名任务</div>
+              <div>{t("暂无可报名任务")}</div>
             </div>
           ) : null}
           <div style={{ display: "grid", gap: 10 }}>
             {list.map((item) => (
               <div key={item.id} className="xt-inf-card" style={{ padding: 14, borderLeft: "4px solid #16a34a" }}>
-                <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: 15 }}>预估收益：{item.task_amount ?? "—"}</div>
-                <div style={{ fontWeight: 600, marginTop: 6 }}>订单号：{item.order_no || `#${item.id}`}</div>
-                <div>任务名称：{item.title || "未命名"}</div>
-                <div>商家：{item.client_name || item.client_username || "-"}</div>
-                <button type="button" className="xt-accent-btn" onClick={() => void apply(item.id)} style={{ marginTop: 10 }}>一键报名</button>
+                <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: 15 }}>
+                  {t("预估收益：")}
+                  {item.task_amount ?? "—"}
+                </div>
+                <div style={{ fontWeight: 600, marginTop: 6 }}>
+                  {t("订单号：")}
+                  {item.order_no || `#${item.id}`}
+                </div>
+                <div>
+                  {t("任务名称：")}
+                  {item.title ? t(item.title) : t("未命名")}
+                </div>
+                <div>
+                  {t("商家：")}
+                  {item.client_name || item.client_username || "-"}
+                </div>
+                <button type="button" className="xt-accent-btn" onClick={() => void apply(item.id)} style={{ marginTop: 10 }}>
+                  {t("一键报名")}
+                </button>
               </div>
             ))}
           </div>
@@ -148,22 +192,39 @@ export default function TaskHallPage() {
               <div className="xt-inf-empty-icon" aria-hidden>
                 🗂️
               </div>
-              <div>暂无报名记录</div>
+              <div>{t("暂无报名记录")}</div>
             </div>
           ) : null}
           <div style={{ display: "grid", gap: 10 }}>
             {appliedList.map((it) => {
               const oid = Number(it.order_id || 0);
               const canSubmitProof = it.apply_status === "selected" && it.order_status === "claimed" && oid > 0;
+              const orderLabel = formatOrderStatus(it.order_status);
+              const applyLabel = formatApplyStatus(it.apply_status);
               return (
                 <div key={it.id} className="xt-inf-card" style={{ padding: 14, borderLeft: `4px solid ${appliedAccentBorder(it.order_status)}` }}>
-                  <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: 15 }}>任务状态：{formatOrderStatus(it.order_status)}</div>
-                  <div style={{ fontWeight: 600, marginTop: 6 }}>订单号：{it.order_no || "-"}</div>
-                  <div>任务名称：{it.title || "未命名"}</div>
-                  <div>报名状态：{formatApplyStatus(it.apply_status)}</div>
+                  <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: 15 }}>
+                    {t("任务状态：")}
+                    {t(orderLabel)}
+                  </div>
+                  <div style={{ fontWeight: 600, marginTop: 6 }}>
+                    {t("订单号：")}
+                    {it.order_no || "-"}
+                  </div>
+                  <div>
+                    {t("任务名称：")}
+                    {it.title ? t(it.title) : t("未命名")}
+                  </div>
+                  <div>
+                    {t("报名状态：")}
+                    {t(applyLabel)}
+                  </div>
                   {Array.isArray(it.work_links) && it.work_links.length > 0 && (
                     <div>
-                      回传短视频：<a href={String(it.work_links[0])} target="_blank" rel="noreferrer">查看</a>
+                      {t("回传短视频：")}
+                      <a href={String(it.work_links[0])} target="_blank" rel="noreferrer">
+                        {t("查看")}
+                      </a>
                     </div>
                   )}
                   {canSubmitProof && (
@@ -171,10 +232,12 @@ export default function TaskHallPage() {
                       <input
                         value={proofMap[oid] || ""}
                         onChange={(e) => setProofMap((m) => ({ ...m, [oid]: e.target.value }))}
-                        placeholder="回传短视频链接"
+                        placeholder={t("回传短视频链接")}
                         style={{ marginRight: 6, width: 300, maxWidth: "100%" }}
                       />
-                      <button type="button" className="xt-accent-btn" onClick={() => void submitProof(oid)}>提交完成凭证</button>
+                      <button type="button" className="xt-accent-btn" onClick={() => void submitProof(oid)}>
+                        {t("提交完成凭证")}
+                      </button>
                     </div>
                   )}
                 </div>
