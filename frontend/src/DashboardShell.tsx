@@ -1,5 +1,5 @@
-﻿import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+﻿import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { getStoredUser, clearAuth } from "./authApi";
 import LanguageSwitch from "./LanguageSwitch";
 import { BrandLogo } from "./BrandLogo";
@@ -67,11 +67,42 @@ const GROUP_LABELS: Record<"points" | "match" | "common", string> = {
   common: "公共组",
 };
 
+/** 达人端侧栏分组渲染顺序（与产品菜单一致）。 */
+const GROUP_ORDER: Array<keyof typeof GROUP_LABELS> = ["points", "match", "common"];
+
+type InfluencerGroupId = keyof typeof GROUP_LABELS;
+
+/**
+ * 将达人端导航项按分组聚合，未标注分组的项会被忽略（不应出现）。
+ */
+function bucketInfluencerNavItems(items: DashboardNavItem[]): Record<InfluencerGroupId, DashboardNavItem[]> {
+  const empty: Record<InfluencerGroupId, DashboardNavItem[]> = {
+    points: [],
+    match: [],
+    common: [],
+  };
+  for (const it of items) {
+    const g = it.group;
+    if (g && empty[g]) empty[g].push(it);
+  }
+  return empty;
+}
+
 function resolveNavTarget(item: DashboardNavItem): string {
   if (item.navLocked && (item.to === "/influencer/demands" || item.to === "/influencer/my-demands")) {
     return "/influencer/permission";
   }
   return item.to;
+}
+
+/**
+ * 判断当前路径是否对应某导航项（含锁定重定向目标），用于路由变化时自动展开所属分组。
+ */
+function isNavItemActiveForPath(pathname: string, item: DashboardNavItem): boolean {
+  const target = resolveNavTarget(item);
+  if (pathname === target) return true;
+  if (target !== "/" && pathname.startsWith(`${target}/`)) return true;
+  return false;
 }
 
 
@@ -114,6 +145,7 @@ export default function DashboardShell({
   mainClassName,
 }: DashboardShellProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = getStoredUser();
   const [logoutHover, setLogoutHover] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -124,6 +156,34 @@ export default function DashboardShell({
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgLoading, setMsgLoading] = useState(false);
   const [msgError, setMsgError] = useState<string | null>(null);
+
+  /** 达人端分组折叠状态：默认全部收起，仅展示分组标题。 */
+  const [groupOpen, setGroupOpen] = useState<Record<InfluencerGroupId, boolean>>({
+    points: false,
+    match: false,
+    common: false,
+  });
+
+  const influencerBuckets = useMemo(
+    () => (shellVariant === "influencer" ? bucketInfluencerNavItems(navItems) : null),
+    [shellVariant, navItems],
+  );
+
+  /**
+   * 当前路由落在某一组内时自动展开该组，便于看到激活项；不强制收起用户已展开的其他组。
+   */
+  useEffect(() => {
+    if (!influencerBuckets) return;
+    const path = location.pathname;
+    for (const gid of GROUP_ORDER) {
+      for (const item of influencerBuckets[gid]) {
+        if (isNavItemActiveForPath(path, item)) {
+          setGroupOpen((prev) => (prev[gid] ? prev : { ...prev, [gid]: true }));
+          return;
+        }
+      }
+    }
+  }, [location.pathname, influencerBuckets]);
 
   useEffect(() => {
     if (!isCompact) setSidebarOpen(false);
@@ -220,6 +280,39 @@ export default function DashboardShell({
     if (isCompact) setSidebarOpen(false);
   };
 
+  /**
+   * 切换达人端某一业务分组的展开/收起。
+   */
+  const toggleInfluencerGroup = (gid: InfluencerGroupId) => {
+    setGroupOpen((prev) => ({ ...prev, [gid]: !prev[gid] }));
+  };
+
+  /**
+   * 渲染单条侧栏链接（达人端与普通端 class 略有差异）。
+   */
+  const renderNavLink = (item: DashboardNavItem) => {
+    const target = resolveNavTarget(item);
+    return (
+      <NavLink
+        key={item.to}
+        to={target}
+        title={item.navLocked ? "需申请撮合权限后解锁" : undefined}
+        className={({ isActive }) =>
+          "xt-sidebar-link" +
+          (shellVariant === "influencer" ? " xt-sidebar-link--inf" : "") +
+          (item.navLocked ? " is-locked" : "") +
+          (isActive ? " is-active" : "")
+        }
+        onClick={handleNavClick}
+        onMouseEnter={() => item.preload?.()}
+      >
+        {item.icon ? <span className="xt-sidebar-link__ic" aria-hidden>{item.icon}</span> : null}
+        <span className="xt-sidebar-link__txt">{normalizeAccountText(item.label)}</span>
+        {item.navLocked ? <span className="xt-sidebar-link__lock">🔒</span> : null}
+      </NavLink>
+    );
+  };
+
   const logoutBtnStyle: CSSProperties =
     logoutVariant === "danger"
       ? {
@@ -268,41 +361,27 @@ export default function DashboardShell({
           ) : null}
         </div>
         <nav className="xt-sidebar-nav">
-          {(() => {
-            const out: ReactNode[] = [];
-            let lastG: string | undefined;
-            for (const item of navItems) {
-              if (shellVariant === "influencer" && item.group && item.group !== lastG) {
-                lastG = item.group;
-                out.push(
-                  <div key={`grp-${item.group}`} className="xt-sidebar-group-label">
-                    {GROUP_LABELS[item.group]}
-                  </div>,
+          {shellVariant === "influencer" && influencerBuckets
+            ? GROUP_ORDER.map((gid) => {
+                const items = influencerBuckets[gid];
+                if (items.length === 0) return null;
+                const expanded = groupOpen[gid];
+                return (
+                  <div key={gid} className="xt-sidebar-group">
+                    <button
+                      type="button"
+                      className="xt-sidebar-group-toggle"
+                      aria-expanded={expanded}
+                      onClick={() => toggleInfluencerGroup(gid)}
+                    >
+                      <span className="xt-sidebar-group-toggle__chevron" aria-hidden />
+                      <span className="xt-sidebar-group-toggle__label">{GROUP_LABELS[gid]}</span>
+                    </button>
+                    {expanded ? <div className="xt-sidebar-group-children">{items.map((it) => renderNavLink(it))}</div> : null}
+                  </div>
                 );
-              }
-              const target = resolveNavTarget(item);
-              out.push(
-                <NavLink
-                  key={item.to}
-                  to={target}
-                  title={item.navLocked ? "需申请撮合权限后解锁" : undefined}
-                  className={({ isActive }) =>
-                    "xt-sidebar-link" +
-                    (shellVariant === "influencer" ? " xt-sidebar-link--inf" : "") +
-                    (item.navLocked ? " is-locked" : "") +
-                    (isActive ? " is-active" : "")
-                  }
-                  onClick={handleNavClick}
-                  onMouseEnter={() => item.preload?.()}
-                >
-                  {item.icon ? <span className="xt-sidebar-link__ic" aria-hidden>{item.icon}</span> : null}
-                  <span className="xt-sidebar-link__txt">{normalizeAccountText(item.label)}</span>
-                  {item.navLocked ? <span className="xt-sidebar-link__lock">🔒</span> : null}
-                </NavLink>,
-              );
-            }
-            return out;
-          })()}
+              })
+            : navItems.map((item) => renderNavLink(item))}
         </nav>
       </aside>
       <div style={xtLayout.mainColumn}>

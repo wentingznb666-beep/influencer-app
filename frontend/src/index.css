@@ -1,23 +1,23 @@
-/**
- * 湘泰国际 · 达人分发 — 全局品牌色（深靛蓝 / 橙色点缀 / 极淡灰蓝底）
+﻿/**
+ * 婀樻嘲鍥介檯 路 杈句汉鍒嗗彂 鈥?鍏ㄥ眬鍝佺墝鑹诧紙娣遍潧钃?/ 姗欒壊鐐圭紑 / 鏋佹贰鐏拌摑搴曪級
  */
 :root {
-  /* 主色：深靛蓝 — 专业、信任 */
+  /* 涓昏壊锛氭繁闈涜摑 鈥?涓撲笟銆佷俊浠?*/
   --xt-primary: #152a45;
   --xt-primary-soft: #1e3a5c;
-  /* 点缀：橙色 — 活力、东南亚/出海 */
+  /* 鐐圭紑锛氭鑹?鈥?娲诲姏銆佷笢鍗椾簹/鍑烘捣 */
   --xt-accent: #e07020;
   --xt-accent-hover: #ea8938;
-  /* 背景：极淡灰蓝 */
+  /* 鑳屾櫙锛氭瀬娣＄伆钃?*/
   --xt-bg: #eef2f8;
   --xt-surface: #ffffff;
   --xt-text: #1e293b;
   --xt-text-muted: #64748b;
   --xt-border: #d8e0eb;
   --xt-border-strong: #c5d0e0;
-  /* 导航选中：浅靛蓝底 + 底边橙色条（由内联 box-shadow 实现） */
+  /* 瀵艰埅閫変腑锛氭祬闈涜摑搴?+ 搴曡竟姗欒壊鏉★紙鐢卞唴鑱?box-shadow 瀹炵幇锛?*/
   --xt-nav-active-bg: rgba(21, 42, 69, 0.08);
-  /* 后台侧栏：深靛蓝底 + 激活项橙色（与第一步点缀色区分时以本变量为准） */
+  /* 鍚庡彴渚ф爮锛氭繁闈涜摑搴?+ 婵€娲婚」姗欒壊锛堜笌绗竴姝ョ偣缂€鑹插尯鍒嗘椂浠ユ湰鍙橀噺涓哄噯锛?*/
   --xt-sidebar-bg: #1a237e;
   --xt-sidebar-active: #ff9800;
   --xt-sidebar-text: #ffffff;
@@ -40,7 +40,7 @@ body {
   background-color: var(--xt-bg);
 }
 
-/* 登录页外层：轻微顶部渐变，增强品牌层次 */
+/* 鐧诲綍椤靛灞傦細杞诲井椤堕儴娓愬彉锛屽寮哄搧鐗屽眰娆?*/
 .xt-login-shell {
   min-height: 100vh;
   background: linear-gradient(180deg, #e4eaf3 0%, var(--xt-bg) 32%, var(--xt-bg) 100%);
@@ -48,7 +48,7 @@ body {
   box-sizing: border-box;
 }
 
-/* 登录卡片：柔和多层阴影 */
+/* 鐧诲綍鍗＄墖锛氭煍鍜屽灞傞槾褰?*/
 .xt-login-card {
   width: 100%;
   max-width: 420px;
@@ -62,7 +62,7 @@ body {
     0 24px 64px rgba(15, 23, 42, 0.06);
 }
 
-/* 后台侧栏品牌区 */
+/* 鍚庡彴渚ф爮鍝佺墝鍖?*/
 .xt-sidebar-brand {
   padding: 24px 20px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.12);
@@ -100,7 +100,7 @@ body {
   overflow-y: auto;
 }
 
-/* 侧栏链接：白字；激活为橙色底 */
+/* 渚ф爮閾炬帴锛氱櫧瀛楋紱婵€娲讳负姗欒壊搴?*/
 .xt-sidebar-link {
   display: block;
   padding: 12px 14px;
@@ -125,14 +125,14 @@ body {
   background: #f57c00;
 }
 
-/* 主内容区内子块纵向间距 */
+/* 涓诲唴瀹瑰尯鍐呭瓙鍧楃旱鍚戦棿璺?*/
 .xt-dashboard-main {
   display: flex;
   flex-direction: column;
   gap: 28px;
 }
 
-/* 统一可点击触达面积（无障碍）：按钮/链接/控件至少 48px */
+/* 缁熶竴鍙偣鍑昏Е杈鹃潰绉紙鏃犻殰纰嶏級锛氭寜閽?閾炬帴/鎺т欢鑷冲皯 48px */
 button,
 a.xt-sidebar-link,
 input,
@@ -141,7 +141,7 @@ textarea {
   min-height: 48px;
 }
 
-/* 顶栏汉堡按钮 */
+/* 椤舵爮姹夊牎鎸夐挳 */
 .xt-hamburger-btn {
   width: 48px;
   height: 48px;
@@ -157,7 +157,7 @@ textarea {
   cursor: pointer;
 }
 
-/* 小屏抽屉遮罩 */
+/* 灏忓睆鎶藉眽閬僵 */
 .xt-sidebar-overlay {
   position: fixed;
   inset: 0;
@@ -166,7 +166,7 @@ textarea {
   z-index: 18;
 }
 
-/* 表格在小屏下优先可读：允许横向滑动 */
+/* 琛ㄦ牸鍦ㄥ皬灞忎笅浼樺厛鍙锛氬厑璁告í鍚戞粦鍔?*/
 .xt-dashboard-main table {
   width: 100%;
   min-width: 640px;
@@ -176,7 +176,7 @@ textarea {
   -webkit-overflow-scrolling: touch;
 }
 
-/* 平板：768~1024 */
+/* 骞虫澘锛?68~1024 */
 @media (min-width: 768px) and (max-width: 1024px) {
   :root {
     font-size: 15px;
@@ -212,7 +212,7 @@ textarea {
   }
 }
 
-/* 移动端：<768 */
+/* 绉诲姩绔細<768 */
 @media (max-width: 767px) {
   :root {
     font-size: 14px;
@@ -268,7 +268,7 @@ textarea {
 }
 
 /* ===========================
- * 素材管理交互动效（xt-*）
+ * 绱犳潗绠＄悊浜や簰鍔ㄦ晥锛坸t-*锛?
  * =========================== */
 .xt-mp-root {
   width: 100%;
@@ -594,7 +594,7 @@ textarea {
   transform: scale(0.98);
 }
 
-/* 订单列表宽表：外层卡片 + 顶轨/底轨双横条同步，避免横条只在表格最底、需先纵向滚到底才能操作 */
+/* 璁㈠崟鍒楄〃瀹借〃锛氬灞傚崱鐗?+ 椤惰建/搴曡建鍙屾í鏉″悓姝ワ紝閬垮厤妯潯鍙湪琛ㄦ牸鏈€搴曘€侀渶鍏堢旱鍚戞粴鍒板簳鎵嶈兘鎿嶄綔 */
 .xt-order-table-scroll-wrap {
   max-width: 100%;
   background: #fff;
@@ -622,14 +622,14 @@ textarea {
 }
 
 
-/* 商家订单列表（fit）：禁止横向滚动，仅纵向手势 */
+/* 鍟嗗璁㈠崟鍒楄〃锛坒it锛夛細绂佹妯悜婊氬姩锛屼粎绾靛悜鎵嬪娍 */
 .xt-order-table-scroll-wrap--fit .xt-order-table-scroll--fit {
   overflow-x: hidden;
   overscroll-behavior-x: none;
   touch-action: pan-y;
 }
 
-/* 商家订单列表表格：列宽按百分比分配，内容自动换行（中/泰） */
+/* 鍟嗗璁㈠崟鍒楄〃琛ㄦ牸锛氬垪瀹芥寜鐧惧垎姣斿垎閰嶏紝鍐呭鑷姩鎹㈣锛堜腑/娉帮級 */
 .xt-client-orders-table {
   width: 100%;
   min-width: 0;
@@ -655,7 +655,7 @@ textarea {
 }
 
 
-/* 订单列表移动端（<768px，与 responsive.ts 一致）：fit 模式下恢复横向滑动，与 OrderTableScrollArea 中断点一致 */
+/* 璁㈠崟鍒楄〃绉诲姩绔紙<768px锛屼笌 responsive.ts 涓€鑷达級锛歠it 妯″紡涓嬫仮澶嶆í鍚戞粦鍔紝涓?OrderTableScrollArea 涓柇鐐逛竴鑷?*/
 @media (max-width: 767px) {
   .xt-order-table-scroll-wrap--fit .xt-order-table-scroll--fit {
     overflow-x: auto;
@@ -672,7 +672,7 @@ textarea {
   }
 }
 
-/* ========== 达人端壳：顶栏余额、侧栏分组、轻提示 ========== */
+/* ========== 杈句汉绔３锛氶《鏍忎綑棰濄€佷晶鏍忓垎缁勩€佽交鎻愮ず ========== */
 .xt-toast {
   position: fixed;
   left: 50%;
@@ -789,6 +789,77 @@ textarea {
   color: rgba(255, 255, 255, 0.45);
 }
 
+
+/* 达人端侧栏：可折叠业务分组（标题 + 箭头，子项沿用原 xt-sidebar-link 样式） */
+.xt-sidebar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.xt-sidebar-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin: 0;
+  padding: 10px 14px 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.xt-sidebar-group-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.xt-sidebar-group-toggle:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.35);
+  outline-offset: 2px;
+}
+
+.xt-sidebar-group-toggle__chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1em;
+  font-size: 9px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.55);
+  transition: transform 0.15s ease;
+}
+
+.xt-sidebar-group-toggle__chevron::before {
+  content: "\25B6";
+  display: block;
+}
+
+.xt-sidebar-group-toggle[aria-expanded="true"] .xt-sidebar-group-toggle__chevron {
+  transform: rotate(90deg);
+}
+
+.xt-sidebar-group-toggle__label {
+  flex: 1;
+  min-width: 0;
+}
+
+.xt-sidebar-group-children {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 4px;
+}
 .xt-sidebar-balance-pill {
   margin-top: 10px;
   display: inline-flex;
@@ -929,3 +1000,4 @@ textarea {
   color: #b91c1c;
   font-weight: 600;
 }
+
