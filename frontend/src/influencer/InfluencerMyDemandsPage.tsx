@@ -110,24 +110,32 @@ export default function InfluencerMyDemandsPage() {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>我的需求</h2>
+      <h2 className="xt-inf-page-title">我的需求</h2>
+      <p className="xt-inf-lead">管理已发布的合作需求与商家报名，状态一目了然。</p>
       {msg ? <p style={{ color: "#166534" }}>{msg}</p> : null}
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
 
-      {list.length === 0 ? <p>暂无需求</p> : null}
+      {list.length === 0 ? (
+        <div className="xt-inf-empty xt-inf-card">
+          <div className="xt-inf-empty-icon" aria-hidden>
+            📦
+          </div>
+          <div>暂无需求</div>
+        </div>
+      ) : null}
       {list.map((d) => {
         const detail = parseDemandDetail(d.demand_detail);
         const apps = applicationsMap[d.id] || [];
         const canReview = d.status === "open";
         const opened = expandedDemandId === d.id;
         return (
-          <div key={d.id} style={{ padding: 10, border: "1px solid #e2e8f0", borderRadius: 8, marginBottom: 8 }}>
+          <div key={d.id} className="xt-inf-card" style={{ padding: 14, marginBottom: 12 }}>
             <div>擅长领域：{d.title || "-"}</div>
             <div>粉丝量级：{detail.fans_level || "-"}</div>
             <div>任务类型：{Array.isArray(detail.task_types) ? detail.task_types.join("/") : "-"}</div>
             <div>单条报价：{d.expected_points ?? "-"}</div>
             <div>状态：{formatDemandStatus(d.status)}</div>
-            <button type="button" onClick={() => void openApplications(d.id)} style={{ marginTop: 8 }}>
+            <button type="button" className="xt-accent-btn" onClick={() => void openApplications(d.id)} style={{ marginTop: 8 }}>
               {opened ? "收起商家报名" : "查看商家报名"}
             </button>
 

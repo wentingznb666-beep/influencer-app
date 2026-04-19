@@ -1,12 +1,15 @@
-﻿import { Outlet } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getPoints as getInfluencerPoints } from "./influencerApi";
-import DashboardShell from "./DashboardShell";
-import { xtOutlineBtn } from "./brandTheme";
+import { getInfluencerPermissionStatus } from "./matchingApi";
+import DashboardShell, { type DashboardNavItem } from "./DashboardShell";
 import { normalizeAccountText } from "./utils/accountText";
+import { showToast } from "./utils/showToast";
+
+type PermissionStatus = "unapplied" | "pending" | "approved" | "rejected" | "disabled";
 
 /**
- * Preload common influencer pages for faster navigation.
+ * 生产环境预加载常用达人页，加快首次进入速度。
  */
 function preloadInfluencerRoutes(): Record<string, () => void> {
   if (!import.meta.env.PROD) return {};
@@ -18,24 +21,39 @@ function preloadInfluencerRoutes(): Record<string, () => void> {
 }
 
 /**
- * Influencer layout with navigation and balance header.
+ * 达人端布局：侧栏分组/图标、顶栏积分与刷新、撮合权限视觉锁定。
  */
 export default function InfluencerLayout() {
   const [balance, setBalance] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [balanceError, setBalanceError] = useState<string | null>(null);
+  const [permissionStatus, setPermissionStatus] = useState<PermissionStatus>("unapplied");
   const balanceTimerRef = useState<{ id: number | null; fired: boolean }>({ id: null, fired: false })[0];
   const preloadMap = preloadInfluencerRoutes();
 
   /**
-   * Load influencer points balance for header display.
+   * 读取撮合权限状态，用于侧栏「发布合作需求」「我的需求」锁定样式。
    */
-  const loadBalance = async () => {
+  const loadPermission = async () => {
+    try {
+      const data = await getInfluencerPermissionStatus();
+      setPermissionStatus(String(data?.status || "unapplied") as PermissionStatus);
+    } catch {
+      setPermissionStatus("unapplied");
+    }
+  };
+
+  /**
+   * 加载顶栏与侧栏共用的积分余额。
+   * @param opts.fromUser 为 true 时表示用户手动刷新，成功后弹出轻提示。
+   */
+  const loadBalance = async (opts?: { fromUser?: boolean }) => {
     setBalanceLoading(true);
     setBalanceError(null);
     try {
       const data = await getInfluencerPoints();
       setBalance(typeof data?.balance === "number" ? data.balance : 0);
+      if (opts?.fromUser) showToast("余额已更新");
     } catch {
       setBalance(null);
       setBalanceError("刷新失败");
@@ -45,7 +63,13 @@ export default function InfluencerLayout() {
   };
 
   useEffect(() => {
-    /** Trigger the balance load exactly once. */
+    void loadPermission();
+  }, []);
+
+  useEffect(() => {
+    /**
+     * 首次进入时延迟或首次用户操作后加载余额，避免阻塞翻译与首屏。
+     */
     const fire = () => {
       if (balanceTimerRef.fired) return;
       balanceTimerRef.fired = true;
@@ -55,7 +79,6 @@ export default function InfluencerLayout() {
       fire();
       return;
     }
-    /** Listen for first user intent to preload balance. */
     const onUserIntent = () => fire();
     window.addEventListener("pointerdown", onUserIntent, { passive: true, once: true });
     window.addEventListener("keydown", onUserIntent, { passive: true, once: true } as any);
@@ -67,39 +90,46 @@ export default function InfluencerLayout() {
     };
   }, []);
 
+  const matchLocked = permissionStatus !== "approved";
+
+  const navItems: DashboardNavItem[] = [
+    { to: "/influencer/client-orders", label: "商家端发单", icon: "🛒", group: "points", preload: preloadMap["/influencer/client-orders"] },
+    { to: "/influencer/points", label: "积分与收益", icon: "🪙", group: "points", preload: preloadMap["/influencer/points"] },
+    { to: "/influencer/withdraw", label: "申请提现", icon: "💰", group: "points", preload: preloadMap["/influencer/withdraw"] },
+    { to: "/influencer/task-hall", label: "任务大厅", icon: "📋", group: "match" },
+    { to: "/influencer/payment-profile", label: "收款信息", icon: "💳", group: "match" },
+    { to: "/influencer/permission", label: "撮合权限申请", icon: "⬆️", group: "match" },
+    { to: "/influencer/demands", label: "发布合作需求", icon: "📝", group: "match", navLocked: matchLocked },
+    { to: "/influencer/my-demands", label: "我的需求", icon: "📦", group: "match", navLocked: matchLocked },
+    { to: "/influencer/op-logs", label: "我的操作日志", icon: "📄", group: "common" },
+  ];
+
   return (
     <DashboardShell
       roleTitle="达人端"
-      navItems={[
-        { to: "/influencer/client-orders", label: "商家端发单", preload: preloadMap["/influencer/client-orders"] },
-        { to: "/influencer/points", label: "积分与收益", preload: preloadMap["/influencer/points"] },
-        { to: "/influencer/withdraw", label: "申请提现", preload: preloadMap["/influencer/withdraw"] },
-        { to: "/influencer/task-hall", label: "任务大厅" },
-        { to: "/influencer/payment-profile", label: "收款信息" },
-        { to: "/influencer/permission", label: "撮合权限申请" },
-        { to: "/influencer/demands", label: "发布合作需求" },
-        { to: "/influencer/my-demands", label: "我的需求" },
-        { to: "/influencer/op-logs", label: "我的操作日志" },
-      ]}
+      shellVariant="influencer"
+      headerUsernameDisplay="influencer002"
+      sidebarBalanceBadge={typeof balance === "number" ? balance : null}
+      mainClassName="xt-main-th"
+      navItems={navItems}
       mainMaxWidth={900}
       headerExtra={
-        <>
-          <span style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>
-            {normalizeAccountText("余额")}
-            <span style={{ fontWeight: 700, color: "var(--xt-primary)" }}>
-              {balanceLoading ? "..." : balance == null ? "—" : balance}
-            </span>
-          </span>
+        <div className="xt-header-balance-cluster">
+          <span className="xt-header-balance-label">{normalizeAccountText("积分")}</span>
+          <span className="xt-header-balance-value">{balanceLoading ? "…" : balance == null ? "—" : balance}</span>
           <button
             type="button"
-            onClick={() => void loadBalance()}
+            className={"xt-balance-refresh-btn" + (balanceLoading ? " is-loading" : "")}
+            onClick={() => void loadBalance({ fromUser: true })}
             disabled={balanceLoading}
-            style={{ ...xtOutlineBtn, padding: "6px 10px", fontSize: 13, opacity: balanceLoading ? 0.7 : 1 }}
+            aria-label={normalizeAccountText("刷新余额")}
           >
-            {balanceLoading ? "刷新中..." : normalizeAccountText("刷新余额")}
+            <span className="xt-balance-refresh-ic" aria-hidden>
+              ↻
+            </span>
           </button>
-          {balanceError && <span style={{ fontSize: 12, color: "#b91c1c" }}>{balanceError}</span>}
-        </>
+          {balanceError ? <span className="xt-header-balance-err">{balanceError}</span> : null}
+        </div>
       }
     >
       <Outlet />

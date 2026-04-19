@@ -8,8 +8,15 @@ import { DeferredBlock, useDeferredInCompact, useResponsive } from "./responsive
 import { normalizeAccountText } from "./utils/accountText";
 import { clearAllSystemMessages, getSystemMessages, markSystemMessageRead, type SystemMessage } from "./systemMessageApi";
 
-/** 顶栏/侧栏导航项定义，支持 hover 预加载。 */
-export type DashboardNavItem = { to: string; label: string; preload?: () => void };
+/** 顶栏/侧栏导航项定义，支持 hover 预加载；达人端可带分组与视觉锁定。 */
+export type DashboardNavItem = {
+  to: string;
+  label: string;
+  preload?: () => void;
+  icon?: string;
+  group?: "points" | "match" | "common";
+  navLocked?: boolean;
+};
 
 /**
  * 标准化用户名，避免头部显示 unicode 转义残留或乱码。
@@ -54,6 +61,20 @@ function sanitizeEscapedTextNodes(root: HTMLElement): void {
   }
 }
 
+const GROUP_LABELS: Record<"points" | "match" | "common", string> = {
+  points: "积分业务组",
+  match: "撮合业务组",
+  common: "公共组",
+};
+
+function resolveNavTarget(item: DashboardNavItem): string {
+  if (item.navLocked && (item.to === "/influencer/demands" || item.to === "/influencer/my-demands")) {
+    return "/influencer/permission";
+  }
+  return item.to;
+}
+
+
 type DashboardShellProps = {
   /** 侧栏展示的角色名称，如「管理员端」 */
   roleTitle: string;
@@ -67,6 +88,14 @@ type DashboardShellProps = {
   logoutVariant?: "outline" | "danger";
   /** 子路由出口 */
   children: ReactNode;
+  /** 达人端顶栏左侧展示用用户名。 */
+  headerUsernameDisplay?: string;
+  /** 达人端侧栏积分角标。 */
+  sidebarBalanceBadge?: number | null;
+  /** 达人端专用布局。 */
+  shellVariant?: "default" | "influencer";
+  /** 主内容区附加 class。 */
+  mainClassName?: string;
 };
 
 /**
@@ -79,6 +108,10 @@ export default function DashboardShell({
   headerExtra,
   logoutVariant = "outline",
   children,
+  headerUsernameDisplay,
+  sidebarBalanceBadge,
+  shellVariant = "default",
+  mainClassName,
 }: DashboardShellProps) {
   const navigate = useNavigate();
   const user = getStoredUser();
@@ -201,6 +234,11 @@ export default function DashboardShell({
         }
       : xtOutlineBtn;
 
+  const dashboardHeaderStyle: CSSProperties =
+    shellVariant === "influencer"
+      ? { ...xtLayout.dashboardHeader, justifyContent: "space-between", alignItems: "center", width: "100%" }
+      : xtLayout.dashboardHeader;
+
   return (
     <div ref={shellRef} style={xtLayout.dashboardShell}>
       {isCompact && sidebarOpen && (
@@ -222,24 +260,63 @@ export default function DashboardShell({
           </div>
           <div className="xt-sidebar-app">达人分发</div>
           <div className="xt-sidebar-role">{normalizeAccountText(roleTitle)}</div>
+          {shellVariant === "influencer" && typeof sidebarBalanceBadge === "number" ? (
+            <div className="xt-sidebar-balance-pill" title="积分余额">
+              <span className="xt-sidebar-balance-pill__label">积分</span>
+              <span className="xt-sidebar-balance-pill__value">{sidebarBalanceBadge}</span>
+            </div>
+          ) : null}
         </div>
         <nav className="xt-sidebar-nav">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) => "xt-sidebar-link" + (isActive ? " is-active" : "")}
-              onClick={handleNavClick}
-              onMouseEnter={() => item.preload?.()}
-            >
-              {normalizeAccountText(item.label)}
-            </NavLink>
-          ))}
+          {(() => {
+            const out: ReactNode[] = [];
+            let lastG: string | undefined;
+            for (const item of navItems) {
+              if (shellVariant === "influencer" && item.group && item.group !== lastG) {
+                lastG = item.group;
+                out.push(
+                  <div key={`grp-${item.group}`} className="xt-sidebar-group-label">
+                    {GROUP_LABELS[item.group]}
+                  </div>,
+                );
+              }
+              const target = resolveNavTarget(item);
+              out.push(
+                <NavLink
+                  key={item.to}
+                  to={target}
+                  title={item.navLocked ? "需申请撮合权限后解锁" : undefined}
+                  className={({ isActive }) =>
+                    "xt-sidebar-link" +
+                    (shellVariant === "influencer" ? " xt-sidebar-link--inf" : "") +
+                    (item.navLocked ? " is-locked" : "") +
+                    (isActive ? " is-active" : "")
+                  }
+                  onClick={handleNavClick}
+                  onMouseEnter={() => item.preload?.()}
+                >
+                  {item.icon ? <span className="xt-sidebar-link__ic" aria-hidden>{item.icon}</span> : null}
+                  <span className="xt-sidebar-link__txt">{normalizeAccountText(item.label)}</span>
+                  {item.navLocked ? <span className="xt-sidebar-link__lock">🔒</span> : null}
+                </NavLink>,
+              );
+            }
+            return out;
+          })()}
         </nav>
       </aside>
       <div style={xtLayout.mainColumn}>
-        <header style={xtLayout.dashboardHeader}>
-          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}>
+        <header style={dashboardHeaderStyle}>
+          <div
+            style={{
+              flex: shellVariant === "influencer" ? "1 1 auto" : 1,
+              display: "flex",
+              alignItems: "center",
+              gap: shellVariant === "influencer" ? 10 : 8,
+              flexWrap: "wrap",
+              minWidth: 0,
+            }}
+          >
             {isCompact && (
               <button
                 type="button"
@@ -251,16 +328,30 @@ export default function DashboardShell({
                 {sidebarOpen ? "✕" : "☰"}
               </button>
             )}
+            {shellVariant === "influencer" ? (
+              <>
+                <span className="xt-header-sysname">达人分发</span>
+                <span data-no-auto-translate className="xt-header-username" style={{ color: "var(--xt-text-muted)", fontWeight: 600 }}>
+                  {headerUsernameDisplay || normalizeUsername(user?.username) || "influencer002"}
+                </span>
+                <DeferredBlock ready={headerExtrasReady}>{headerExtra}</DeferredBlock>
+              </>
+            ) : null}
           </div>
-          <div className="xt-header-actions" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div
+            className={"xt-header-actions" + (shellVariant === "influencer" ? " xt-header-actions--inf" : "")}
+            style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
+          >
             <LanguageSwitch />
             <div style={{ position: "relative" }}>
               <button
                 type="button"
                 onClick={() => setMsgOpen((v) => !v)}
-                style={{ ...xtOutlineBtn, padding: "6px 10px", fontSize: 13, position: "relative" }}
+                aria-label="消息通知"
+                className={shellVariant === "influencer" ? "xt-header-msg-btn" : undefined}
+                style={{ ...xtOutlineBtn, padding: shellVariant === "influencer" ? "6px 12px" : "6px 10px", fontSize: 13, position: "relative" }}
               >
-                消息通知
+                {shellVariant === "influencer" ? "🔔" : "消息通知"}
                 {unreadCount > 0 && (
                   <span
                     style={{
@@ -340,8 +431,10 @@ export default function DashboardShell({
                 </div>
               )}
             </div>
-            <span data-no-auto-translate style={{ color: "var(--xt-text-muted)" }}>{normalizeUsername(user?.username)}</span>
-            <DeferredBlock ready={headerExtrasReady}>{headerExtra}</DeferredBlock>
+            {shellVariant !== "influencer" ? (
+              <span data-no-auto-translate style={{ color: "var(--xt-text-muted)" }}>{normalizeUsername(user?.username)}</span>
+            ) : null}
+            {shellVariant !== "influencer" ? <DeferredBlock ready={headerExtrasReady}>{headerExtra}</DeferredBlock> : null}
             <button
               type="button"
               onClick={handleLogout}
@@ -353,7 +446,10 @@ export default function DashboardShell({
             </button>
           </div>
         </header>
-        <main className="xt-dashboard-main" style={{ ...xtLayout.mainContent, maxWidth: mainMaxWidth }}>
+        <main
+          className={"xt-dashboard-main" + (shellVariant === "influencer" ? " xt-main-influencer" : "") + (mainClassName ? " " + mainClassName : "")}
+          style={{ ...xtLayout.mainContent, maxWidth: mainMaxWidth }}
+        >
           {children}
         </main>
       </div>
