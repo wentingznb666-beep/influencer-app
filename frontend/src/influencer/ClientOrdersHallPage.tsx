@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 
 import * as api from "../influencerApi";
 
@@ -164,7 +166,7 @@ function hallMarketOrderTotalPoints(o: {
 
  */
 
-function renderTierStandards(tier: string) {
+function renderTierStandards(tier: string, t: TFunction) {
 
   if (tier === "A") {
 
@@ -172,11 +174,11 @@ function renderTierStandards(tier: string) {
 
       <div style={{ marginTop: 8, fontSize: 13, color: "#334155" }}>
 
-        <div style={{ fontWeight: 700 }}>制作标准</div>
+        <div style={{ fontWeight: 700 }}>{t("制作标准")}</div>
 
         <div style={{ marginTop: 4 }}>
 
-          <strong>包含配音要求</strong>
+          <strong>{t("包含配音要求")}</strong>
 
         </div>
 
@@ -192,9 +194,9 @@ function renderTierStandards(tier: string) {
 
       <div style={{ marginTop: 8, fontSize: 13, color: "#334155" }}>
 
-        <div style={{ fontWeight: 700 }}>制作标准</div>
+        <div style={{ fontWeight: 700 }}>{t("制作标准")}</div>
 
-        <div style={{ marginTop: 4 }}>包含场景切换 + 特效转场</div>
+        <div style={{ marginTop: 4 }}>{t("包含场景切换 + 特效转场")}</div>
 
       </div>
 
@@ -206,9 +208,9 @@ function renderTierStandards(tier: string) {
 
     <div style={{ marginTop: 8, fontSize: 13, color: "#334155" }}>
 
-      <div style={{ fontWeight: 700 }}>制作标准</div>
+      <div style={{ fontWeight: 700 }}>{t("制作标准")}</div>
 
-      <div style={{ marginTop: 4 }}>基础功能：背景音乐、文字贴纸</div>
+      <div style={{ marginTop: 4 }}>{t("基础功能：背景音乐、文字贴纸")}</div>
 
     </div>
 
@@ -216,15 +218,7 @@ function renderTierStandards(tier: string) {
 
 }
 
-
-
-/**
-
- * A 类配音入口：显眼展示下载链接或备注内容。
-
- */
-
-function renderVoiceEntry(o: { tier: string; voice_link?: string | null; voice_note?: string | null }) {
+function renderVoiceEntry(o: { tier: string; voice_link?: string | null; voice_note?: string | null }, t: TFunction) {
 
   if (o.tier !== "A") return null;
 
@@ -252,7 +246,7 @@ function renderVoiceEntry(o: { tier: string; voice_link?: string | null; voice_n
 
     >
 
-      <div style={{ fontWeight: 800, color: "var(--xt-primary)" }}>配音入口</div>
+      <div style={{ fontWeight: 800, color: "var(--xt-primary)" }}>{t("配音入口")}</div>
 
       {link ? (
 
@@ -260,7 +254,7 @@ function renderVoiceEntry(o: { tier: string; voice_link?: string | null; voice_n
 
           <a href={link} target="_blank" rel="noreferrer" style={{ color: "var(--xt-accent)", fontWeight: 700 }}>
 
-            配音素材下载
+            {t("配音素材下载")}
 
           </a>
 
@@ -268,7 +262,7 @@ function renderVoiceEntry(o: { tier: string; voice_link?: string | null; voice_n
 
       ) : (
 
-        <div style={{ marginTop: 6, fontSize: 13, color: "#64748b" }}>（未提供配音素材下载链接）</div>
+        <div style={{ marginTop: 6, fontSize: 13, color: "#64748b" }}>{t("（未提供配音素材下载链接）")}</div>
 
       )}
 
@@ -278,7 +272,7 @@ function renderVoiceEntry(o: { tier: string; voice_link?: string | null; voice_n
 
       ) : (
 
-        <div style={{ marginTop: 8, fontSize: 13, color: "#64748b" }}>（未提供配音要求备注）</div>
+        <div style={{ marginTop: 8, fontSize: 13, color: "#64748b" }}>{t("（未提供配音要求备注）")}</div>
 
       )}
 
@@ -288,15 +282,7 @@ function renderVoiceEntry(o: { tier: string; voice_link?: string | null; voice_n
 
 }
 
-
-
-/**
-
- * 渲染订单 SKU 信息（编码/名称 + 缩略图）。
-
- */
-
-function renderSkuInfo(o: { id: number; sku_codes?: string[] | null; sku_images?: string[] | null }) {
+function renderSkuInfo(o: { id: number; sku_codes?: string[] | null; sku_images?: string[] | null }, t: TFunction) {
 
   if ((!Array.isArray(o.sku_codes) || o.sku_codes.length === 0) && (!Array.isArray(o.sku_images) || o.sku_images.length === 0)) return null;
 
@@ -304,7 +290,7 @@ function renderSkuInfo(o: { id: number; sku_codes?: string[] | null; sku_images?
 
     <div style={{ marginTop: 8 }}>
 
-      <div style={{ fontSize: 13, color: "#475569" }}>SKU 信息</div>
+      <div style={{ fontSize: 13, color: "#475569" }}>{t("SKU 信息")}</div>
 
       {Array.isArray(o.sku_codes) && o.sku_codes.length > 0 && <div style={{ marginTop: 4, fontSize: 13, color: "#334155" }}>{o.sku_codes.join("，")}</div>}
 
@@ -334,6 +320,14 @@ function renderSkuInfo(o: { id: number; sku_codes?: string[] | null; sku_images?
 
 
 
+
+
+/**
+
+ * 达人端：
+
+
+
 /**
 
  * 达人端：商家端发单大厅与我的领单，展示订单号/标题，支持按订单号或标题精准搜索。
@@ -341,6 +335,8 @@ function renderSkuInfo(o: { id: number; sku_codes?: string[] | null; sku_images?
  */
 
 export default function ClientOrdersHallPage() {
+
+  const { t } = useTranslation();
 
   const [openList, setOpenList] = useState<OpenOrder[]>([]);
 
@@ -454,7 +450,7 @@ export default function ClientOrdersHallPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
 
     } finally {
 
@@ -500,7 +496,7 @@ export default function ClientOrdersHallPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "领取失败");
+      setError(e instanceof Error ? e.message : t("领取失败"));
 
     }
 
@@ -522,7 +518,7 @@ export default function ClientOrdersHallPage() {
 
     if (links.length === 0) {
 
-      setError("请至少填写一条交付链接。");
+      setError(t("请至少填写一条交付链接。"));
 
       return;
 
@@ -544,7 +540,7 @@ export default function ClientOrdersHallPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "提交失败");
+      setError(e instanceof Error ? e.message : t("提交失败"));
 
     }
 
@@ -576,7 +572,7 @@ export default function ClientOrdersHallPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "保存失败");
+      setError(e instanceof Error ? e.message : t("保存失败"));
 
     } finally {
 
@@ -588,25 +584,23 @@ export default function ClientOrdersHallPage() {
 
 
 
-  const statusText: Record<string, string> = {
+  const statusText = useMemo(
+    (): Record<string, string> => ({
+      open: t("待领取"),
+      claimed: t("进行中"),
+      completed: t("已完成"),
+      cancelled: t("已取消"),
+    }),
+    [t],
+  );
 
-    open: "待领取",
-
-    claimed: "进行中",
-
-    completed: "已完成",
-
-    cancelled: "已取消",
-
-  };
-
-  const publishMethodText: Record<string, string> = {
-
-    client_self_publish: "视频拍完后自己发布",
-
-    influencer_publish_with_cart: "达人在TikTok账号发布视频和挂在购物车",
-
-  };
+  const publishMethodText = useMemo(
+    (): Record<string, string> => ({
+      client_self_publish: t("视频拍完后自己发布"),
+      influencer_publish_with_cart: t("达人在TikTok账号发布视频和挂在购物车"),
+    }),
+    [t],
+  );
 
 
 
@@ -616,11 +610,11 @@ export default function ClientOrdersHallPage() {
 
     <div>
 
-      <h2 style={{ marginTop: 0 }}>商家端发单</h2>
+      <h2 style={{ marginTop: 0 }}>{t("商家端发单")}</h2>
 
       <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16 }}>
 
-        领取商家发布的任务，完成后提交交付链接即可获得固定 <strong>5</strong> 积分收益。可使用搜索或手动刷新保持最新数据。
+        {t("领取商家发布的任务，完成后提交交付链接即可获得固定 5 积分收益。可使用搜索或手动刷新保持最新数据。")}
 
       </p>
 
@@ -628,13 +622,13 @@ export default function ClientOrdersHallPage() {
 
       <button type="button" onClick={() => load()} style={{ marginBottom: 16, padding: "6px 12px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
 
-        刷新全部
+        {t("刷新全部")}
 
       </button>
 
 
 
-      <h3 style={{ fontSize: 16 }}>待领取</h3>
+      <h3 style={{ fontSize: 16 }}>{t("待领取")}</h3>
 
       <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
 
@@ -646,7 +640,7 @@ export default function ClientOrdersHallPage() {
 
           onChange={(e) => setSearchOpen(e.target.value)}
 
-          placeholder="搜索订单号或标题（精准）"
+          placeholder={t("搜索订单号或标题（精准）")}
 
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 240 }}
 
@@ -654,7 +648,7 @@ export default function ClientOrdersHallPage() {
 
         <button type="button" onClick={() => load(searchOpen, undefined, openDateFilter, undefined)} style={{ padding: "6px 14px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
 
-          搜索
+          {t("搜索")}
 
         </button>
 
@@ -678,7 +672,7 @@ export default function ClientOrdersHallPage() {
 
         >
 
-          清空
+          {t("清空")}
 
         </button>
 
@@ -688,7 +682,7 @@ export default function ClientOrdersHallPage() {
 
       {loading ? (
 
-        <p>加载中…</p>
+        <p>{t("加载中…")}</p>
 
       ) : (
 
@@ -700,7 +694,7 @@ export default function ClientOrdersHallPage() {
 
               <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 8, background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: 13 }}>
 
-                订单日期：{formatDateTime(o.created_at)}
+                {t("订单日期：")}{formatDateTime(o.created_at)}
 
               </div>
 
@@ -708,53 +702,53 @@ export default function ClientOrdersHallPage() {
 
                 <div>
 
-                  <div style={{ fontWeight: 600 }}>订单号：{o.order_no || `#${o.id}`}</div>
+                  <div style={{ fontWeight: 600 }}>{t("订单号：")}{o.order_no || `#${o.id}`}</div>
 
-                  {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>}
+                  {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>{t("标题：")}{o.title}</div>}
 
                   <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
 
-                    下单商家账号：{o.client_username} ｜ 商家名称：{o.client_display_name}
+                    {t("下单商家账号：")}{o.client_username} ｜ {t("商家名称：")}{o.client_display_name}
 
                   </div>
 
-                  <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>订单创建日期：{formatDateTime(o.created_at)}</div>
+                  <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>{t("订单创建日期：")}{formatDateTime(o.created_at)}</div>
 
                 </div>
 
-                <span style={{ color: "#166534", fontWeight: 600 }}>+{hallMarketOrderTotalPoints(o)} 积分</span>
+                <span style={{ color: "#166534", fontWeight: 600 }}>+{hallMarketOrderTotalPoints(o)} {t("积分")}</span>
 
               </div>
 
               <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "130px 1fr", gap: 8, alignItems: "start" }}>
 
-                <div style={{ color: "#64748b", fontSize: 13 }}>状态</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>{t("状态")}</div>
 
                 <div style={{ fontSize: 14 }}>{statusText[o.status] ?? o.status}</div>
 
-                <div style={{ color: "#64748b", fontSize: 13 }}>金额</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>{t("金额")}</div>
 
-                <div style={{ fontSize: 14 }}>{hallMarketOrderTotalPoints(o)} 积分（单套 {o.reward_points} × {hallMarketOrderTaskCount(o)}）</div>
+                <div style={{ fontSize: 14 }}>{hallMarketOrderTotalPoints(o)} {t("积分")}（{t("单套")} {o.reward_points} × {hallMarketOrderTaskCount(o)}）</div>
 
-                <div style={{ color: "#64748b", fontSize: 13 }}>发布方式</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>{t("发布方式")}</div>
 
                 <div style={{ fontSize: 14 }}>{publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}</div>
 
-                <div style={{ color: "#64748b", fontSize: 13 }}>备注</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>{t("备注")}</div>
 
                 <div style={{ fontSize: 14 }}>{o.voice_note?.trim() ? o.voice_note : "—"}</div>
 
               </div>
 
-              {renderSkuInfo(o)}
+              {renderSkuInfo(o, t)}
 
-              {renderTierStandards(String(o.tier || ""))}
+              {renderTierStandards(String(o.tier || ""), t)}
 
-              {renderVoiceEntry(o)}
+              {renderVoiceEntry(o, t)}
 
               <button type="button" onClick={() => handleClaim(o.id)} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
 
-                领取
+                {t("领取")}
 
               </button>
 
@@ -767,10 +761,10 @@ export default function ClientOrdersHallPage() {
               <div className="xt-inf-empty-icon" aria-hidden>
                 📋
               </div>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>暂无待领取订单</div>
-              <div style={{ fontSize: 14, marginBottom: 12 }}>可调整搜索条件或稍后再试。</div>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>{t("暂无待领取订单")}</div>
+              <div style={{ fontSize: 14, marginBottom: 12 }}>{t("可调整搜索条件或稍后再试。")}</div>
               <button type="button" className="xt-accent-btn" onClick={() => load()}>
-                刷新列表
+                {t("刷新列表")}
               </button>
             </div>
           )}
@@ -781,7 +775,7 @@ export default function ClientOrdersHallPage() {
 
 
 
-      <h3 style={{ fontSize: 16 }}>我的领单</h3>
+      <h3 style={{ fontSize: 16 }}>{t("我的领单")}</h3>
 
       <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
 
@@ -793,7 +787,7 @@ export default function ClientOrdersHallPage() {
 
           onChange={(e) => setSearchMy(e.target.value)}
 
-          placeholder="搜索订单号或标题（精准）"
+          placeholder={t("搜索订单号或标题（精准）")}
 
           style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 240 }}
 
@@ -801,7 +795,7 @@ export default function ClientOrdersHallPage() {
 
         <button type="button" onClick={() => load(undefined, searchMy, undefined, myDateFilter)} style={{ padding: "6px 14px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
 
-          搜索
+          {t("搜索")}
 
         </button>
 
@@ -825,7 +819,7 @@ export default function ClientOrdersHallPage() {
 
         >
 
-          清空
+          {t("清空")}
 
         </button>
 
@@ -843,7 +837,7 @@ export default function ClientOrdersHallPage() {
 
               <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 8, background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: 13 }}>
 
-                订单日期：{formatDateTime(o.created_at)}
+                {t("订单日期：")}{formatDateTime(o.created_at)}
 
               </div>
 
@@ -851,17 +845,17 @@ export default function ClientOrdersHallPage() {
 
                 <div>
 
-                  <div style={{ fontWeight: 600 }}>订单号：{o.order_no || `#${o.id}`}</div>
+                  <div style={{ fontWeight: 600 }}>{t("订单号：")}{o.order_no || `#${o.id}`}</div>
 
-                  {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>}
+                  {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>{t("标题：")}{o.title}</div>}
 
                   <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
 
-                    下单商家账号：{o.client_username} ｜ 商家名称：{o.client_display_name}
+                    {t("下单商家账号：")}{o.client_username} ｜ {t("商家名称：")}{o.client_display_name}
 
                   </div>
 
-                  <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>订单创建日期：{formatDateTime(o.created_at)}</div>
+                  <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>{t("订单创建日期：")}{formatDateTime(o.created_at)}</div>
 
                 </div>
 
@@ -871,29 +865,29 @@ export default function ClientOrdersHallPage() {
 
               <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "130px 1fr", gap: 8, alignItems: "start" }}>
 
-                <div style={{ color: "#64748b", fontSize: 13 }}>状态</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>{t("状态")}</div>
 
                 <div style={{ fontSize: 14 }}>{statusText[o.status] ?? o.status}</div>
 
-                <div style={{ color: "#64748b", fontSize: 13 }}>金额</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>{t("金额")}</div>
 
-                <div style={{ fontSize: 14 }}>{hallMarketOrderTotalPoints(o)} 积分（单套 {o.reward_points} × {hallMarketOrderTaskCount(o)}）</div>
+                <div style={{ fontSize: 14 }}>{hallMarketOrderTotalPoints(o)} {t("积分")}（{t("单套")} {o.reward_points} × {hallMarketOrderTaskCount(o)}）</div>
 
-                <div style={{ color: "#64748b", fontSize: 13 }}>发布方式</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>{t("发布方式")}</div>
 
                 <div style={{ fontSize: 14 }}>{publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}</div>
 
-                <div style={{ color: "#64748b", fontSize: 13 }}>备注</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>{t("备注")}</div>
 
                 <div style={{ fontSize: 14 }}>{o.voice_note?.trim() ? o.voice_note : "—"}</div>
 
               </div>
 
-              {renderSkuInfo(o)}
+              {renderSkuInfo(o, t)}
 
-              {renderTierStandards(String(o.tier || ""))}
+              {renderTierStandards(String(o.tier || ""), t)}
 
-              {renderVoiceEntry(o)}
+              {renderVoiceEntry(o, t)}
 
               <p style={{ marginTop: 8, fontSize: 14 }}>
 
@@ -913,7 +907,7 @@ export default function ClientOrdersHallPage() {
 
                 >
 
-                  查看链接
+                  {t("查看链接")}
 
                 </button>
 
@@ -965,7 +959,7 @@ export default function ClientOrdersHallPage() {
 
                   <button type="button" onClick={() => setInfluencerEditDraft((prev) => [...prev, ""])} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#f8fafc", cursor: "pointer" }}>
 
-                    + 新增链接
+                    {t("+ 新增链接")}
 
                   </button>
 
@@ -983,13 +977,13 @@ export default function ClientOrdersHallPage() {
 
                     >
 
-                      {savingInfluencerLinks ? "保存中..." : "保存链接"}
+                      {savingInfluencerLinks ? t("保存中...") : t("保存链接")}
 
                     </button>
 
                     <button type="button" onClick={() => setInfluencerEditId(null)} style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
 
-                      取消
+                      {t("取消")}
 
                     </button>
 
@@ -1019,7 +1013,7 @@ export default function ClientOrdersHallPage() {
 
                 >
 
-                  编辑交付链接
+                  {t("编辑交付链接")}
 
                 </button>
 
@@ -1077,13 +1071,13 @@ export default function ClientOrdersHallPage() {
 
                       <button type="button" onClick={() => setWorkLinkRows((prev) => [...prev, ""])} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#f8fafc", cursor: "pointer", marginBottom: 8 }}>
 
-                        + 新增链接
+                        {t("+ 新增链接")}
 
                       </button>
 
                       <button type="button" onClick={handleComplete} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", marginTop: 8 }}>
 
-                        确认提交
+                        {t("确认提交")}
 
                       </button>
 
@@ -1103,7 +1097,7 @@ export default function ClientOrdersHallPage() {
 
                       >
 
-                        取消
+                        {t("取消")}
 
                       </button>
 
@@ -1129,7 +1123,7 @@ export default function ClientOrdersHallPage() {
 
                     >
 
-                      完成并上传链接
+                      {t("完成并上传链接")}
 
                     </button>
 
@@ -1148,7 +1142,7 @@ export default function ClientOrdersHallPage() {
               <div className="xt-inf-empty-icon" aria-hidden>
                 🗂️
               </div>
-              <div>暂无我的领单记录</div>
+              <div>{t("暂无我的领单记录")}</div>
             </div>
           )}
 
@@ -1156,7 +1150,7 @@ export default function ClientOrdersHallPage() {
 
       )}
 
-      <WorkLinksModal open={linksModalOpen} onClose={() => setLinksModalOpen(false)} links={linksModalLinks} title="交付链接" />
+      <WorkLinksModal open={linksModalOpen} onClose={() => setLinksModalOpen(false)} links={linksModalLinks} title={t("交付链接")} />
 
     </div>
 
