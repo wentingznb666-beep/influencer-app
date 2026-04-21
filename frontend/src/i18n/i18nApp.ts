@@ -1,6 +1,7 @@
 ﻿import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import { TH_UI_DICT } from "../locales/th";`r`nimport { getStoredUser } from "../authApi";
+import { TH_UI_DICT } from "../locales/th";
+import { getStoredUser } from "../authApi";
 
 const I18N_RESOURCE_STORAGE = "influencer_app_i18next_th_bundle_v1";
 
@@ -36,7 +37,10 @@ export function persistThBundlePatch(patch: Record<string, string>): void {
 
 const initialLng = (() => {
   try {
-    const saved = localStorage.getItem("influencer_app_lang");`r`n    if (saved === "th" || saved === "zh") return saved;`r`n    const role = getStoredUser()?.role;`r`n    return role === "influencer" ? "th" : "zh";
+    const saved = localStorage.getItem("influencer_app_lang");
+    if (saved === "th" || saved === "zh") return saved;
+    const role = getStoredUser()?.role;
+    return role === "influencer" ? "th" : "zh";
   } catch {
     return "zh";
   }

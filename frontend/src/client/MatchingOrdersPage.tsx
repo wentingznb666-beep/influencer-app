@@ -35,6 +35,14 @@ export default function MatchingOrdersPage() {
     loadAll().catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
   }, []);
 
+  /** ????????????? */
+  useEffect(() => {
+    const sp = new URLSearchParams(location.search);
+    const orderId = Number(sp.get("orderId") || 0);
+    if (!Number.isInteger(orderId) || orderId < 1) return;
+    void openApplicants(orderId);
+  }, [location.search]);
+
   /** 打开报名管理面板。 */
   const openApplicants = async (orderId: number) => {
     setActiveOrderId(orderId);

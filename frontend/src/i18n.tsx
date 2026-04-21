@@ -2,7 +2,8 @@
 import { useLocation } from "react-router-dom";
 
 import { TH_UI_DICT } from "./locales/th";
-import { appI18n, persistThBundlePatch } from "./i18n/i18nApp";`r`nimport { getStoredUser } from "./authApi";
+import { appI18n, persistThBundlePatch } from "./i18n/i18nApp";
+import { getStoredUser } from "./authApi";
 import {
   computeBackoffMs,
   defaultPathTranslatePriority,
@@ -535,7 +536,11 @@ function UiAutoTranslator({ lang }: { lang: Lang }) {
  */
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
-    const raw = localStorage.getItem("influencer_app_lang");`r`n    if (raw === "th" || raw === "zh") return raw;`r`n    const role = getStoredUser()?.role;`r`n    // 达人端首次进入默认泰语；中文需用户主动切换。`r`n    return role === "influencer" ? "th" : "zh";
+    const raw = localStorage.getItem("influencer_app_lang");
+    if (raw === "th" || raw === "zh") return raw;
+    const role = getStoredUser()?.role;
+    // 达人端首次进入默认泰语；中文需用户主动切换。
+    return role === "influencer" ? "th" : "zh";
   });
 
   useEffect(() => {

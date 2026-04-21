@@ -318,7 +318,7 @@ router.post("/client/collab-pool/:demandId/consult", async (req: AuthRequest, re
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   const demandId = Number(req.params.demandId);
   const note = String(req.body?.note || "").trim();
-  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的ID。" });
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "???ID?" });
   if (!note) return res.status(400).json({ error: "INVALID_NOTE", message: "咨询内容不能为空。" });
   try {
     const d = await query<{ influencer_id: number }>(
@@ -591,7 +591,7 @@ router.get("/influencer/demands/:id/applications", async (req: AuthRequest, res:
 
   const demandId = Number(req.params.id);
 
-  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的ID。" });
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "???ID?" });
 
   try {
 
@@ -635,7 +635,7 @@ router.post("/influencer/demands/:id/applications/:appId/select", async (req: Au
 
   const appId = Number(req.params.appId);
 
-  if (!Number.isInteger(demandId) || !Number.isInteger(appId) || demandId < 1 || appId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的ID。" });
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "???ID?" });
 
   try {
 
@@ -705,7 +705,7 @@ router.post("/influencer/demands/:id/applications/:appId/reject", async (req: Au
 
   const appId = Number(req.params.appId);
 
-  if (!Number.isInteger(demandId) || !Number.isInteger(appId) || demandId < 1 || appId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的ID。" });
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "???ID?" });
 
   try {
 
@@ -821,7 +821,7 @@ router.post("/admin/demands/:id/review", async (req: AuthRequest, res: Response)
 
   const note = typeof req.body?.note === "string" ? req.body.note.trim().slice(0, 1000) : "";
 
-  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的ID。" });
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "???ID?" });
 
   if (action !== "approve" && action !== "reject") return res.status(400).json({ error: "INVALID_ACTION", message: "无效的操作参数。" });
 
