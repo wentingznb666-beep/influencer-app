@@ -69,12 +69,6 @@ const GROUP_LABELS: Record<"points" | "match" | "common", string> = {
 };
 
 /** 达人端侧栏分组渲染顺序（与产品菜单一致）。 */
-const GROUP_ICONS: Record<"points" | "match" | "common", string> = {
-  points: "??",
-  match: "??",
-  common: "??",
-};
-
 const GROUP_ORDER: Array<keyof typeof GROUP_LABELS> = ["points", "match", "common"];
 
 type InfluencerGroupId = keyof typeof GROUP_LABELS;
@@ -182,28 +176,33 @@ export default function DashboardShell({
   const [msgError, setMsgError] = useState<string | null>(null);
   const msgWrapRef = useRef<HTMLDivElement | null>(null);
 
-  /** ????????????????? */
+  /** 达人端分组折叠状态：默认全部收起，仅展示分组标题。 */
   const [groupOpen, setGroupOpen] = useState<Record<InfluencerGroupId, boolean>>({
-    points: true,
+    points: false,
     match: false,
     common: false,
   });
 
-  const groupedMode = useMemo(() => navItems.some((it) => !!it.group), [navItems]);
-  const groupedBuckets = useMemo(() => (groupedMode ? bucketInfluencerNavItems(navItems) : null), [groupedMode, navItems]);
+  const influencerBuckets = useMemo(
+    () => (shellVariant === "influencer" ? bucketInfluencerNavItems(navItems) : null),
+    [shellVariant, navItems],
+  );
 
+  /**
+   * 当前路由落在某一组内时自动展开该组，便于看到激活项；不强制收起用户已展开的其他组。
+   */
   useEffect(() => {
-    if (!groupedBuckets) return;
+    if (!influencerBuckets) return;
     const path = location.pathname;
     for (const gid of GROUP_ORDER) {
-      for (const item of groupedBuckets[gid]) {
+      for (const item of influencerBuckets[gid]) {
         if (isNavItemActiveForPath(path, item)) {
           setGroupOpen((prev) => (prev[gid] ? prev : { ...prev, [gid]: true }));
           return;
         }
       }
     }
-  }, [location.pathname, groupedBuckets]);
+  }, [location.pathname, influencerBuckets]);
 
   useEffect(() => {
     if (!isCompact) setSidebarOpen(false);
@@ -406,9 +405,9 @@ export default function DashboardShell({
           ) : null}
         </div>
         <nav className="xt-sidebar-nav">
-          {groupedMode && groupedBuckets
+          {shellVariant === "influencer" && influencerBuckets
             ? GROUP_ORDER.map((gid) => {
-                const items = groupedBuckets[gid];
+                const items = influencerBuckets[gid];
                 if (items.length === 0) return null;
                 const expanded = groupOpen[gid];
                 return (
@@ -420,7 +419,6 @@ export default function DashboardShell({
                       onClick={() => toggleInfluencerGroup(gid)}
                     >
                       <span className="xt-sidebar-group-toggle__chevron" aria-hidden />
-                      <span className="xt-sidebar-group-toggle__icon" aria-hidden>{GROUP_ICONS[gid]}</span>
                       <span className="xt-sidebar-group-toggle__label">{GROUP_LABELS[gid]}</span>
                     </button>
                     {expanded ? <div className="xt-sidebar-group-children">{items.map((it) => renderNavLink(it))}</div> : null}

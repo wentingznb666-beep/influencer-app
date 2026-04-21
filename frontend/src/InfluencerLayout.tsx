@@ -93,12 +93,15 @@ export default function InfluencerLayout() {
   const matchLocked = permissionStatus !== "approved";
 
   const navItems: DashboardNavItem[] = [
-    { to: "/influencer/client-orders", label: "?????", menuHint: "????????????????????????????????", icon: "??", group: "points", preload: preloadMap["/influencer/client-orders"] },
-    { to: "/influencer/points", label: "?????", menuHint: "?????????????????????????????", icon: "??", group: "points", preload: preloadMap["/influencer/points"] },
-    { to: "/influencer/withdraw", label: "????", menuHint: "??????????????????????????", icon: "??", group: "points", preload: preloadMap["/influencer/withdraw"] },
-    { to: "/influencer/task-hall", label: "????", menuHint: "????????????????????????????", icon: "??", group: "match" },
-    { to: "/influencer/payment-profile", label: "????", menuHint: "???????????????????????????????", icon: "??", group: "match" },
-    { to: "/influencer/permission", label: "??????", menuHint: "????????????????????????", icon: "??", group: "match", navLocked: matchLocked },
+    { to: "/influencer/client-orders", label: "商家端发单", menuHint: "รับงานจากร้านค้าและส่งลิงก์ผลงาน", icon: "🛒", group: "points", preload: preloadMap["/influencer/client-orders"] },
+    { to: "/influencer/points", label: "积分与收益", menuHint: "ดูคะแนนคงเหลือและรายรับล่าสุด", icon: "🪙", group: "points", preload: preloadMap["/influencer/points"] },
+    { to: "/influencer/withdraw", label: "申请提现", menuHint: "ยื่นถอนเงินเข้าบัญชีธนาคาร", icon: "💰", group: "points", preload: preloadMap["/influencer/withdraw"] },
+    { to: "/influencer/task-hall", label: "任务大厅", menuHint: "สมัครงานจับคู่และติดตามสถานะ", icon: "📋", group: "match" },
+    { to: "/influencer/payment-profile", label: "收款信息", menuHint: "ตั้งค่าบัญชีรับเงินสำหรับการโอน", icon: "💳", group: "match" },
+    { to: "/influencer/permission", label: "撮合权限申请", menuHint: "ยื่นขอสิทธิ์ก่อนเผยแพร่ความต้องการ", icon: "⬆️", group: "match" },
+    { to: "/influencer/demands", label: "发布合作需求", menuHint: "โพสต์ความต้องการเพื่อรับสมัครร้านค้า", icon: "📝", group: "match", navLocked: matchLocked },
+    { to: "/influencer/my-demands", label: "我的需求", menuHint: "จัดการงานที่โพสต์และใบสมัครทั้งหมด", icon: "📦", group: "match", navLocked: matchLocked },
+    { to: "/influencer/op-logs", label: "我的操作日志", menuHint: "ตรวจสอบประวัติการใช้งานบัญชี", icon: "📄", group: "common" },
   ];
 
   return (
