@@ -262,7 +262,7 @@ router.get("/client/collab-pool", async (req: AuthRequest, res: Response) => {
 
 router.post("/client/collab-pool/:demandId/apply", async (req: AuthRequest, res: Response) => {
 
-  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "??????" });
 
   const clientId = req.user.userId;
 
@@ -274,13 +274,19 @@ router.post("/client/collab-pool/:demandId/apply", async (req: AuthRequest, res:
   const merchantSalesSummary = typeof req.body?.merchant_sales_summary === "string" ? req.body.merchant_sales_summary.trim().slice(0, 200) : "";
   const merchantShopLink = typeof req.body?.merchant_shop_link === "string" ? req.body.merchant_shop_link.trim().slice(0, 500) : "";
 
-  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "???ID?" });
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "?????ID?" });
 
   try {
 
     const d = await query<{ id: number; influencer_id: number }>("SELECT id, influencer_id FROM influencer_collab_demands WHERE id=$1 AND status='open'", [demandId]);
 
-    if (!d.rows[0]) return res.status(404).json({ error: "NOT_FOUND", message: "需求不存在。" });
+    if (!d.rows[0]) return res.status(404).json({ error: "NOT_FOUND", message: "??????" });
+
+    const tpl = await query<{ shop_name: string; product_type: string; shop_link: string; shop_rating: string; user_reviews: string }>(
+      `SELECT shop_name, product_type, shop_link, shop_rating, user_reviews FROM client_merchant_info_templates WHERE client_id=$1`,
+      [clientId]
+    );
+    const merchant = tpl.rows[0];
 
     await query(
 
@@ -294,17 +300,17 @@ router.post("/client/collab-pool/:demandId/apply", async (req: AuthRequest, res:
         demandId,
         clientId,
         note || null,
-        merchantShopName || null,
-        merchantProductType || null,
+        merchantShopName || merchant?.shop_name || null,
+        merchantProductType || merchant?.product_type || null,
         merchantSalesSummary || null,
-        merchantShopLink || null,
-        null,
-        null,
+        merchantShopLink || merchant?.shop_link || null,
+        merchant?.shop_rating || null,
+        merchant?.user_reviews || null,
       ]
 
     );
 
-    await createMessage(d.rows[0].influencer_id, "demand_apply", "合作需求有新报名", `需求 #${demandId} 收到新的商家报名。`, "demand", demandId);
+    await createMessage(d.rows[0].influencer_id, "demand_apply", "????????", `?? #${demandId} ?????????`, "demand", demandId);
 
     return res.status(201).json({ ok: true });
 
@@ -312,7 +318,7 @@ router.post("/client/collab-pool/:demandId/apply", async (req: AuthRequest, res:
 
     console.error("client apply demand error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "??????????????" });
 
   }
 

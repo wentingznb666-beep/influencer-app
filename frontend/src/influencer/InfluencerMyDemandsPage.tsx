@@ -26,9 +26,11 @@ type DemandApplication = {
   merchant_product_type?: string;
   merchant_sales_summary?: string;
   merchant_shop_link?: string;
+  merchant_shop_rating?: string;
+  merchant_user_reviews?: string;
 };
 
-/** 尝试解析需求详情 JSON。 */
+/** Parse demand detail JSON safely. */
 function parseDemandDetail(raw: string | undefined): Record<string, any> {
   if (!raw) return {};
   try {
@@ -39,7 +41,7 @@ function parseDemandDetail(raw: string | undefined): Record<string, any> {
   }
 }
 
-/** 达人端：我的需求独立模块。 */
+/** Influencer side: my demand module. */
 export default function InfluencerMyDemandsPage() {
   const { t } = useTranslation();
   const [list, setList] = useState<DemandItem[]>([]);
@@ -49,8 +51,9 @@ export default function InfluencerMyDemandsPage() {
   const [applicationsMap, setApplicationsMap] = useState<Record<number, DemandApplication[]>>({});
   const [loadingDemandId, setLoadingDemandId] = useState<number | null>(null);
   const [actioningAppId, setActioningAppId] = useState<number | null>(null);
+  const [detailApp, setDetailApp] = useState<DemandApplication | null>(null);
 
-  /** 拉取我的需求列表。 */
+  /** Load my demand list. */
   const load = async () => {
     setError(null);
     try {
@@ -65,7 +68,7 @@ export default function InfluencerMyDemandsPage() {
     void load();
   }, []);
 
-  /** 加载指定需求的商家报名列表。 */
+  /** Load applications under one demand. */
   const openApplications = async (demandId: number) => {
     setError(null);
     setMsg("");
@@ -88,7 +91,7 @@ export default function InfluencerMyDemandsPage() {
     }
   };
 
-  /** 审核商家报名：选中或驳回。 */
+  /** Review one merchant application. */
   const reviewApplication = async (demandId: number, appId: number, action: "select" | "reject") => {
     setError(null);
     setMsg("");
@@ -124,7 +127,7 @@ export default function InfluencerMyDemandsPage() {
       {list.length === 0 ? (
         <div className="xt-inf-empty xt-inf-card">
           <div className="xt-inf-empty-icon" aria-hidden>
-            📦
+            ??
           </div>
           <div>{t("暂无需求")}</div>
         </div>
@@ -174,9 +177,12 @@ export default function InfluencerMyDemandsPage() {
                     {apps.map((a) => (
                       <li key={a.id} style={{ marginBottom: 8 }}>
                         {t("商家：")}
-                        {a.client_name || a.client_username || "-"}｜{t("状态：")}
+                        {a.client_name || a.client_username || "-"}?{t("状态：")}
                         {t(formatDemandApplyStatus(a.status))}
-                        {a.note ? `｜${t("备注：")}${a.note}` : ""}
+                        {a.note ? `?${t("备注：")}${a.note}` : ""}
+                        <button type="button" className="xt-outline-btn" style={{ marginLeft: 8 }} onClick={() => setDetailApp(a)}>
+                          {t("查看订单详情")}
+                        </button>
                         {canReview && a.status === "pending" ? (
                           <>
                             <button type="button" disabled={actioningAppId === a.id} onClick={() => void reviewApplication(d.id, a.id, "select")} style={{ marginLeft: 8 }}>
@@ -196,6 +202,36 @@ export default function InfluencerMyDemandsPage() {
           </div>
         );
       })}
+
+      {detailApp ? (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 1000 }}
+          onClick={() => setDetailApp(null)}
+        >
+          <div style={{ width: "min(640px, 92vw)", background: "#fff", borderRadius: 12, padding: 16 }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0 }}>{t("查看订单详情")}</h3>
+            <div style={{ display: "grid", gap: 6 }}>
+              <div>{t("商店名称：")}{detailApp.merchant_shop_name || "-"}</div>
+              <div>{t("销售产品类型：")}{detailApp.merchant_product_type || "-"}</div>
+              <div>{t("店铺评分：")}{detailApp.merchant_shop_rating || "-"}</div>
+              <div>{t("用户评价：")}{detailApp.merchant_user_reviews || "-"}</div>
+              <div>
+                {t("店铺链接：")}
+                {detailApp.merchant_shop_link ? (
+                  <a href={detailApp.merchant_shop_link} target="_blank" rel="noreferrer">
+                    {detailApp.merchant_shop_link}
+                  </a>
+                ) : (
+                  "-"
+                )}
+              </div>
+            </div>
+            <button type="button" className="xt-accent-btn" style={{ marginTop: 12 }} onClick={() => setDetailApp(null)}>
+              {t("关闭")}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
