@@ -284,13 +284,23 @@ router.post("/client/collab-pool/:demandId/apply", async (req: AuthRequest, res:
 
     await query(
 
-      `INSERT INTO influencer_demand_applications (demand_id, client_id, note, merchant_shop_name, merchant_product_type, merchant_sales_summary, merchant_shop_link)
+      `INSERT INTO influencer_demand_applications (demand_id, client_id, note, merchant_shop_name, merchant_product_type, merchant_sales_summary, merchant_shop_link, merchant_shop_rating, merchant_user_reviews)
 
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 
-       ON CONFLICT (demand_id, client_id) DO UPDATE SET status='pending', note=EXCLUDED.note, merchant_shop_name=EXCLUDED.merchant_shop_name, merchant_product_type=EXCLUDED.merchant_product_type, merchant_sales_summary=EXCLUDED.merchant_sales_summary, merchant_shop_link=EXCLUDED.merchant_shop_link, updated_at=now()`,
+       ON CONFLICT (demand_id, client_id) DO UPDATE SET status='pending', note=EXCLUDED.note, merchant_shop_name=EXCLUDED.merchant_shop_name, merchant_product_type=EXCLUDED.merchant_product_type, merchant_sales_summary=EXCLUDED.merchant_sales_summary, merchant_shop_link=EXCLUDED.merchant_shop_link, merchant_shop_rating=EXCLUDED.merchant_shop_rating, merchant_user_reviews=EXCLUDED.merchant_user_reviews, updated_at=now()`,
 
-      [demandId, clientId, note || null, merchantShopName || null, merchantProductType || null, merchantSalesSummary || null, merchantShopLink || null]
+      [
+        demandId,
+        clientId,
+        note || null,
+        merchantShopName || null,
+        merchantProductType || null,
+        merchantSalesSummary || null,
+        merchantShopLink || null,
+        null,
+        null,
+      ]
 
     );
 
@@ -601,7 +611,8 @@ router.get("/influencer/demands/:id/applications", async (req: AuthRequest, res:
 
     const rows = await query(
 
-      `SELECT a.id, a.status, a.note, a.merchant_shop_name, a.merchant_product_type, a.merchant_sales_summary, a.merchant_shop_link, a.created_at,
+      `SELECT a.id, a.status, a.note, a.merchant_shop_name, a.merchant_product_type, a.merchant_sales_summary, a.merchant_shop_link,
+              a.merchant_shop_rating, a.merchant_user_reviews, a.created_at,
               u.id AS client_id, u.username AS client_username, COALESCE(NULLIF(u.display_name,''), u.username) AS client_name
        FROM influencer_demand_applications a
        JOIN users u ON u.id = a.client_id

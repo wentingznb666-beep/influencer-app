@@ -26,9 +26,11 @@ type DemandApplication = {
   merchant_product_type?: string;
   merchant_sales_summary?: string;
   merchant_shop_link?: string;
+  merchant_shop_rating?: string;
+  merchant_user_reviews?: string;
 };
 
-/** 尝试解析需求详情 JSON。 */
+/** ???????? JSON? */
 function parseDemandDetail(raw: string | undefined): Record<string, any> {
   if (!raw) return {};
   try {
@@ -39,7 +41,7 @@ function parseDemandDetail(raw: string | undefined): Record<string, any> {
   }
 }
 
-/** 达人端：我的需求独立模块。 */
+/** ????????????? */
 export default function InfluencerMyDemandsPage() {
   const { t } = useTranslation();
   const [list, setList] = useState<DemandItem[]>([]);
@@ -49,15 +51,16 @@ export default function InfluencerMyDemandsPage() {
   const [applicationsMap, setApplicationsMap] = useState<Record<number, DemandApplication[]>>({});
   const [loadingDemandId, setLoadingDemandId] = useState<number | null>(null);
   const [actioningAppId, setActioningAppId] = useState<number | null>(null);
+  const [detailApp, setDetailApp] = useState<DemandApplication | null>(null);
 
-  /** 拉取我的需求列表。 */
+  /** ????????? */
   const load = async () => {
     setError(null);
     try {
       const demandsRes = await getInfluencerDemands();
       setList((demandsRes.list || []) as DemandItem[]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("加载失败"));
+      setError(e instanceof Error ? e.message : t("????"));
     }
   };
 
@@ -65,7 +68,7 @@ export default function InfluencerMyDemandsPage() {
     void load();
   }, []);
 
-  /** 加载指定需求的商家报名列表。 */
+  /** ?????????????? */
   const openApplications = async (demandId: number) => {
     setError(null);
     setMsg("");
@@ -82,13 +85,13 @@ export default function InfluencerMyDemandsPage() {
         [demandId]: Array.isArray(ret?.list) ? (ret.list as DemandApplication[]) : [],
       }));
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("加载报名列表失败"));
+      setError(e instanceof Error ? e.message : t("????????"));
     } finally {
       setLoadingDemandId(null);
     }
   };
 
-  /** 审核商家报名：选中或驳回。 */
+  /** ????????????? */
   const reviewApplication = async (demandId: number, appId: number, action: "select" | "reject") => {
     setError(null);
     setMsg("");
@@ -96,10 +99,10 @@ export default function InfluencerMyDemandsPage() {
     try {
       if (action === "select") {
         await selectInfluencerDemandApplication(demandId, appId);
-        setMsg(t("已选中商家"));
+        setMsg(t("?????"));
       } else {
         await rejectInfluencerDemandApplication(demandId, appId);
-        setMsg(t("已驳回商家"));
+        setMsg(t("?????"));
       }
       const ret = await getInfluencerDemandApplications(demandId);
       setApplicationsMap((prev) => ({
@@ -108,7 +111,7 @@ export default function InfluencerMyDemandsPage() {
       }));
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("操作失败"));
+      setError(e instanceof Error ? e.message : t("????"));
     } finally {
       setActioningAppId(null);
     }
@@ -116,17 +119,17 @@ export default function InfluencerMyDemandsPage() {
 
   return (
     <div>
-      <h2 className="xt-inf-page-title">{t("我的需求")}</h2>
-      <p className="xt-inf-lead">{t("管理已发布的合作需求与商家报名，状态一目了然。")}</p>
+      <h2 className="xt-inf-page-title">{t("????")}</h2>
+      <p className="xt-inf-lead">{t("???????????????????????")}</p>
       {msg ? <p style={{ color: "#166534" }}>{msg}</p> : null}
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
 
       {list.length === 0 ? (
         <div className="xt-inf-empty xt-inf-card">
           <div className="xt-inf-empty-icon" aria-hidden>
-            📦
+            ??
           </div>
-          <div>{t("暂无需求")}</div>
+          <div>{t("????")}</div>
         </div>
       ) : null}
       {list.map((d) => {
@@ -142,48 +145,51 @@ export default function InfluencerMyDemandsPage() {
         return (
           <div key={d.id} className="xt-inf-card" style={{ padding: 14, marginBottom: 12 }}>
             <div>
-              {t("擅长领域：")}
+              {t("?????")}
               {d.title ? t(d.title) : "-"}
             </div>
             <div>
-              {t("粉丝量级：")}
+              {t("?????")}
               {fans}
             </div>
             <div>
-              {t("任务类型：")}
+              {t("?????")}
               {types}
             </div>
             <div>
-              {t("单条报价：")}
+              {t("?????")}
               {d.expected_points ?? "-"}
             </div>
             <div>
-              {t("状态：")}
+              {t("???")}
               {t(formatDemandStatus(d.status))}
             </div>
             <button type="button" className="xt-accent-btn" onClick={() => void openApplications(d.id)} style={{ marginTop: 8 }}>
-              {opened ? t("收起商家报名") : t("查看商家报名")}
+              {opened ? t("??????") : t("??????")}
             </button>
 
             {opened ? (
               <div style={{ marginTop: 10, padding: 10, borderRadius: 8, border: "1px solid #e2e8f0", background: "#f8fafc" }}>
-                {loadingDemandId === d.id ? <p>{t("加载中…")}</p> : null}
-                {loadingDemandId !== d.id && apps.length === 0 ? <p>{t("暂无商家报名")}</p> : null}
+                {loadingDemandId === d.id ? <p>{t("????")}</p> : null}
+                {loadingDemandId !== d.id && apps.length === 0 ? <p>{t("??????")}</p> : null}
                 {loadingDemandId !== d.id && apps.length > 0 ? (
                   <ul style={{ margin: 0, paddingLeft: 18 }}>
                     {apps.map((a) => (
                       <li key={a.id} style={{ marginBottom: 8 }}>
-                        {t("商家：")}
-                        {a.client_name || a.client_username || "-"}｜{t("状态：")}
+                        {t("???")}
+                        {a.client_name || a.client_username || "-"}?{t("???")}
                         {t(formatDemandApplyStatus(a.status))}
-                        {a.note ? `｜${t("备注：")}${a.note}` : ""}
+                        {a.note ? `?${t("???")}${a.note}` : ""}
+                        <button type="button" style={{ marginLeft: 8 }} onClick={() => setDetailApp(a)}>
+                          {t("??????")}
+                        </button>
                         {canReview && a.status === "pending" ? (
                           <>
                             <button type="button" disabled={actioningAppId === a.id} onClick={() => void reviewApplication(d.id, a.id, "select")} style={{ marginLeft: 8 }}>
-                              {t("选中商家")}
+                              {t("????")}
                             </button>
                             <button type="button" disabled={actioningAppId === a.id} onClick={() => void reviewApplication(d.id, a.id, "reject")} style={{ marginLeft: 8 }}>
-                              {t("驳回商家")}
+                              {t("????")}
                             </button>
                           </>
                         ) : null}
@@ -196,6 +202,25 @@ export default function InfluencerMyDemandsPage() {
           </div>
         );
       })}
+      {detailApp ? (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 1000 }} onClick={() => setDetailApp(null)}>
+          <div style={{ width: "min(640px, 92vw)", background: "#fff", borderRadius: 12, padding: 16 }} onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ marginTop: 0 }}>{t("??????")}</h3>
+            <div style={{ display: "grid", gap: 6 }}>
+              <div>{t("?????")}{detailApp.merchant_shop_name || "-"}</div>
+              <div>{t("???????")}{detailApp.merchant_product_type || "-"}</div>
+              <div>{t("?????")}{detailApp.merchant_shop_rating || "-"}</div>
+              <div>{t("?????")}{detailApp.merchant_user_reviews || "-"}</div>
+              <div>
+                {t("?????")}
+                {detailApp.merchant_shop_link ? <a href={detailApp.merchant_shop_link} target="_blank" rel="noreferrer">{detailApp.merchant_shop_link}</a> : "-"}
+              </div>
+            </div>
+            <button type="button" className="xt-accent-btn" style={{ marginTop: 12 }} onClick={() => setDetailApp(null)}>{t("??")}</button>
+          </div>
+        </div>
+      ) : null}
+
     </div>
   );
 }

@@ -181,8 +181,24 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
       );
       const p = profile.rows[0];
       if (!p || Number(p.member_level || 0) < 1) return { kind: "member_required" as const };
+      const tpl = await client.query<{ shop_name: string; product_type: string; shop_link: string; shop_rating: string; user_reviews: string }>(
+        `SELECT shop_name, product_type, shop_link, shop_rating, user_reviews FROM client_merchant_info_templates WHERE client_id=$1`,
+        [req.user!.userId]
+      );
+      const merchantTemplate = tpl.rows[0];
+      if (!merchantTemplate) return { kind: "merchant_template_required" as const };
       const available = Number(p.deposit_amount || 0) - Number(p.deposit_frozen || 0);
       if (available < taskAmount) return { kind: "deposit_insufficient" as const, available };
+      const detailWithMerchant = {
+        ...(detailPayload || {}),
+        merchant_info: {
+          shop_name: merchantTemplate.shop_name,
+          product_type: merchantTemplate.product_type,
+          shop_link: merchantTemplate.shop_link,
+          shop_rating: merchantTemplate.shop_rating,
+          user_reviews: merchantTemplate.user_reviews,
+        },
+      };
       const ins = await client.query<{ id: number; order_no: string }>(
         `INSERT INTO client_market_orders
            (client_id, order_no, title, reward_points, tier, creator_reward_points, platform_profit_points, pay_deducted, status, match_status, order_type, allow_apply, task_amount, deposit_frozen)
@@ -197,7 +213,7 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
          VALUES ($1, $2::jsonb, $3::jsonb)
          ON CONFLICT (order_id)
          DO UPDATE SET detail_json=EXCLUDED.detail_json, attachment_urls=EXCLUDED.attachment_urls, updated_at=now()`,
-        [inserted.id, JSON.stringify(detailPayload || {}), JSON.stringify(attachments)]
+        [inserted.id, JSON.stringify(detailWithMerchant), JSON.stringify(attachments)]
       );
       await client.query(
         `UPDATE merchant_profiles
@@ -283,6 +299,7 @@ router.get("/influencer/matching-task-hall", async (req: AuthRequest, res: Respo
   try {
     const rows = await query(
       `SELECT mo.id, mo.order_no, mo.title, mo.task_amount, mo.status, mo.match_status, mo.created_at,
+              md.detail_json, md.attachment_urls,
               u.username AS client_username, COALESCE(NULLIF(u.display_name,''),u.username) AS client_name
          FROM client_market_orders mo
          JOIN users u ON u.id=mo.client_id
@@ -335,6 +352,7 @@ router.get("/influencer/my-matching-applies", async (req: AuthRequest, res: Resp
     const rows = await query(
       `SELECT a.id, a.status AS apply_status, a.note, a.created_at,
               mo.id AS order_id, mo.order_no, mo.title, mo.task_amount, mo.status AS order_status, mo.match_status, mo.work_links,
+              md.detail_json, md.attachment_urls,
               u.username AS client_username
          FROM market_order_applications a
          JOIN client_market_orders mo ON mo.id=a.market_order_id

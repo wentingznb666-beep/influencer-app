@@ -543,6 +543,17 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     return role === "influencer" ? "th" : "zh";
   });
 
+  /**
+   * ?????????????????????????????
+   */
+  useEffect(() => {
+    const role = getStoredUser()?.role;
+    if (role === "influencer" && lang !== "th") {
+      setLangState("th");
+      localStorage.setItem("influencer_app_lang", "th");
+    }
+  }, [lang]);
+
   useEffect(() => {
     void appI18n.changeLanguage(lang);
   }, [lang]);

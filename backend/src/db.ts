@@ -1593,6 +1593,21 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`);
 
+
+  await query(`CREATE TABLE IF NOT EXISTS client_merchant_info_templates (
+    client_id INTEGER PRIMARY KEY REFERENCES users(id),
+    shop_name TEXT NOT NULL,
+    product_type TEXT NOT NULL,
+    shop_link TEXT NOT NULL,
+    shop_rating TEXT NOT NULL,
+    user_reviews TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+
+  await query(`ALTER TABLE influencer_demand_applications ADD COLUMN IF NOT EXISTS merchant_shop_rating TEXT`);
+  await query(`ALTER TABLE influencer_demand_applications ADD COLUMN IF NOT EXISTS merchant_user_reviews TEXT`);
+
   await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS order_type INTEGER NOT NULL DEFAULT 0`);
   await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS allow_apply INTEGER NOT NULL DEFAULT 1`);
   await query(`ALTER TABLE client_market_orders ADD COLUMN IF NOT EXISTS task_amount NUMERIC(18,2)`);
