@@ -16,6 +16,7 @@ export type DashboardNavItem = {
   icon?: string;
   group?: "points" | "match" | "common";
   navLocked?: boolean;
+  menuHint?: string;
 };
 
 /**
@@ -105,6 +106,23 @@ function isNavItemActiveForPath(pathname: string, item: DashboardNavItem): boole
   return false;
 }
 
+/**
+ * 解析系统消息跳转目标：点击消息后直接进入对应业务页。
+ */
+function resolveMessageTarget(message: SystemMessage, variant: "default" | "influencer"): string | null {
+  const type = String(message.related_type || "").trim();
+  const rid = Number(message.related_id || 0);
+  if (variant === "influencer") {
+    if (type === "market_order") return "/influencer/client-orders";
+    if (type === "matching_order") return "/influencer/task-hall";
+    if (type === "demand") return "/influencer/my-demands";
+  }
+  if (type === "matching_order") return rid > 0 ? `/client/matching-orders?orderId=${rid}` : "/client/matching-orders";
+  if (type === "market_order") return "/client/market-orders";
+  if (type === "demand") return "/client/collab-my-applies";
+  return null;
+}
+
 
 type DashboardShellProps = {
   /** 侧栏展示的角色名称，如「管理员端」 */
@@ -156,6 +174,7 @@ export default function DashboardShell({
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgLoading, setMsgLoading] = useState(false);
   const [msgError, setMsgError] = useState<string | null>(null);
+  const msgWrapRef = useRef<HTMLDivElement | null>(null);
 
   /** 达人端分组折叠状态：默认全部收起，仅展示分组标题。 */
   const [groupOpen, setGroupOpen] = useState<Record<InfluencerGroupId, boolean>>({
@@ -243,6 +262,19 @@ export default function DashboardShell({
     };
   }, [isCompact, sidebarOpen]);
 
+  /** 消息弹窗：点击空白区域直接关闭。 */
+  useEffect(() => {
+    if (!msgOpen) return;
+    const onDown = (ev: MouseEvent) => {
+      const root = msgWrapRef.current;
+      if (!root) return;
+      if (root.contains(ev.target as Node)) return;
+      setMsgOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [msgOpen]);
+
   /**
    * 全区域文本兜底清洗：修复运行时注入或历史缓存导致的 uXXXX 脏串。
    */
@@ -280,6 +312,15 @@ export default function DashboardShell({
     if (isCompact) setSidebarOpen(false);
   };
 
+  /** 点击消息后跳转到相关页面，并关闭弹窗与小屏抽屉。 */
+  const jumpFromMessage = async (it: SystemMessage) => {
+    const target = resolveMessageTarget(it, shellVariant);
+    if (Number(it.is_read) !== 1) await readMessage(it.id);
+    setMsgOpen(false);
+    if (isCompact) setSidebarOpen(false);
+    if (target) navigate(target);
+  };
+
   /**
    * 切换达人端某一业务分组的展开/收起。
    */
@@ -307,7 +348,10 @@ export default function DashboardShell({
         onMouseEnter={() => item.preload?.()}
       >
         {item.icon ? <span className="xt-sidebar-link__ic" aria-hidden>{item.icon}</span> : null}
-        <span className="xt-sidebar-link__txt">{normalizeAccountText(item.label)}</span>
+        <span className="xt-sidebar-link__txt">
+          <span>{normalizeAccountText(item.label)}</span>
+          {shellVariant === "influencer" && item.menuHint ? <small className="xt-sidebar-link__hint">{item.menuHint}</small> : null}
+        </span>
         {item.navLocked ? <span className="xt-sidebar-link__lock">🔒</span> : null}
       </NavLink>
     );
@@ -422,7 +466,7 @@ export default function DashboardShell({
             style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
           >
             <LanguageSwitch />
-            <div style={{ position: "relative" }}>
+            <div ref={msgWrapRef} style={{ position: "relative" }}>
               <button
                 type="button"
                 onClick={() => setMsgOpen((v) => !v)}
@@ -487,17 +531,34 @@ export default function DashboardShell({
                     {messages.map((it) => (
                       <div
                         key={it.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => void jumpFromMessage(it)}
+                        onKeyDown={(ev) => {
+                          if (ev.key === "Enter" || ev.key === " ") {
+                            ev.preventDefault();
+                            void jumpFromMessage(it);
+                          }
+                        }}
                         style={{
                           border: "1px solid #e2e8f0",
                           borderRadius: 8,
                           padding: 8,
                           background: Number(it.is_read) === 1 ? "#fff" : "#eff6ff",
+                          cursor: "pointer",
                         }}
                       >
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                           <strong style={{ fontSize: 13 }}>{it.title || "系统通知"}</strong>
                           {Number(it.is_read) !== 1 && (
-                            <button type="button" onClick={() => void readMessage(it.id)} style={{ ...xtOutlineBtn, padding: "2px 8px", fontSize: 12 }}>
+                            <button
+                              type="button"
+                              onClick={(ev) => {
+                                ev.stopPropagation();
+                                void readMessage(it.id);
+                              }}
+                              style={{ ...xtOutlineBtn, padding: "2px 8px", fontSize: 12 }}
+                            >
                               标记已读
                             </button>
                           )}

@@ -1,4 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   acceptMatchingOrder,
   getMatchingOrderApplicants,
@@ -10,6 +11,7 @@ import {
 
 /** 商家端独立页面：我的撮合订单与报名管理。 */
 export default function MatchingOrdersPage() {
+  const location = useLocation();
   const [orders, setOrders] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");

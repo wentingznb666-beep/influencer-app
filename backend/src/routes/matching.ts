@@ -228,11 +228,13 @@ router.get("/client/collab-pool", async (req: AuthRequest, res: Response) => {
 
       `SELECT d.id, d.title, d.demand_detail, d.expected_points, d.status, d.created_at,
               a.status AS my_apply_status,
+              a.merchant_shop_name, a.merchant_product_type, a.merchant_sales_summary, a.merchant_shop_link,
               u.username AS influencer_username, COALESCE(NULLIF(u.display_name,''), u.username) AS influencer_name
 
        FROM influencer_collab_demands d
 
        JOIN users u ON u.id=d.influencer_id
+
        LEFT JOIN influencer_demand_applications a ON a.demand_id=d.id AND a.client_id=$1
 
        WHERE d.status='open'
@@ -267,8 +269,12 @@ router.post("/client/collab-pool/:demandId/apply", async (req: AuthRequest, res:
   const demandId = Number(req.params.demandId);
 
   const note = typeof req.body?.note === "string" ? req.body.note.trim().slice(0, 1000) : "";
+  const merchantShopName = typeof req.body?.merchant_shop_name === "string" ? req.body.merchant_shop_name.trim().slice(0, 200) : "";
+  const merchantProductType = typeof req.body?.merchant_product_type === "string" ? req.body.merchant_product_type.trim().slice(0, 200) : "";
+  const merchantSalesSummary = typeof req.body?.merchant_sales_summary === "string" ? req.body.merchant_sales_summary.trim().slice(0, 200) : "";
+  const merchantShopLink = typeof req.body?.merchant_shop_link === "string" ? req.body.merchant_shop_link.trim().slice(0, 500) : "";
 
-  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的ID。" });
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "???ID?" });
 
   try {
 
@@ -278,13 +284,13 @@ router.post("/client/collab-pool/:demandId/apply", async (req: AuthRequest, res:
 
     await query(
 
-      `INSERT INTO influencer_demand_applications (demand_id, client_id, note)
+      `INSERT INTO influencer_demand_applications (demand_id, client_id, note, merchant_shop_name, merchant_product_type, merchant_sales_summary, merchant_shop_link)
 
-       VALUES ($1, $2, $3)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
 
-       ON CONFLICT (demand_id, client_id) DO UPDATE SET status='pending', note=EXCLUDED.note, updated_at=now()`,
+       ON CONFLICT (demand_id, client_id) DO UPDATE SET status='pending', note=EXCLUDED.note, merchant_shop_name=EXCLUDED.merchant_shop_name, merchant_product_type=EXCLUDED.merchant_product_type, merchant_sales_summary=EXCLUDED.merchant_sales_summary, merchant_shop_link=EXCLUDED.merchant_shop_link, updated_at=now()`,
 
-      [demandId, clientId, note || null]
+      [demandId, clientId, note || null, merchantShopName || null, merchantProductType || null, merchantSalesSummary || null, merchantShopLink || null]
 
     );
 
@@ -333,7 +339,7 @@ router.get("/client/collab-pool/my-applies", async (req: AuthRequest, res: Respo
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
     const rows = await query(
-      `SELECT a.id, a.status, a.note, a.created_at, a.updated_at,
+      `SELECT a.id, a.status, a.note, a.merchant_shop_name, a.merchant_product_type, a.merchant_sales_summary, a.merchant_shop_link, a.created_at, a.updated_at,
               d.id AS demand_id, d.title, d.status AS demand_status, d.expected_points,
               u.username AS influencer_username, COALESCE(NULLIF(u.display_name,''), u.username) AS influencer_name
        FROM influencer_demand_applications a
@@ -595,18 +601,12 @@ router.get("/influencer/demands/:id/applications", async (req: AuthRequest, res:
 
     const rows = await query(
 
-      `SELECT a.id, a.status, a.note, a.created_at,
-
+      `SELECT a.id, a.status, a.note, a.merchant_shop_name, a.merchant_product_type, a.merchant_sales_summary, a.merchant_shop_link, a.created_at,
               u.id AS client_id, u.username AS client_username, COALESCE(NULLIF(u.display_name,''), u.username) AS client_name
-
        FROM influencer_demand_applications a
-
        JOIN users u ON u.id = a.client_id
-
        WHERE a.demand_id = $1
-
        ORDER BY a.id DESC`,
-
       [demandId]
 
     );

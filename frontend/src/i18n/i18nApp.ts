@@ -1,11 +1,11 @@
-import i18n from "i18next";
+﻿import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
-import { TH_UI_DICT } from "../locales/th";
+import { TH_UI_DICT } from "../locales/th";`r`nimport { getStoredUser } from "../authApi";
 
 const I18N_RESOURCE_STORAGE = "influencer_app_i18next_th_bundle_v1";
 
 /**
- * 从 localStorage 读取已持久化的泰语词条补丁（与 TH_UI_DICT 合并）。
+ * 浠?localStorage 璇诲彇宸叉寔涔呭寲鐨勬嘲璇瘝鏉¤ˉ涓侊紙涓?TH_UI_DICT 鍚堝苟锛夈€?
  */
 function readPersistedThBundle(): Record<string, string> {
   try {
@@ -23,7 +23,7 @@ function readPersistedThBundle(): Record<string, string> {
 }
 
 /**
- * 将自动翻译或运营补录的泰语结果写入 localStorage，供下次启动预加载。
+ * 灏嗚嚜鍔ㄧ炕璇戞垨杩愯惀琛ュ綍鐨勬嘲璇粨鏋滃啓鍏?localStorage锛屼緵涓嬫鍚姩棰勫姞杞姐€?
  */
 export function persistThBundlePatch(patch: Record<string, string>): void {
   try {
@@ -36,7 +36,7 @@ export function persistThBundlePatch(patch: Record<string, string>): void {
 
 const initialLng = (() => {
   try {
-    return localStorage.getItem("influencer_app_lang") === "th" ? "th" : "zh";
+    const saved = localStorage.getItem("influencer_app_lang");`r`n    if (saved === "th" || saved === "zh") return saved;`r`n    const role = getStoredUser()?.role;`r`n    return role === "influencer" ? "th" : "zh";
   } catch {
     return "zh";
   }
@@ -55,5 +55,6 @@ void i18n.use(initReactI18next).init({
   },
 });
 
-/** 全局 i18next 单例，与 LanguageProvider 语言状态保持一致。 */
+/** 鍏ㄥ眬 i18next 鍗曚緥锛屼笌 LanguageProvider 璇█鐘舵€佷繚鎸佷竴鑷淬€?*/
 export const appI18n = i18n;
+

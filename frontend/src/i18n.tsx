@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
+﻿import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 
 import { TH_UI_DICT } from "./locales/th";
-import { appI18n, persistThBundlePatch } from "./i18n/i18nApp";
+import { appI18n, persistThBundlePatch } from "./i18n/i18nApp";`r`nimport { getStoredUser } from "./authApi";
 import {
   computeBackoffMs,
   defaultPathTranslatePriority,
@@ -34,7 +34,7 @@ let translateGeneration = 0;
 let networkInFlight = false;
 
 /**
- * 解码文本中的 unicode 转义字符。
+ * 瑙ｇ爜鏂囨湰涓殑 unicode 杞箟瀛楃銆?
  */
 function decodeEscapedText(input: string): string {
   let value = input;
@@ -52,7 +52,7 @@ function decodeEscapedText(input: string): string {
 }
 
 /**
- * 规范化翻译文本，避免显示转义残留。
+ * 瑙勮寖鍖栫炕璇戞枃鏈紝閬垮厤鏄剧ず杞箟娈嬬暀銆?
  */
 function normalizeTranslatedText(input: string): string {
   if (!input) return "";
@@ -60,7 +60,7 @@ function normalizeTranslatedText(input: string): string {
 }
 
 /**
- * 判断是否为低端设备（useLayoutEffect 降级为 useEffect，避免阻塞绘制）。
+ * 鍒ゆ柇鏄惁涓轰綆绔澶囷紙useLayoutEffect 闄嶇骇涓?useEffect锛岄伩鍏嶉樆濉炵粯鍒讹級銆?
  */
 function isLowEndDevice(): boolean {
   if (typeof navigator === "undefined") return false;
@@ -71,7 +71,7 @@ function isLowEndDevice(): boolean {
 }
 
 /**
- * 将人工词典 TH_UI_DICT 注入内存缓存，优先于接口翻译。
+ * 灏嗕汉宸ヨ瘝鍏?TH_UI_DICT 娉ㄥ叆鍐呭瓨缂撳瓨锛屼紭鍏堜簬鎺ュ彛缈昏瘧銆?
  */
 function seedThaiDictionary(): void {
   Object.entries(TH_UI_DICT).forEach(([k, v]) => {
@@ -82,7 +82,7 @@ function seedThaiDictionary(): void {
 }
 
 /**
- * 从 localStorage 恢复历史泰语翻译缓存。
+ * 浠?localStorage 鎭㈠鍘嗗彶娉拌缈昏瘧缂撳瓨銆?
  */
 function loadCache(): void {
   try {
@@ -96,7 +96,7 @@ function loadCache(): void {
 }
 
 /**
- * 将内存缓存全量写入 localStorage。
+ * 灏嗗唴瀛樼紦瀛樺叏閲忓啓鍏?localStorage銆?
  */
 function persistCache(): void {
   try {
@@ -111,7 +111,7 @@ function persistCache(): void {
 }
 
 /**
- * 防抖写入 localStorage，避免接口批量返回时连续 stringify 阻塞主线程。
+ * 闃叉姈鍐欏叆 localStorage锛岄伩鍏嶆帴鍙ｆ壒閲忚繑鍥炴椂杩炵画 stringify 闃诲涓荤嚎绋嬨€?
  */
 function schedulePersistCache(): void {
   if (persistCacheTimer !== null) window.clearTimeout(persistCacheTimer);
@@ -122,7 +122,7 @@ function schedulePersistCache(): void {
 }
 
 /**
- * 生产环境且用户上次选择泰语时，在首屏前预热缓存以减少闪烁。
+ * 鐢熶骇鐜涓旂敤鎴蜂笂娆￠€夋嫨娉拌鏃讹紝鍦ㄩ灞忓墠棰勭儹缂撳瓨浠ュ噺灏戦棯鐑併€?
  */
 function bootstrapThaiCacheIfNeeded(): void {
   if (typeof window === "undefined") return;
@@ -136,7 +136,7 @@ function bootstrapThaiCacheIfNeeded(): void {
 bootstrapThaiCacheIfNeeded();
 
 /**
- * 将接口返回的译文合并进 i18next 运行时资源与持久化词库。
+ * 灏嗘帴鍙ｈ繑鍥炵殑璇戞枃鍚堝苟杩?i18next 杩愯鏃惰祫婧愪笌鎸佷箙鍖栬瘝搴撱€?
  */
 function mergeAutoTranslationsIntoI18nBundle(patch: Record<string, string>): void {
   const cleaned: Record<string, string> = {};
@@ -150,7 +150,7 @@ function mergeAutoTranslationsIntoI18nBundle(patch: Record<string, string>): voi
 }
 
 /**
- * 调用后端批量翻译接口（仅用于缓存未命中的中文片段）。
+ * 璋冪敤鍚庣鎵归噺缈昏瘧鎺ュ彛锛堜粎鐢ㄤ簬缂撳瓨鏈懡涓殑涓枃鐗囨锛夈€?
  */
 async function requestBatchTranslate(texts: string[], targetLang: "th"): Promise<string[]> {
   const base = (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin;
@@ -160,7 +160,7 @@ async function requestBatchTranslate(texts: string[], targetLang: "th"): Promise
     body: JSON.stringify({ texts, targetLang }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data.message as string) || "翻译失败");
+  if (!res.ok) throw new Error((data.message as string) || "缈昏瘧澶辫触");
   return ((data.translated || []) as string[]).map((t) => normalizeTranslatedText(typeof t === "string" ? t : ""));
 }
 
@@ -169,8 +169,8 @@ function shouldSkipElementTag(tag: string): boolean {
 }
 
 /**
- * 深度遍历节点树：包含 open Shadow DOM 与同源 iframe body。
- * Canvas 内已绘制的像素文本无法恢复，仅可翻译其可访问属性（如 aria-label）。
+ * 娣卞害閬嶅巻鑺傜偣鏍戯細鍖呭惈 open Shadow DOM 涓庡悓婧?iframe body銆?
+ * Canvas 鍐呭凡缁樺埗鐨勫儚绱犳枃鏈棤娉曟仮澶嶏紝浠呭彲缈昏瘧鍏跺彲璁块棶灞炴€э紙濡?aria-label锛夈€?
  */
 function walkUiTree(node: Node, visit: (n: Node) => void): void {
   visit(node);
@@ -183,14 +183,14 @@ function walkUiTree(node: Node, visit: (n: Node) => void): void {
         const b = node.contentDocument?.body;
         if (b) walkUiTree(b, visit);
       } catch {
-        // 跨域 iframe 不可访问
+        // 璺ㄥ煙 iframe 涓嶅彲璁块棶
       }
     }
   }
 }
 
 /**
- * 收集所有可见文本节点（乱码兜底用，不跳过 data-no-auto-translate）。
+ * 鏀堕泦鎵€鏈夊彲瑙佹枃鏈妭鐐癸紙涔辩爜鍏滃簳鐢紝涓嶈烦杩?data-no-auto-translate锛夈€?
  */
 function collectAllTextNodesDeep(root: HTMLElement): Text[] {
   const list: Text[] = [];
@@ -206,7 +206,7 @@ function collectAllTextNodesDeep(root: HTMLElement): Text[] {
 }
 
 /**
- * 收集需自动翻译的文本节点（排除 data-no-auto-translate 子树）。
+ * 鏀堕泦闇€鑷姩缈昏瘧鐨勬枃鏈妭鐐癸紙鎺掗櫎 data-no-auto-translate 瀛愭爲锛夈€?
  */
 function collectTextNodesDeep(root: HTMLElement): Text[] {
   const list: Text[] = [];
@@ -223,7 +223,7 @@ function collectTextNodesDeep(root: HTMLElement): Text[] {
 }
 
 /**
- * 收集 placeholder / title / aria-label / alt 等待翻译的节点任务（深度）。
+ * 鏀堕泦 placeholder / title / aria-label / alt 绛夊緟缈昏瘧鐨勮妭鐐逛换鍔★紙娣卞害锛夈€?
  */
 function collectAttrJobsDeep(root: HTMLElement): Array<{ el: Element; attr: AttrName }> {
   const result: Array<{ el: Element; attr: AttrName }> = [];
@@ -244,7 +244,7 @@ function collectAttrJobsDeep(root: HTMLElement): Array<{ el: Element; attr: Attr
 }
 
 /**
- * 读取元素上指定可翻译属性的当前值。
+ * 璇诲彇鍏冪礌涓婃寚瀹氬彲缈昏瘧灞炴€х殑褰撳墠鍊笺€?
  */
 function readAttr(el: Element, attr: AttrName): string {
   if (attr === "placeholder") {
@@ -255,7 +255,7 @@ function readAttr(el: Element, attr: AttrName): string {
 }
 
 /**
- * 写入元素上指定可翻译属性。
+ * 鍐欏叆鍏冪礌涓婃寚瀹氬彲缈昏瘧灞炴€с€?
  */
 function writeAttr(el: Element, attr: AttrName, value: string): void {
   if (attr === "placeholder") {
@@ -266,7 +266,7 @@ function writeAttr(el: Element, attr: AttrName, value: string): void {
 }
 
 /**
- * 首次访问时缓存该属性的中文原文，供还原或作为翻译 key。
+ * 棣栨璁块棶鏃剁紦瀛樿灞炴€х殑涓枃鍘熸枃锛屼緵杩樺師鎴栦綔涓虹炕璇?key銆?
  */
 function ensureAttrOriginal(el: Element, attr: AttrName): string {
   let bag = originalAttrByEl.get(el);
@@ -281,14 +281,14 @@ function ensureAttrOriginal(el: Element, attr: AttrName): string {
 }
 
 /**
- * 判断文本是否包含 CJK 字符，避免误翻译英文/数字/ID。
+ * 鍒ゆ柇鏂囨湰鏄惁鍖呭惈 CJK 瀛楃锛岄伩鍏嶈缈昏瘧鑻辨枃/鏁板瓧/ID銆?
  */
 function hasCjk(text: string): boolean {
   return /[\u3400-\u4dbf\u4e00-\u9fff]/.test(text);
 }
 
 /**
- * 在保持首尾空白的前提下，用译文替换 trim 后的 key 对应片段。
+ * 鍦ㄤ繚鎸侀灏剧┖鐧界殑鍓嶆彁涓嬶紝鐢ㄨ瘧鏂囨浛鎹?trim 鍚庣殑 key 瀵瑰簲鐗囨銆?
  */
 function applyTranslatedToString(full: string, keyTrim: string, target: string): string {
   if (!keyTrim) return full;
@@ -298,7 +298,7 @@ function applyTranslatedToString(full: string, keyTrim: string, target: string):
 }
 
 /**
- * 泰语：仅用内存缓存同步更新 DOM，不等待网络（点击切换后立即生效）。
+ * 娉拌锛氫粎鐢ㄥ唴瀛樼紦瀛樺悓姝ユ洿鏂?DOM锛屼笉绛夊緟缃戠粶锛堢偣鍑诲垏鎹㈠悗绔嬪嵆鐢熸晥锛夈€?
  */
 function applyThaiSync(root: HTMLElement): void {
   seedThaiDictionary();
@@ -322,7 +322,7 @@ function applyThaiSync(root: HTMLElement): void {
 }
 
 /**
- * 中文：从 WeakMap 还原曾翻译过的文本节点与属性。
+ * 涓枃锛氫粠 WeakMap 杩樺師鏇剧炕璇戣繃鐨勬枃鏈妭鐐逛笌灞炴€с€?
  */
 function applyZh(root: HTMLElement): void {
   for (const node of collectAllTextNodesDeep(root)) {
@@ -337,7 +337,7 @@ function applyZh(root: HTMLElement): void {
 }
 
 /**
- * 全局清洗转义残留：将 \\uXXXX / uXXXX / %uXXXX 文本还原。
+ * 鍏ㄥ眬娓呮礂杞箟娈嬬暀锛氬皢 \\uXXXX / uXXXX / %uXXXX 鏂囨湰杩樺師銆?
  */
 function cleanupEscapedFragments(root: HTMLElement): void {
   for (const node of collectAllTextNodesDeep(root)) {
@@ -360,7 +360,7 @@ function cleanupEscapedFragments(root: HTMLElement): void {
 }
 
 /**
- * 汇总尚未命中缓存的中文 key（文本 + 属性），并按路由/节点优先级排序后返回。
+ * 姹囨€诲皻鏈懡涓紦瀛樼殑涓枃 key锛堟枃鏈?+ 灞炴€э級锛屽苟鎸夎矾鐢?鑺傜偣浼樺厛绾ф帓搴忓悗杩斿洖銆?
  */
 function collectPendingChineseKeys(root: HTMLElement, pathname: string): string[] {
   const pathDefault = defaultPathTranslatePriority(pathname);
@@ -531,12 +531,11 @@ function UiAutoTranslator({ lang }: { lang: Lang }) {
 }
 
 /**
- * 语言上下文 Provider：提供中文/泰语切换能力，并与 i18next 运行时语言同步。
+ * 璇█涓婁笅鏂?Provider锛氭彁渚涗腑鏂?娉拌鍒囨崲鑳藉姏锛屽苟涓?i18next 杩愯鏃惰瑷€鍚屾銆?
  */
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
-    const raw = localStorage.getItem("influencer_app_lang");
-    return raw === "th" ? "th" : "zh";
+    const raw = localStorage.getItem("influencer_app_lang");`r`n    if (raw === "th" || raw === "zh") return raw;`r`n    const role = getStoredUser()?.role;`r`n    // 达人端首次进入默认泰语；中文需用户主动切换。`r`n    return role === "influencer" ? "th" : "zh";
   });
 
   useEffect(() => {
@@ -559,10 +558,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * 使用全局语言上下文。
+ * 浣跨敤鍏ㄥ眬璇█涓婁笅鏂囥€?
  */
 export function useLanguage(): LangContextValue {
   const ctx = useContext(LangContext);
   if (!ctx) throw new Error("useLanguage must be used inside LanguageProvider");
   return ctx;
 }
+

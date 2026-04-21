@@ -71,7 +71,16 @@ export async function getClientCollabMyApplies() {
 
 }
 
-export async function applyClientCollabPool(demandId: number, note?: string) {
+export async function applyClientCollabPool(
+  demandId: number,
+  payload?: {
+    note?: string;
+    merchant_shop_name?: string;
+    merchant_product_type?: string;
+    merchant_sales_summary?: string;
+    merchant_shop_link?: string;
+  },
+) {
 
   const res = await fetchWithAuth(`/api/matching/client/collab-pool/${demandId}/apply`, {
 
@@ -79,7 +88,7 @@ export async function applyClientCollabPool(demandId: number, note?: string) {
 
     headers: { "Content-Type": "application/json; charset=utf-8" },
 
-    body: JSON.stringify({ note }),
+    body: JSON.stringify(payload || {}),
 
   });
 

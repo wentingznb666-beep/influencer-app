@@ -285,7 +285,7 @@ router.get("/influencer/matching-task-hall", async (req: AuthRequest, res: Respo
       `SELECT mo.id, mo.order_no, mo.title, mo.task_amount, mo.status, mo.match_status, mo.created_at,
               u.username AS client_username, COALESCE(NULLIF(u.display_name,''),u.username) AS client_name
          FROM client_market_orders mo
-         JOIN users u ON u.id=mo.client_id
+         JOIN users u ON u.id=mo.client_id`n         LEFT JOIN matching_order_details md ON md.order_id=mo.id
         WHERE mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1 AND mo.status='open' AND COALESCE(mo.allow_apply,1)=1
         ORDER BY mo.id DESC`
     );
@@ -337,7 +337,7 @@ router.get("/influencer/my-matching-applies", async (req: AuthRequest, res: Resp
               u.username AS client_username
          FROM market_order_applications a
          JOIN client_market_orders mo ON mo.id=a.market_order_id
-         JOIN users u ON u.id=mo.client_id
+         JOIN users u ON u.id=mo.client_id`n         LEFT JOIN matching_order_details md ON md.order_id=mo.id
         WHERE a.influencer_id=$1 AND mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1
         ORDER BY a.id DESC`,
       [req.user.userId]
@@ -616,4 +616,5 @@ router.post("/messages/:id/read", async (req: AuthRequest, res: Response) => {
 });
 
 export default router;
+
 

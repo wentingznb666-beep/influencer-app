@@ -14,6 +14,10 @@ type MyApplyItem = {
   expected_points?: number | string;
   influencer_username?: string;
   influencer_name?: string;
+  merchant_shop_name?: string;
+  merchant_product_type?: string;
+  merchant_sales_summary?: string;
+  merchant_shop_link?: string;
 };
 
 /** 商家端：查看自己在模式二的报名记录与状态。 */

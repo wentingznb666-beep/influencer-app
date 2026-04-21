@@ -22,6 +22,10 @@ type DemandApplication = {
   client_username?: string;
   client_name?: string;
   note?: string;
+  merchant_shop_name?: string;
+  merchant_product_type?: string;
+  merchant_sales_summary?: string;
+  merchant_shop_link?: string;
 };
 
 /** 尝试解析需求详情 JSON。 */

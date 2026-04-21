@@ -774,6 +774,14 @@ const FULL_INIT_SQL = `
 
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'selected', 'rejected')),
 
+    merchant_shop_name TEXT,
+
+    merchant_product_type TEXT,
+
+    merchant_sales_summary TEXT,
+
+    merchant_shop_link TEXT,
+
     note TEXT,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -788,7 +796,13 @@ const FULL_INIT_SQL = `
 
   CREATE INDEX IF NOT EXISTS idx_influencer_demand_applications_client ON influencer_demand_applications(client_id, created_at DESC);
 
+  ALTER TABLE influencer_demand_applications ADD COLUMN IF NOT EXISTS merchant_shop_name TEXT;
 
+  ALTER TABLE influencer_demand_applications ADD COLUMN IF NOT EXISTS merchant_product_type TEXT;
+
+  ALTER TABLE influencer_demand_applications ADD COLUMN IF NOT EXISTS merchant_sales_summary TEXT;
+
+  ALTER TABLE influencer_demand_applications ADD COLUMN IF NOT EXISTS merchant_shop_link TEXT;
 
   CREATE TABLE IF NOT EXISTS system_messages (
 

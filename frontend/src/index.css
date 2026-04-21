@@ -899,6 +899,16 @@ textarea {
 .xt-sidebar-link__txt {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.xt-sidebar-link__hint {
+  font-size: 11px;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.66);
+  font-weight: 500;
 }
 
 .xt-sidebar-link__lock {
@@ -1000,4 +1010,5 @@ textarea {
   color: #b91c1c;
   font-weight: 600;
 }
+
 
