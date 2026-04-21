@@ -7,24 +7,35 @@ import { getStoredUser } from "./authApi";
 
 
 export const BASE_ADMIN_NAV = [
-  /** ???????? */
-  { to: "/admin/showcase-influencers", label: "influencer", icon: "?", group: "points" as const },
-  { to: "/admin/showcase-content-creators", label: "content", icon: "??", group: "points" as const },
-  { to: "/admin/orders", label: "????", icon: "??", group: "points" as const },
-  { to: "/admin/market-orders", label: "????", icon: "??", group: "points" as const },
-  { to: "/admin/skus", label: "Sku", icon: "??", group: "points" as const },
-  { to: "/admin/points", label: "?????", icon: "??", group: "points" as const },
-  { to: "/admin/settlement", label: "????", icon: "??", group: "points" as const },
-  { to: "/admin/withdrawals", label: "????", icon: "??", group: "points" as const },
-  { to: "/admin/users", label: "????", icon: "??", group: "points" as const },
 
-  /** ???????? */
-  { to: "/admin/merchant-members", label: "??????", icon: "???", group: "match" as const },
-  { to: "/admin/influencer-permissions", label: "????????", icon: "?", group: "match" as const },
+  { to: "/admin/influencers", label: "达人管理" },
 
-  /** ?????? */
-  { to: "/admin/risk", label: "?????", icon: "??", group: "common" as const },
-  { to: "/admin/op-logs", label: "??????", icon: "??", group: "common" as const },
+  { to: "/admin/models", label: "模特展示" },
+
+  { to: "/admin/showcase-influencers", label: "Influencer" },
+
+  { to: "/admin/showcase-content-creators", label: "Content Creator" },
+
+  { to: "/admin/orders", label: "商家订单" },
+
+  { to: "/admin/market-orders", label: "达人领单" },
+
+  { to: "/admin/skus", label: "SKU 列表" },
+
+  { to: "/admin/points", label: "积分与结算" },
+
+  { to: "/admin/settlement", label: "结算打款" },
+
+  { to: "/admin/withdrawals", label: "提现管理" },
+
+  { to: "/admin/risk", label: "防删与风控" },
+
+  { to: "/admin/users", label: "账号管理" },
+
+  { to: "/admin/merchant-members", label: "会员与保证金" },
+  { to: "/admin/influencer-permissions", label: "达人撮合权限审核" },
+    { to: "/admin/op-logs", label: "我的操作日志" },
+
 ];
 
 

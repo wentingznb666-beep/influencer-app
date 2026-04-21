@@ -1,158 +1,437 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import {
-  createMatchingOrder,
-  getClientMerchantInfoTemplate,
-  getMatchingOrders,
-  saveClientMerchantInfoTemplate,
-  uploadMatchingOrderAssets,
-} from "../clientApi";
+﻿import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { createMatchingOrder, getMatchingOrders, uploadMatchingOrderAssets } from "../clientApi";
 
 type MatchingFormState = {
   task_name: string;
+  task_type: "短视频" | "图文" | "直播" | "探店";
+  industry: "美妆" | "服饰" | "美食" | "家居" | "其他";
   recruit_count: string;
+  start_date: string;
+  order_deadline: string;
+  publish_deadline: string;
   product_name: string;
+  merchant_shop_name: string;
+  merchant_product_type: string;
+  merchant_sales_summary: string;
+  merchant_shop_link: string;
   selling_points: string;
+  content_form: "短视频" | "图文笔记" | "直播";
+  video_duration: string;
+  copy_requirement: string;
+  must_elements: string[];
+  forbidden_content: string;
+  provide_sample: "是" | "否";
+  sample_count: string;
+  sample_recycle: "是" | "否";
+  freight_side: "商家承担" | "达人承担";
+  standard_publish_on_time: boolean;
+  standard_clear_no_violation: boolean;
+  keep_days: string;
+  revise_times: string;
+  unqualified_action: "驳回修改" | "取消合作" | "扣除佣金";
+  rights_granted: boolean;
+  no_cheat: boolean;
+  violation_action: "取消佣金并拉黑" | "取消合作" | "警告";
   unit_commission: string;
 };
 
 const defaultForm: MatchingFormState = {
   task_name: "",
+  task_type: "短视频",
+  industry: "美妆",
   recruit_count: "1",
+  start_date: "",
+  order_deadline: "",
+  publish_deadline: "",
   product_name: "",
+  merchant_shop_name: "",
+  merchant_product_type: "",
+  merchant_sales_summary: "",
+  merchant_shop_link: "",
   selling_points: "",
+  content_form: "短视频",
+  video_duration: "",
+  copy_requirement: "",
+  must_elements: [],
+  forbidden_content: "",
+  provide_sample: "是",
+  sample_count: "1",
+  sample_recycle: "否",
+  freight_side: "商家承担",
+  standard_publish_on_time: true,
+  standard_clear_no_violation: true,
+  keep_days: "30",
+  revise_times: "1",
+  unqualified_action: "驳回修改",
+  rights_granted: true,
+  no_cheat: true,
+  violation_action: "取消佣金并拉黑",
   unit_commission: "",
 };
 
-/** ???????? */
+/** 判断是否是图片 URL。 */
+function isImageUrl(url: string): boolean {
+  return /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
+}
+
+/** 判断是否是视频 URL。 */
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|mov|m4v|avi)(\?|$)/i.test(url);
+}
+
+/** 商家端撮合中心：弹窗发布撮合订单。 */
 export default function MatchingCenterPage() {
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [form, setForm] = useState<MatchingFormState>(defaultForm);
-  const [merchantTemplate, setMerchantTemplate] = useState({ shop_name: "", product_type: "", shop_link: "", shop_rating: "", user_reviews: "" });
-  const [templateSaving, setTemplateSaving] = useState(false);
 
-  /** ????????? */
+  /** 读取撮合订单列表。 */
   const loadOrders = async () => {
     const ret = await getMatchingOrders();
     setOrders(Array.isArray(ret?.list) ? ret.list : []);
   };
 
-  /** ????????? */
-  const loadMerchantTemplate = async () => {
-    const ret = await getClientMerchantInfoTemplate();
-    const profile = ret?.profile || {};
-    setMerchantTemplate({
-      shop_name: String(profile.shop_name || ""),
-      product_type: String(profile.product_type || ""),
-      shop_link: String(profile.shop_link || ""),
-      shop_rating: String(profile.shop_rating || ""),
-      user_reviews: String(profile.user_reviews || ""),
+  useEffect(() => {
+    void loadOrders().catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
+  }, []);
+
+  /** 字段通用更新器。 */
+  const setField = <K extends keyof MatchingFormState>(key: K, value: MatchingFormState[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  /** 必须包含元素多选切换。 */
+  const toggleMustElement = (value: string) => {
+    setForm((prev) => {
+      const set = new Set(prev.must_elements);
+      if (set.has(value)) set.delete(value);
+      else set.add(value);
+      return { ...prev, must_elements: Array.from(set) };
     });
   };
 
-  useEffect(() => {
-    void Promise.all([loadOrders(), loadMerchantTemplate()]).catch((e) => setError(e instanceof Error ? e.message : "????"));
-  }, []);
+  /** 校验发布表单并返回首个错误。 */
+  const validateForm = (): string | null => {
+    if (!form.task_name.trim()) return "请完善任务名称信息";
+    if (!form.recruit_count || Number(form.recruit_count) < 1) return "请完善招募达人数量信息";
+    if (!form.start_date) return "请完善任务开始时间信息";
+    if (!form.order_deadline) return "请完善接单截止时间信息";
+    if (!form.publish_deadline) return "请完善内容发布截止时间信息";
+    if (!form.product_name.trim()) return "请完善推广产品/品牌名称信息";
+    if (!form.selling_points.trim()) return "请完善产品核心卖点信息";
+    if (!form.merchant_shop_name.trim()) return "请完善商店名称信息";
+    if (!form.merchant_product_type.trim()) return "请完善商家销售产品类型信息";
+    if (!form.merchant_sales_summary.trim()) return "请完善店铺销售额情况信息";
+    if (!form.merchant_shop_link.trim()) return "请完善店铺链接信息";
+    if (!form.unit_commission || Number(form.unit_commission) <= 0) return "请完善单条佣金信息";
+    if (form.provide_sample === "是" && (!form.sample_count || Number(form.sample_count) < 1)) return "请完善样品数量信息";
+    if (!form.keep_days || Number(form.keep_days) < 1) return "请完善内容保留天数信息";
+    if (form.must_elements.length === 0) return "请完善必须包含元素信息";
+    return null;
+  };
 
-  const merchantTemplateComplete =
-    merchantTemplate.shop_name.trim() && merchantTemplate.product_type.trim() && merchantTemplate.shop_link.trim() && merchantTemplate.shop_rating.trim() && merchantTemplate.user_reviews.trim();
-
-  /** ????????? */
-  const saveTemplate = async () => {
-    if (!merchantTemplateComplete) {
-      setError("???????????");
+  /** 上传图片/视频附件。 */
+  const doUpload = async () => {
+    if (!uploadFiles.length) {
+      setError("请先选择文件");
       return;
     }
-    setTemplateSaving(true);
+    setUploading(true);
+    setError(null);
+    setMsg("");
     try {
-      await saveClientMerchantInfoTemplate({ ...merchantTemplate });
-      setMsg("?????????");
+      const ret = await uploadMatchingOrderAssets(uploadFiles);
+      const urls = Array.isArray(ret?.urls) ? ret.urls : [];
+      setUploadedUrls((prev) => [...prev, ...urls]);
+      setUploadFiles([]);
+      setMsg("上传成功");
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "????";
-      setError(msg.includes("MERCHANT_TEMPLATE_REQUIRED") ? "??????????????" : msg);
+      setError(e instanceof Error ? e.message : "上传失败");
     } finally {
-      setTemplateSaving(false);
+      setUploading(false);
     }
   };
 
-  /** ????? */
-  const doUpload = async () => {
-    if (!uploadFiles.length) return;
-    const ret = await uploadMatchingOrderAssets(uploadFiles);
-    setUploadedUrls((prev) => [...prev, ...(Array.isArray(ret?.urls) ? ret.urls : [])]);
+  /** 关闭发布弹窗并重置临时状态。 */
+  const closeModal = () => {
+    setShowModal(false);
+    setForm(defaultForm);
+    setUploadedUrls([]);
+    setUploadFiles([]);
   };
 
-  /** ??????? */
+  /** 提交撮合订单。 */
   const onCreate = async (e: FormEvent) => {
     e.preventDefault();
-    if (!merchantTemplateComplete) {
-      setError("?????????????");
+    setError(null);
+    setMsg("");
+
+    const verifyError = validateForm();
+    if (verifyError) {
+      setError(verifyError);
       return;
     }
-    if (!form.task_name.trim() || !form.product_name.trim() || !form.selling_points.trim() || Number(form.unit_commission) <= 0) {
-      setError("?????????");
-      return;
-    }
+
     setPublishing(true);
     try {
+      const detail = {
+        task_name: form.task_name.trim(),
+        task_type: form.task_type,
+        industry: form.industry,
+        recruit_count: Number(form.recruit_count),
+        start_date: form.start_date,
+        order_deadline: form.order_deadline,
+        publish_deadline: form.publish_deadline,
+        product_name: form.product_name.trim(),
+        merchant_shop_name: form.merchant_shop_name.trim(),
+        merchant_product_type: form.merchant_product_type.trim(),
+        merchant_sales_summary: form.merchant_sales_summary.trim(),
+        merchant_shop_link: form.merchant_shop_link.trim(),
+        selling_points: form.selling_points.trim(),
+        content_form: form.content_form,
+        video_duration: form.video_duration.trim(),
+        copy_requirement: form.copy_requirement.trim(),
+        must_elements: form.must_elements,
+        forbidden_content: form.forbidden_content.trim(),
+        provide_sample: form.provide_sample,
+        sample_count: form.provide_sample === "是" ? Number(form.sample_count || 0) : 0,
+        sample_recycle: form.sample_recycle,
+        freight_side: form.freight_side,
+        standard_publish_on_time: form.standard_publish_on_time,
+        standard_clear_no_violation: form.standard_clear_no_violation,
+        keep_days: Number(form.keep_days),
+        revise_times: Number(form.revise_times || 0),
+        unqualified_action: form.unqualified_action,
+        rights_granted: form.rights_granted,
+        no_cheat: form.no_cheat,
+        violation_action: form.violation_action,
+      };
+
       await createMatchingOrder({
         title: form.task_name.trim(),
         task_amount: Number(form.unit_commission),
         requirement: form.selling_points.trim(),
         allow_apply: true,
-        detail: {
-          task_name: form.task_name.trim(),
-          recruit_count: Number(form.recruit_count || 1),
-          product_name: form.product_name.trim(),
-          selling_points: form.selling_points.trim(),
-        },
+        detail,
         attachments: uploadedUrls,
       });
-      setShowModal(false);
-      setForm(defaultForm);
-      setUploadedUrls([]);
+
       await loadOrders();
-      setMsg("????");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "????";
-      setError(msg.includes("MERCHANT_TEMPLATE_REQUIRED") ? "??????????????" : msg);
+      closeModal();
+      setMsg("发布成功");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "发布失败");
     } finally {
       setPublishing(false);
     }
   };
 
+  /** 附件预览列表。 */
   const previews = useMemo(() => uploadedUrls, [uploadedUrls]);
 
-  return <div style={{ background: "#fff", borderRadius: 16, padding: 20 }}>
-    <h2>????</h2>
-    <button type="button" className="xt-accent-btn" onClick={() => setShowModal(true)}>??????</button>
-    {showModal ? <div>
-      <h3>????????</h3>
-      <input value={merchantTemplate.shop_name} onChange={(e) => setMerchantTemplate((v) => ({ ...v, shop_name: e.target.value }))} placeholder="????" />
-      <input value={merchantTemplate.product_type} onChange={(e) => setMerchantTemplate((v) => ({ ...v, product_type: e.target.value }))} placeholder="??????" />
-      <input value={merchantTemplate.shop_link} onChange={(e) => setMerchantTemplate((v) => ({ ...v, shop_link: e.target.value }))} placeholder="????" />
-      <input value={merchantTemplate.shop_rating} onChange={(e) => setMerchantTemplate((v) => ({ ...v, shop_rating: e.target.value }))} placeholder="????" />
-      <textarea value={merchantTemplate.user_reviews} onChange={(e) => setMerchantTemplate((v) => ({ ...v, user_reviews: e.target.value }))} placeholder="????" />
-      <button type="button" className="xt-accent-btn" onClick={() => void saveTemplate()} disabled={!merchantTemplateComplete || templateSaving}>{templateSaving ? "???..." : "????????"}</button>
-      <form onSubmit={onCreate}>
-        <input value={form.task_name} onChange={(e) => setForm((v) => ({ ...v, task_name: e.target.value }))} placeholder="????" />
-        <input value={form.recruit_count} onChange={(e) => setForm((v) => ({ ...v, recruit_count: e.target.value }))} placeholder="????" />
-        <input value={form.product_name} onChange={(e) => setForm((v) => ({ ...v, product_name: e.target.value }))} placeholder="????" />
-        <textarea value={form.selling_points} onChange={(e) => setForm((v) => ({ ...v, selling_points: e.target.value }))} placeholder="????" />
-        <input value={form.unit_commission} onChange={(e) => setForm((v) => ({ ...v, unit_commission: e.target.value }))} placeholder="??" />
-        <input type="file" multiple onChange={(e) => setUploadFiles(Array.from(e.target.files || []))} />
-        <button type="button" onClick={() => void doUpload()}>????</button>
-        {previews.map((u) => <div key={u}><a href={u} target="_blank" rel="noreferrer">????</a></div>)}
-        <button type="submit" className="xt-accent-btn" disabled={publishing || !merchantTemplateComplete}>{publishing ? "???..." : "????"}</button>
-      </form>
-    </div> : null}
-    {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
-    {msg ? <p style={{ color: "#166534" }}>{msg}</p> : null}
-    {orders.map((it) => <div key={it.id}>{it.order_no}?{it.title}</div>)}
-  </div>;
+  return (
+    <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <h2 style={{ margin: 0 }}>撮合中心</h2>
+        <button type="button" onClick={() => setShowModal(true)} style={{ height: 38, fontWeight: 700 }}>
+          发布撮合订单
+        </button>
+      </div>
+
+      {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
+      {msg && <p style={{ color: "#166534" }}>{msg}</p>}
+
+      <div style={{ marginTop: 14 }}>
+        <h3 style={{ marginBottom: 8 }}>已发布撮合订单</h3>
+        {orders.length === 0 ? <p style={{ color: "#64748b" }}>暂无订单</p> : null}
+        {orders.map((it) => (
+          <div key={it.id} style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 10, marginBottom: 8 }}>
+            <div>{it.order_no}｜{it.title}</div>
+            <div style={{ color: "#475569", marginTop: 4 }}>金额：{it.task_amount}｜状态：{it.status}</div>
+          </div>
+        ))}
+      </div>
+
+      {showModal ? (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 1000 }}>
+          <div style={{ width: "min(920px, 94vw)", maxHeight: "90vh", overflowY: "auto", background: "#fff", borderRadius: 16, padding: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0 }}>发布撮合订单</h3>
+              <button type="button" onClick={closeModal}>关闭</button>
+            </div>
+
+            <form onSubmit={onCreate} style={{ display: "grid", gap: 14, marginTop: 12 }}>
+              <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+                <h4 style={{ marginTop: 0 }}>1. 任务基础信息</h4>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <label htmlFor="task_name">任务名称 <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input id="task_name" value={form.task_name} onChange={(e) => setField("task_name", e.target.value)} />
+
+                  <label htmlFor="task_type">任务类型</label>
+                  <select id="task_type" value={form.task_type} onChange={(e) => setField("task_type", e.target.value as MatchingFormState["task_type"])}>
+                    <option value="短视频">短视频</option><option value="图文">图文</option><option value="直播">直播</option><option value="探店">探店</option>
+                  </select>
+
+                  <label htmlFor="industry">所属行业</label>
+                  <select id="industry" value={form.industry} onChange={(e) => setField("industry", e.target.value as MatchingFormState["industry"])}>
+                    <option value="美妆">美妆</option><option value="服饰">服饰</option><option value="美食">美食</option><option value="家居">家居</option><option value="其他">其他</option>
+                  </select>
+
+                  <label htmlFor="recruit_count">招募达人数量 <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input id="recruit_count" type="number" min={1} value={form.recruit_count} onChange={(e) => setField("recruit_count", e.target.value)} />
+
+                  <label htmlFor="start_date">任务开始时间 <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input id="start_date" type="date" value={form.start_date} onChange={(e) => setField("start_date", e.target.value)} />
+
+                  <label htmlFor="order_deadline">接单截止时间 <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input id="order_deadline" type="date" value={form.order_deadline} onChange={(e) => setField("order_deadline", e.target.value)} />
+
+                  <label htmlFor="publish_deadline">内容发布截止时间 <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input id="publish_deadline" type="date" value={form.publish_deadline} onChange={(e) => setField("publish_deadline", e.target.value)} />
+                </div>
+              </section>
+
+              <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+                <h4 style={{ marginTop: 0 }}>2. 合作内容要求</h4>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <label htmlFor="product_name">推广产品/品牌名称 <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input id="product_name" value={form.product_name} onChange={(e) => setField("product_name", e.target.value)} />
+
+                  <label htmlFor="selling_points">产品核心卖点 <span style={{ color: "#dc2626" }}>*</span></label>
+                  <textarea id="selling_points" rows={3} value={form.selling_points} onChange={(e) => setField("selling_points", e.target.value)} />
+
+                  <label htmlFor="merchant_shop_name">商店名称 <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input id="merchant_shop_name" value={form.merchant_shop_name} onChange={(e) => setField("merchant_shop_name", e.target.value)} placeholder="例如：曼谷美妆旗舰店" />
+
+                  <label htmlFor="merchant_product_type">商家销售产品类型 <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input id="merchant_product_type" value={form.merchant_product_type} onChange={(e) => setField("merchant_product_type", e.target.value)} placeholder="例如：美妆护肤、服饰配件" />
+
+                  <label htmlFor="merchant_sales_summary">店铺销售额情况 <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input id="merchant_sales_summary" value={form.merchant_sales_summary} onChange={(e) => setField("merchant_sales_summary", e.target.value)} placeholder="例如：月销售额 150 万泰铢" />
+
+                  <label htmlFor="merchant_shop_link">店铺链接 <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input id="merchant_shop_link" type="url" value={form.merchant_shop_link} onChange={(e) => setField("merchant_shop_link", e.target.value)} placeholder="https://..." />
+
+                  <label htmlFor="content_form">内容形式</label>
+                  <select id="content_form" value={form.content_form} onChange={(e) => setField("content_form", e.target.value as MatchingFormState["content_form"])}>
+                    <option value="短视频">短视频</option><option value="图文笔记">图文笔记</option><option value="直播">直播</option>
+                  </select>
+
+                  <label htmlFor="video_duration">视频时长要求</label>
+                  <input id="video_duration" value={form.video_duration} onChange={(e) => setField("video_duration", e.target.value)} placeholder="例：15s-30s" />
+
+                  <label htmlFor="copy_requirement">文案/标题要求</label>
+                  <textarea id="copy_requirement" rows={3} value={form.copy_requirement} onChange={(e) => setField("copy_requirement", e.target.value)} />
+
+                  <div>
+                    <span>必须包含元素 <span style={{ color: "#dc2626" }}>*</span>：</span>
+                    {["产品出镜", "口播", "字幕", "话题标签"].map((v) => (
+                      <label key={v} style={{ marginLeft: 8 }}>
+                        <input type="checkbox" checked={form.must_elements.includes(v)} onChange={() => toggleMustElement(v)} /> {v}
+                      </label>
+                    ))}
+                  </div>
+
+                  <label htmlFor="forbidden_content">禁止内容</label>
+                  <textarea id="forbidden_content" rows={3} value={form.forbidden_content} onChange={(e) => setField("forbidden_content", e.target.value)} />
+                </div>
+              </section>
+
+              <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+                <h4 style={{ marginTop: 0 }}>3. 样品与发货</h4>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <label htmlFor="provide_sample">是否提供样品</label>
+                  <select id="provide_sample" value={form.provide_sample} onChange={(e) => setField("provide_sample", e.target.value as "是" | "否")}>
+                    <option value="是">是</option><option value="否">否</option>
+                  </select>
+
+                  {form.provide_sample === "是" ? (
+                    <>
+                      <label htmlFor="sample_count">样品数量 <span style={{ color: "#dc2626" }}>*</span></label>
+                      <input id="sample_count" type="number" min={1} value={form.sample_count} onChange={(e) => setField("sample_count", e.target.value)} />
+                    </>
+                  ) : null}
+
+                  <label htmlFor="sample_recycle">样品是否回收</label>
+                  <select id="sample_recycle" value={form.sample_recycle} onChange={(e) => setField("sample_recycle", e.target.value as "是" | "否")}>
+                    <option value="是">是</option><option value="否">否</option>
+                  </select>
+
+                  <label htmlFor="freight_side">运费承担</label>
+                  <select id="freight_side" value={form.freight_side} onChange={(e) => setField("freight_side", e.target.value as "商家承担" | "达人承担")}> 
+                    <option value="商家承担">商家承担</option><option value="达人承担">达人承担</option>
+                  </select>
+                </div>
+              </section>
+
+              <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+                <h4 style={{ marginTop: 0 }}>4. 验收标准</h4>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <label><input type="checkbox" checked={form.standard_publish_on_time} onChange={(e) => setField("standard_publish_on_time", e.target.checked)} /> 内容必须按时发布</label>
+                  <label><input type="checkbox" checked={form.standard_clear_no_violation} onChange={(e) => setField("standard_clear_no_violation", e.target.checked)} /> 画面清晰无水印无违规</label>
+
+                  <label htmlFor="keep_days">内容保留天数 <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input id="keep_days" type="number" min={1} value={form.keep_days} onChange={(e) => setField("keep_days", e.target.value)} />
+
+                  <label htmlFor="revise_times">允许修改次数</label>
+                  <input id="revise_times" type="number" min={0} value={form.revise_times} onChange={(e) => setField("revise_times", e.target.value)} />
+
+                  <label htmlFor="unqualified_action">未达标处理</label>
+                  <select id="unqualified_action" value={form.unqualified_action} onChange={(e) => setField("unqualified_action", e.target.value as MatchingFormState["unqualified_action"])}>
+                    <option value="驳回修改">驳回修改</option><option value="取消合作">取消合作</option><option value="扣除佣金">扣除佣金</option>
+                  </select>
+                </div>
+              </section>
+
+              <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+                <h4 style={{ marginTop: 0 }}>5. 版权与规则</h4>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <label><input type="checkbox" checked={form.rights_granted} onChange={(e) => setField("rights_granted", e.target.checked)} /> 商家拥有使用权、剪辑权、宣传使用权</label>
+                  <label><input type="checkbox" checked={form.no_cheat} onChange={(e) => setField("no_cheat", e.target.checked)} /> 达人不得抄袭搬运刷数据</label>
+
+                  <label htmlFor="violation_action">违规行为处理</label>
+                  <select id="violation_action" value={form.violation_action} onChange={(e) => setField("violation_action", e.target.value as MatchingFormState["violation_action"])}>
+                    <option value="取消佣金并拉黑">取消佣金并拉黑</option><option value="取消合作">取消合作</option><option value="警告">警告</option>
+                  </select>
+
+                  <label htmlFor="unit_commission">单条佣金 <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input id="unit_commission" type="number" min={1} value={form.unit_commission} onChange={(e) => setField("unit_commission", e.target.value)} />
+                </div>
+              </section>
+
+              <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+                <h4 style={{ marginTop: 0 }}>附件上传</h4>
+                <input type="file" multiple accept="image/*,video/*" onChange={(e) => setUploadFiles(Array.from(e.target.files || []))} />
+                <div style={{ marginTop: 8 }}>
+                  <button type="button" onClick={() => void doUpload()} disabled={uploading}>{uploading ? "上传中..." : "上传文件"}</button>
+                </div>
+
+                {previews.length > 0 ? (
+                  <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                    {previews.map((url) => (
+                      <div key={url} style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: 8 }}>
+                        <div style={{ marginBottom: 6 }}><a href={url} target="_blank" rel="noreferrer">查看文件</a></div>
+                        {isImageUrl(url) ? <img src={url} alt="attachment" style={{ maxWidth: 240, maxHeight: 160, borderRadius: 6 }} /> : null}
+                        {isVideoUrl(url) ? <video src={url} controls style={{ maxWidth: 320, maxHeight: 180, borderRadius: 6 }} /> : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+
+              <button type="submit" disabled={publishing} style={{ height: 42, fontWeight: 700 }}>
+                {publishing ? "提交中..." : "确认发布"}
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
 }

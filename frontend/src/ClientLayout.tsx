@@ -6,23 +6,18 @@ import { xtOutlineBtn } from "./brandTheme";
 import { normalizeAccountText } from "./utils/accountText";
 
 const CLIENT_NAV = [
-  /** ???????? */
-  { to: "/client/models", label: "????", icon: "??", group: "points" as const },
-  { to: "/client/showcase-influencers", label: "influencer", icon: "?", group: "points" as const },
-  { to: "/client/showcase-content-creators", label: "content", icon: "??", group: "points" as const },
-  { to: "/client/market-orders", label: "????", icon: "??", group: "points" as const },
-  { to: "/client/skus", label: "Sku", icon: "??", group: "points" as const },
-  { to: "/client/points", label: "????", icon: "??", group: "points" as const },
-
-  /** ???????? */
-  { to: "/client/matching-orders", label: "??????", icon: "??", group: "match" as const },
-  { to: "/client/member-center", label: "????", icon: "??", group: "match" as const },
-  { to: "/client/matching-center", label: "????", icon: "??", group: "match" as const },
-  { to: "/client/collab-pool", label: "??????", icon: "??", group: "match" as const },
-  { to: "/client/collab-my-applies", label: "??????", icon: "??", group: "match" as const },
-
-  /** ?????? */
-  { to: "/client/op-logs", label: "??????", icon: "??", group: "common" as const },
+  { to: "/client/models", label: "模特展示" },
+  { to: "/client/showcase-influencers", label: "Influencer" },
+  { to: "/client/showcase-content-creators", label: "Content Creator" },
+  { to: "/client/market-orders", label: "达人领单" },
+  { to: "/client/matching-orders", label: "我的撮合订单" },
+  { to: "/client/skus", label: "SKU 列表" },
+  { to: "/client/points", label: "积分充值" },
+  { to: "/client/member-center", label: "会员中心" },
+  { to: "/client/matching-center", label: "撮合中心" },
+  { to: "/client/collab-pool", label: "达人需求广场" },
+  { to: "/client/collab-my-applies", label: "我的需求报名" },
+  { to: "/client/op-logs", label: "我的操作日志" },
 ];
 
 /**

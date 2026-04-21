@@ -785,28 +785,3 @@ export async function markSystemMessageRead(messageId: number) {
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '操作失败');
   return res.json();
 }
-
-
-/** ??????????? */
-export async function getClientMerchantInfoTemplate() {
-  const res = await fetchWithAuth('/api/matching/client/merchant-info-template');
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '????');
-  return res.json();
-}
-
-/** ??????????? */
-export async function saveClientMerchantInfoTemplate(body: {
-  shop_name: string;
-  product_type: string;
-  shop_link: string;
-  shop_rating: string;
-  user_reviews: string;
-}) {
-  const res = await fetchWithAuth('/api/matching/client/merchant-info-template', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '????');
-  return res.json();
-}
