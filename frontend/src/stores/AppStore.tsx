@@ -20,12 +20,15 @@ export type AppStoreValue = {
   setRole: Dispatch<SetStateAction<string | null>>;
   merchantTemplate: MerchantTemplateState;
   setMerchantTemplate: Dispatch<SetStateAction<MerchantTemplateState>>;
+  merchantInfoCompleted: boolean;
+  setMerchantInfoCompleted: Dispatch<SetStateAction<boolean>>;
   expandedGroups: ExpandedGroupsState;
   setExpandedGroups: Dispatch<SetStateAction<ExpandedGroupsState>>;
   toggleExpandedGroup: (gid: keyof ExpandedGroupsState) => void;
 };
 
 const MERCHANT_TEMPLATE_KEY = "app:merchantTemplate";
+const MERCHANT_INFO_COMPLETED_KEY = "app:merchantInfoCompleted";
 const EXPANDED_GROUPS_KEY = "app:expandedGroups";
 
 const defaultMerchantTemplate: MerchantTemplateState = {
@@ -68,6 +71,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [merchantTemplate, setMerchantTemplate] = useState<MerchantTemplateState>(() =>
     readJsonState<MerchantTemplateState>(MERCHANT_TEMPLATE_KEY, defaultMerchantTemplate),
   );
+  const [merchantInfoCompleted, setMerchantInfoCompleted] = useState<boolean>(() =>
+    readJsonState<boolean>(MERCHANT_INFO_COMPLETED_KEY, false),
+  );
   const [expandedGroups, setExpandedGroups] = useState<ExpandedGroupsState>(() =>
     readJsonState<ExpandedGroupsState>(EXPANDED_GROUPS_KEY, defaultExpandedGroups),
   );
@@ -95,11 +101,21 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     }
   }, [expandedGroups]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(MERCHANT_INFO_COMPLETED_KEY, JSON.stringify(merchantInfoCompleted));
+    } catch {
+      // ignore
+    }
+  }, [merchantInfoCompleted]);
+
   const value: AppStoreValue = {
     role,
     setRole,
     merchantTemplate,
     setMerchantTemplate,
+    merchantInfoCompleted,
+    setMerchantInfoCompleted,
     expandedGroups,
     setExpandedGroups,
     toggleExpandedGroup,

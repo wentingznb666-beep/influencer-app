@@ -75,7 +75,7 @@ function isVideoUrl(url: string): boolean {
 
 /** 商家端撮合中心：弹窗发布撮合订单。 */
 export default function MatchingCenterPage() {
-  const { merchantTemplate } = useAppStore();
+  const { merchantTemplate, merchantInfoCompleted } = useAppStore();
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -120,18 +120,9 @@ export default function MatchingCenterPage() {
 
   /** 校验发布表单并返回首个错误。 */
   const validateForm = (): string | null => {
-    // 1. 商家信息校验 (Bug 1)
-    const requiredMerchantFields: Array<keyof typeof merchantTemplate> = [
-      "shop_name",
-      "product_type",
-      "sales_summary",
-      "shop_link",
-      "shop_rating",
-      "user_reviews"
-    ];
-    const missingMerchantField = requiredMerchantFields.some(f => !merchantTemplate[f]?.trim());
-    if (missingMerchantField) {
-      return "请完整填写所有必填商家信息后再发布";
+    // 1. 商家信息校验 (持久化状态校验)
+    if (!merchantInfoCompleted) {
+      return "请先完善商家信息模板后再发布撮合订单";
     }
 
     // 2. 任务表单校验

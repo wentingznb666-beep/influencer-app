@@ -9,9 +9,11 @@ import { useAppStore } from "../stores/AppStore";
  * 4. 模拟 Element Plus 校验提示
  */
 export const MerchantInfoForm: React.FC = () => {
-  const { merchantTemplate, setMerchantTemplate } = useAppStore();
+  const { merchantTemplate, setMerchantTemplate, merchantInfoCompleted, setMerchantInfoCompleted } = useAppStore();
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success">("idle");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success">(
+    merchantInfoCompleted ? "success" : "idle"
+  );
   const [isEditing, setIsEditing] = useState(false);
   const [isModified, setIsModified] = useState(false); // 追踪表单是否被修改
 
@@ -26,6 +28,7 @@ export const MerchantInfoForm: React.FC = () => {
   const handleChange = (field: keyof typeof merchantTemplate, value: string) => {
     setMerchantTemplate((prev) => ({ ...prev, [field]: value }));
     setIsModified(true); // 标记已修改
+    setMerchantInfoCompleted(false); // 关键：一旦修改，标记为未完善
     
     // 实时清除错误提示
     if (errors[field] && value.trim()) {
@@ -64,6 +67,7 @@ export const MerchantInfoForm: React.FC = () => {
     setTimeout(() => {
       setSaveStatus("success");
       setIsModified(false); // 保存成功，重置修改标记
+      setMerchantInfoCompleted(true); // 关键：保存成功，更新持久化状态为 true
       setIsEditing(false); // 保存成功后退出编辑模式
       // 注意：这里不再设置 2s 后恢复为 idle，保持 "保存成功" 状态
     }, 600); // 稍微加长 loading 感
