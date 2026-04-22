@@ -552,19 +552,13 @@ export default function ClientMarketOrdersPage() {
 
 
 
-  const statusText: Record<string, string> = {
-
-    pending_selection: "待选达人",
-
-    open: "待领取",
-
-    claimed: "已领取/进行中",
-
-    completed: "已完成",
-
-    cancelled: "已取消",
-
-  };
+  // const statusText: Record<string, string> = {
+  //   pending_selection: "待选达人",
+  //   open: "待领取",
+  //   claimed: "已领取/进行中",
+  //   completed: "已完成",
+  //   cancelled: "已取消",
+  // };
 
 
 
