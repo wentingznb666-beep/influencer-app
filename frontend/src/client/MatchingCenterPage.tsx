@@ -96,7 +96,14 @@ export default function MatchingCenterPage() {
       merchantTemplate.shop_rating.trim() !== "" &&
       merchantTemplate.user_reviews.trim() !== ""
     );
-  }, [merchantTemplate]);
+  }, [
+    merchantTemplate.shop_name,
+    merchantTemplate.product_type,
+    merchantTemplate.sales_summary,
+    merchantTemplate.shop_link,
+    merchantTemplate.shop_rating,
+    merchantTemplate.user_reviews,
+  ]);
 
   /** 读取撮合订单列表。 */
   const loadOrders = async () => {
