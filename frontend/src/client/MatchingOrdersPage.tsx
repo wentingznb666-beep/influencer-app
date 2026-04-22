@@ -35,7 +35,7 @@ export default function MatchingOrdersPage() {
     loadAll().catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
   }, []);
 
-  /** ????????????? */
+  /** 解析 URL 中的 orderId 并自动打开报名面板。 */
   useEffect(() => {
     const sp = new URLSearchParams(location.search);
     const orderId = Number(sp.get("orderId") || 0);

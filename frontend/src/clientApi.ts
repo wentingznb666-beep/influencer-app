@@ -724,14 +724,14 @@ export async function getMatchingOrders() {
 
 
 /** 商家端读取撮合订单报名列表。 */
-/** ???????????? */
+/** 商家端读取商家信息模板。 */
 export async function getClientMerchantInfoTemplate() {
   const res = await fetchWithAuth('/api/matching/client/merchant-info-template');
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '????');
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '请求失败');
   return res.json();
 }
 
-/** ???????????? */
+/** 商家端保存商家信息模板。 */
 export async function saveClientMerchantInfoTemplate(body: {
   shop_name: string;
   product_type: string;
@@ -744,7 +744,7 @@ export async function saveClientMerchantInfoTemplate(body: {
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '????');
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '保存失败');
   return res.json();
 }
 

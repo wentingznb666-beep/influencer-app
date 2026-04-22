@@ -5,6 +5,7 @@ import { getInfluencerPermissionStatus } from "./matchingApi";
 import DashboardShell, { type DashboardNavItem } from "./DashboardShell";
 import { normalizeAccountText } from "./utils/accountText";
 import { showToast } from "./utils/showToast";
+import { useAppStore } from "./stores/AppStore";
 
 type PermissionStatus = "unapplied" | "pending" | "approved" | "rejected" | "disabled";
 
@@ -29,6 +30,7 @@ export default function InfluencerLayout() {
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const [permissionStatus, setPermissionStatus] = useState<PermissionStatus>("unapplied");
   const balanceTimerRef = useState<{ id: number | null; fired: boolean }>({ id: null, fired: false })[0];
+  const { setRole } = useAppStore();
   const preloadMap = preloadInfluencerRoutes();
 
   /**
@@ -65,6 +67,11 @@ export default function InfluencerLayout() {
   useEffect(() => {
     void loadPermission();
   }, []);
+
+  /** Synchronize the current role into the global store. */
+  useEffect(() => {
+    setRole("influencer");
+  }, [setRole]);
 
   useEffect(() => {
     /**

@@ -160,9 +160,9 @@ router.put("/influencer/payment-profile", async (req: AuthRequest, res: Response
 });
 
 /** 商家端：创建撮合免积分订单（独立于原积分单）。 */
-/** ????????????? */
+/** 商家端读取商家信息模板。 */
 router.get("/client/merchant-info-template", async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "??????" });
+  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
     const ret = await query(
       `SELECT shop_name, product_type, shop_link, shop_rating, user_reviews
@@ -173,20 +173,20 @@ router.get("/client/merchant-info-template", async (req: AuthRequest, res: Respo
     return res.json({ template: ret.rows[0] || null });
   } catch (e) {
     console.error("client merchant template read error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "??????????????" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   }
 });
 
-/** ????????????? */
+/** 商家端保存商家信息模板。 */
 router.put("/client/merchant-info-template", async (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "??????" });
+  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   const shopName = String(req.body?.shop_name || "").trim();
   const productType = String(req.body?.product_type || "").trim();
   const shopLink = String(req.body?.shop_link || "").trim();
   const shopRating = String(req.body?.shop_rating || "").trim();
   const userReviews = String(req.body?.user_reviews || "").trim();
   if (!shopName || !productType || !shopLink || !shopRating || !userReviews) {
-    return res.status(400).json({ error: "INVALID_INPUT", message: "????????????" });
+    return res.status(400).json({ error: "INVALID_INPUT", message: "请完整填写商家信息模板。" });
   }
   try {
     await query(
@@ -200,7 +200,7 @@ router.put("/client/merchant-info-template", async (req: AuthRequest, res: Respo
     return res.json({ ok: true });
   } catch (e) {
     console.error("client merchant template save error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "??????????????" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   }
 });
 
@@ -275,7 +275,7 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
       return { kind: "ok" as const, id: inserted.id, order_no: inserted.order_no };
     });
     if (ret.kind === "member_required") return res.status(403).json({ error: "MEMBER_REQUIRED", message: "开通会员后才可发布撮合订单。" });
-    if (ret.kind === "merchant_template_required") return res.status(400).json({ error: "MERCHANT_TEMPLATE_REQUIRED", message: "???????????????" });
+    if (ret.kind === "merchant_template_required") return res.status(400).json({ error: "MERCHANT_TEMPLATE_REQUIRED", message: "请先完善商家信息模板后再发布撮合订单。" });
     if (ret.kind === "deposit_insufficient") return res.status(409).json({ error: "DEPOSIT_INSUFFICIENT", message: `保证金不足，可用余额 ${ret.available}。` });
     if (ret.kind === "db_error") return res.status(500).json({ error: "DB_ERROR", message: "创建失败，请重试。" });
     return res.status(201).json({ id: ret.id, order_no: ret.order_no });
@@ -681,5 +681,6 @@ router.post("/messages/:id/read", async (req: AuthRequest, res: Response) => {
 });
 
 export default router;
+
 
 

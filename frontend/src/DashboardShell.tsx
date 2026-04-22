@@ -6,6 +6,7 @@ import { BrandLogo } from "./BrandLogo";
 import { xtLayout, xtOutlineBtn } from "./brandTheme";
 import { DeferredBlock, useDeferredInCompact, useResponsive } from "./responsive";
 import { normalizeAccountText } from "./utils/accountText";
+import { useAppStore } from "./stores/AppStore";
 import { clearAllSystemMessages, getSystemMessages, markSystemMessageRead, type SystemMessage } from "./systemMessageApi";
 
 /** 顶栏/侧栏导航项定义，支持 hover 预加载；达人端可带分组与视觉锁定。 */
@@ -19,9 +20,7 @@ export type DashboardNavItem = {
   menuHint?: string;
 };
 
-/**
- * 标准化用户名，避免头部显示 unicode 转义残留或乱码。
- */
+/** 标准化用户名，避免头部显示 unicode 转义残留或乱码。 */
 function normalizeUsername(text: string | null | undefined): string {
   if (!text) return "";
   let value = text;
@@ -41,16 +40,12 @@ function normalizeUsername(text: string | null | undefined): string {
   return normalizeAccountText(value);
 }
 
-/**
- * 判断文本节点是否包含可疑的转义残留片段。
- */
+/** 判断文本节点是否包含可疑的转义残留片段。 */
 function hasEscapedFragment(text: string): boolean {
   return /\\u[0-9a-fA-F]{4}|u[0-9a-fA-F]{4}|�/.test(text);
 }
 
-/**
- * 清洗容器内所有可疑文本节点。
- */
+/** 清洗容器内所有可疑文本节点。 */
 function sanitizeEscapedTextNodes(root: HTMLElement): void {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   let cur: Node | null = walker.nextNode();
@@ -62,31 +57,31 @@ function sanitizeEscapedTextNodes(root: HTMLElement): void {
   }
 }
 
-const GROUP_LABELS: Record<"points" | "match" | "common", string> = {
-  points: "积分业务组",
-  match: "撮合业务组",
-  common: "公共组",
+type InfluencerGroupId = "points" | "match" | "common";
+
+const GROUP_META: Record<InfluencerGroupId, { label: string; icon: string }> = {
+  points: { label: "积分业务组", icon: "💰" },
+  match: { label: "撮合业务组", icon: "🤝" },
+  common: { label: "公共组", icon: "📄" },
 };
 
-/** 达人端侧栏分组渲染顺序（与产品菜单一致）。 */
-const GROUP_ORDER: Array<keyof typeof GROUP_LABELS> = ["points", "match", "common"];
+/** 业务分组顺序，所有角色保持一致。 */
+const GROUP_ORDER: InfluencerGroupId[] = ["points", "match", "common"];
 
-type InfluencerGroupId = keyof typeof GROUP_LABELS;
-
-/**
- * 将达人端导航项按分组聚合，未标注分组的项会被忽略（不应出现）。
- */
-function bucketInfluencerNavItems(items: DashboardNavItem[]): Record<InfluencerGroupId, DashboardNavItem[]> {
-  const empty: Record<InfluencerGroupId, DashboardNavItem[]> = {
+/** 将侧栏菜单按分组聚合，并保留未分组项作为兜底。 */
+function bucketGroupedNavItems(items: DashboardNavItem[]) {
+  const groups: Record<InfluencerGroupId, DashboardNavItem[]> = {
     points: [],
     match: [],
     common: [],
   };
+  const loose: DashboardNavItem[] = [];
   for (const it of items) {
-    const g = it.group;
-    if (g && empty[g]) empty[g].push(it);
+    const gid = it.group;
+    if (gid && groups[gid]) groups[gid].push(it);
+    else loose.push(it);
   }
-  return empty;
+  return { groups, loose };
 }
 
 function resolveNavTarget(item: DashboardNavItem): string {
@@ -96,9 +91,7 @@ function resolveNavTarget(item: DashboardNavItem): string {
   return item.to;
 }
 
-/**
- * 判断当前路径是否对应某导航项（含锁定重定向目标），用于路由变化时自动展开所属分组。
- */
+/** 判断当前路由是否命中该导航项（含子路径）。 */
 function isNavItemActiveForPath(pathname: string, item: DashboardNavItem): boolean {
   const target = resolveNavTarget(item);
   if (pathname === target) return true;
@@ -106,9 +99,7 @@ function isNavItemActiveForPath(pathname: string, item: DashboardNavItem): boole
   return false;
 }
 
-/**
- * 解析系统消息跳转目标：点击消息后直接进入对应业务页。
- */
+/** 根据系统消息类型解析应跳转的前端路径。 */
 function resolveMessageTarget(message: SystemMessage, variant: "default" | "influencer"): string | null {
   const type = String(message.related_type || "").trim();
   const rid = Number(message.related_id || 0);
@@ -147,9 +138,7 @@ type DashboardShellProps = {
   mainClassName?: string;
 };
 
-/**
- * 三端通用后台壳：左侧深靛蓝侧栏 + 顶栏 + 主内容区。
- */
+/** 通用后台壳：顶栏 + 可折叠分组侧栏 + 主内容区。 */
 export default function DashboardShell({
   roleTitle,
   navItems,
@@ -176,33 +165,22 @@ export default function DashboardShell({
   const [msgError, setMsgError] = useState<string | null>(null);
   const msgWrapRef = useRef<HTMLDivElement | null>(null);
 
-  /** 达人端分组折叠状态：默认全部收起，仅展示分组标题。 */
-  const [groupOpen, setGroupOpen] = useState<Record<InfluencerGroupId, boolean>>({
-    points: false,
-    match: false,
-    common: false,
-  });
+  const { expandedGroups, setExpandedGroups, toggleExpandedGroup } = useAppStore();
 
-  const influencerBuckets = useMemo(
-    () => (shellVariant === "influencer" ? bucketInfluencerNavItems(navItems) : null),
-    [shellVariant, navItems],
-  );
-
-  /**
-   * 当前路由落在某一组内时自动展开该组，便于看到激活项；不强制收起用户已展开的其他组。
-   */
+  const groupedNav = useMemo(() => bucketGroupedNavItems(navItems), [navItems]);
+  /** Expand the active group when the route matches it. */
   useEffect(() => {
-    if (!influencerBuckets) return;
     const path = location.pathname;
     for (const gid of GROUP_ORDER) {
-      for (const item of influencerBuckets[gid]) {
+      for (const item of groupedNav.groups[gid]) {
         if (isNavItemActiveForPath(path, item)) {
-          setGroupOpen((prev) => (prev[gid] ? prev : { ...prev, [gid]: true }));
+          if (!expandedGroups[gid]) setExpandedGroups((prev) => ({ ...prev, [gid]: true }));
           return;
         }
       }
     }
-  }, [location.pathname, influencerBuckets]);
+  }, [location.pathname, groupedNav, expandedGroups, setExpandedGroups]);
+
 
   useEffect(() => {
     if (!isCompact) setSidebarOpen(false);
@@ -275,9 +253,7 @@ export default function DashboardShell({
     return () => document.removeEventListener("mousedown", onDown);
   }, [msgOpen]);
 
-  /**
-   * 全区域文本兜底清洗：修复运行时注入或历史缓存导致的 uXXXX 脏串。
-   */
+  /** 全区域文本兜底清洗：修复运行时注入或历史缓存导致的 uXXXX 脏串。 */
   useEffect(() => {
     const root = shellRef.current;
     if (!root) return;
@@ -297,17 +273,13 @@ export default function DashboardShell({
     return () => observer.disconnect();
   }, [user?.username, roleTitle, navItems, headerExtra]);
 
-  /**
-   * 清除登录态并回到登录页。
-   */
+  /** 清除登录态并回到登录页。 */
   const handleLogout = () => {
     clearAuth();
     navigate("/login", { replace: true });
   };
 
-  /**
-   * 点击菜单后自动关闭小屏抽屉，避免遮挡主内容。
-   */
+  /** 点击菜单后自动关闭小屏抽屉，避免遮挡主内容。 */
   const handleNavClick = () => {
     if (isCompact) setSidebarOpen(false);
   };
@@ -321,16 +293,12 @@ export default function DashboardShell({
     if (target) navigate(target);
   };
 
-  /**
-   * 切换达人端某一业务分组的展开/收起。
-   */
-  const toggleInfluencerGroup = (gid: InfluencerGroupId) => {
-    setGroupOpen((prev) => ({ ...prev, [gid]: !prev[gid] }));
+  /** 切换任意侧栏业务分组的展开/收起。 */
+  const toggleGroup = (gid: InfluencerGroupId) => {
+    toggleExpandedGroup(gid);
   };
 
-  /**
-   * 渲染单条侧栏链接（达人端与普通端 class 略有差异）。
-   */
+  /** 渲染单条侧栏链接（是否高亮由路由控制）。 */
   const renderNavLink = (item: DashboardNavItem) => {
     const target = resolveNavTarget(item);
     return (
@@ -405,27 +373,27 @@ export default function DashboardShell({
           ) : null}
         </div>
         <nav className="xt-sidebar-nav">
-          {shellVariant === "influencer" && influencerBuckets
-            ? GROUP_ORDER.map((gid) => {
-                const items = influencerBuckets[gid];
-                if (items.length === 0) return null;
-                const expanded = groupOpen[gid];
-                return (
-                  <div key={gid} className="xt-sidebar-group">
-                    <button
-                      type="button"
-                      className="xt-sidebar-group-toggle"
-                      aria-expanded={expanded}
-                      onClick={() => toggleInfluencerGroup(gid)}
-                    >
-                      <span className="xt-sidebar-group-toggle__chevron" aria-hidden />
-                      <span className="xt-sidebar-group-toggle__label">{GROUP_LABELS[gid]}</span>
-                    </button>
-                    {expanded ? <div className="xt-sidebar-group-children">{items.map((it) => renderNavLink(it))}</div> : null}
-                  </div>
-                );
-              })
-            : navItems.map((item) => renderNavLink(item))}
+          {GROUP_ORDER.map((gid) => {
+            const items = groupedNav.groups[gid];
+            if (items.length === 0) return null;
+            const expanded = expandedGroups[gid];
+            return (
+              <div key={gid} className="xt-sidebar-group">
+                <button
+                  type="button"
+                  className="xt-sidebar-group-toggle"
+                  aria-expanded={expanded}
+                  onClick={() => toggleGroup(gid)}
+                >
+                  <span className="xt-sidebar-group-toggle__icon" aria-hidden>{GROUP_META[gid].icon}</span>
+                  <span className="xt-sidebar-group-toggle__chevron" aria-hidden />
+                  <span className="xt-sidebar-group-toggle__label">{GROUP_META[gid].label}</span>
+                </button>
+                {expanded ? <div className="xt-sidebar-group-children">{items.map((it) => renderNavLink(it))}</div> : null}
+              </div>
+            );
+          })}
+          {groupedNav.loose.length > 0 ? groupedNav.loose.map((item) => renderNavLink(item)) : null}
         </nav>
       </aside>
       <div style={xtLayout.mainColumn}>

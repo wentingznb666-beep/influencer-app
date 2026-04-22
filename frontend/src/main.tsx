@@ -53,6 +53,7 @@ import { appI18n } from "./i18n/i18nApp";
 import { LanguageProvider } from "./i18n";
 import OperationLogsPage from "./OperationLogsPage";
 import { runStorageSelfHealMigration } from "./utils/storageMigration";
+import { AppStoreProvider } from "./stores/AppStore";
 
 const ClientOrdersHallPage = import.meta.env.PROD
   ? lazy(() => import("./influencer/ClientOrdersHallPage"))
@@ -64,11 +65,12 @@ runStorageSelfHealMigration();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
-      <I18nextProvider i18n={appI18n}>
-        <LanguageProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+    <AppStoreProvider>
+      <BrowserRouter>
+        <I18nextProvider i18n={appI18n}>
+          <LanguageProvider>
+            <Routes>
+              <Route path="/login" element={<Login />} />
           <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/admin/orders" replace />} />
             <Route path="influencers" element={<InfluencersPage />} />
@@ -137,10 +139,11 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/translate" element={<App />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </LanguageProvider>
-      </I18nextProvider>
-    </BrowserRouter>
+            </Routes>
+          </LanguageProvider>
+        </I18nextProvider>
+      </BrowserRouter>
+    </AppStoreProvider>
   </StrictMode>
 );
 

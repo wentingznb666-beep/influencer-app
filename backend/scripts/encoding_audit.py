@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """
-Encoding audit script:
-- Check UTF-8 and no BOM
-- Check known garbled text tokens
-- Check JSON Content-Type includes charset=utf-8
+编码验收脚本：
+- 检查文件是否为 UTF-8 且不含 BOM
+- 检查是否命中已知乱码特征片段
+- 检查 application/json 的 Content-Type 是否显式包含 charset=utf-8
 """
 
 from __future__ import annotations
@@ -26,6 +26,7 @@ TEXT_EXTENSIONS = {
 CODE_EXTENSIONS = {".js", ".ts", ".jsx", ".tsx", ".py", ".go", ".java"}
 
 # 典型乱码片段（可按项目经验持续扩充）
+# 注意：此处保留若干历史乱码 token，仅用于“检测”，不是要在代码中使用这些文案。
 GARBLED_PATTERNS = [
     "�", "妯＄壒", "杈句汉", "鍟嗗", "浣欓", "鍔犺浇涓", "鈥?", "绉", "鎿嶄綔",
 ]
@@ -84,8 +85,8 @@ def has_json_charset_issue(path: Path, content: str) -> bool:
 
 def main() -> int:
     """执行验收并输出结果。"""
-    parser = argparse.ArgumentParser(description="Project encoding audit")
-    parser.add_argument("--root", default=".", help="项目根目录")
+    parser = argparse.ArgumentParser(description="项目编码与文案一致性验收")
+    parser.add_argument("--root", default=".", help="待扫描的项目根目录")
     args = parser.parse_args()
 
     root = Path(args.root).resolve()
@@ -110,12 +111,12 @@ def main() -> int:
         if has_json_charset_issue(file_path, text):
             json_charset_files.append(rel)
 
-    print("== ENCODING AUDIT REPORT ==")
-    print(f"ROOT: {root}")
-    print(f"NON_UTF8: {len(non_utf8_files)}")
-    print(f"BOM_UTF8: {len(bom_files)}")
-    print(f"GARBLED_TEXT: {len(garbled_files)}")
-    print(f"JSON_CHARSET_MISSING: {len(json_charset_files)}")
+    print("== 编码验收报告 ==")
+    print(f"扫描根目录: {root}")
+    print(f"非 UTF-8 文件数: {len(non_utf8_files)}")
+    print(f"含 UTF-8 BOM 文件数: {len(bom_files)}")
+    print(f"命中乱码特征文件数: {len(garbled_files)}")
+    print(f"JSON 未声明 charset 文件数: {len(json_charset_files)}")
 
     def print_list(title: str, items: list[str]) -> None:
         """Print issue files by section."""
@@ -125,10 +126,10 @@ def main() -> int:
         for item in items:
             print(item)
 
-    print_list("NON_UTF8", non_utf8_files)
-    print_list("BOM_UTF8", bom_files)
-    print_list("GARBLED_TEXT", garbled_files)
-    print_list("JSON_CHARSET_MISSING", json_charset_files)
+    print_list("非 UTF-8 文件", non_utf8_files)
+    print_list("含 UTF-8 BOM 文件", bom_files)
+    print_list("命中乱码特征文件", garbled_files)
+    print_list("JSON 未声明 charset 文件", json_charset_files)
 
     has_error = any([non_utf8_files, bom_files, garbled_files, json_charset_files])
     return 1 if has_error else 0

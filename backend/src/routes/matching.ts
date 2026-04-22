@@ -262,7 +262,7 @@ router.get("/client/collab-pool", async (req: AuthRequest, res: Response) => {
 
 router.post("/client/collab-pool/:demandId/apply", async (req: AuthRequest, res: Response) => {
 
-  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "??????" });
+  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
 
   const clientId = req.user.userId;
 
@@ -274,13 +274,13 @@ router.post("/client/collab-pool/:demandId/apply", async (req: AuthRequest, res:
   const merchantSalesSummary = typeof req.body?.merchant_sales_summary === "string" ? req.body.merchant_sales_summary.trim().slice(0, 200) : "";
   const merchantShopLink = typeof req.body?.merchant_shop_link === "string" ? req.body.merchant_shop_link.trim().slice(0, 500) : "";
 
-  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "?????ID?" });
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的需求ID。" });
 
   try {
 
     const d = await query<{ id: number; influencer_id: number }>("SELECT id, influencer_id FROM influencer_collab_demands WHERE id=$1 AND status='open'", [demandId]);
 
-    if (!d.rows[0]) return res.status(404).json({ error: "NOT_FOUND", message: "??????" });
+    if (!d.rows[0]) return res.status(404).json({ error: "NOT_FOUND", message: "需求不存在。" });
 
     const tpl = await query<{ shop_name: string; product_type: string; shop_link: string; shop_rating: string; user_reviews: string }>(
       `SELECT shop_name, product_type, shop_link, shop_rating, user_reviews FROM client_merchant_info_templates WHERE client_id=$1`,
@@ -310,7 +310,7 @@ router.post("/client/collab-pool/:demandId/apply", async (req: AuthRequest, res:
 
     );
 
-    await createMessage(d.rows[0].influencer_id, "demand_apply", "????????", `?? #${demandId} ?????????`, "demand", demandId);
+    await createMessage(d.rows[0].influencer_id, "demand_apply", "收到新的商家报名", `需求 #${demandId} 收到新的商家报名。`, "demand", demandId);
 
     return res.status(201).json({ ok: true });
 
@@ -318,7 +318,7 @@ router.post("/client/collab-pool/:demandId/apply", async (req: AuthRequest, res:
 
     console.error("client apply demand error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "??????????????" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
 
   }
 
@@ -334,7 +334,7 @@ router.post("/client/collab-pool/:demandId/consult", async (req: AuthRequest, re
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   const demandId = Number(req.params.demandId);
   const note = String(req.body?.note || "").trim();
-  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "???ID?" });
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的需求ID。" });
   if (!note) return res.status(400).json({ error: "INVALID_NOTE", message: "咨询内容不能为空。" });
   try {
     const d = await query<{ influencer_id: number }>(
@@ -607,7 +607,7 @@ router.get("/influencer/demands/:id/applications", async (req: AuthRequest, res:
 
   const demandId = Number(req.params.id);
 
-  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "???ID?" });
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的需求ID。" });
 
   try {
 
@@ -652,7 +652,7 @@ router.post("/influencer/demands/:id/applications/:appId/select", async (req: Au
 
   const appId = Number(req.params.appId);
 
-  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "???ID?" });
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的需求ID。" });
 
   try {
 
@@ -722,7 +722,7 @@ router.post("/influencer/demands/:id/applications/:appId/reject", async (req: Au
 
   const appId = Number(req.params.appId);
 
-  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "???ID?" });
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的需求ID。" });
 
   try {
 
@@ -838,7 +838,7 @@ router.post("/admin/demands/:id/review", async (req: AuthRequest, res: Response)
 
   const note = typeof req.body?.note === "string" ? req.body.note.trim().slice(0, 1000) : "";
 
-  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "???ID?" });
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的需求ID。" });
 
   if (action !== "approve" && action !== "reject") return res.status(400).json({ error: "INVALID_ACTION", message: "无效的操作参数。" });
 

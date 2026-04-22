@@ -1,23 +1,24 @@
 ﻿import { Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getPoints as getClientPoints } from "./clientApi";
-import DashboardShell from "./DashboardShell";
+import DashboardShell, { type DashboardNavItem } from "./DashboardShell";
 import { xtOutlineBtn } from "./brandTheme";
 import { normalizeAccountText } from "./utils/accountText";
+import { useAppStore } from "./stores/AppStore";
 
-const CLIENT_NAV = [
-  { to: "/client/models", label: "模特展示" },
-  { to: "/client/showcase-influencers", label: "Influencer" },
-  { to: "/client/showcase-content-creators", label: "Content Creator" },
-  { to: "/client/market-orders", label: "达人领单" },
-  { to: "/client/matching-orders", label: "我的撮合订单" },
-  { to: "/client/skus", label: "SKU 列表" },
-  { to: "/client/points", label: "积分充值" },
-  { to: "/client/member-center", label: "会员中心" },
-  { to: "/client/matching-center", label: "撮合中心" },
-  { to: "/client/collab-pool", label: "达人需求广场" },
-  { to: "/client/collab-my-applies", label: "我的需求报名" },
-  { to: "/client/op-logs", label: "我的操作日志" },
+const CLIENT_NAV: DashboardNavItem[] = [
+  { to: "/client/models", label: "模特展示", icon: "🧑", group: "points" },
+  { to: "/client/showcase-influencers", label: "Influencer", icon: "⭐", group: "points" },
+  { to: "/client/showcase-content-creators", label: "Content Creator", icon: "✍", group: "points" },
+  { to: "/client/market-orders", label: "达人领单", icon: "📦", group: "points" },
+  { to: "/client/matching-orders", label: "我的撮合订单", icon: "🤝", group: "match" },
+  { to: "/client/skus", label: "SKU 列表", icon: "🧱", group: "points" },
+  { to: "/client/points", label: "积分充值", icon: "🪙", group: "points" },
+  { to: "/client/member-center", label: "会员中心", icon: "👑", group: "match" },
+  { to: "/client/matching-center", label: "撮合中心", icon: "🏗", group: "match" },
+  { to: "/client/collab-pool", label: "达人需求广场", icon: "📨", group: "match" },
+  { to: "/client/collab-my-applies", label: "我的需求报名", icon: "📨", group: "match" },
+  { to: "/client/op-logs", label: "我的操作日志", icon: "📄", group: "common" },
 ];
 
 /**
@@ -28,6 +29,8 @@ export default function ClientLayout() {
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [balanceError, setBalanceError] = useState<string | null>(null);
   const balanceTimerRef = useState<{ id: number | null; fired: boolean }>({ id: null, fired: false })[0];
+
+  const { setRole } = useAppStore();
 
   /**
    * Load merchant points balance for header display.
@@ -68,6 +71,11 @@ export default function ClientLayout() {
       if (balanceTimerRef.id != null) window.clearTimeout(balanceTimerRef.id);
     };
   }, []);
+
+  /** Synchronize the current role into the global store. */
+  useEffect(() => {
+    setRole("client");
+  }, [setRole]);
 
   return (
     <DashboardShell
