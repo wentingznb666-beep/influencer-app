@@ -1,5 +1,7 @@
-﻿import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { createMatchingOrder, getMatchingOrders, uploadMatchingOrderAssets } from "../clientApi";
+import { useAppStore } from "../stores/AppStore";
+import { MerchantInfoForm } from "../components/MerchantInfoForm";
 
 type MatchingFormState = {
   task_name: string;
@@ -10,10 +12,6 @@ type MatchingFormState = {
   order_deadline: string;
   publish_deadline: string;
   product_name: string;
-  merchant_shop_name: string;
-  merchant_product_type: string;
-  merchant_sales_summary: string;
-  merchant_shop_link: string;
   selling_points: string;
   content_form: "短视频" | "图文笔记" | "直播";
   video_duration: string;
@@ -44,10 +42,6 @@ const defaultForm: MatchingFormState = {
   order_deadline: "",
   publish_deadline: "",
   product_name: "",
-  merchant_shop_name: "",
-  merchant_product_type: "",
-  merchant_sales_summary: "",
-  merchant_shop_link: "",
   selling_points: "",
   content_form: "短视频",
   video_duration: "",
@@ -81,6 +75,7 @@ function isVideoUrl(url: string): boolean {
 
 /** 商家端撮合中心：弹窗发布撮合订单。 */
 export default function MatchingCenterPage() {
+  const { merchantTemplate } = useAppStore();
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
   const [uploading, setUploading] = useState(false);
@@ -90,6 +85,18 @@ export default function MatchingCenterPage() {
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [form, setForm] = useState<MatchingFormState>(defaultForm);
+
+  /** 判断商家信息模板是否填写完整 */
+  const isMerchantInfoComplete = useMemo(() => {
+    return (
+      merchantTemplate.shop_name.trim() !== "" &&
+      merchantTemplate.product_type.trim() !== "" &&
+      merchantTemplate.sales_summary.trim() !== "" &&
+      merchantTemplate.shop_link.trim() !== "" &&
+      merchantTemplate.shop_rating.trim() !== "" &&
+      merchantTemplate.user_reviews.trim() !== ""
+    );
+  }, [merchantTemplate]);
 
   /** 读取撮合订单列表。 */
   const loadOrders = async () => {
@@ -125,10 +132,10 @@ export default function MatchingCenterPage() {
     if (!form.publish_deadline) return "请完善内容发布截止时间信息";
     if (!form.product_name.trim()) return "请完善推广产品/品牌名称信息";
     if (!form.selling_points.trim()) return "请完善产品核心卖点信息";
-    if (!form.merchant_shop_name.trim()) return "请完善商店名称信息";
-    if (!form.merchant_product_type.trim()) return "请完善商家销售产品类型信息";
-    if (!form.merchant_sales_summary.trim()) return "请完善店铺销售额情况信息";
-    if (!form.merchant_shop_link.trim()) return "请完善店铺链接信息";
+    if (!merchantTemplate.shop_name.trim()) return "请完善商家基本信息模板中的商店名称";
+    if (!merchantTemplate.product_type.trim()) return "请完善商家基本信息模板中的产品类型";
+    if (!merchantTemplate.sales_summary.trim()) return "请完善商家基本信息模板中的销售额情况";
+    if (!merchantTemplate.shop_link.trim()) return "请完善商家基本信息模板中的店铺链接";
     if (!form.unit_commission || Number(form.unit_commission) <= 0) return "请完善单条佣金信息";
     if (form.provide_sample === "是" && (!form.sample_count || Number(form.sample_count) < 1)) return "请完善样品数量信息";
     if (!form.keep_days || Number(form.keep_days) < 1) return "请完善内容保留天数信息";
@@ -189,10 +196,13 @@ export default function MatchingCenterPage() {
         order_deadline: form.order_deadline,
         publish_deadline: form.publish_deadline,
         product_name: form.product_name.trim(),
-        merchant_shop_name: form.merchant_shop_name.trim(),
-        merchant_product_type: form.merchant_product_type.trim(),
-        merchant_sales_summary: form.merchant_sales_summary.trim(),
-        merchant_shop_link: form.merchant_shop_link.trim(),
+        // 从 AppStore 读取商家模板信息
+        merchant_shop_name: merchantTemplate.shop_name.trim(),
+        merchant_product_type: merchantTemplate.product_type.trim(),
+        merchant_sales_summary: merchantTemplate.sales_summary.trim(),
+        merchant_shop_link: merchantTemplate.shop_link.trim(),
+        merchant_shop_rating: merchantTemplate.shop_rating.trim(),
+        merchant_user_reviews: merchantTemplate.user_reviews.trim(),
         selling_points: form.selling_points.trim(),
         content_form: form.content_form,
         video_duration: form.video_duration.trim(),
@@ -211,6 +221,7 @@ export default function MatchingCenterPage() {
         rights_granted: form.rights_granted,
         no_cheat: form.no_cheat,
         violation_action: form.violation_action,
+        unit_commission: Number(form.unit_commission),
       };
 
       await createMatchingOrder({
@@ -267,6 +278,14 @@ export default function MatchingCenterPage() {
             </div>
 
             <form onSubmit={onCreate} style={{ display: "grid", gap: 14, marginTop: 12 }}>
+              <MerchantInfoForm />
+
+              {!isMerchantInfoComplete && (
+                <div style={{ padding: "8px 12px", background: "#fff1f2", border: "1px solid #fda4af", borderRadius: 8, color: "#9f1239", fontSize: 14 }}>
+                  ⚠️ 请先完整填写上方的商家基本信息模板，否则无法发布订单。
+                </div>
+              )}
+
               <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
                 <h4 style={{ marginTop: 0 }}>1. 任务基础信息</h4>
                 <div style={{ display: "grid", gap: 8 }}>
@@ -305,18 +324,6 @@ export default function MatchingCenterPage() {
 
                   <label htmlFor="selling_points">产品核心卖点 <span style={{ color: "#dc2626" }}>*</span></label>
                   <textarea id="selling_points" rows={3} value={form.selling_points} onChange={(e) => setField("selling_points", e.target.value)} />
-
-                  <label htmlFor="merchant_shop_name">商店名称 <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input id="merchant_shop_name" value={form.merchant_shop_name} onChange={(e) => setField("merchant_shop_name", e.target.value)} placeholder="例如：曼谷美妆旗舰店" />
-
-                  <label htmlFor="merchant_product_type">商家销售产品类型 <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input id="merchant_product_type" value={form.merchant_product_type} onChange={(e) => setField("merchant_product_type", e.target.value)} placeholder="例如：美妆护肤、服饰配件" />
-
-                  <label htmlFor="merchant_sales_summary">店铺销售额情况 <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input id="merchant_sales_summary" value={form.merchant_sales_summary} onChange={(e) => setField("merchant_sales_summary", e.target.value)} placeholder="例如：月销售额 150 万泰铢" />
-
-                  <label htmlFor="merchant_shop_link">店铺链接 <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input id="merchant_shop_link" type="url" value={form.merchant_shop_link} onChange={(e) => setField("merchant_shop_link", e.target.value)} placeholder="https://..." />
 
                   <label htmlFor="content_form">内容形式</label>
                   <select id="content_form" value={form.content_form} onChange={(e) => setField("content_form", e.target.value as MatchingFormState["content_form"])}>
@@ -425,7 +432,19 @@ export default function MatchingCenterPage() {
                 ) : null}
               </section>
 
-              <button type="submit" disabled={publishing} style={{ height: 42, fontWeight: 700 }}>
+              <button 
+                type="submit" 
+                disabled={publishing || !isMerchantInfoComplete} 
+                style={{ 
+                  height: 42, 
+                  fontWeight: 700, 
+                  background: isMerchantInfoComplete ? "var(--xt-accent)" : "#e2e8f0", 
+                  color: isMerchantInfoComplete ? "#fff" : "#94a3b8",
+                  cursor: isMerchantInfoComplete ? "pointer" : "not-allowed",
+                  border: "none",
+                  borderRadius: 8
+                }}
+              >
                 {publishing ? "提交中..." : "确认发布"}
               </button>
             </form>

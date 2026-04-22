@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, type Dispatch, type Rea
 export type MerchantTemplateState = {
   shop_name: string;
   product_type: string;
+  sales_summary: string;
   shop_link: string;
   shop_rating: string;
   user_reviews: string;
@@ -30,6 +31,7 @@ const EXPANDED_GROUPS_KEY = "app:expandedGroups";
 const defaultMerchantTemplate: MerchantTemplateState = {
   shop_name: "",
   product_type: "",
+  sales_summary: "",
   shop_link: "",
   shop_rating: "",
   user_reviews: "",

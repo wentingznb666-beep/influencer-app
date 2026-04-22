@@ -1,4 +1,4 @@
-﻿import { StrictMode, Suspense, lazy } from "react";
+import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
@@ -26,6 +26,7 @@ import CollabMyAppliesPage from "./client/CollabMyAppliesPage";
 import MatchingCenterPage from "./client/MatchingCenterPage";
 import MatchingOrdersPage from "./client/MatchingOrdersPage";
 import MemberCenterPage from "./client/MemberCenterPage";
+import MerchantTemplatePage from "./client/MerchantTemplatePage";
 import ClientModelsPage from "./client/ModelsPage";
 import ShowcaseInfluencersPage from "./admin/ShowcaseInfluencersPage";
 import ShowcaseContentCreatorsPage from "./admin/ShowcaseContentCreatorsPage";
@@ -117,6 +118,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="market-orders/:id/edit" element={<MarketOrderEditPage />} />
             <Route path="points" element={<ClientPointsPage />} />
             <Route path="member-center" element={<MemberCenterPage />} />
+            <Route path="merchant-template" element={<MerchantTemplatePage />} />
             <Route path="matching-center" element={<MatchingCenterPage />} />
             <Route path="collab-pool" element={<CollabPoolPage />} />
             <Route path="collab-my-applies" element={<CollabMyAppliesPage />} />

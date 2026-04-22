@@ -1,4 +1,4 @@
-﻿import { Outlet } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getPoints as getClientPoints } from "./clientApi";
 import DashboardShell, { type DashboardNavItem } from "./DashboardShell";
@@ -12,6 +12,7 @@ const CLIENT_NAV: DashboardNavItem[] = [
   { to: "/client/showcase-content-creators", label: "Content Creator", icon: "✍", group: "points" },
   { to: "/client/market-orders", label: "达人领单", icon: "📦", group: "points" },
   { to: "/client/matching-orders", label: "我的撮合订单", icon: "🤝", group: "match" },
+  { to: "/client/merchant-template", label: "商家信息模板", icon: "📋", group: "match" },
   { to: "/client/skus", label: "SKU 列表", icon: "🧱", group: "points" },
   { to: "/client/points", label: "积分充值", icon: "🪙", group: "points" },
   { to: "/client/member-center", label: "会员中心", icon: "👑", group: "match" },
