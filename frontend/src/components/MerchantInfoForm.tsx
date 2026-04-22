@@ -29,6 +29,11 @@ export const MerchantInfoForm: React.FC = () => {
     setMerchantTemplate((prev) => ({ ...prev, [field]: value }));
     setIsModified(true); // 标记已修改
     setMerchantInfoCompleted(false); // 关键：一旦修改，标记为未完善
+    try {
+      localStorage.setItem("app:merchantInfoCompleted", JSON.stringify(false));
+    } catch {
+      // ignore
+    }
     
     // 实时清除错误提示
     if (errors[field] && value.trim()) {
@@ -63,11 +68,16 @@ export const MerchantInfoForm: React.FC = () => {
     setSaveStatus("saving");
     // 强制同步到 localStorage，确保其他页面能立即读取最新值
     localStorage.setItem("app:merchantTemplate", JSON.stringify(merchantTemplate));
+    try {
+      localStorage.setItem("app:merchantInfoCompleted", JSON.stringify(true));
+    } catch {
+      // ignore
+    }
+    setMerchantInfoCompleted(true);
     
     setTimeout(() => {
       setSaveStatus("success");
       setIsModified(false); // 保存成功，重置修改标记
-      setMerchantInfoCompleted(true); // 关键：保存成功，更新持久化状态为 true
       setIsEditing(false); // 保存成功后退出编辑模式
       // 注意：这里不再设置 2s 后恢复为 idle，保持 "保存成功" 状态
     }, 600); // 稍微加长 loading 感
