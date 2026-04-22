@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAppStore } from "../stores/AppStore";
+import { saveClientMerchantInfoTemplate } from "../clientApi";
 
 /**
  * 商家信息必填独立表单组件
@@ -9,33 +10,11 @@ import { useAppStore } from "../stores/AppStore";
  * 4. 模拟 Element Plus 校验提示
  */
 export const MerchantInfoForm: React.FC = () => {
-  const { merchantTemplate, setMerchantTemplate, merchantInfoCompleted, setMerchantInfoCompleted } = useAppStore();
-  const MERCHANT_TEMPLATE_SAVED_SNAPSHOT_KEY = "app:merchantTemplateSavedSnapshot";
-  const REQUIRED_FIELDS: Array<keyof typeof merchantTemplate> = [
-    "shop_name",
-    "product_type",
-    "sales_summary",
-    "shop_link",
-    "shop_rating",
-    "user_reviews",
-  ];
-
-  const isSavedSnapshotMatchCurrent = () => {
-    try {
-      const raw = localStorage.getItem(MERCHANT_TEMPLATE_SAVED_SNAPSHOT_KEY);
-      if (!raw) return false;
-      const saved = JSON.parse(raw) as Partial<Record<keyof typeof merchantTemplate, unknown>>;
-      return REQUIRED_FIELDS.every((k) => typeof saved[k] === "string" && String(saved[k]) === merchantTemplate[k]);
-    } catch {
-      return false;
-    }
-  };
+  const { merchantTemplate, setMerchantTemplate } = useAppStore();
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success">(
-    merchantInfoCompleted || isSavedSnapshotMatchCurrent() ? "success" : "idle"
-  );
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success">("idle");
   const [isEditing, setIsEditing] = useState(false);
-  const [isModified, setIsModified] = useState(false); // 追踪表单是否被修改
+  const [saveError, setSaveError] = useState<string>("");
 
   // 初始检查：如果信息不完整，默认开启编辑模式
   React.useEffect(() => {
@@ -47,14 +26,6 @@ export const MerchantInfoForm: React.FC = () => {
 
   const handleChange = (field: keyof typeof merchantTemplate, value: string) => {
     setMerchantTemplate((prev) => ({ ...prev, [field]: value }));
-    setIsModified(true); // 标记已修改
-    setMerchantInfoCompleted(false); // 关键：一旦修改，标记为未完善
-    try {
-      localStorage.setItem("app:merchantInfoCompleted", JSON.stringify(false));
-    } catch {
-      // ignore
-    }
-    
     // 实时清除错误提示
     if (errors[field] && value.trim()) {
       setErrors((prev) => {
@@ -71,7 +42,10 @@ export const MerchantInfoForm: React.FC = () => {
     }
   };
 
-  const handleSave = () => {
+  /**
+   * 保存商家模板：前端本地持久化 + 后端模板接口双写，确保发布撮合前校验可通过。
+   */
+  const handleSave = async () => {
     const newErrors: Record<string, string> = {};
     Object.entries(merchantTemplate).forEach(([key, value]) => {
       if (!value.trim()) {
@@ -81,40 +55,39 @@ export const MerchantInfoForm: React.FC = () => {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      setSaveError("请先完善所有必填项后再保存");
       setIsEditing(true); // 报错时强制进入编辑模式
       return;
     }
 
+    setSaveError("");
     setSaveStatus("saving");
-    // 强制同步到 localStorage，确保其他页面能立即读取最新值
-    localStorage.setItem("app:merchantTemplate", JSON.stringify(merchantTemplate));
     try {
-      localStorage.setItem("app:merchantInfoCompleted", JSON.stringify(true));
-      localStorage.setItem(MERCHANT_TEMPLATE_SAVED_SNAPSHOT_KEY, JSON.stringify(merchantTemplate));
-    } catch {
-      // ignore
-    }
-    setMerchantInfoCompleted(true);
-    
-    setTimeout(() => {
+      await saveClientMerchantInfoTemplate({
+        shop_name: merchantTemplate.shop_name.trim(),
+        product_type: merchantTemplate.product_type.trim(),
+        shop_link: merchantTemplate.shop_link.trim(),
+        shop_rating: merchantTemplate.shop_rating.trim(),
+        user_reviews: merchantTemplate.user_reviews.trim(),
+      });
+
+      // 强制同步到 localStorage，确保其他页面能立即读取最新值
+      localStorage.setItem("app:merchantTemplate", JSON.stringify(merchantTemplate));
       setSaveStatus("success");
-      setIsModified(false); // 保存成功，重置修改标记
       setIsEditing(false); // 保存成功后退出编辑模式
-      // 注意：这里不再设置 2s 后恢复为 idle，保持 "保存成功" 状态
-    }, 600); // 稍微加长 loading 感
+      window.setTimeout(() => setSaveStatus("idle"), 2000);
+    } catch (e) {
+      setSaveStatus("idle");
+      setSaveError(e instanceof Error ? e.message : "保存失败，请稍后重试");
+      setIsEditing(true);
+    }
   };
 
   const toggleEdit = () => {
     setIsEditing(!isEditing);
-    // 切换到编辑模式时，如果之前是成功状态，且没修改过，维持成功状态
-    // 如果用户点击编辑，我们希望保持按钮文字逻辑一致
-  };
-
-  // 计算按钮显示的文字
-  const getButtonText = () => {
-    if (saveStatus === "saving") return "保存中...";
-    if (saveStatus === "success" && !isModified) return "保存成功";
-    return "保存商家信息";
+    if (!isEditing) {
+      setSaveStatus("idle");
+    }
   };
 
   return (
@@ -299,33 +272,40 @@ export const MerchantInfoForm: React.FC = () => {
         <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 12 }}>
           <button
             type="button"
-            onClick={handleSave}
-            disabled={saveStatus === "saving" || (saveStatus === "success" && !isModified)}
+            onClick={() => void handleSave()}
+            disabled={saveStatus === "saving"}
             style={{
               padding: "10px 24px",
-              background: saveStatus === "success" && !isModified ? "#10b981" : "var(--xt-accent)",
+              background: "var(--xt-accent)",
               color: "#fff",
               border: "none",
               borderRadius: 8,
               fontWeight: 600,
-              cursor: (saveStatus === "saving" || (saveStatus === "success" && !isModified)) ? "not-allowed" : "pointer",
+              cursor: saveStatus === "saving" ? "not-allowed" : "pointer",
               transition: "all 0.2s",
               boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
               opacity: saveStatus === "saving" ? 0.7 : 1
             }}
           >
-            {getButtonText()}
+            {saveStatus === "idle" && "保存商家信息"}
+            {saveStatus === "saving" && "保存中..."}
+            {saveStatus === "success" && "保存成功"}
           </button>
-          {saveStatus === "success" && !isModified && (
+          {saveStatus === "success" && (
             <span style={{ color: "#10b981", fontSize: 14, fontWeight: 500 }}>
               ✨ 信息已保存并同步，可以去发布订单了
             </span>
           )}
-          {!isEditing && saveStatus !== "success" && (
+          {!isEditing && saveStatus === "idle" && (
             <span style={{ color: "#64748b", fontSize: 13 }}>
               当前为查看模式，如需修改请点击右上角“编辑信息”
             </span>
           )}
+          {saveError ? (
+            <span style={{ color: "#dc2626", fontSize: 13 }}>
+              {saveError}
+            </span>
+          ) : null}
         </div>
 
       </div>

@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { createMatchingOrder, getMatchingOrders, updateMatchingOrder, uploadMatchingOrderAssets } from "../clientApi";
+import {
+  createMatchingOrder,
+  getClientMerchantInfoTemplate,
+  getMatchingOrders,
+  saveClientMerchantInfoTemplate,
+  updateMatchingOrder,
+  uploadMatchingOrderAssets,
+} from "../clientApi";
 import { useAppStore } from "../stores/AppStore";
 import { MerchantInfoForm } from "../components/MerchantInfoForm";
 
@@ -75,7 +82,9 @@ function isVideoUrl(url: string): boolean {
 
 /** 商家端撮合中心：弹窗发布撮合订单。 */
 export default function MatchingCenterPage() {
-  const { merchantTemplate } = useAppStore();
+  const { merchantTemplate, setMerchantTemplate } = useAppStore();
+  const [error, setError] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -85,13 +94,6 @@ export default function MatchingCenterPage() {
   const [form, setForm] = useState<MatchingFormState>(defaultForm);
   const [editingOrder, setEditingOrder] = useState<any | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" | "info" } | null>(null);
-
-  /** 显示全局固定 Toast */
-  const showToast = (msg: string, type: "success" | "error" | "info" = "info") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  };
 
   /** 读取撮合订单列表。 */
   const loadOrders = async () => {
@@ -99,8 +101,23 @@ export default function MatchingCenterPage() {
     setOrders(Array.isArray(ret?.list) ? ret.list : []);
   };
 
+  /** 从后端加载已保存商家模板并同步到全局状态。 */
+  const syncMerchantTemplateFromServer = async () => {
+    const ret = await getClientMerchantInfoTemplate();
+    const tpl = ret?.template;
+    if (!tpl || typeof tpl !== "object") return;
+    setMerchantTemplate((prev) => ({
+      ...prev,
+      shop_name: String(tpl.shop_name || "").trim(),
+      product_type: String(tpl.product_type || "").trim(),
+      shop_link: String(tpl.shop_link || "").trim(),
+      shop_rating: String(tpl.shop_rating || "").trim(),
+      user_reviews: String(tpl.user_reviews || "").trim(),
+    }));
+  };
+
   useEffect(() => {
-    void loadOrders().catch((e) => showToast(e instanceof Error ? e.message : "加载失败", "error"));
+    void Promise.all([loadOrders(), syncMerchantTemplateFromServer()]).catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
   }, []);
 
   /** 字段通用更新器。 */
@@ -120,42 +137,6 @@ export default function MatchingCenterPage() {
 
   /** 校验发布表单并返回首个错误。 */
   const validateForm = (): string | null => {
-    // 1. 商家信息校验：以“上次保存快照”与“当前模板”一致为准，避免状态不同步导致误拦截
-    const isMerchantTemplateSaved = (() => {
-      try {
-        const required: Array<keyof typeof merchantTemplate> = [
-          "shop_name",
-          "product_type",
-          "sales_summary",
-          "shop_link",
-          "shop_rating",
-          "user_reviews",
-        ];
-        const raw = localStorage.getItem("app:merchantTemplateSavedSnapshot");
-        if (raw) {
-          const saved = JSON.parse(raw) as Partial<Record<keyof typeof merchantTemplate, unknown>>;
-          return required.every((k) => typeof saved[k] === "string" && String(saved[k]) === merchantTemplate[k]);
-        }
-
-        const completedRaw = localStorage.getItem("app:merchantInfoCompleted");
-        const completed = completedRaw ? JSON.parse(completedRaw) === true : false;
-        if (!completed) return false;
-
-        const isFilled = required.every((k) => merchantTemplate[k].trim());
-        if (!isFilled) return false;
-
-        localStorage.setItem("app:merchantTemplateSavedSnapshot", JSON.stringify(merchantTemplate));
-        return true;
-      } catch {
-        return false;
-      }
-    })();
-
-    if (!isMerchantTemplateSaved) {
-      return "请先完善商家信息模板后再发布撮合订单";
-    }
-
-    // 2. 任务表单校验
     if (!form.task_name.trim()) return "请完善任务名称信息";
     if (!form.recruit_count || Number(form.recruit_count) < 1) return "请完善招募达人数量信息";
     if (!form.start_date) return "请完善任务开始时间信息";
@@ -173,18 +154,20 @@ export default function MatchingCenterPage() {
   /** 上传图片/视频附件。 */
   const doUpload = async () => {
     if (!uploadFiles.length) {
-      showToast("请先选择文件", "error");
+      setError("请先选择文件");
       return;
     }
     setUploading(true);
+    setError(null);
+    setMsg("");
     try {
       const ret = await uploadMatchingOrderAssets(uploadFiles);
       const urls = Array.isArray(ret?.urls) ? ret.urls : [];
       setUploadedUrls((prev) => [...prev, ...urls]);
       setUploadFiles([]);
-      showToast("上传成功", "success");
+      setMsg("上传成功");
     } catch (e) {
-      showToast(e instanceof Error ? e.message : "上传失败", "error");
+      setError(e instanceof Error ? e.message : "上传失败");
     } finally {
       setUploading(false);
     }
@@ -202,15 +185,39 @@ export default function MatchingCenterPage() {
   /** 提交撮合订单。 */
   const onCreate = async (e: FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setMsg("");
 
     const verifyError = validateForm();
     if (verifyError) {
-      showToast(verifyError, "error");
+      setError(verifyError);
+      return;
+    }
+
+    const requiredTemplateError = [
+      ["shop_name", merchantTemplate.shop_name],
+      ["product_type", merchantTemplate.product_type],
+      ["sales_summary", merchantTemplate.sales_summary],
+      ["shop_link", merchantTemplate.shop_link],
+      ["shop_rating", merchantTemplate.shop_rating],
+      ["user_reviews", merchantTemplate.user_reviews],
+    ].find(([, value]) => !String(value || "").trim());
+    if (requiredTemplateError) {
+      setError("请先在“商家基本信息（必填模板）”中补全并保存所有必填项");
       return;
     }
 
     setPublishing(true);
     try {
+      // 发布前再次写入后端模板，避免仅本地有值但服务端校验缺失。
+      await saveClientMerchantInfoTemplate({
+        shop_name: merchantTemplate.shop_name.trim(),
+        product_type: merchantTemplate.product_type.trim(),
+        shop_link: merchantTemplate.shop_link.trim(),
+        shop_rating: merchantTemplate.shop_rating.trim(),
+        user_reviews: merchantTemplate.user_reviews.trim(),
+      });
+
       const detail = {
         task_name: form.task_name.trim(),
         task_type: form.task_type,
@@ -269,15 +276,10 @@ export default function MatchingCenterPage() {
       }
 
       await loadOrders();
-      const isEditing = !!editingOrder;
       closeModal();
-      if (isEditing) {
-        showToast("订单修改成功", "success");
-      } else {
-        setShowSuccessModal(true);
-      }
+      setShowSuccessModal(true);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "操作失败", "error");
+      setError(err instanceof Error ? err.message : "发布失败");
     } finally {
       setPublishing(false);
     }
@@ -294,6 +296,9 @@ export default function MatchingCenterPage() {
           发布撮合订单
         </button>
       </div>
+
+      {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
+      {msg && <p style={{ color: "#166534" }}>{msg}</p>}
 
       <div style={{ marginTop: 14 }}>
         <h3 style={{ marginBottom: 8 }}>已发布撮合订单</h3>
@@ -361,12 +366,7 @@ export default function MatchingCenterPage() {
       </div>
 
       {showModal ? (
-        <div 
-          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 1000 }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) closeModal();
-          }}
-        >
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 1000 }}>
           <div style={{ position: "relative", width: "min(920px, 94vw)", maxHeight: "90vh", overflowY: "auto", background: "#fff", borderRadius: 16, padding: 16 }}>
             <button 
               type="button" 
@@ -567,58 +567,8 @@ export default function MatchingCenterPage() {
         </div>
       ) : null}
 
-      {/* 全局固定 Toast 提示 (Bug 3) */}
-      {toast && (
-        <div style={{
-          position: "fixed",
-          top: "40px",
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: toast.type === "success" ? "#10b981" : (toast.type === "error" ? "#ef4444" : "#3b82f6"),
-          color: "#fff",
-          padding: "12px 24px",
-          borderRadius: "12px",
-          boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
-          zIndex: 3000,
-          fontWeight: 600,
-          display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          animation: "toast-in 0.3s ease-out"
-        }}>
-          {toast.type === "success" && "✨"}
-          {toast.type === "error" && "⚠️"}
-          {toast.msg}
-          <button 
-            onClick={() => setToast(null)}
-            style={{ 
-              background: "none", 
-              border: "none", 
-              color: "rgba(255,255,255,0.7)", 
-              cursor: "pointer",
-              fontSize: "18px",
-              marginLeft: "8px",
-              padding: "0 4px"
-            }}
-          >
-            ×
-          </button>
-          <style>{`
-            @keyframes toast-in {
-              from { opacity: 0; transform: translate(-50%, -20px); }
-              to { opacity: 1; transform: translate(-50%, 0); }
-            }
-          `}</style>
-        </div>
-      )}
-
       {showSuccessModal ? (
-        <div 
-          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 2000 }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setShowSuccessModal(false);
-          }}
-        >
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 2000 }}>
           <div style={{ background: "#fff", borderRadius: 16, padding: "32px 40px", textAlign: "center", minWidth: 280 }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✨</div>
             <div style={{ fontSize: 18, fontWeight: 600, color: "#1e293b", marginBottom: 8 }}>提交成功</div>
