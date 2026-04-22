@@ -10,9 +10,29 @@ import { useAppStore } from "../stores/AppStore";
  */
 export const MerchantInfoForm: React.FC = () => {
   const { merchantTemplate, setMerchantTemplate, merchantInfoCompleted, setMerchantInfoCompleted } = useAppStore();
+  const MERCHANT_TEMPLATE_SAVED_SNAPSHOT_KEY = "app:merchantTemplateSavedSnapshot";
+  const REQUIRED_FIELDS: Array<keyof typeof merchantTemplate> = [
+    "shop_name",
+    "product_type",
+    "sales_summary",
+    "shop_link",
+    "shop_rating",
+    "user_reviews",
+  ];
+
+  const isSavedSnapshotMatchCurrent = () => {
+    try {
+      const raw = localStorage.getItem(MERCHANT_TEMPLATE_SAVED_SNAPSHOT_KEY);
+      if (!raw) return false;
+      const saved = JSON.parse(raw) as Partial<Record<keyof typeof merchantTemplate, unknown>>;
+      return REQUIRED_FIELDS.every((k) => typeof saved[k] === "string" && String(saved[k]) === merchantTemplate[k]);
+    } catch {
+      return false;
+    }
+  };
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success">(
-    merchantInfoCompleted ? "success" : "idle"
+    merchantInfoCompleted || isSavedSnapshotMatchCurrent() ? "success" : "idle"
   );
   const [isEditing, setIsEditing] = useState(false);
   const [isModified, setIsModified] = useState(false); // 追踪表单是否被修改
@@ -70,6 +90,7 @@ export const MerchantInfoForm: React.FC = () => {
     localStorage.setItem("app:merchantTemplate", JSON.stringify(merchantTemplate));
     try {
       localStorage.setItem("app:merchantInfoCompleted", JSON.stringify(true));
+      localStorage.setItem(MERCHANT_TEMPLATE_SAVED_SNAPSHOT_KEY, JSON.stringify(merchantTemplate));
     } catch {
       // ignore
     }

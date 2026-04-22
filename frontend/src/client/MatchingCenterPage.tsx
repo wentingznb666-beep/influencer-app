@@ -75,7 +75,7 @@ function isVideoUrl(url: string): boolean {
 
 /** 商家端撮合中心：弹窗发布撮合订单。 */
 export default function MatchingCenterPage() {
-  const { merchantTemplate, merchantInfoCompleted } = useAppStore();
+  const { merchantTemplate } = useAppStore();
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -120,8 +120,38 @@ export default function MatchingCenterPage() {
 
   /** 校验发布表单并返回首个错误。 */
   const validateForm = (): string | null => {
-    // 1. 商家信息校验 (持久化状态校验)
-    if (!merchantInfoCompleted) {
+    // 1. 商家信息校验：以“上次保存快照”与“当前模板”一致为准，避免状态不同步导致误拦截
+    const isMerchantTemplateSaved = (() => {
+      try {
+        const required: Array<keyof typeof merchantTemplate> = [
+          "shop_name",
+          "product_type",
+          "sales_summary",
+          "shop_link",
+          "shop_rating",
+          "user_reviews",
+        ];
+        const raw = localStorage.getItem("app:merchantTemplateSavedSnapshot");
+        if (raw) {
+          const saved = JSON.parse(raw) as Partial<Record<keyof typeof merchantTemplate, unknown>>;
+          return required.every((k) => typeof saved[k] === "string" && String(saved[k]) === merchantTemplate[k]);
+        }
+
+        const completedRaw = localStorage.getItem("app:merchantInfoCompleted");
+        const completed = completedRaw ? JSON.parse(completedRaw) === true : false;
+        if (!completed) return false;
+
+        const isFilled = required.every((k) => merchantTemplate[k].trim());
+        if (!isFilled) return false;
+
+        localStorage.setItem("app:merchantTemplateSavedSnapshot", JSON.stringify(merchantTemplate));
+        return true;
+      } catch {
+        return false;
+      }
+    })();
+
+    if (!isMerchantTemplateSaved) {
       return "请先完善商家信息模板后再发布撮合订单";
     }
 
