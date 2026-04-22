@@ -2,6 +2,7 @@
 import { getInfluencerProfile, saveInfluencerProfile, type InfluencerProfilePayload } from "../influencerApi";
 
 const DOMAIN_OPTIONS = ["美妆", "服饰", "数码", "家居", "母婴", "食品", "运动", "教育", "旅行", "其他"];
+const PROFILE_SAVED_KEY = "app:influencerProfileSaved";
 
 /** 达人信息页：报名撮合任务前必须完善。 */
 export default function InfluencerProfilePage() {
@@ -15,6 +16,14 @@ export default function InfluencerProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+  const [saved, setSaved] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(PROFILE_SAVED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [editing, setEditing] = useState<boolean>(true);
 
   /** 校验达人信息必填字段及格式。 */
   const validate = (): string | null => {
@@ -45,6 +54,16 @@ export default function InfluencerProfilePage() {
           expertise_domains: Array.isArray(profile.expertise_domains) ? profile.expertise_domains.map((x: unknown) => String(x || "")).filter(Boolean) : [],
           influencer_bio: String(profile.influencer_bio || ""),
         });
+        const completed = Boolean(profile.completed);
+        setSaved(completed || saved);
+        setEditing(!(completed || saved));
+        if (completed) {
+          try {
+            localStorage.setItem(PROFILE_SAVED_KEY, "1");
+          } catch {
+            // ignore
+          }
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
@@ -56,6 +75,14 @@ export default function InfluencerProfilePage() {
   useEffect(() => {
     void load();
   }, []);
+
+  /** 进入可编辑态，允许再次修改并提交。 */
+  const onEdit = () => {
+    setEditing(true);
+    setSaved(false);
+    setMsg("");
+    setError(null);
+  };
 
   /** 保存达人信息，供报名撮合任务前校验。 */
   const onSave = async () => {
@@ -74,7 +101,14 @@ export default function InfluencerProfilePage() {
         expertise_domains: form.expertise_domains,
         influencer_bio: form.influencer_bio.trim(),
       });
-      setMsg("保存成功，已可报名任务");
+      setSaved(true);
+      setEditing(false);
+      setMsg("保存成功");
+      try {
+        localStorage.setItem(PROFILE_SAVED_KEY, "1");
+      } catch {
+        // ignore
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "保存失败");
     } finally {
@@ -97,6 +131,7 @@ export default function InfluencerProfilePage() {
           TikTok账号 <span style={{ color: "#dc2626" }}>*</span>
           <input
             value={form.tiktok_account}
+            disabled={!editing}
             onChange={(e) => setForm((prev) => ({ ...prev, tiktok_account: e.target.value }))}
             placeholder="如 @creator001"
             style={{ width: "100%", marginTop: 6 }}
@@ -107,6 +142,7 @@ export default function InfluencerProfilePage() {
           粉丝数量 <span style={{ color: "#dc2626" }}>*</span>
           <input
             value={form.tiktok_fans}
+            disabled={!editing}
             onChange={(e) => setForm((prev) => ({ ...prev, tiktok_fans: e.target.value }))}
             placeholder="支持 10000 或 10000-20000"
             style={{ width: "100%", marginTop: 6 }}
@@ -122,6 +158,7 @@ export default function InfluencerProfilePage() {
                 <button
                   key={domain}
                   type="button"
+                  disabled={!editing}
                   onClick={() =>
                     setForm((prev) => ({
                       ...prev,
@@ -136,7 +173,8 @@ export default function InfluencerProfilePage() {
                     border: checked ? "1px solid #2563eb" : "1px solid #cbd5e1",
                     background: checked ? "#eff6ff" : "#fff",
                     color: checked ? "#1d4ed8" : "#334155",
-                    cursor: "pointer",
+                    cursor: editing ? "pointer" : "not-allowed",
+                    opacity: editing ? 1 : 0.75,
                   }}
                 >
                   {domain}
@@ -150,6 +188,7 @@ export default function InfluencerProfilePage() {
           自我介绍/个人优势 <span style={{ color: "#dc2626" }}>*</span>
           <textarea
             rows={5}
+            disabled={!editing}
             value={form.influencer_bio}
             onChange={(e) => setForm((prev) => ({ ...prev, influencer_bio: e.target.value }))}
             placeholder="例如：擅长剧情类短视频创作，能稳定周更..."
@@ -158,9 +197,12 @@ export default function InfluencerProfilePage() {
         </label>
       </div>
 
-      <div style={{ marginTop: 16 }}>
-        <button type="button" onClick={() => void onSave()} disabled={saving} className="xt-accent-btn">
-          {saving ? "保存中..." : "保存达人信息"}
+      <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button type="button" onClick={() => void onSave()} disabled={saving || (saved && !editing)} className="xt-accent-btn">
+          {saving ? "保存中..." : saved && !editing ? "保存成功" : "保存达人信息"}
+        </button>
+        <button type="button" onClick={onEdit} className="xt-outline-btn">
+          编辑
         </button>
       </div>
     </div>

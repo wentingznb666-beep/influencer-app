@@ -177,6 +177,36 @@ export async function createInfluencerDemand(body: {
 
 
 
+export async function updateInfluencerDemand(id: number, body: {
+  specialty: string;
+  fans_level: string;
+  task_types: string[];
+  categories_can_do: string;
+  categories_not_do: string;
+  need_sample: "是" | "否";
+  unit_price: number;
+  delivery_days: number;
+  revise_times: number;
+  intro: string;
+}) {
+
+  const res = await fetchWithAuth(`/api/matching/influencer/demands/${id}`, {
+
+    method: "PUT",
+
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+
+    body: JSON.stringify(body),
+
+  });
+
+  if (!res.ok) throw new Error(await readError(res, "Update failed"));
+
+  return res.json();
+
+}
+
+
 export async function getInfluencerDemandApplications(demandId: number) {
 
   const res = await fetchWithAuth(`/api/matching/influencer/demands/${demandId}/applications`);

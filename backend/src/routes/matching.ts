@@ -599,6 +599,74 @@ router.post("/influencer/demands", async (req: AuthRequest, res: Response) => {
     return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   }
 });
+
+/** 达人编辑已发布需求（仅 open/rejected 可编辑）。 */
+router.put("/influencer/demands/:id", async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+  const demandId = Number(req.params.id);
+  if (!Number.isInteger(demandId) || demandId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的需求ID。" });
+
+  const specialty = String(req.body?.specialty || "").trim();
+  const fansLevel = String(req.body?.fans_level || "").trim();
+  const taskTypes = Array.isArray(req.body?.task_types)
+    ? (req.body.task_types as unknown[]).map((x) => String(x || "").trim()).filter(Boolean).slice(0, 10)
+    : [];
+  const categoriesCanDo = String(req.body?.categories_can_do || "").trim();
+  const categoriesNotDo = String(req.body?.categories_not_do || "").trim();
+  const needSample = String(req.body?.need_sample || "").trim();
+  const unitPrice = Number(req.body?.unit_price);
+  const deliveryDays = Number(req.body?.delivery_days);
+  const reviseTimes = Number(req.body?.revise_times);
+  const intro = String(req.body?.intro || "").trim();
+
+  if (!specialty || !fansLevel || taskTypes.length === 0 || !categoriesCanDo || !categoriesNotDo || (needSample !== "是" && needSample !== "否") || !Number.isFinite(unitPrice) || unitPrice <= 0 || !Number.isInteger(deliveryDays) || deliveryDays < 1 || !Number.isInteger(reviseTimes) || reviseTimes < 0 || !intro) {
+    return res.status(400).json({ error: "INVALID_INPUT", message: "请完整填写需求信息。" });
+  }
+
+  try {
+    const permission = await query<{ influencer_status: string }>(
+      `SELECT influencer_status FROM users WHERE id=$1`,
+      [req.user.userId]
+    );
+    const canCreate = permission.rows[0]?.influencer_status === "approved";
+    if (!canCreate) return res.status(403).json({ error: "FORBIDDEN", message: "当前账号没有发布权限。" });
+
+    const detail = {
+      fans_level: fansLevel,
+      task_types: taskTypes,
+      categories_can_do: categoriesCanDo,
+      categories_not_do: categoriesNotDo,
+      need_sample: needSample,
+      delivery_days: deliveryDays,
+      revise_times: reviseTimes,
+      intro,
+    };
+
+    const updated = await query<{ id: number }>(
+      `UPDATE influencer_collab_demands
+          SET title=$2,
+              demand_detail=$3,
+              expected_points=$4,
+              status='open',
+              review_note=NULL,
+              reviewed_by=NULL,
+              reviewed_at=NULL,
+              updated_at=now()
+        WHERE id=$1 AND influencer_id=$5 AND status IN ('open','rejected')
+        RETURNING id`,
+      [demandId, specialty, JSON.stringify(detail), Math.round(unitPrice), req.user.userId]
+    );
+
+    if (!updated.rows[0]) {
+      return res.status(409).json({ error: "BAD_STATE", message: "当前需求状态不可编辑。" });
+    }
+
+    return res.json({ ok: true, id: updated.rows[0].id });
+  } catch (e) {
+    console.error("influencer update demand error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
 /** 创建系统消息 */
 
 router.get("/influencer/demands/:id/applications", async (req: AuthRequest, res: Response) => {
