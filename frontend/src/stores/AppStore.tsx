@@ -80,6 +80,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       localStorage.setItem(MERCHANT_TEMPLATE_KEY, JSON.stringify(merchantTemplate));
+      // 触发 storage 事件，让同一页面不同组件能够监听到同步更新（如果适用）
+      window.dispatchEvent(new Event('storage'));
     } catch {
       // localStorage 不可用或写入失败时忽略持久化。
     }

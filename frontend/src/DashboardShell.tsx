@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { getStoredUser, clearAuth } from "./authApi";
 import LanguageSwitch from "./LanguageSwitch";
@@ -386,10 +386,15 @@ export default function DashboardShell({
                   onClick={() => toggleGroup(gid)}
                 >
                   <span className="xt-sidebar-group-toggle__icon" aria-hidden>{GROUP_META[gid].icon}</span>
-                  <span className="xt-sidebar-group-toggle__chevron" aria-hidden />
                   <span className="xt-sidebar-group-toggle__label">{GROUP_META[gid].label}</span>
+                  <span className="xt-sidebar-group-toggle__chevron" aria-hidden />
                 </button>
-                {expanded ? <div className="xt-sidebar-group-children">{items.map((it) => renderNavLink(it))}</div> : null}
+                <div 
+                  className="xt-sidebar-group-children" 
+                  aria-hidden={!expanded}
+                >
+                  {items.map((it) => renderNavLink(it))}
+                </div>
               </div>
             );
           })}

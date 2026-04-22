@@ -748,6 +748,17 @@ export async function saveClientMerchantInfoTemplate(body: {
   return res.json();
 }
 
+/** 更新撮合免积分订单。 */
+export async function updateMatchingOrder(id: number | string, body: { title?: string; task_amount?: number; requirement?: string; allow_apply?: boolean; detail?: Record<string, unknown>; attachments?: string[] }) {
+  const res = await fetchWithAuth(`/api/matching/client/matching-orders/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '更新失败');
+  return res.json();
+}
+
 export async function getMatchingOrderApplicants(orderId: number) {
   const res = await fetchWithAuth(`/api/matching/client/matching-orders/${orderId}/applicants`);
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '请求失败');

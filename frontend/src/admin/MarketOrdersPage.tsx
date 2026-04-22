@@ -547,25 +547,15 @@ export default function MarketOrdersPage() {
             <colgroup>
 
               <col style={{ width: "6%" }} />
-
-              <col style={{ width: "14%" }} />
-
               <col style={{ width: "12%" }} />
-
+              <col style={{ width: "11%" }} />
               <col style={{ width: "7%" }} />
-
-              <col style={{ width: "8%" }} />
-              <col style={{ width: "5%" }} />
-              <col style={{ width: "8%" }} />
-              <col style={{ width: "17%" }} />
-
-              <col style={{ width: "14%" }} />
-
+              <col style={{ width: "12%" }} />
+              <col style={{ width: "16%" }} />
+              <col style={{ width: "13%" }} />
               <col style={{ width: "7%" }} />
-
               <col style={{ width: "9%" }} />
-
-              <col style={{ width: "6%" }} />
+              <col style={{ width: "7%" }} />
 
             </colgroup>
 
@@ -574,15 +564,10 @@ export default function MarketOrdersPage() {
               <tr>
 
                 <th style={{ padding: 8, textAlign: "left" }}>{t("订单号")}</th>
-
                 <th style={{ padding: 8, textAlign: "left" }}>{t("商家账号/名称")}</th>
-
                 <th style={{ padding: 8, textAlign: "left" }}>{t("领取达人")}</th>
-
                 <th style={{ padding: 8, textAlign: "left" }}>{t("状态")}</th>
-                <th style={{ padding: 8, textAlign: "left" }}>{t("数量")}</th>
-                <th style={{ padding: 8, textAlign: "left" }}>{t("积分")}</th>
-
+                <th style={{ padding: 8, textAlign: "center" }}>{t("视频数量/积分")}</th>
                 <th style={{ padding: 8, textAlign: "left" }}>{t("订单详情")}</th>
 
                 <th style={{ padding: 8, textAlign: "left" }}>{t("SKU信息")}</th>
@@ -684,25 +669,25 @@ export default function MarketOrdersPage() {
                       {statusText[o.status] ?? o.status}
                     </span>
                   </td>
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
-                    {Math.max(1, Math.min(100, Number(o.task_count) || 1))}
-                  </td>
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top", fontSize: "0.95em" }}>
-                    {t("商家合计：")}{o.client_pay_total}
-                    <br />
-                    <span style={{ color: "#64748b" }}>{t("单套")} {o.client_pay_unit}</span>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top", textAlign: "center" }}>
+                    <div style={{ fontSize: "12px", color: "#334155" }}>
+                      {t("视频数量：")}{o.task_count || "-"} {t("条")}
+                    </div>
+                    <div style={{ fontWeight: 600, color: "var(--xt-accent)", marginTop: 2 }}>
+                      {o.client_pay_total}{t("积分")}
+                      <span style={{ fontWeight: 400, fontSize: "11px", color: "#64748b", marginLeft: 4 }}>
+                        （{t("单套")} {o.client_pay_unit} {t("积分")} × {t("视频数量：")} {o.task_count || 1}）
+                      </span>
+                    </div>
                     {!isEmployee && (
-                      <>
-                        <br />
-                        {t("达人合计：")}{o.creator_reward_total ?? "—"}
-                        <br />
-                        <span style={{ color: "#64748b" }}>{t("单套")} {o.creator_reward_unit ?? "—"}</span>
-                        <br />
-                        {t("平台利润：")}{o.platform_profit_points ?? "—"}
-                      </>
+                      <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: 4, borderTop: "1px dashed #e2e8f0", paddingTop: 4 }}>
+                        {t("达人收益合计：")}{o.creator_reward_total ?? "—"} {t("积分")}
+                        <span style={{ marginLeft: 4 }}>
+                          （{t("单套")} {o.creator_reward_unit ?? "—"} {t("积分")} × {t("视频数量：")} {o.task_count || 1}）
+                        </span>
+                      </div>
                     )}
                   </td>
-
                   <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
 
                     <div style={{ fontWeight: 600 }}>{o.title || t("未命名订单")}</div>
@@ -931,12 +916,29 @@ export default function MarketOrdersPage() {
 
               </div>
 
-              <div style={{ color: "#64748b" }}>{t("数量（套）")}</div><div>{Math.max(1, Math.min(100, Number(detailOrder.task_count) || 1))}</div>
-              <div style={{ color: "#64748b" }}>{t("商家支付合计")}</div><div>{detailOrder.client_pay_total}（单套 {detailOrder.client_pay_unit}）</div>
+              <div style={{ color: "#64748b" }}>{t("视频数量/积分")}</div>
+              <div>
+                <div style={{ marginBottom: 4 }}>{t("视频数量：")}{detailOrder.task_count || "-"} {t("条")}</div>
+                <div>
+                  {t("金额：")}
+                  <span style={{ fontWeight: 600, color: "var(--xt-accent)", fontSize: 16 }}>
+                    {detailOrder.client_pay_total}{t("积分")}
+                  </span>
+                  <span style={{ marginLeft: 8, color: "#64748b" }}>
+                    （{t("单套")} {detailOrder.client_pay_unit} {t("积分")} × {t("视频数量：")} {detailOrder.task_count || 1}）
+                  </span>
+                </div>
+              </div>
               {!isEmployee && (
                 <>
-                  <div style={{ color: "#64748b" }}>{t("达人收益合计")}</div><div>{detailOrder.creator_reward_total ?? "—"}（单套 {detailOrder.creator_reward_unit ?? "—"}）</div>
-                  <div style={{ color: "#64748b" }}>{t("平台利润")}</div><div>{detailOrder.platform_profit_points ?? "—"}</div>
+                  <div style={{ color: "#64748b" }}>{t("达人收益合计")}</div>
+                  <div>
+                    {detailOrder.creator_reward_total ?? "—"}{t("积分")}
+                    <span style={{ marginLeft: 8, color: "#94a3b8" }}>
+                      （{t("单套")} {detailOrder.creator_reward_unit ?? "—"} {t("积分")} × {t("视频数量：")} {detailOrder.task_count || 1}）
+                    </span>
+                  </div>
+                  <div style={{ color: "#64748b" }}>{t("平台利润")}</div><div>{detailOrder.platform_profit_points ?? "—"}{t("积分")}</div>
                 </>
               )}
 

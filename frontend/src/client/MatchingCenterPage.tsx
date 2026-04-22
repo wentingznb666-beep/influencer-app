@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { createMatchingOrder, getMatchingOrders, uploadMatchingOrderAssets } from "../clientApi";
+import { createMatchingOrder, getMatchingOrders, updateMatchingOrder, uploadMatchingOrderAssets } from "../clientApi";
 import { useAppStore } from "../stores/AppStore";
 import { MerchantInfoForm } from "../components/MerchantInfoForm";
 
@@ -85,16 +85,19 @@ export default function MatchingCenterPage() {
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [form, setForm] = useState<MatchingFormState>(defaultForm);
+  const [editingOrder, setEditingOrder] = useState<any | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   /** 判断商家信息模板是否填写完整 */
   const incompleteFields = useMemo(() => {
     const missing = [];
-    if (!merchantTemplate.shop_name.trim()) missing.push("商店名称");
-    if (!merchantTemplate.product_type.trim()) missing.push("销售产品类型");
-    if (!merchantTemplate.sales_summary.trim()) missing.push("销售额情况");
-    if (!merchantTemplate.shop_link.trim()) missing.push("店铺链接");
-    if (!merchantTemplate.shop_rating.trim()) missing.push("店铺评分");
-    if (!merchantTemplate.user_reviews.trim()) missing.push("用户评价");
+    const st = merchantTemplate;
+    if (!st.shop_name || !st.shop_name.trim()) missing.push("商店名称");
+    if (!st.product_type || !st.product_type.trim()) missing.push("销售产品类型");
+    if (!st.sales_summary || !st.sales_summary.trim()) missing.push("销售额情况");
+    if (!st.shop_link || !st.shop_link.trim()) missing.push("店铺链接");
+    if (!st.shop_rating || !st.shop_rating.trim()) missing.push("店铺评分");
+    if (!st.user_reviews || !st.user_reviews.trim()) missing.push("用户评价");
     return missing;
   }, [
     merchantTemplate.shop_name,
@@ -182,6 +185,7 @@ export default function MatchingCenterPage() {
     setForm(defaultForm);
     setUploadedUrls([]);
     setUploadFiles([]);
+    setEditingOrder(null);
   };
 
   /** 提交撮合订单。 */
@@ -235,18 +239,29 @@ export default function MatchingCenterPage() {
         unit_commission: Number(form.unit_commission),
       };
 
-      await createMatchingOrder({
-        title: form.task_name.trim(),
-        task_amount: Number(form.unit_commission),
-        requirement: form.selling_points.trim(),
-        allow_apply: true,
-        detail,
-        attachments: uploadedUrls,
-      });
+      if (editingOrder) {
+        await updateMatchingOrder(editingOrder.id, {
+          title: form.task_name.trim(),
+          task_amount: Number(form.unit_commission),
+          requirement: form.selling_points.trim(),
+          allow_apply: true,
+          detail,
+          attachments: uploadedUrls,
+        });
+      } else {
+        await createMatchingOrder({
+          title: form.task_name.trim(),
+          task_amount: Number(form.unit_commission),
+          requirement: form.selling_points.trim(),
+          allow_apply: true,
+          detail,
+          attachments: uploadedUrls,
+        });
+      }
 
       await loadOrders();
       closeModal();
-      setMsg("发布成功");
+      setShowSuccessModal(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "发布失败");
     } finally {
@@ -273,19 +288,98 @@ export default function MatchingCenterPage() {
         <h3 style={{ marginBottom: 8 }}>已发布撮合订单</h3>
         {orders.length === 0 ? <p style={{ color: "#64748b" }}>暂无订单</p> : null}
         {orders.map((it) => (
-          <div key={it.id} style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 10, marginBottom: 8 }}>
-            <div>{it.order_no}｜{it.title}</div>
-            <div style={{ color: "#475569", marginTop: 4 }}>金额：{it.task_amount}｜状态：{it.status}</div>
+          <div key={it.id} style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 10, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div>{it.order_no}｜{it.title}</div>
+              <div style={{ color: "#475569", marginTop: 4 }}>金额：{it.task_amount}｜状态：{it.status}</div>
+            </div>
+            <button 
+              type="button" 
+              onClick={() => {
+                if (it.detail) {
+                  const d = it.detail as Record<string, unknown>;
+                  setForm({
+                    task_name: typeof d.task_name === "string" ? d.task_name : "",
+                    task_type: typeof d.task_type === "string" ? d.task_type : "短视频",
+                    industry: typeof d.industry === "string" ? d.industry : "其他",
+                    recruit_count: typeof d.recruit_count === "number" ? String(d.recruit_count) : "",
+                    start_date: typeof d.start_date === "string" ? d.start_date : "",
+                    order_deadline: typeof d.order_deadline === "string" ? d.order_deadline : "",
+                    publish_deadline: typeof d.publish_deadline === "string" ? d.publish_deadline : "",
+                    product_name: typeof d.product_name === "string" ? d.product_name : "",
+                    selling_points: typeof d.selling_points === "string" ? d.selling_points : "",
+                    content_form: typeof d.content_form === "string" ? d.content_form : "短视频",
+                    video_duration: typeof d.video_duration === "string" ? d.video_duration : "",
+                    copy_requirement: typeof d.copy_requirement === "string" ? d.copy_requirement : "",
+                    must_elements: Array.isArray(d.must_elements) ? d.must_elements as string[] : [],
+                    forbidden_content: typeof d.forbidden_content === "string" ? d.forbidden_content : "",
+                    provide_sample: (d.provide_sample as string) === "是" ? "是" as MatchingFormState["provide_sample"] : "否" as MatchingFormState["provide_sample"],
+                    sample_count: typeof d.sample_count === "number" ? String(d.sample_count) : "",
+                    sample_recycle: (d.sample_recycle as string) === "是" ? "是" as MatchingFormState["sample_recycle"] : "否" as MatchingFormState["sample_recycle"],
+                    freight_side: (d.freight_side as string) === "达人承担" ? "达人承担" as MatchingFormState["freight_side"] : "商家承担" as MatchingFormState["freight_side"],
+                    standard_publish_on_time: Boolean(d.standard_publish_on_time),
+                    standard_clear_no_violation: Boolean(d.standard_clear_no_violation),
+                    keep_days: typeof d.keep_days === "number" ? String(d.keep_days) : "",
+                    revise_times: typeof d.revise_times === "number" ? String(d.revise_times) : "",
+                    unqualified_action: typeof d.unqualified_action === "string" ? d.unqualified_action : "驳回修改",
+                    rights_granted: Boolean(d.rights_granted),
+                    no_cheat: Boolean(d.no_cheat),
+                    violation_action: typeof d.violation_action === "string" ? d.violation_action : "取消佣金并拉黑",
+                    unit_commission: typeof d.unit_commission === "number" ? String(d.unit_commission) : "",
+                  });
+                }
+                setUploadedUrls(Array.isArray(it.attachments) ? it.attachments : []);
+                setEditingOrder(it);
+                setShowModal(true);
+              }}
+              style={{ 
+                padding: "6px 14px", 
+                borderRadius: 6, 
+                border: "1px solid var(--xt-accent)", 
+                background: "transparent", 
+                color: "var(--xt-accent)", 
+                cursor: "pointer",
+                fontWeight: 500,
+                fontSize: 13
+              }}
+            >
+              编辑
+            </button>
           </div>
         ))}
       </div>
 
       {showModal ? (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 1000 }}>
-          <div style={{ width: "min(920px, 94vw)", maxHeight: "90vh", overflowY: "auto", background: "#fff", borderRadius: 16, padding: 16 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ position: "relative", width: "min(920px, 94vw)", maxHeight: "90vh", overflowY: "auto", background: "#fff", borderRadius: 16, padding: 16 }}>
+            <button 
+              type="button" 
+              onClick={closeModal}
+              style={{ 
+                position: "absolute", 
+                top: 16, 
+                right: 16, 
+                width: 36, 
+                height: 36, 
+                borderRadius: "50%", 
+                border: "1px solid #e2e8f0", 
+                background: "#f8fafc", 
+                cursor: "pointer", 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "center",
+                fontSize: 18,
+                color: "#64748b",
+                zIndex: 10,
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = "#fee2e2"; e.currentTarget.style.color = "#dc2626"; }}
+              onMouseLeave={e => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.color = "#64748b"; }}
+            >
+              ×
+            </button>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingRight: 40 }}>
               <h3 style={{ margin: 0 }}>发布撮合订单</h3>
-              <button type="button" onClick={closeModal}>关闭</button>
             </div>
 
             <form onSubmit={onCreate} style={{ display: "grid", gap: 14, marginTop: 12 }}>
@@ -460,9 +554,35 @@ export default function MatchingCenterPage() {
                   borderRadius: 8
                 }}
               >
-                {publishing ? "提交中..." : "确认发布"}
+                {publishing ? "提交中..." : (editingOrder ? "确认保存" : "确认发布")}
               </button>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {showSuccessModal ? (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 2000 }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: "32px 40px", textAlign: "center", minWidth: 280 }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>✨</div>
+            <div style={{ fontSize: 18, fontWeight: 600, color: "#1e293b", marginBottom: 8 }}>提交成功</div>
+            <div style={{ fontSize: 14, color: "#64748b", marginBottom: 24 }}>撮合订单已提交，请耐心等待</div>
+            <button 
+              type="button" 
+              onClick={() => setShowSuccessModal(false)}
+              style={{ 
+                padding: "10px 32px", 
+                borderRadius: 8, 
+                border: "none", 
+                background: "var(--xt-accent)", 
+                color: "#fff", 
+                fontWeight: 600, 
+                cursor: "pointer",
+                fontSize: 14
+              }}
+            >
+              确定
+            </button>
           </div>
         </div>
       ) : null}

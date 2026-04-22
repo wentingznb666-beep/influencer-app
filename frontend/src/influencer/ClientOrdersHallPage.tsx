@@ -726,9 +726,21 @@ export default function ClientOrdersHallPage() {
 
                 <div style={{ fontSize: 14 }}>{statusText[o.status] ?? o.status}</div>
 
-                <div style={{ color: "#64748b", fontSize: 13 }}>{t("金额")}</div>
-
-                <div style={{ fontSize: 14 }}>{hallMarketOrderTotalPoints(o)} {t("积分")}（{t("单套")} {o.reward_points} × {hallMarketOrderTaskCount(o)}）</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>{t("视频数量/积分")}</div>
+                <div style={{ fontSize: 14 }}>
+                  <div style={{ marginBottom: 4 }}>
+                    {t("视频数量：")}{o.task_count || "-"} {t("条")}
+                  </div>
+                  <div>
+                    {t("金额：")}
+                    <span style={{ fontWeight: 600, color: "var(--xt-accent)" }}>
+                      {hallMarketOrderTotalPoints(o)} {t("积分")}
+                    </span>
+                    <span style={{ color: "#64748b", marginLeft: 4 }}>
+                      （{t("单套")} {o.reward_points} {t("积分")} × {t("视频数量：")} {hallMarketOrderTaskCount(o)}）
+                    </span>
+                  </div>
+                </div>
 
                 <div style={{ color: "#64748b", fontSize: 13 }}>{t("发布方式")}</div>
 
@@ -869,9 +881,21 @@ export default function ClientOrdersHallPage() {
 
                 <div style={{ fontSize: 14 }}>{statusText[o.status] ?? o.status}</div>
 
-                <div style={{ color: "#64748b", fontSize: 13 }}>{t("金额")}</div>
-
-                <div style={{ fontSize: 14 }}>{hallMarketOrderTotalPoints(o)} {t("积分")}（{t("单套")} {o.reward_points} × {hallMarketOrderTaskCount(o)}）</div>
+                <div style={{ color: "#64748b", fontSize: 13 }}>{t("视频数量/积分")}</div>
+                <div style={{ fontSize: 14 }}>
+                  <div style={{ marginBottom: 4 }}>
+                    {t("视频数量：")}{o.task_count || "-"} {t("条")}
+                  </div>
+                  <div>
+                    {t("金额：")}
+                    <span style={{ fontWeight: 600, color: "var(--xt-accent)" }}>
+                      {hallMarketOrderTotalPoints(o)} {t("积分")}
+                    </span>
+                    <span style={{ color: "#64748b", marginLeft: 4 }}>
+                      （{t("单套")} {o.reward_points} {t("积分")} × {t("视频数量：")} {hallMarketOrderTaskCount(o)}）
+                    </span>
+                  </div>
+                </div>
 
                 <div style={{ color: "#64748b", fontSize: 13 }}>{t("发布方式")}</div>
 

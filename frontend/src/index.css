@@ -1,4 +1,4 @@
-﻿/**
+/**
 
  * 婀樻嘲鍥介檯 路 杈句汉鍒嗗彂 鈥?鍏ㄥ眬鍝佺墝鑹诧紙娣遍潧钃?/ 姗欒壊鐐圭紑 / 鏋佹贰鐏拌摑搴曪級
 
@@ -186,40 +186,106 @@ body {
 
 
 
-.xt-sidebar-nav {
-
-  display: flex;
-
-  flex-direction: column;
-
-  gap: 6px;
-
-  padding: 16px 12px 24px;
-
-  overflow-y: auto;
-
+/* 侧栏分组标题样式 */
+.xt-sidebar-group {
+  margin-bottom: 4px;
 }
 
+.xt-sidebar-group-toggle {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+  min-height: 40px !important;
+}
 
+.xt-sidebar-group-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
 
-/* 渚ф爮閾炬帴锛氱櫧瀛楋紱婵€娲讳负姗欒壊搴?*/
+.xt-sidebar-group-toggle__icon {
+  margin-right: 10px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+}
+
+.xt-sidebar-group-toggle__label {
+  flex: 1;
+  text-align: left;
+}
+
+.xt-sidebar-group-toggle__chevron {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.6;
+}
+
+.xt-sidebar-group-toggle__chevron::after {
+  content: "";
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.xt-sidebar-group-toggle[aria-expanded="true"] .xt-sidebar-group-toggle__chevron {
+  transform: rotate(45deg);
+  opacity: 1;
+}
+
+.xt-sidebar-group-children {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  padding-left: 12px;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, margin 0.3s ease;
+}
+
+.xt-sidebar-group-children[aria-hidden="true"] {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  pointer-events: none;
+}
+
+.xt-sidebar-group-children[aria-hidden="false"] {
+  max-height: 500px; /* 足够容纳子菜单的高度 */
+  opacity: 1;
+}
 
 .xt-sidebar-link {
-
-  display: block;
-
-  padding: 12px 14px;
-
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
   border-radius: 8px;
-
   text-decoration: none;
-
-  color: var(--xt-sidebar-text);
-
+  color: rgba(255, 255, 255, 0.75);
   font-weight: 500;
-
-  transition: background-color 0.15s ease, color 0.15s ease;
-
+  font-size: 14px;
+  transition: all 0.2s ease;
+  min-height: 44px !important;
 }
 
 

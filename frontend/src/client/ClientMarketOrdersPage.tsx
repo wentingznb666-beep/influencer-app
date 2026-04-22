@@ -1018,11 +1018,21 @@ export default function ClientMarketOrdersPage() {
 
                 <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
 
-                  <span style={{ color: "#666" }}>
-
-                    {statusText[o.status] ?? o.status} · 数量 {marketOrderTaskCount(o)} · 单套 {o.reward_points} 分 · 合计 {marketOrderTotalRewardPoints(o)} 分
-
-                  </span>
+                  <div style={{ color: "#64748b", fontSize: 13 }}>视频数量/积分</div>
+                  <div style={{ fontSize: 14 }}>
+                    <div style={{ marginBottom: 4 }}>
+                      视频数量：{o.task_count || "-"} 条
+                    </div>
+                    <div>
+                      金额：
+                      <span style={{ fontWeight: 600, color: "var(--xt-accent)" }}>
+                        {marketOrderTotalRewardPoints(o)} 积分
+                      </span>
+                      <span style={{ color: "#64748b", marginLeft: 4 }}>
+                        （单套 {o.reward_points} 积分 × 视频数量：{marketOrderTaskCount(o)}）
+                      </span>
+                    </div>
+                  </div>
 
                   {o.status === "open" && (
 

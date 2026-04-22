@@ -12,6 +12,15 @@ export const MerchantInfoForm: React.FC = () => {
   const { merchantTemplate, setMerchantTemplate } = useAppStore();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success">("idle");
+  const [isEditing, setIsEditing] = useState(false);
+
+  // 初始检查：如果信息不完整，默认开启编辑模式
+  React.useEffect(() => {
+    const hasEmpty = Object.values(merchantTemplate).some(v => !v.trim());
+    if (hasEmpty) {
+      setIsEditing(true);
+    }
+  }, []);
 
   const handleChange = (field: keyof typeof merchantTemplate, value: string) => {
     setMerchantTemplate((prev) => ({ ...prev, [field]: value }));
@@ -41,20 +50,50 @@ export const MerchantInfoForm: React.FC = () => {
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
+      setIsEditing(true); // 报错时强制进入编辑模式
       return;
     }
 
     setSaveStatus("saving");
-    // 模拟保存延迟
+    // 强制同步到 localStorage，确保其他页面能立即读取最新值
+    localStorage.setItem("app:merchantTemplate", JSON.stringify(merchantTemplate));
+    
     setTimeout(() => {
       setSaveStatus("success");
-      setTimeout(() => setSaveStatus("idle"), 3000);
-    }, 500);
+      setIsEditing(false); // 保存成功后退出编辑模式
+      setTimeout(() => setSaveStatus("idle"), 2000);
+    }, 400);
+  };
+
+  const toggleEdit = () => {
+    setIsEditing(!isEditing);
+    if (!isEditing) {
+      setSaveStatus("idle");
+    }
   };
 
   return (
     <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12, marginBottom: 14, background: "#f8fafc" }}>
-      <h4 style={{ marginTop: 0, marginBottom: 16, color: "#334155", borderBottom: "1px solid #e2e8f0", paddingBottom: 8 }}>商家基本信息（必填模板）</h4>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, borderBottom: "1px solid #e2e8f0", paddingBottom: 8 }}>
+        <h4 style={{ margin: 0, color: "#334155" }}>商家基本信息（必填模板）</h4>
+        <button 
+          type="button" 
+          onClick={toggleEdit}
+          style={{ 
+            fontSize: 13, 
+            padding: "4px 12px", 
+            borderRadius: 6, 
+            border: "1px solid var(--xt-accent)", 
+            color: "var(--xt-accent)", 
+            background: isEditing ? "#eff6ff" : "transparent",
+            cursor: "pointer",
+            fontWeight: 500
+          }}
+        >
+          {isEditing ? "取消编辑" : "编辑信息"}
+        </button>
+      </div>
+
       <div style={{ display: "grid", gap: 16 }}>
         
         {/* 商店名称 */}
@@ -63,6 +102,7 @@ export const MerchantInfoForm: React.FC = () => {
             <span style={{ color: "#dc2626", marginRight: 4 }}>*</span>商店名称
           </label>
           <input
+            disabled={!isEditing}
             style={{ 
               width: "100%", 
               padding: "8px 12px", 
@@ -70,7 +110,9 @@ export const MerchantInfoForm: React.FC = () => {
               border: `1px solid ${errors.shop_name ? "#dc2626" : "#d1d5db"}`,
               boxSizing: "border-box",
               outline: "none",
-              transition: "border-color 0.2s"
+              background: isEditing ? "#fff" : "#f1f5f9",
+              color: isEditing ? "#000" : "#64748b",
+              transition: "all 0.2s"
             }}
             value={merchantTemplate.shop_name}
             onChange={(e) => handleChange("shop_name", e.target.value)}
@@ -86,13 +128,16 @@ export const MerchantInfoForm: React.FC = () => {
             <span style={{ color: "#dc2626", marginRight: 4 }}>*</span>销售产品类型
           </label>
           <input
+            disabled={!isEditing}
             style={{ 
               width: "100%", 
               padding: "8px 12px", 
               borderRadius: 6, 
               border: `1px solid ${errors.product_type ? "#dc2626" : "#d1d5db"}`,
               boxSizing: "border-box",
-              outline: "none"
+              outline: "none",
+              background: isEditing ? "#fff" : "#f1f5f9",
+              color: isEditing ? "#000" : "#64748b"
             }}
             value={merchantTemplate.product_type}
             onChange={(e) => handleChange("product_type", e.target.value)}
@@ -108,13 +153,16 @@ export const MerchantInfoForm: React.FC = () => {
             <span style={{ color: "#dc2626", marginRight: 4 }}>*</span>销售额情况
           </label>
           <input
+            disabled={!isEditing}
             style={{ 
               width: "100%", 
               padding: "8px 12px", 
               borderRadius: 6, 
               border: `1px solid ${errors.sales_summary ? "#dc2626" : "#d1d5db"}`,
               boxSizing: "border-box",
-              outline: "none"
+              outline: "none",
+              background: isEditing ? "#fff" : "#f1f5f9",
+              color: isEditing ? "#000" : "#64748b"
             }}
             value={merchantTemplate.sales_summary}
             onChange={(e) => handleChange("sales_summary", e.target.value)}
@@ -130,13 +178,16 @@ export const MerchantInfoForm: React.FC = () => {
             <span style={{ color: "#dc2626", marginRight: 4 }}>*</span>店铺链接
           </label>
           <input
+            disabled={!isEditing}
             style={{ 
               width: "100%", 
               padding: "8px 12px", 
               borderRadius: 6, 
               border: `1px solid ${errors.shop_link ? "#dc2626" : "#d1d5db"}`,
               boxSizing: "border-box",
-              outline: "none"
+              outline: "none",
+              background: isEditing ? "#fff" : "#f1f5f9",
+              color: isEditing ? "#000" : "#64748b"
             }}
             type="url"
             value={merchantTemplate.shop_link}
@@ -153,13 +204,16 @@ export const MerchantInfoForm: React.FC = () => {
             <span style={{ color: "#dc2626", marginRight: 4 }}>*</span>店铺评分
           </label>
           <input
+            disabled={!isEditing}
             style={{ 
               width: "100%", 
               padding: "8px 12px", 
               borderRadius: 6, 
               border: `1px solid ${errors.shop_rating ? "#dc2626" : "#d1d5db"}`,
               boxSizing: "border-box",
-              outline: "none"
+              outline: "none",
+              background: isEditing ? "#fff" : "#f1f5f9",
+              color: isEditing ? "#000" : "#64748b"
             }}
             value={merchantTemplate.shop_rating}
             onChange={(e) => handleChange("shop_rating", e.target.value)}
@@ -175,6 +229,7 @@ export const MerchantInfoForm: React.FC = () => {
             <span style={{ color: "#dc2626", marginRight: 4 }}>*</span>用户评价
           </label>
           <textarea
+            disabled={!isEditing}
             style={{ 
               width: "100%", 
               padding: "8px 12px", 
@@ -183,7 +238,9 @@ export const MerchantInfoForm: React.FC = () => {
               boxSizing: "border-box",
               outline: "none",
               minHeight: 80,
-              resize: "vertical"
+              resize: "vertical",
+              background: isEditing ? "#fff" : "#f1f5f9",
+              color: isEditing ? "#000" : "#64748b"
             }}
             value={merchantTemplate.user_reviews}
             onChange={(e) => handleChange("user_reviews", e.target.value)}
@@ -198,7 +255,7 @@ export const MerchantInfoForm: React.FC = () => {
           <button
             type="button"
             onClick={handleSave}
-            disabled={saveStatus !== "idle"}
+            disabled={saveStatus === "saving"}
             style={{
               padding: "10px 24px",
               background: saveStatus === "success" ? "#10b981" : "var(--xt-accent)",
@@ -206,17 +263,23 @@ export const MerchantInfoForm: React.FC = () => {
               border: "none",
               borderRadius: 8,
               fontWeight: 600,
-              cursor: saveStatus !== "idle" ? "not-allowed" : "pointer",
-              transition: "all 0.2s"
+              cursor: saveStatus === "saving" ? "not-allowed" : "pointer",
+              transition: "all 0.2s",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
             }}
           >
             {saveStatus === "idle" && "保存商家信息"}
             {saveStatus === "saving" && "保存中..."}
-            {saveStatus === "success" && "已保存成功"}
+            {saveStatus === "success" && "保存成功"}
           </button>
           {saveStatus === "success" && (
             <span style={{ color: "#10b981", fontSize: 14, fontWeight: 500 }}>
-              ✨ 信息已同步，您可以前往发布订单了
+              ✨ 信息已保存并同步，可以去发布订单了
+            </span>
+          )}
+          {!isEditing && saveStatus === "idle" && (
+            <span style={{ color: "#64748b", fontSize: 13 }}>
+              当前为查看模式，如需修改请点击右上角“编辑信息”
             </span>
           )}
         </div>
