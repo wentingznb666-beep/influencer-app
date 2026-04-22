@@ -1224,6 +1224,9 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS tiktok_account TEXT`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS tiktok_fans TEXT`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS category TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS expertise_domains TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS influencer_bio TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS real_name TEXT`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_name TEXT`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_branch TEXT`);
