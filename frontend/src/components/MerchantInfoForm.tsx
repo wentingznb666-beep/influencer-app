@@ -11,6 +11,7 @@ import { useAppStore } from "../stores/AppStore";
 export const MerchantInfoForm: React.FC = () => {
   const { merchantTemplate, setMerchantTemplate } = useAppStore();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success">("idle");
 
   const handleChange = (field: keyof typeof merchantTemplate, value: string) => {
     setMerchantTemplate((prev) => ({ ...prev, [field]: value }));
@@ -28,6 +29,27 @@ export const MerchantInfoForm: React.FC = () => {
     if (!merchantTemplate[field].trim()) {
       setErrors((prev) => ({ ...prev, [field]: "该项为必填项" }));
     }
+  };
+
+  const handleSave = () => {
+    const newErrors: Record<string, string> = {};
+    Object.entries(merchantTemplate).forEach(([key, value]) => {
+      if (!value.trim()) {
+        newErrors[key] = "该项为必填项";
+      }
+    });
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setSaveStatus("saving");
+    // 模拟保存延迟
+    setTimeout(() => {
+      setSaveStatus("success");
+      setTimeout(() => setSaveStatus("idle"), 3000);
+    }, 500);
   };
 
   return (
@@ -169,6 +191,34 @@ export const MerchantInfoForm: React.FC = () => {
             placeholder="请简述用户评价情况"
           />
           {errors.user_reviews && <div style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{errors.user_reviews}</div>}
+        </div>
+
+        {/* 保存按钮 */}
+        <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 12 }}>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saveStatus !== "idle"}
+            style={{
+              padding: "10px 24px",
+              background: saveStatus === "success" ? "#10b981" : "var(--xt-accent)",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              fontWeight: 600,
+              cursor: saveStatus !== "idle" ? "not-allowed" : "pointer",
+              transition: "all 0.2s"
+            }}
+          >
+            {saveStatus === "idle" && "保存商家信息"}
+            {saveStatus === "saving" && "保存中..."}
+            {saveStatus === "success" && "已保存成功"}
+          </button>
+          {saveStatus === "success" && (
+            <span style={{ color: "#10b981", fontSize: 14, fontWeight: 500 }}>
+              ✨ 信息已同步，您可以前往发布订单了
+            </span>
+          )}
         </div>
 
       </div>

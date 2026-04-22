@@ -51,7 +51,12 @@ function readJsonState<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return fallback;
-    return JSON.parse(raw) as T;
+    const parsed = JSON.parse(raw);
+    // 关键修复：合并默认值，防止旧缓存中缺少新增字段导致校验失败
+    if (typeof fallback === "object" && fallback !== null) {
+      return { ...fallback, ...parsed } as T;
+    }
+    return parsed as T;
   } catch {
     return fallback;
   }
