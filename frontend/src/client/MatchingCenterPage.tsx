@@ -76,8 +76,6 @@ function isVideoUrl(url: string): boolean {
 /** 商家端撮合中心：弹窗发布撮合订单。 */
 export default function MatchingCenterPage() {
   const { merchantTemplate } = useAppStore();
-  const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -87,6 +85,13 @@ export default function MatchingCenterPage() {
   const [form, setForm] = useState<MatchingFormState>(defaultForm);
   const [editingOrder, setEditingOrder] = useState<any | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" | "info" } | null>(null);
+
+  /** 显示全局固定 Toast */
+  const showToast = (msg: string, type: "success" | "error" | "info" = "info") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   /** 读取撮合订单列表。 */
   const loadOrders = async () => {
@@ -95,7 +100,7 @@ export default function MatchingCenterPage() {
   };
 
   useEffect(() => {
-    void loadOrders().catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
+    void loadOrders().catch((e) => showToast(e instanceof Error ? e.message : "加载失败", "error"));
   }, []);
 
   /** 字段通用更新器。 */
@@ -115,6 +120,21 @@ export default function MatchingCenterPage() {
 
   /** 校验发布表单并返回首个错误。 */
   const validateForm = (): string | null => {
+    // 1. 商家信息校验 (Bug 1)
+    const requiredMerchantFields: Array<keyof typeof merchantTemplate> = [
+      "shop_name",
+      "product_type",
+      "sales_summary",
+      "shop_link",
+      "shop_rating",
+      "user_reviews"
+    ];
+    const missingMerchantField = requiredMerchantFields.some(f => !merchantTemplate[f]?.trim());
+    if (missingMerchantField) {
+      return "请完整填写所有必填商家信息后再发布";
+    }
+
+    // 2. 任务表单校验
     if (!form.task_name.trim()) return "请完善任务名称信息";
     if (!form.recruit_count || Number(form.recruit_count) < 1) return "请完善招募达人数量信息";
     if (!form.start_date) return "请完善任务开始时间信息";
@@ -132,20 +152,18 @@ export default function MatchingCenterPage() {
   /** 上传图片/视频附件。 */
   const doUpload = async () => {
     if (!uploadFiles.length) {
-      setError("请先选择文件");
+      showToast("请先选择文件", "error");
       return;
     }
     setUploading(true);
-    setError(null);
-    setMsg("");
     try {
       const ret = await uploadMatchingOrderAssets(uploadFiles);
       const urls = Array.isArray(ret?.urls) ? ret.urls : [];
       setUploadedUrls((prev) => [...prev, ...urls]);
       setUploadFiles([]);
-      setMsg("上传成功");
+      showToast("上传成功", "success");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "上传失败");
+      showToast(e instanceof Error ? e.message : "上传失败", "error");
     } finally {
       setUploading(false);
     }
@@ -168,7 +186,7 @@ export default function MatchingCenterPage() {
 
     const verifyError = validateForm();
     if (verifyError) {
-      setError(verifyError);
+      showToast(verifyError, "error");
       return;
     }
 
@@ -232,10 +250,15 @@ export default function MatchingCenterPage() {
       }
 
       await loadOrders();
+      const isEditing = !!editingOrder;
       closeModal();
-      setShowSuccessModal(true);
+      if (isEditing) {
+        showToast("订单修改成功", "success");
+      } else {
+        setShowSuccessModal(true);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "发布失败");
+      showToast(err instanceof Error ? err.message : "操作失败", "error");
     } finally {
       setPublishing(false);
     }
@@ -252,9 +275,6 @@ export default function MatchingCenterPage() {
           发布撮合订单
         </button>
       </div>
-
-      {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
-      {msg && <p style={{ color: "#166534" }}>{msg}</p>}
 
       <div style={{ marginTop: 14 }}>
         <h3 style={{ marginBottom: 8 }}>已发布撮合订单</h3>
@@ -322,7 +342,12 @@ export default function MatchingCenterPage() {
       </div>
 
       {showModal ? (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 1000 }}>
+        <div 
+          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 1000 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeModal();
+          }}
+        >
           <div style={{ position: "relative", width: "min(920px, 94vw)", maxHeight: "90vh", overflowY: "auto", background: "#fff", borderRadius: 16, padding: 16 }}>
             <button 
               type="button" 
@@ -523,8 +548,58 @@ export default function MatchingCenterPage() {
         </div>
       ) : null}
 
+      {/* 全局固定 Toast 提示 (Bug 3) */}
+      {toast && (
+        <div style={{
+          position: "fixed",
+          top: "40px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          background: toast.type === "success" ? "#10b981" : (toast.type === "error" ? "#ef4444" : "#3b82f6"),
+          color: "#fff",
+          padding: "12px 24px",
+          borderRadius: "12px",
+          boxShadow: "0 10px 25px rgba(0,0,0,0.15)",
+          zIndex: 3000,
+          fontWeight: 600,
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          animation: "toast-in 0.3s ease-out"
+        }}>
+          {toast.type === "success" && "✨"}
+          {toast.type === "error" && "⚠️"}
+          {toast.msg}
+          <button 
+            onClick={() => setToast(null)}
+            style={{ 
+              background: "none", 
+              border: "none", 
+              color: "rgba(255,255,255,0.7)", 
+              cursor: "pointer",
+              fontSize: "18px",
+              marginLeft: "8px",
+              padding: "0 4px"
+            }}
+          >
+            ×
+          </button>
+          <style>{`
+            @keyframes toast-in {
+              from { opacity: 0; transform: translate(-50%, -20px); }
+              to { opacity: 1; transform: translate(-50%, 0); }
+            }
+          `}</style>
+        </div>
+      )}
+
       {showSuccessModal ? (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 2000 }}>
+        <div 
+          style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 2000 }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowSuccessModal(false);
+          }}
+        >
           <div style={{ background: "#fff", borderRadius: 16, padding: "32px 40px", textAlign: "center", minWidth: 280 }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✨</div>
             <div style={{ fontSize: 18, fontWeight: 600, color: "#1e293b", marginBottom: 8 }}>提交成功</div>
