@@ -505,13 +505,13 @@ export default function MatchingCenterPage() {
 
               <button 
                 type="submit" 
-                disabled={publishing || !isMerchantInfoComplete} 
+                disabled={publishing} 
                 style={{ 
                   height: 42, 
                   fontWeight: 700, 
-                  background: isMerchantInfoComplete ? "var(--xt-accent)" : "#e2e8f0", 
-                  color: isMerchantInfoComplete ? "#fff" : "#94a3b8",
-                  cursor: isMerchantInfoComplete ? "pointer" : "not-allowed",
+                  background: "var(--xt-accent)", 
+                  color: "#fff",
+                  cursor: "pointer",
                   border: "none",
                   borderRadius: 8
                 }}
