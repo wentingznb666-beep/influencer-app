@@ -99,25 +99,35 @@ function isNavItemActiveForPath(pathname: string, item: DashboardNavItem): boole
   return false;
 }
 
-/** 根据系统消息类型解析应跳转的前端路径。 */
-function resolveMessageTarget(message: SystemMessage, variant: "default" | "influencer", role?: string): string | null {
+/** 根据消息关联对象解析跳转目标；无业务页面时返回 null。 */
+function resolveMessageTarget(
+  message: SystemMessage,
+  variant: "default" | "influencer",
+  role: string | null | undefined,
+): string | null {
   const type = String(message.related_type || "").trim();
   const rid = Number(message.related_id || 0);
 
-  // 管理员和员工端跳转逻辑
-  if (role === "admin" || role === "employee") {
-    const prefix = role === "admin" ? "/admin" : "/employee";
-    if (type === "matching_order") return rid > 0 ? `${prefix}/market-orders?orderId=${rid}` : `${prefix}/market-orders`;
-    if (type === "market_order") return `${prefix}/market-orders`;
-    if (type === "demand") return `${prefix}/orders`; // 对应商家订单
-    return null;
-  }
+  if (!type) return null;
 
-  if (variant === "influencer") {
+  // 达人端沿用既有映射。
+  if (variant === "influencer" || role === "influencer") {
     if (type === "market_order") return "/influencer/client-orders";
     if (type === "matching_order") return "/influencer/task-hall";
     if (type === "demand") return "/influencer/my-demands";
+    if (type === "permission") return "/influencer/permission";
+    return null;
   }
+
+  // 管理端与员工端统一业务落点，保证交互一致。
+  if (role === "admin" || role === "employee") {
+    const base = role === "admin" ? "/admin" : "/employee";
+    if (type === "permission") return `${base}/influencer-permissions`;
+    if (type === "market_order" || type === "matching_order" || type === "demand") return `${base}/market-orders`;
+    return null;
+  }
+
+  // 商家端默认映射。
   if (type === "matching_order") return rid > 0 ? `/client/matching-orders?orderId=${rid}` : "/client/matching-orders";
   if (type === "market_order") return "/client/market-orders";
   if (type === "demand") return "/client/collab-my-applies";
@@ -303,9 +313,9 @@ export default function DashboardShell({
     if (isCompact) setSidebarOpen(false);
   };
 
-  /** 点击消息后跳转到相关页面，并关闭弹窗与小屏抽屉。 */
+  /** 处理消息点击：统一已读、关闭弹窗、路由跳转。 */
   const jumpFromMessage = async (it: SystemMessage) => {
-    const target = resolveMessageTarget(it, shellVariant, user?.role);
+    const target = resolveMessageTarget(it, shellVariant, user?.role || null);
     if (Number(it.is_read) !== 1) await readMessage(it.id);
     setMsgOpen(false);
     if (isCompact) setSidebarOpen(false);
@@ -520,26 +530,28 @@ export default function DashboardShell({
                   {msgLoading && <p style={{ margin: "6px 0" }}>加载中…</p>}
                   {!msgLoading && messages.length === 0 && <p style={{ margin: "6px 0", color: "#64748b" }}>暂无消息</p>}
                   <div style={{ display: "grid", gap: 8 }}>
-                    {messages.map((it) => (
-                      <div
-                        key={it.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => void jumpFromMessage(it)}
-                        onKeyDown={(ev) => {
-                          if (ev.key === "Enter" || ev.key === " ") {
-                            ev.preventDefault();
-                            void jumpFromMessage(it);
-                          }
-                        }}
-                        style={{
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 8,
-                          padding: 8,
-                          background: Number(it.is_read) === 1 ? "#fff" : "#eff6ff",
-                          cursor: "pointer",
-                        }}
-                      >
+                    {messages.map((it) => {
+                      const target = resolveMessageTarget(it, shellVariant, user?.role || null);
+                      return (
+                        <div
+                          key={it.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => void jumpFromMessage(it)}
+                          onKeyDown={(ev) => {
+                            if (ev.key === "Enter" || ev.key === " ") {
+                              ev.preventDefault();
+                              void jumpFromMessage(it);
+                            }
+                          }}
+                          style={{
+                            border: "1px solid #e2e8f0",
+                            borderRadius: 8,
+                            padding: 8,
+                            background: Number(it.is_read) === 1 ? "#fff" : "#eff6ff",
+                            cursor: "pointer",
+                          }}
+                        >
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                           <strong style={{ fontSize: 13 }}>{it.title || "系统通知"}</strong>
                           {Number(it.is_read) !== 1 && (
@@ -556,9 +568,13 @@ export default function DashboardShell({
                           )}
                         </div>
                         <p style={{ margin: "6px 0", fontSize: 13 }}>{it.content || "-"}</p>
-                        <div style={{ fontSize: 12, color: "#64748b" }}>{String(it.created_at || "")}</div>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                          <div style={{ fontSize: 12, color: "#64748b" }}>{String(it.created_at || "")}</div>
+                          {target ? <div style={{ fontSize: 12, color: "#2563eb" }}>点击查看详情</div> : null}
+                        </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
