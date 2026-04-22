@@ -674,7 +674,7 @@ export default function MarketOrdersPage() {
                       {t("视频数量：")}{o.task_count || "-"} {t("条")}
                     </div>
                     <div style={{ fontWeight: 600, color: "var(--xt-accent)", marginTop: 2 }}>
-                      {o.client_pay_total}{t("积分")}
+                      {t("金额：")}{o.client_pay_total}{t("积分")}
                       <span style={{ fontWeight: 400, fontSize: "11px", color: "#64748b", marginLeft: 4 }}>
                         （{t("单套")} {o.client_pay_unit} {t("积分")} × {t("视频数量：")} {o.task_count || 1}）
                       </span>

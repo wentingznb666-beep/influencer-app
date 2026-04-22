@@ -631,7 +631,7 @@ export default function OrdersPage() {
                       视频数量：{o.task_count || "-"} 条
                     </div>
                     <div style={{ fontWeight: 600, color: "var(--xt-accent)", marginTop: 2 }}>
-                      {o.client_pay_points * Math.max(1, Math.min(100, Number(o.task_count) || 1))} 积分
+                      金额：{o.client_pay_points * Math.max(1, Math.min(100, Number(o.task_count) || 1))} 积分
                       <span style={{ fontWeight: 400, fontSize: "11px", color: "#64748b", marginLeft: 4 }}>
                         （单套 {o.client_pay_points} 积分 × 视频数量：{Math.max(1, Math.min(100, Number(o.task_count) || 1))}）
                       </span>
