@@ -100,9 +100,19 @@ function isNavItemActiveForPath(pathname: string, item: DashboardNavItem): boole
 }
 
 /** 根据系统消息类型解析应跳转的前端路径。 */
-function resolveMessageTarget(message: SystemMessage, variant: "default" | "influencer"): string | null {
+function resolveMessageTarget(message: SystemMessage, variant: "default" | "influencer", role?: string): string | null {
   const type = String(message.related_type || "").trim();
   const rid = Number(message.related_id || 0);
+
+  // 管理员和员工端跳转逻辑
+  if (role === "admin" || role === "employee") {
+    const prefix = role === "admin" ? "/admin" : "/employee";
+    if (type === "matching_order") return rid > 0 ? `${prefix}/market-orders?orderId=${rid}` : `${prefix}/market-orders`;
+    if (type === "market_order") return `${prefix}/market-orders`;
+    if (type === "demand") return `${prefix}/orders`; // 对应商家订单
+    return null;
+  }
+
   if (variant === "influencer") {
     if (type === "market_order") return "/influencer/client-orders";
     if (type === "matching_order") return "/influencer/task-hall";
@@ -169,13 +179,22 @@ export default function DashboardShell({
 
   const groupedNav = useMemo(() => bucketGroupedNavItems(navItems), [navItems]);
   /** Expand the active group when the route matches it. */
+  const prevPathRef = useRef(location.pathname);
+
   useEffect(() => {
     const path = location.pathname;
-    for (const gid of GROUP_ORDER) {
-      for (const item of groupedNav.groups[gid]) {
-        if (isNavItemActiveForPath(path, item)) {
-          if (!expandedGroups[gid]) setExpandedGroups((prev) => ({ ...prev, [gid]: true }));
-          return;
+    // 只有在路径真正改变时，才尝试自动展开对应组
+    // 这样可以避免在用户手动收起后，因为组件重绘或状态改变而被该 effect 重新强制展开
+    if (path !== prevPathRef.current) {
+      prevPathRef.current = path;
+      for (const gid of GROUP_ORDER) {
+        for (const item of groupedNav.groups[gid]) {
+          if (isNavItemActiveForPath(path, item)) {
+            if (!expandedGroups[gid]) {
+              setExpandedGroups((prev) => ({ ...prev, [gid]: true }));
+            }
+            return;
+          }
         }
       }
     }
@@ -286,7 +305,7 @@ export default function DashboardShell({
 
   /** 点击消息后跳转到相关页面，并关闭弹窗与小屏抽屉。 */
   const jumpFromMessage = async (it: SystemMessage) => {
-    const target = resolveMessageTarget(it, shellVariant);
+    const target = resolveMessageTarget(it, shellVariant, user?.role);
     if (Number(it.is_read) !== 1) await readMessage(it.id);
     setMsgOpen(false);
     if (isCompact) setSidebarOpen(false);

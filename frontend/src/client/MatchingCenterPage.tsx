@@ -88,28 +88,6 @@ export default function MatchingCenterPage() {
   const [editingOrder, setEditingOrder] = useState<any | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  /** 判断商家信息模板是否填写完整 */
-  const incompleteFields = useMemo(() => {
-    const missing = [];
-    const st = merchantTemplate;
-    if (!st.shop_name || !st.shop_name.trim()) missing.push("商店名称");
-    if (!st.product_type || !st.product_type.trim()) missing.push("销售产品类型");
-    if (!st.sales_summary || !st.sales_summary.trim()) missing.push("销售额情况");
-    if (!st.shop_link || !st.shop_link.trim()) missing.push("店铺链接");
-    if (!st.shop_rating || !st.shop_rating.trim()) missing.push("店铺评分");
-    if (!st.user_reviews || !st.user_reviews.trim()) missing.push("用户评价");
-    return missing;
-  }, [
-    merchantTemplate.shop_name,
-    merchantTemplate.product_type,
-    merchantTemplate.sales_summary,
-    merchantTemplate.shop_link,
-    merchantTemplate.shop_rating,
-    merchantTemplate.user_reviews,
-  ]);
-
-  const isMerchantInfoComplete = incompleteFields.length === 0;
-
   /** 读取撮合订单列表。 */
   const loadOrders = async () => {
     const ret = await getMatchingOrders();
@@ -144,12 +122,6 @@ export default function MatchingCenterPage() {
     if (!form.publish_deadline) return "请完善内容发布截止时间信息";
     if (!form.product_name.trim()) return "请完善推广产品/品牌名称信息";
     if (!form.selling_points.trim()) return "请完善产品核心卖点信息";
-    if (!merchantTemplate.shop_name.trim()) return "请完善商家基本信息模板中的商店名称";
-    if (!merchantTemplate.product_type.trim()) return "请完善商家基本信息模板中的产品类型";
-    if (!merchantTemplate.sales_summary.trim()) return "请完善商家基本信息模板中的销售额情况";
-    if (!merchantTemplate.shop_link.trim()) return "请完善商家基本信息模板中的店铺链接";
-    if (!merchantTemplate.shop_rating.trim()) return "请完善商家基本信息模板中的店铺评分";
-    if (!merchantTemplate.user_reviews.trim()) return "请完善商家基本信息模板中的用户评价";
     if (!form.unit_commission || Number(form.unit_commission) <= 0) return "请完善单条佣金信息";
     if (form.provide_sample === "是" && (!form.sample_count || Number(form.sample_count) < 1)) return "请完善样品数量信息";
     if (!form.keep_days || Number(form.keep_days) < 1) return "请完善内容保留天数信息";
@@ -384,16 +356,6 @@ export default function MatchingCenterPage() {
 
             <form onSubmit={onCreate} style={{ display: "grid", gap: 14, marginTop: 12 }}>
               <MerchantInfoForm />
-
-              {!isMerchantInfoComplete && (
-                <div style={{ padding: "12px 16px", background: "#fff1f2", border: "1px solid #fda4af", borderRadius: 8, color: "#9f1239", fontSize: 14 }}>
-                  <div style={{ fontWeight: 700, marginBottom: 4 }}>⚠️ 商家基本信息不完整：</div>
-                  <ul style={{ margin: 0, paddingLeft: 20 }}>
-                    {incompleteFields.map(f => <li key={f}>请填写{f}</li>)}
-                  </ul>
-                  <div style={{ marginTop: 8, fontSize: 13, opacity: 0.8 }}>填写完成后请点击上方表单中的“保存商家信息”按钮。</div>
-                </div>
-              )}
 
               <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
                 <h4 style={{ marginTop: 0 }}>1. 任务基础信息</h4>

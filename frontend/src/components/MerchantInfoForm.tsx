@@ -258,14 +258,15 @@ export const MerchantInfoForm: React.FC = () => {
             disabled={saveStatus === "saving"}
             style={{
               padding: "10px 24px",
-              background: saveStatus === "success" ? "#10b981" : "var(--xt-accent)",
+              background: "var(--xt-accent)",
               color: "#fff",
               border: "none",
               borderRadius: 8,
               fontWeight: 600,
               cursor: saveStatus === "saving" ? "not-allowed" : "pointer",
               transition: "all 0.2s",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)"
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+              opacity: saveStatus === "saving" ? 0.7 : 1
             }}
           >
             {saveStatus === "idle" && "保存商家信息"}
