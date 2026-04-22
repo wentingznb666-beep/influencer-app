@@ -181,8 +181,6 @@ export default function MatchingCenterPage() {
   /** 提交撮合订单。 */
   const onCreate = async (e: FormEvent) => {
     e.preventDefault();
-    setError(null);
-    setMsg("");
 
     const verifyError = validateForm();
     if (verifyError) {
