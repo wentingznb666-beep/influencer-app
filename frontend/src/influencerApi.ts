@@ -281,6 +281,32 @@ export async function saveInfluencerPaymentProfile(body: { real_name: string; ba
   return res.json();
 }
 
+
+export type InfluencerProfilePayload = {
+  tiktok_account: string;
+  tiktok_fans: string;
+  expertise_domains: string[];
+  influencer_bio: string;
+};
+
+/** 读取达人信息（报名必填）。 */
+export async function getInfluencerProfile() {
+  const res = await fetchWithAuth('/api/matching/influencer/profile');
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '请求失败');
+  return res.json();
+}
+
+/** 保存达人信息（报名必填）。 */
+export async function saveInfluencerProfile(body: InfluencerProfilePayload) {
+  const res = await fetchWithAuth('/api/matching/influencer/profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '保存失败');
+  return res.json();
+}
+
 /** 达人读取撮合任务大厅（免积分）。 */
 export async function getInfluencerMatchingTaskHall() {
   const res = await fetchWithAuth('/api/matching/influencer/matching-task-hall');

@@ -27,6 +27,31 @@ function getMemberPrice(level: number): number {
   return 0;
 }
 
+/** 将擅长领域数组规范化为去重后的字符串数组。 */
+function normalizeDomains(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  const list = input
+    .map((v) => String(v || "").trim())
+    .filter(Boolean)
+    .slice(0, 20);
+  return Array.from(new Set(list));
+}
+
+/** 判断达人信息是否已完善。 */
+function isInfluencerProfileComplete(row: {
+  tiktok_account: string | null;
+  tiktok_fans: string | null;
+  expertise_domains: string | null;
+  influencer_bio: string | null;
+} | null | undefined): boolean {
+  if (!row) return false;
+  if (!String(row.tiktok_account || "").trim()) return false;
+  if (!String(row.tiktok_fans || "").trim()) return false;
+  if (!String(row.expertise_domains || "").trim()) return false;
+  if (!String(row.influencer_bio || "").trim()) return false;
+  return true;
+}
+
 /** 商家端：读取会员与保证金信息。 */
 router.get("/client/member", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
@@ -161,6 +186,80 @@ router.put("/influencer/payment-profile", async (req: AuthRequest, res: Response
 
 /** 商家端：创建撮合免积分订单（独立于原积分单）。 */
 /** 商家端读取商家信息模板。 */
+/** 达人端：读取达人信息（报名必填）。 */
+router.get("/influencer/profile", async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+  try {
+    const ret = await query<{
+      tiktok_account: string | null;
+      tiktok_fans: string | null;
+      expertise_domains: string | null;
+      influencer_bio: string | null;
+    }>(
+      `SELECT tiktok_account, tiktok_fans, expertise_domains, influencer_bio
+         FROM users
+        WHERE id=$1`,
+      [req.user.userId],
+    );
+    const row = ret.rows[0] || null;
+    const domains = row?.expertise_domains ? String(row.expertise_domains).split(",").map((s) => s.trim()).filter(Boolean) : [];
+    return res.json({
+      profile: row
+        ? {
+            tiktok_account: String(row.tiktok_account || ""),
+            tiktok_fans: String(row.tiktok_fans || ""),
+            expertise_domains: domains,
+            influencer_bio: String(row.influencer_bio || ""),
+            completed: isInfluencerProfileComplete(row),
+          }
+        : null,
+    });
+  } catch (e) {
+    console.error("influencer profile read error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
+/** 达人端：保存达人信息（报名必填）。 */
+router.put("/influencer/profile", async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+
+  const tiktokAccount = String(req.body?.tiktok_account || "").trim();
+  const tiktokFans = String(req.body?.tiktok_fans || "").trim();
+  const influencerBio = String(req.body?.influencer_bio || "").trim();
+  const domains = normalizeDomains(req.body?.expertise_domains);
+
+  if (!tiktokAccount || !/^@?[A-Za-z0-9._]{2,32}$/.test(tiktokAccount)) {
+    return res.status(400).json({ error: "INVALID_TIKTOK_ACCOUNT", message: "请填写有效的 TikTok 账号。" });
+  }
+  if (!tiktokFans || !/^[0-9]+(\+|\s*-\s*[0-9]+)?$/.test(tiktokFans)) {
+    return res.status(400).json({ error: "INVALID_TIKTOK_FANS", message: "粉丝数量仅支持正整数或区间格式。" });
+  }
+  if (domains.length === 0) {
+    return res.status(400).json({ error: "INVALID_EXPERTISE_DOMAINS", message: "请至少选择一个擅长领域。" });
+  }
+  if (!influencerBio) {
+    return res.status(400).json({ error: "INVALID_INFLUENCER_BIO", message: "请填写自我介绍/个人优势。" });
+  }
+
+  try {
+    await query(
+      `UPDATE users
+          SET tiktok_account=$2,
+              tiktok_fans=$3,
+              expertise_domains=$4,
+              influencer_bio=$5,
+              updated_at=now()
+        WHERE id=$1`,
+      [req.user.userId, tiktokAccount, tiktokFans, domains.join(","), influencerBio],
+    );
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("influencer profile save error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
 router.get("/client/merchant-info-template", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
@@ -366,6 +465,22 @@ router.post("/influencer/matching-orders/:id/apply", async (req: AuthRequest, re
   const orderId = Number(req.params.id);
   if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
   try {
+    const profile = await query<{
+      tiktok_account: string | null;
+      tiktok_fans: string | null;
+      expertise_domains: string | null;
+      influencer_bio: string | null;
+    }>(
+      `SELECT tiktok_account, tiktok_fans, expertise_domains, influencer_bio FROM users WHERE id=$1`,
+      [req.user.userId],
+    );
+    if (!isInfluencerProfileComplete(profile.rows[0])) {
+      return res.status(400).json({
+        error: "INFLUENCER_PROFILE_REQUIRED",
+        message: "请先完善达人信息后再报名任务。",
+      });
+    }
+
     const ord = await query<{ id: number; client_id: number }>(
       `SELECT id, client_id
          FROM client_market_orders
@@ -458,7 +573,8 @@ router.get("/client/matching-orders/:id/applicants", async (req: AuthRequest, re
     if (!own.rows[0]) return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
     const rows = await query(
       `SELECT a.id, a.status, a.note, a.created_at,
-              u.id AS influencer_id, u.username, u.real_name, u.bank_name, u.bank_card
+              u.id AS influencer_id, u.username, u.real_name, u.bank_name, u.bank_card,
+              u.tiktok_account, u.tiktok_fans, u.expertise_domains, u.influencer_bio
          FROM market_order_applications a
          JOIN users u ON u.id=a.influencer_id
         WHERE a.market_order_id=$1

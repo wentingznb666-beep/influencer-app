@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { applyMatchingOrder, getInfluencerMatchingTaskHall, getMyMatchingApplies, submitMatchingProof } from "../influencerApi";
 
@@ -44,6 +45,7 @@ function appliedAccentBorder(status: string | undefined) {
 /** 达人任务大厅：可报名与已报名双标签。 */
 export default function TaskHallPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<"available" | "applied">("available");
   const [list, setList] = useState<TaskItem[]>([]);
   const [myApplies, setMyApplies] = useState<TaskItem[]>([]);
@@ -81,7 +83,12 @@ export default function TaskHallPage() {
       setTab("applied");
       setMsg(t("报名成功"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("报名失败"));
+      const errMsg = e instanceof Error ? e.message : t("报名失败");
+      setError(errMsg);
+      if (errMsg.includes("请先完善达人信息")) {
+        window.alert("请先完善达人信息后再报名任务");
+        navigate("/influencer/profile");
+      }
     }
   };
 

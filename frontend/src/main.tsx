@@ -41,6 +41,7 @@ import ClientOrdersHallPageDev from "./influencer/ClientOrdersHallPage";
 import InfluencerPointsPageDev from "./influencer/PointsPage";
 import WithdrawPageDev from "./influencer/WithdrawPage";
 import PaymentProfilePage from "./influencer/PaymentProfilePage";
+import InfluencerProfilePage from "./influencer/InfluencerProfilePage";
 import TaskHallPage from "./influencer/TaskHallPage";
 import InfluencerPermissionPage from "./influencer/InfluencerPermissionPage";
 import CollabDemandsPage from "./influencer/CollabDemandsPage";
@@ -132,6 +133,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="withdraw" element={<Suspense fallback={<p>加载中…</p>}><WithdrawPage /></Suspense>} />
             <Route path="task-hall" element={<TaskHallPage />} />
             <Route path="payment-profile" element={<PaymentProfilePage />} />
+            <Route path="profile" element={<InfluencerProfilePage />} />
             <Route path="permission" element={<InfluencerPermissionPage />} />
             <Route path="demands" element={<CollabDemandsPage />} />
             <Route path="my-demands" element={<InfluencerMyDemandsPage />} />

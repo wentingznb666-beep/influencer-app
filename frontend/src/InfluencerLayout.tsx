@@ -105,6 +105,7 @@ export default function InfluencerLayout() {
     { to: "/influencer/withdraw", label: "申请提现", menuHint: "ยื่นถอนเงินเข้าบัญชีธนาคาร", icon: "💰", group: "points", preload: preloadMap["/influencer/withdraw"] },
     { to: "/influencer/task-hall", label: "任务大厅", menuHint: "สมัครงานจับคู่และติดตามสถานะ", icon: "📋", group: "match" },
     { to: "/influencer/payment-profile", label: "收款信息", menuHint: "ตั้งค่าบัญชีรับเงินสำหรับการโอน", icon: "💳", group: "match" },
+    { to: "/influencer/profile", label: "达人信息", menuHint: "完善账号与擅长领域后才可报名", icon: "👤", group: "match" },
     { to: "/influencer/permission", label: "撮合权限申请", menuHint: "ยื่นขอสิทธิ์ก่อนเผยแพร่ความต้องการ", icon: "⬆️", group: "match" },
     { to: "/influencer/demands", label: "发布合作需求", menuHint: "โพสต์ความต้องการเพื่อรับสมัครร้านค้า", icon: "📝", group: "match", navLocked: matchLocked },
     { to: "/influencer/my-demands", label: "我的需求", menuHint: "จัดการงานที่โพสต์และใบสมัครทั้งหมด", icon: "📦", group: "match", navLocked: matchLocked },
