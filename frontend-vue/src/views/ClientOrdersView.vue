@@ -12,7 +12,7 @@
         <el-table-column prop="publish_link" label="发布链接" min-width="260" />
       </el-table>
     </el-tab-pane>
-    <el-tab-pane label="合作视频单（三类）" name="coop">
+    <el-tab-pane label="视频合作（高质量/包月/测评）" name="coop">
       <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px">
         <el-button @click="loadCoop" :loading="loadingCoop">刷新</el-button>
       </div>
@@ -20,8 +20,8 @@
         <el-table-column prop="order_no" label="订单号" width="180" />
         <el-table-column prop="cooperation_type_id" label="类型" width="220" />
         <el-table-column prop="status" label="状态" width="110" />
-        <el-table-column prop="match_status" label="流转" width="140" />
-        <el-table-column prop="coop_phase" label="阶段" width="150" />
+        <el-table-column prop="match_status" label="订单流转" width="140" />
+        <el-table-column prop="coop_phase" label="履约阶段" width="150" />
         <el-table-column prop="title" label="标题" min-width="240" />
         <el-table-column label="发布链接" min-width="260">
           <template #default="{ row }">
@@ -46,7 +46,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import {
   acceptClientMatchingOrder,
   listClientMarketOrders,
-  listClientMatchingOrders,
+  listClientVideoCoopOrders,
   rejectClientMatchingOrder,
   type ClientMarketOrder,
   type ClientMatchingOrder,
@@ -98,7 +98,7 @@ async function loadCoop() {
   if (loadingCoop.value) return;
   loadingCoop.value = true;
   try {
-    coopOrders.value = await listClientMatchingOrders();
+    coopOrders.value = await listClientVideoCoopOrders();
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "加载失败");
   } finally {
