@@ -7,10 +7,12 @@ import {
   updateMatchingOrder,
   uploadMatchingOrderAssets,
 } from "../clientApi";
+import { getCooperationTypes } from "../matchingApi";
 import { useAppStore } from "../stores/AppStore";
 import { MerchantInfoForm } from "../components/MerchantInfoForm";
 
 type MatchingFormState = {
+  cooperation_type_id: string;
   task_name: string;
   task_type: "短视频" | "图文" | "直播" | "探店";
   industry: "美妆" | "服饰" | "美食" | "家居" | "其他";
@@ -41,6 +43,7 @@ type MatchingFormState = {
 };
 
 const defaultForm: MatchingFormState = {
+  cooperation_type_id: "high_quality_custom_video",
   task_name: "",
   task_type: "短视频",
   industry: "美妆",
@@ -94,6 +97,7 @@ export default function MatchingCenterPage() {
   const [form, setForm] = useState<MatchingFormState>(defaultForm);
   const [editingOrder, setEditingOrder] = useState<any | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [cooperationTypes, setCooperationTypes] = useState<Array<{ id: string; label: string }>>([]);
 
   /** 读取撮合订单列表。 */
   const loadOrders = async () => {
@@ -117,7 +121,21 @@ export default function MatchingCenterPage() {
   };
 
   useEffect(() => {
-    void Promise.all([loadOrders(), syncMerchantTemplateFromServer()]).catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
+    const loadCoopTypes = async () => {
+      const ret = await getCooperationTypes();
+      const types = Array.isArray(ret?.config?.types) ? ret.config.types : [];
+      const list = types
+        .filter((t: any) => t && typeof t.id === "string" && t.id !== "graded_video")
+        .map((t: any) => ({
+          id: String(t.id),
+          label: String(t?.name?.zh || t.id),
+        }));
+      setCooperationTypes(list);
+      if (!list.some((x) => x.id === form.cooperation_type_id) && list[0]) {
+        setForm((prev) => ({ ...prev, cooperation_type_id: list[0].id }));
+      }
+    };
+    void Promise.all([loadOrders(), syncMerchantTemplateFromServer(), loadCoopTypes()]).catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
   }, []);
 
   /** 字段通用更新器。 */
@@ -219,6 +237,7 @@ export default function MatchingCenterPage() {
       });
 
       const detail = {
+        cooperation_type_id: form.cooperation_type_id,
         task_name: form.task_name.trim(),
         task_type: form.task_type,
         industry: form.industry,
@@ -307,7 +326,9 @@ export default function MatchingCenterPage() {
           <div key={it.id} style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 10, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <div>{it.order_no}｜{it.title}</div>
-              <div style={{ color: "#475569", marginTop: 4 }}>金额：{it.task_amount}｜状态：{it.status}</div>
+              <div style={{ color: "#475569", marginTop: 4 }}>
+                金额：{it.task_amount}｜状态：{it.status}｜类型：{String((it.detail_json?.cooperation_type_id ?? it.detail?.cooperation_type_id) || "-")}
+              </div>
             </div>
             <button 
               type="button" 
@@ -315,6 +336,7 @@ export default function MatchingCenterPage() {
                 if (it.detail) {
                   const d = it.detail as Record<string, unknown>;
                   setForm({
+                    cooperation_type_id: typeof d.cooperation_type_id === "string" ? d.cooperation_type_id : defaultForm.cooperation_type_id,
                     task_name: typeof d.task_name === "string" ? d.task_name : "",
                     task_type: (typeof d.task_type === "string" && ["短视频", "图文", "直播", "探店"].includes(d.task_type)) ? d.task_type as MatchingFormState["task_type"] : "短视频",
                     industry: (typeof d.industry === "string" && ["美妆", "服饰", "美食", "家居", "其他"].includes(d.industry)) ? d.industry as MatchingFormState["industry"] : "其他",
@@ -410,6 +432,20 @@ export default function MatchingCenterPage() {
                   <label htmlFor="task_type">任务类型</label>
                   <select id="task_type" value={form.task_type} onChange={(e) => setField("task_type", e.target.value as MatchingFormState["task_type"])}>
                     <option value="短视频">短视频</option><option value="图文">图文</option><option value="直播">直播</option><option value="探店">探店</option>
+                  </select>
+
+                  <label htmlFor="cooperation_type_id">合作业务类型</label>
+                  <select
+                    id="cooperation_type_id"
+                    value={form.cooperation_type_id}
+                    onChange={(e) => setField("cooperation_type_id", e.target.value)}
+                    disabled={cooperationTypes.length === 0}
+                  >
+                    {(cooperationTypes.length ? cooperationTypes : [{ id: form.cooperation_type_id, label: form.cooperation_type_id }]).map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.label}
+                      </option>
+                    ))}
                   </select>
 
                   <label htmlFor="industry">所属行业</label>

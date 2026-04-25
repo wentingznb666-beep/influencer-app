@@ -1,4 +1,4 @@
-import { StrictMode, Suspense, lazy } from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
@@ -33,21 +33,17 @@ import ShowcaseContentCreatorsPage from "./admin/ShowcaseContentCreatorsPage";
 import ClientShowcaseInfluencersPage from "./client/ClientShowcaseInfluencersPage";
 import ClientShowcaseContentCreatorsPage from "./client/ClientShowcaseContentCreatorsPage";
 import InfluencerLayout from "./InfluencerLayout";
-/**
- * 性能优化（仅生产环境）：达人端路由懒加载，减小登录后首屏 JS 体积。
- * 仅影响加载时机，不改变业务逻辑与页面布局。
- */
-import ClientOrdersHallPageDev from "./influencer/ClientOrdersHallPage";
-import InfluencerPointsPageDev from "./influencer/PointsPage";
-import WithdrawPageDev from "./influencer/WithdrawPage";
 import PaymentProfilePage from "./influencer/PaymentProfilePage";
 import InfluencerProfilePage from "./influencer/InfluencerProfilePage";
 import TaskHallPage from "./influencer/TaskHallPage";
 import InfluencerPermissionPage from "./influencer/InfluencerPermissionPage";
 import CollabDemandsPage from "./influencer/CollabDemandsPage";
 import InfluencerMyDemandsPage from "./influencer/InfluencerMyDemandsPage";
+import ClientOrdersHallPage from "./influencer/ClientOrdersHallPage";
 import MerchantMembersPage from "./admin/MerchantMembersPage";
 import InfluencerPermissionsPage from "./admin/InfluencerPermissionsPage";
+import CooperationTypesPage from "./admin/CooperationTypesPage";
+import CooperationOrdersPage from "./admin/CooperationOrdersPage";
 import ProtectedRoute from "./ProtectedRoute";
 import App from "./App";
 import { I18nextProvider } from "react-i18next";
@@ -56,12 +52,6 @@ import { LanguageProvider } from "./i18n";
 import OperationLogsPage from "./OperationLogsPage";
 import { runStorageSelfHealMigration } from "./utils/storageMigration";
 import { AppStoreProvider } from "./stores/AppStore";
-
-const ClientOrdersHallPage = import.meta.env.PROD
-  ? lazy(() => import("./influencer/ClientOrdersHallPage"))
-  : ClientOrdersHallPageDev;
-const InfluencerPointsPage = import.meta.env.PROD ? lazy(() => import("./influencer/PointsPage")) : InfluencerPointsPageDev;
-const WithdrawPage = import.meta.env.PROD ? lazy(() => import("./influencer/WithdrawPage")) : WithdrawPageDev;
 
 runStorageSelfHealMigration();
 
@@ -91,6 +81,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
             <Route path="influencer-permissions" element={<InfluencerPermissionsPage />} />
+            <Route path="cooperation-types" element={<CooperationTypesPage />} />
+            <Route path="cooperation-orders" element={<CooperationOrdersPage />} />
           </Route>
           <Route path="/employee" element={<ProtectedRoute roles={["employee"]}><EmployeeLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/employee/orders" replace />} />
@@ -104,6 +96,9 @@ createRoot(document.getElementById("root")!).render(
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
             <Route path="influencer-permissions" element={<InfluencerPermissionsPage />} />
+            <Route path="cooperation-types" element={<CooperationTypesPage readOnly />} />
+            <Route path="cooperation-orders" element={<CooperationOrdersPage />} />
+            <Route path="graded-video-hall" element={<ClientOrdersHallPage />} />
           </Route>
           <Route path="/client" element={<ProtectedRoute roles={["client"]}><ClientLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/client/market-orders" replace />} />
@@ -123,14 +118,12 @@ createRoot(document.getElementById("root")!).render(
             <Route path="matching-center" element={<MatchingCenterPage />} />
             <Route path="collab-pool" element={<CollabPoolPage />} />
             <Route path="collab-my-applies" element={<CollabMyAppliesPage />} />
+            <Route path="cooperation-types" element={<CooperationTypesPage readOnly />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
           </Route>
           <Route path="/influencer" element={<ProtectedRoute roles={["influencer"]}><InfluencerLayout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/influencer/client-orders" replace />} />
-            <Route path="client-orders" element={<Suspense fallback={<p>加载中…</p>}><ClientOrdersHallPage /></Suspense>} />
-            <Route path="points" element={<Suspense fallback={<p>加载中…</p>}><InfluencerPointsPage /></Suspense>} />
-            <Route path="withdraw" element={<Suspense fallback={<p>加载中…</p>}><WithdrawPage /></Suspense>} />
+            <Route index element={<Navigate to="/influencer/task-hall" replace />} />
             <Route path="task-hall" element={<TaskHallPage />} />
             <Route path="payment-profile" element={<PaymentProfilePage />} />
             <Route path="profile" element={<InfluencerProfilePage />} />

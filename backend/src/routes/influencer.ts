@@ -16,7 +16,7 @@ const router = Router();
 
 router.use(requireAuth);
 
-router.use(requireRole("influencer"));
+router.use(requireRole("employee", "admin"));
 
 
 
@@ -1056,6 +1056,8 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
 
                       mo.creator_reward_points AS reward_points, (mo.creator_reward_points * GREATEST(COALESCE(mo.task_count, 1), 1))::integer AS reward_points_total, mo.status, mo.work_links, mo.created_at, mo.updated_at, mo.completed_at,
 
+                      pl.publish_link,
+
                       mo.client_id, u.username AS client_username, COALESCE(NULLIF(u.display_name, ''), u.username) AS client_display_name,
 
                       mo.client_shop_name, mo.client_group_chat
@@ -1063,6 +1065,10 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
        FROM client_market_orders mo
 
        JOIN users u ON mo.client_id = u.id
+
+       LEFT JOIN LATERAL (
+         SELECT publish_link FROM market_order_publish_logs WHERE order_id=mo.id ORDER BY id DESC LIMIT 1
+       ) pl ON true
 
       WHERE mo.influencer_id = $1 AND mo.is_deleted = 0`;
 
@@ -1284,13 +1290,55 @@ router.post("/market-orders/:id/complete", (req: AuthRequest, res: Response) => 
 
 });
 
+router.post("/market-orders/:id/publish", async (req: AuthRequest, res: Response) => {
+  const userId = req.user!.userId;
+  const orderId = Number(req.params.id);
+  const publishLink = String(req.body?.publish_link || "").trim();
+  if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
+  if (!publishLink || publishLink.length > 2000) return res.status(400).json({ error: "INVALID_LINK", message: "请填写有效发布链接（最长 2000 字符）。" });
+  try {
+    const ret = await withTx(async (client) => {
+      const ord = await client.query<{ id: number; client_id: number; influencer_id: number | null; publish_method: string | null; status: string }>(
+        `SELECT id, client_id, influencer_id, publish_method, status
+           FROM client_market_orders
+          WHERE id=$1 AND is_deleted=0
+          FOR UPDATE`,
+        [orderId]
+      );
+      const row = ord.rows[0];
+      if (!row) return { kind: "not_found" as const };
+      if (row.influencer_id !== userId) return { kind: "forbidden" as const };
+      if (row.status !== "completed") return { kind: "bad_state" as const };
+      if (String(row.publish_method || "").trim() !== "influencer_publish_with_cart") return { kind: "not_supported" as const };
+      await client.query(
+        `INSERT INTO market_order_publish_logs (order_id, publish_link, published_by)
+         VALUES ($1, $2, $3)`,
+        [orderId, publishLink, userId]
+      );
+      await client.query(
+        `INSERT INTO system_messages (user_id, category, title, content, related_type, related_id)
+         VALUES ($1, 'market_order_publish', '视频已发布', $2, 'market_order', $3)`,
+        [row.client_id, `订单 #${orderId} 已提交发布链接：${publishLink}`, orderId]
+      );
+      return { kind: "ok" as const };
+    });
+    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+    if (ret.kind === "forbidden") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+    if (ret.kind === "bad_state") return res.status(409).json({ error: "BAD_STATE", message: "当前状态不可提交发布链接。" });
+    if (ret.kind === "not_supported") return res.status(400).json({ error: "NOT_SUPPORTED", message: "该订单发布方式不需要提交发布链接。" });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("influencer market-orders publish error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
 
 
 
 
 /**
 
- * PATCH /api/influencer/market-orders/:id/work-links
 
  * 领取人维护多条交付链接（与管理端校验规则一致，仅本人订单）。
 

@@ -398,6 +398,7 @@ export default function MatchingOrdersPage() {
           const badge = statusBadgeStyle(status);
           const taskName = getOrderDetailField(it, "task_name") || safeText(it.title);
           const productName = getOrderDetailField(it, "product_name");
+          const coopType = getOrderDetailField(it, "cooperation_type_id");
           const workLinks = Array.isArray(it.work_links) ? (it.work_links as unknown[]) : [];
           const firstWork = workLinks.length ? String(workLinks[0] || "") : "";
           return (
@@ -408,6 +409,9 @@ export default function MatchingOrdersPage() {
                   <div className="xt-order-title">{taskName || "-"}</div>
                   <div className="xt-order-product">
                     {productName ? <>推广产品/品牌：<strong style={{ color: "#0f172a" }}>{productName}</strong></> : <span style={{ color: "#94a3b8" }}>推广产品/品牌：-</span>}
+                  </div>
+                  <div className="xt-order-product">
+                    {coopType ? <>合作业务类型：<strong style={{ color: "#0f172a" }}>{coopType}</strong></> : <span style={{ color: "#94a3b8" }}>合作业务类型：-</span>}
                   </div>
                   <div className="xt-meta">
                     <span>创建：{formatDateTimeLite(it.created_at)}</span>

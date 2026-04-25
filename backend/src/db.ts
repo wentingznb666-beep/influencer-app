@@ -120,6 +120,13 @@ const FULL_INIT_SQL = `
 
   ON CONFLICT (key) DO NOTHING;
 
+  INSERT INTO config (key, value) VALUES (
+    'cooperation_types_v1',
+    '{"version":1,"types":[{"id":"graded_video","name":{"zh":"分级视频（A/B/C）","th":"คลิปแบ่งเกรด (A/B/C)"},"visible_roles":["admin","employee","client"],"spec":{"point_rate_thb":1,"shoot_by":"offline_part_time","publish_options":["client_self_publish","tap_creator_publish"],"role_split":{"shooter":"part_time","publisher":"creator"},"pricing_points":{"client":{"A":60,"B":40,"C":20},"part_time":{"A":15,"B":10,"C":5}},"rules":{"no_face":true,"no_script":true,"no_revision":true,"start_after_paid":true}}},{"id":"high_quality_custom_video","name":{"zh":"高质量定制视频","th":"วิดีโอคุณภาพสูงแบบกำหนดเอง"},"visible_roles":["admin","employee","client"],"spec":{"merchant_price_thb_range":{"min":4000,"max":5000},"executed_by":"premium_influencer","allow_face":true,"allow_script":true,"revisions":{"min":1,"max":2},"publish":{"by_influencer_account":true,"ads_allowed":true}}},{"id":"monthly_package","name":{"zh":"包月长期合作套餐","th":"แพ็กเกจความร่วมมือรายเดือน"},"visible_roles":["admin","employee","client"],"spec":{"min_videos_per_month":20,"merchant_price_per_video_thb":650,"deliverables":{"final_video":true,"raw_footage":true},"revisions_first_n":4,"publish":{"by_client":true}}},{"id":"creator_review_video","name":{"zh":"Creator带货测评视频","th":"วิดีโอรีวิวขายของโดย Creator"},"visible_roles":["admin","employee","client"],"spec":{"requires_tap":true,"allow_face":true,"deliverables_count_range":{"min":8,"max":10},"merchant_price_thb":null,"must_review_before_publish":true}}]}'
+  )
+
+  ON CONFLICT (key) DO NOTHING;
+
 
 
   CREATE TABLE IF NOT EXISTS materials (
@@ -1594,6 +1601,24 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     attachment_urls JSONB NOT NULL DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+
+  await query(`CREATE TABLE IF NOT EXISTS cooperation_order_states (
+    order_id INTEGER PRIMARY KEY REFERENCES client_market_orders(id) ON DELETE CASCADE,
+    phase TEXT NOT NULL DEFAULT 'none' CHECK (phase IN ('none','review_pending','review_rejected','approved_to_publish','published')),
+    review_note TEXT,
+    reviewed_by INTEGER REFERENCES users(id),
+    reviewed_at TIMESTAMPTZ,
+    publish_links JSONB NOT NULL DEFAULT '[]'::jsonb,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+
+  await query(`CREATE TABLE IF NOT EXISTS market_order_publish_logs (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL REFERENCES client_market_orders(id) ON DELETE CASCADE,
+    publish_link TEXT NOT NULL,
+    published_by INTEGER REFERENCES users(id),
+    published_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`);
 
 

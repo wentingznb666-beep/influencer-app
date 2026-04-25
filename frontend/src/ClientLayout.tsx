@@ -7,16 +7,17 @@ import { normalizeAccountText } from "./utils/accountText";
 import { useAppStore } from "./stores/AppStore";
 
 const CLIENT_NAV: DashboardNavItem[] = [
-  { to: "/client/models", label: "模特展示", icon: "🧑", group: "points" },
-  { to: "/client/showcase-influencers", label: "Influencer", icon: "⭐", group: "points" },
-  { to: "/client/showcase-content-creators", label: "Content Creator", icon: "✍", group: "points" },
-  { to: "/client/market-orders", label: "达人领单", icon: "📦", group: "points" },
+  { to: "/client/models", label: "模特展示", icon: "🧑", group: "match" },
+  { to: "/client/showcase-influencers", label: "Influencer", icon: "⭐", group: "match" },
+  { to: "/client/showcase-content-creators", label: "Content Creator", icon: "✍", group: "match" },
+  { to: "/client/market-orders", label: "视频分级订单", icon: "🎬", group: "points" },
   { to: "/client/matching-orders", label: "我的撮合订单", icon: "🤝", group: "match" },
   { to: "/client/merchant-template", label: "商家信息模板", icon: "📋", group: "match" },
   { to: "/client/skus", label: "SKU 列表", icon: "🧱", group: "points" },
-  { to: "/client/points", label: "积分充值", icon: "🪙", group: "points" },
+  { to: "/client/points", label: "视频分级充值", icon: "🪙", group: "points" },
   { to: "/client/member-center", label: "会员中心", icon: "👑", group: "match" },
   { to: "/client/matching-center", label: "撮合中心", icon: "🏗", group: "match" },
+  { to: "/client/cooperation-types", label: "合作业务类型说明", icon: "🧩", group: "match" },
   { to: "/client/collab-pool", label: "达人需求广场", icon: "📨", group: "match" },
   { to: "/client/collab-my-applies", label: "我的需求报名", icon: "📨", group: "match" },
   { to: "/client/op-logs", label: "我的操作日志", icon: "📄", group: "common" },

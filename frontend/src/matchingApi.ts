@@ -10,13 +10,58 @@ async function readError(res: Response, fallback: string): Promise<string> {
 
 }
 
+export type CooperationTypesConfig = {
+  version: 1;
+  types: Array<{
+    id: string;
+    name: { zh: string; th: string };
+    visible_roles: string[];
+    spec: Record<string, unknown>;
+  }>;
+};
+
+export async function getCooperationTypes(): Promise<{ key: string; config: CooperationTypesConfig }> {
+  const res = await fetchWithAuth("/api/matching/cooperation-types");
+  if (!res.ok) throw new Error(await readError(res, "Request failed"));
+  return res.json();
+}
+
+export async function updateCooperationTypes(config: CooperationTypesConfig) {
+  const res = await fetchWithAuth("/api/matching/cooperation-types", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+    body: JSON.stringify({ config }),
+  });
+  if (!res.ok) throw new Error(await readError(res, "Action failed"));
+  return res.json();
+}
+
+export async function getAdminCooperationOrders(params?: { type?: string; phase?: string; q?: string; limit?: number }) {
+  const q = new URLSearchParams();
+  if (params?.type) q.set("type", params.type);
+  if (params?.phase) q.set("phase", params.phase);
+  if (params?.q) q.set("q", params.q);
+  if (typeof params?.limit === "number") q.set("limit", String(params.limit));
+  const res = await fetchWithAuth(`/api/matching/admin/cooperation-orders?${q.toString()}`);
+  if (!res.ok) throw new Error(await readError(res, "Request failed"));
+  return res.json();
+}
+
+export async function reviewAdminCooperationOrder(orderId: number, body: { action: "approve" | "reject"; note?: string }) {
+  const res = await fetchWithAuth(`/api/matching/admin/cooperation-orders/${orderId}/review`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await readError(res, "Action failed"));
+  return res.json();
+}
+
 
 
 export async function getClientMarketOrderApplications(orderId: number) {
 
   const res = await fetchWithAuth(`/api/matching/client/market-orders/${orderId}/applications`);
-
-  if (!res.ok) throw new Error(await readError(res, "Request failed"));
 
   return res.json();
 

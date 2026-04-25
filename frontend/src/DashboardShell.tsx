@@ -60,8 +60,8 @@ function sanitizeEscapedTextNodes(root: HTMLElement): void {
 type InfluencerGroupId = "points" | "match" | "common";
 
 const GROUP_META: Record<InfluencerGroupId, { label: string; icon: string }> = {
-  points: { label: "积分类型 ประเภทคะแนน", icon: "💰" },
-  match: { label: "撮合项目类型 ประเภทการจับคู่", icon: "🤝" },
+  points: { label: "视频分级 คลิปแบ่งเกรด", icon: "💰" },
+  match: { label: "合作业务类型ประเภทความร่วมมือ", icon: "🤝" },
   common: { label: "公共项目类型 ประเภทโปรเจกต์ทั่วไป", icon: "📄" },
 };
 

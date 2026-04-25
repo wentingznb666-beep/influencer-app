@@ -2,7 +2,8 @@ import { Router, Response } from "express";
 
 import { query, withTx } from "../db";
 
-import { requireAuth, type AuthRequest } from "../auth";
+import { requireAuth, requireRole, type AuthRequest } from "../auth";
+import { COOPERATION_TYPES_CONFIG_KEY, readCooperationTypesConfig, type CooperationTypesConfig } from "../cooperationTypes";
 
 
 
@@ -37,6 +38,167 @@ function isAdminLike(role: string): boolean {
   return role === "admin" || role === "employee";
 
 }
+
+function normalizeCooperationTypesConfig(input: unknown): CooperationTypesConfig | null {
+  if (!input || typeof input !== "object") return null;
+  const v = (input as any).version;
+  const types = (input as any).types;
+  if (v !== 1) return null;
+  if (!Array.isArray(types)) return null;
+  for (const t of types) {
+    if (!t || typeof t !== "object") return null;
+    if (typeof (t as any).id !== "string") return null;
+    const name = (t as any).name;
+    if (!name || typeof name !== "object") return null;
+    if (typeof (name as any).zh !== "string" || typeof (name as any).th !== "string") return null;
+    const roles = (t as any).visible_roles;
+    if (!Array.isArray(roles) || roles.some((r: any) => typeof r !== "string")) return null;
+    const spec = (t as any).spec;
+    if (!spec || typeof spec !== "object") return null;
+  }
+  return input as CooperationTypesConfig;
+}
+
+router.get("/cooperation-types", requireRole("admin", "employee", "client"), async (_req: AuthRequest, res: Response) => {
+  const config = await readCooperationTypesConfig();
+  return res.json({ key: COOPERATION_TYPES_CONFIG_KEY, config });
+});
+
+router.put("/cooperation-types", requireRole("admin"), async (req: AuthRequest, res: Response) => {
+  const cfg = normalizeCooperationTypesConfig(req.body?.config ?? req.body);
+  if (!cfg) return res.status(400).json({ error: "INVALID_CONFIG", message: "无效的配置结构。" });
+  await query(
+    "INSERT INTO config (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value",
+    [COOPERATION_TYPES_CONFIG_KEY, JSON.stringify(cfg)]
+  );
+  return res.json({ ok: true });
+});
+
+router.get("/admin/cooperation-orders", requireRole("admin", "employee"), async (req: AuthRequest, res: Response) => {
+  const type = String(req.query?.type || "").trim();
+  const phase = String(req.query?.phase || "").trim();
+  const q = String(req.query?.q || "").trim();
+  const limitRaw = Number(req.query?.limit || 200);
+  const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 1), 500) : 200;
+
+  const where: string[] = ["mo.is_deleted=0", "COALESCE(mo.order_type,0)=1"];
+  const params: any[] = [];
+  let idx = 1;
+
+  if (type) {
+    where.push(`COALESCE(md.detail_json->>'cooperation_type_id','') = $${idx++}`);
+    params.push(type);
+  }
+  if (phase) {
+    where.push(`COALESCE(cs.phase,'none') = $${idx++}`);
+    params.push(phase);
+  }
+  if (q) {
+    where.push(`(mo.order_no ILIKE $${idx} OR mo.title ILIKE $${idx})`);
+    params.push(`%${q}%`);
+    idx++;
+  }
+
+  const rows = await query(
+    `SELECT mo.id, mo.order_no, mo.title, mo.status, mo.match_status, mo.task_amount, mo.client_id, mo.influencer_id, mo.work_links, mo.created_at, mo.updated_at,
+            md.detail_json, md.attachment_urls,
+            COALESCE(md.detail_json->>'cooperation_type_id','') AS cooperation_type_id,
+            COALESCE(cs.phase,'none') AS phase,
+            COALESCE(cs.publish_links,'[]'::jsonb) AS publish_links,
+            cs.review_note, cs.reviewed_by, cs.reviewed_at,
+            cu.username AS client_username, COALESCE(NULLIF(cu.display_name,''),cu.username) AS client_name,
+            iu.username AS influencer_username, COALESCE(NULLIF(iu.display_name,''),iu.username) AS influencer_name
+       FROM client_market_orders mo
+       JOIN users cu ON cu.id=mo.client_id
+       LEFT JOIN users iu ON iu.id=mo.influencer_id
+       LEFT JOIN matching_order_details md ON md.order_id=mo.id
+       LEFT JOIN cooperation_order_states cs ON cs.order_id=mo.id
+      WHERE ${where.join(" AND ")}
+      ORDER BY mo.id DESC
+      LIMIT ${limit}`,
+    params
+  );
+  return res.json({ list: rows.rows });
+});
+
+router.post("/admin/cooperation-orders/:id/review", requireRole("admin", "employee"), async (req: AuthRequest, res: Response) => {
+  const orderId = Number(req.params.id);
+  const action = String(req.body?.action || "").trim();
+  const note = String(req.body?.note || "").trim();
+  if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
+  if (!["approve", "reject"].includes(action)) return res.status(400).json({ error: "INVALID_ACTION", message: "无效操作。" });
+
+  try {
+    const ret = await withTx(async (client) => {
+      const ord = await client.query<{ id: number; status: string; influencer_id: number | null; client_id: number }>(
+        `SELECT id, status, influencer_id, client_id
+           FROM client_market_orders
+          WHERE id=$1 AND is_deleted=0 AND COALESCE(order_type,0)=1
+          FOR UPDATE`,
+        [orderId]
+      );
+      const row = ord.rows[0];
+      if (!row) return { kind: "not_found" as const };
+      const detail = await client.query<{ detail_json: any }>(`SELECT detail_json FROM matching_order_details WHERE order_id=$1`, [orderId]);
+      const coopTypeId = String((detail.rows[0]?.detail_json as any)?.cooperation_type_id || "").trim();
+      if (coopTypeId !== "creator_review_video") return { kind: "not_supported" as const };
+
+      await client.query(`INSERT INTO cooperation_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [orderId]);
+      const st = await client.query<{ phase: string }>(`SELECT phase FROM cooperation_order_states WHERE order_id=$1 FOR UPDATE`, [orderId]);
+      const curPhase = String(st.rows[0]?.phase || "none");
+      if (curPhase !== "review_pending") return { kind: "bad_phase" as const, phase: curPhase };
+
+      if (action === "approve") {
+        await client.query(
+          `UPDATE cooperation_order_states
+              SET phase='approved_to_publish', review_note=$2, reviewed_by=$3, reviewed_at=now(), updated_at=now()
+            WHERE order_id=$1`,
+          [orderId, note || null, req.user!.userId]
+        );
+        return { kind: "ok_approve" as const, influencerId: row.influencer_id || 0, clientId: row.client_id };
+      }
+
+      await client.query(
+        `UPDATE cooperation_order_states
+            SET phase='review_rejected', review_note=$2, reviewed_by=$3, reviewed_at=now(), updated_at=now()
+          WHERE order_id=$1`,
+        [orderId, note || null, req.user!.userId]
+      );
+      await client.query(`UPDATE client_market_orders SET status='claimed', work_links='[]'::jsonb, completed_at=NULL, updated_at=now() WHERE id=$1`, [orderId]);
+      return { kind: "ok_reject" as const, influencerId: row.influencer_id || 0, clientId: row.client_id };
+    });
+
+    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+    if (ret.kind === "not_supported") return res.status(400).json({ error: "NOT_SUPPORTED", message: "该订单不需要后台审核。" });
+    if (ret.kind === "bad_phase") return res.status(409).json({ error: "BAD_STATE", message: `当前阶段不可审核（${ret.phase}）。` });
+
+    if (ret.influencerId > 0) {
+      await createMessage(
+        ret.influencerId,
+        action === "approve" ? "cooperation_review_ok" : "cooperation_review_reject",
+        action === "approve" ? "视频审核通过" : "视频审核未通过",
+        action === "approve" ? `订单 #${orderId} 已审核通过，请提交发布链接。` : `订单 #${orderId} 审核未通过，请按要求重新提交。${note ? `\n原因：${note}` : ""}`,
+        "matching_order",
+        orderId
+      );
+    }
+    if (ret.clientId > 0) {
+      await createMessage(
+        ret.clientId,
+        action === "approve" ? "cooperation_review_ok" : "cooperation_review_reject",
+        action === "approve" ? "达人视频已审核通过" : "达人视频审核未通过",
+        action === "approve" ? `订单 #${orderId} 视频已通过后台审核，等待达人发布。` : `订单 #${orderId} 视频审核未通过，等待达人重新提交。`,
+        "matching_order",
+        orderId
+      );
+    }
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("admin cooperation order review error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
 
 
 

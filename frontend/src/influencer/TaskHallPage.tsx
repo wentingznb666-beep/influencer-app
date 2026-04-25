@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { applyMatchingOrder, getInfluencerMatchingTaskHall, getMyMatchingApplies, submitMatchingProof } from "../influencerApi";
+import { applyMatchingOrder, getInfluencerMatchingTaskHall, getMyMatchingApplies, publishMatchingOrder, submitMatchingProof } from "../influencerApi";
 
 type TaskItem = {
   id: number;
@@ -50,6 +50,7 @@ export default function TaskHallPage() {
   const [list, setList] = useState<TaskItem[]>([]);
   const [myApplies, setMyApplies] = useState<TaskItem[]>([]);
   const [proofMap, setProofMap] = useState<Record<number, string>>({});
+  const [publishMap, setPublishMap] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
@@ -105,6 +106,23 @@ export default function TaskHallPage() {
       await submitMatchingProof(orderId, videoUrl);
       await load();
       setMsg(t("回传成功，等待商家验收"));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("提交失败"));
+    }
+  };
+
+  const submitPublish = async (orderId: number) => {
+    const publishUrl = (publishMap[orderId] || "").trim();
+    if (!publishUrl) {
+      setError(t("请先填写发布链接"));
+      return;
+    }
+    setError(null);
+    setMsg("");
+    try {
+      await publishMatchingOrder(orderId, publishUrl);
+      await load();
+      setMsg(t("发布链接已提交"));
     } catch (e) {
       setError(e instanceof Error ? e.message : t("提交失败"));
     }
@@ -206,6 +224,11 @@ export default function TaskHallPage() {
             {appliedList.map((it) => {
               const oid = Number(it.order_id || 0);
               const canSubmitProof = it.apply_status === "selected" && it.order_status === "claimed" && oid > 0;
+              const coopType = String((it as any).cooperation_type_id || "").trim();
+              const coopPhase = String((it as any).coop_phase || "").trim();
+              const publishLinks = Array.isArray((it as any).coop_publish_links) ? ((it as any).coop_publish_links as unknown[]) : [];
+              const lastPublish = publishLinks.map((x) => String(x || "").trim()).filter(Boolean).slice(-1)[0] || "";
+              const canSubmitPublish = it.apply_status === "selected" && it.order_status === "completed" && oid > 0 && coopType === "creator_review_video" && coopPhase === "approved_to_publish";
               const orderLabel = formatOrderStatus(it.order_status);
               const applyLabel = formatApplyStatus(it.apply_status);
               return (
@@ -234,6 +257,14 @@ export default function TaskHallPage() {
                       </a>
                     </div>
                   )}
+                  {lastPublish ? (
+                    <div>
+                      {t("发布链接：")}
+                      <a href={lastPublish} target="_blank" rel="noreferrer">
+                        {t("查看")}
+                      </a>
+                    </div>
+                  ) : null}
                   {canSubmitProof && (
                     <div style={{ marginTop: 8 }}>
                       <input
@@ -244,6 +275,19 @@ export default function TaskHallPage() {
                       />
                       <button type="button" className="xt-accent-btn" onClick={() => void submitProof(oid)}>
                         {t("提交完成凭证")}
+                      </button>
+                    </div>
+                  )}
+                  {canSubmitPublish && (
+                    <div style={{ marginTop: 8 }}>
+                      <input
+                        value={publishMap[oid] || ""}
+                        onChange={(e) => setPublishMap((m) => ({ ...m, [oid]: e.target.value }))}
+                        placeholder={t("发布链接（TikTok/TAP）")}
+                        style={{ marginRight: 6, width: 300, maxWidth: "100%" }}
+                      />
+                      <button type="button" className="xt-accent-btn" onClick={() => void submitPublish(oid)}>
+                        {t("提交发布链接")}
                       </button>
                     </div>
                   )}

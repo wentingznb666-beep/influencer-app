@@ -64,6 +64,8 @@ type MyOrder = {
 
   publish_method?: "client_self_publish" | "influencer_publish_with_cart" | string;
 
+  publish_link?: string | null;
+
   voice_link?: string | null;
 
   voice_note?: string | null;
@@ -364,6 +366,10 @@ export default function ClientOrdersHallPage() {
 
   const [searchMy, setSearchMy] = useState("");
 
+  const [publishDraft, setPublishDraft] = useState<Record<number, string>>({});
+
+  const [publishing, setPublishing] = useState<Record<number, boolean>>({});
+
   const [openDateFilter, setOpenDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
 
   const [myDateFilter, setMyDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
@@ -580,6 +586,25 @@ export default function ClientOrdersHallPage() {
 
     }
 
+  };
+
+  const submitPublishLink = async (orderId: number) => {
+    const link = String(publishDraft[orderId] || "").trim();
+    if (!link) {
+      setError(t("请先填写发布链接。"));
+      return;
+    }
+    setPublishing((p) => ({ ...p, [orderId]: true }));
+    setError(null);
+    try {
+      await api.publishMarketOrder(orderId, link);
+      setPublishDraft((p) => ({ ...p, [orderId]: "" }));
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("提交失败"));
+    } finally {
+      setPublishing((p) => ({ ...p, [orderId]: false }));
+    }
   };
 
 
@@ -936,6 +961,35 @@ export default function ClientOrdersHallPage() {
                 </button>
 
               </p>
+
+              {String(o.publish_link || "").trim() ? (
+                <p style={{ marginTop: 6, fontSize: 14 }}>
+                  {t("发布链接：")}
+                  <a href={String(o.publish_link)} target="_blank" rel="noreferrer" style={{ marginLeft: 6 }}>
+                    {t("查看")}
+                  </a>
+                </p>
+              ) : null}
+
+              {String(o.publish_method || "") === "influencer_publish_with_cart" && o.status === "completed" && !String(o.publish_link || "").trim() ? (
+                <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <input
+                    type="url"
+                    value={publishDraft[o.id] || ""}
+                    onChange={(e) => setPublishDraft((p) => ({ ...p, [o.id]: e.target.value }))}
+                    placeholder={t("发布链接（TikTok/TAP）")}
+                    style={{ flex: 1, minWidth: 220, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+                  />
+                  <button
+                    type="button"
+                    disabled={!!publishing[o.id]}
+                    onClick={() => void submitPublishLink(o.id)}
+                    style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: publishing[o.id] ? "not-allowed" : "pointer" }}
+                  >
+                    {publishing[o.id] ? t("提交中...") : t("提交发布链接")}
+                  </button>
+                </div>
+              ) : null}
 
               {o.status === "completed" && influencerEditId === o.id && (
 

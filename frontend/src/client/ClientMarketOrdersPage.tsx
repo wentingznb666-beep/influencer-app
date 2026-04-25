@@ -32,6 +32,8 @@ type MarketOrder = {
 
   tiktok_link?: string | null;
 
+  publish_link?: string | null;
+
   sku_codes?: string[] | null;
 
   sku_images?: string[] | null;
@@ -136,6 +138,12 @@ function resolveTikTokLink(order: MarketOrder): string {
 
   return link;
 
+}
+
+function resolvePublishLink(order: MarketOrder): string {
+  const raw = order as unknown as Record<string, unknown>;
+  const link = String(order.publish_link || raw.publish_link || raw.publishLink || "").trim();
+  return link;
 }
 
 
@@ -1094,6 +1102,15 @@ export default function ClientMarketOrdersPage() {
 
                 </p>
 
+              )}
+
+              {!!resolvePublishLink(o) && (
+                <p style={{ margin: "8px 0 0", fontSize: 13 }}>
+                  发布链接：
+                  <a href={resolvePublishLink(o)} target="_blank" rel="noreferrer">
+                    {resolvePublishLink(o)}
+                  </a>
+                </p>
               )}
 
               {(Array.isArray(o.sku_codes) && o.sku_codes.length > 0) || (Array.isArray(o.sku_images) && o.sku_images.length > 0) ? (

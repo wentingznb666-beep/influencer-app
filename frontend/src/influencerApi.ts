@@ -163,15 +163,10 @@ export async function claimMarketOrder(orderId: number) {
  */
 
 export async function completeMarketOrder(orderId: number, work_links: string[]) {
-
   const res = await fetchWithAuth(`/api/influencer/market-orders/${orderId}/complete`, {
-
     method: "POST",
-
     headers: { "Content-Type": "application/json; charset=utf-8" },
-
     body: JSON.stringify({ work_links }),
-
   });
 
   if (!res.ok) {
@@ -270,6 +265,19 @@ export async function getInfluencerPaymentProfile() {
   return res.json();
 }
 
+export async function publishMarketOrder(orderId: number, publish_link: string) {
+  const res = await fetchWithAuth(`/api/influencer/market-orders/${orderId}/publish`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+    body: JSON.stringify({ publish_link }),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error((data.message as string) || "提交失败");
+  }
+  return res.json();
+}
+
 /** 保存达人收款信息。 */
 export async function saveInfluencerPaymentProfile(body: { real_name: string; bank_name: string; bank_card: string }) {
   const res = await fetchWithAuth('/api/matching/influencer/payment-profile', {
@@ -335,6 +343,16 @@ export async function submitMatchingProof(orderId: number, video_url: string) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json; charset=utf-8' },
     body: JSON.stringify({ video_url }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '提交失败');
+  return res.json();
+}
+
+export async function publishMatchingOrder(orderId: number, publish_url: string) {
+  const res = await fetchWithAuth(`/api/matching/influencer/matching-orders/${orderId}/publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify({ publish_url }),
   });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '提交失败');
   return res.json();

@@ -1,10 +1,11 @@
-﻿import { Router, Response } from "express";
+﻿﻿import { Router, Response } from "express";
 import multer from "multer";
 import path from "path";
 import { promises as fs } from "fs";
 import { requireAuth, type AuthRequest } from "../auth";
 import { query, withTx } from "../db";
 import { getUploadsRoot } from "../uploadsConfig";
+import { isVisibleCooperationType, readCooperationTypesConfig } from "../cooperationTypes";
 
 const router = Router();
 router.use(requireAuth);
@@ -316,6 +317,14 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
   if (!title || title.length > 200) return res.status(400).json({ error: "INVALID_TITLE", message: "请填写任务标题（1-200字）。" });
   if (!Number.isFinite(taskAmount) || taskAmount <= 0) return res.status(400).json({ error: "INVALID_AMOUNT", message: "请填写有效任务金额。" });
   try {
+    const coopTypeId =
+      detailPayload && typeof (detailPayload as any).cooperation_type_id === "string" ? String((detailPayload as any).cooperation_type_id).trim() : "";
+    if (coopTypeId) {
+      const cfg = await readCooperationTypesConfig();
+      if (!isVisibleCooperationType(cfg, coopTypeId, "client")) {
+        return res.status(400).json({ error: "INVALID_COOPERATION_TYPE", message: "无效的合作业务类型。" });
+      }
+    }
     const ret = await withTx(async (client) => {
       await client.query("INSERT INTO merchant_profiles (client_id) VALUES ($1) ON CONFLICT (client_id) DO NOTHING", [req.user!.userId]);
       const profile = await client.query<{ member_level: number; deposit_amount: string; deposit_frozen: string }>(
@@ -423,9 +432,13 @@ router.get("/client/matching-orders", async (req: AuthRequest, res: Response) =>
   try {
     const rows = await query(
       `SELECT mo.id, mo.order_no, mo.title, mo.status, mo.match_status, mo.order_type, mo.allow_apply, mo.task_amount, mo.deposit_frozen, mo.influencer_id, mo.work_links, mo.created_at, mo.updated_at,
-              md.detail_json, md.attachment_urls
+              md.detail_json, md.attachment_urls,
+              COALESCE(md.detail_json->>'cooperation_type_id','') AS cooperation_type_id,
+              COALESCE(cs.phase,'none') AS coop_phase,
+              COALESCE(cs.publish_links,'[]'::jsonb) AS coop_publish_links
          FROM client_market_orders mo
          LEFT JOIN matching_order_details md ON md.order_id=mo.id
+         LEFT JOIN cooperation_order_states cs ON cs.order_id=mo.id
         WHERE mo.client_id=$1 AND mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1
         ORDER BY mo.id DESC`,
       [req.user.userId]
@@ -437,6 +450,113 @@ router.get("/client/matching-orders", async (req: AuthRequest, res: Response) =>
   }
 });
 
+router.put("/client/matching-orders/:id", async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+  const orderId = Number(req.params.id);
+  if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
+
+  const title = req.body?.title != null ? String(req.body?.title || "").trim() : undefined;
+  const taskAmount = req.body?.task_amount != null ? Number(req.body?.task_amount) : undefined;
+  const allowApply = req.body?.allow_apply != null ? (req.body?.allow_apply === false ? 0 : 1) : undefined;
+  const requirement = req.body?.requirement != null ? String(req.body?.requirement || "").trim() : undefined;
+  const detailPayload = req.body?.detail && typeof req.body.detail === "object" ? req.body.detail : undefined;
+  const attachments = Array.isArray(req.body?.attachments)
+    ? (req.body.attachments as unknown[]).map((x) => String(x || "").trim()).filter(Boolean).slice(0, 20)
+    : undefined;
+
+  if (title !== undefined && (!title || title.length > 200)) return res.status(400).json({ error: "INVALID_TITLE", message: "请填写任务标题（1-200字）。" });
+  if (taskAmount !== undefined && (!Number.isFinite(taskAmount) || taskAmount <= 0)) return res.status(400).json({ error: "INVALID_AMOUNT", message: "请填写有效任务金额。" });
+
+  try {
+    if (detailPayload) {
+      const coopTypeId = typeof (detailPayload as any).cooperation_type_id === "string" ? String((detailPayload as any).cooperation_type_id).trim() : "";
+      if (coopTypeId) {
+        const cfg = await readCooperationTypesConfig();
+        if (!isVisibleCooperationType(cfg, coopTypeId, "client")) {
+          return res.status(400).json({ error: "INVALID_COOPERATION_TYPE", message: "无效的合作业务类型。" });
+        }
+      }
+    }
+
+    const ret = await withTx(async (client) => {
+      const own = await client.query<{ id: number; title: string; status: string; task_amount: number }>(
+        `SELECT id, title, status, task_amount
+           FROM client_market_orders
+          WHERE id=$1 AND client_id=$2 AND is_deleted=0 AND COALESCE(order_type,0)=1
+          FOR UPDATE`,
+        [orderId, req.user!.userId]
+      );
+      const row = own.rows[0];
+      if (!row) return { kind: "not_found" as const };
+      if (row.status !== "open") return { kind: "locked" as const };
+      if (taskAmount !== undefined && Number(taskAmount) !== Number(row.task_amount)) return { kind: "amount_locked" as const };
+
+      const nextTitleBase = title !== undefined ? title : row.title;
+      const nextTitle = requirement !== undefined ? (requirement ? `${nextTitleBase}｜${requirement}` : nextTitleBase) : nextTitleBase;
+      const nextAllowApply = allowApply !== undefined ? allowApply : undefined;
+
+      if (nextAllowApply !== undefined || nextTitle !== row.title) {
+        const setParts: string[] = [];
+        const values: any[] = [];
+        let idx = 1;
+        if (nextTitle !== row.title) {
+          setParts.push(`title=$${idx++}`);
+          values.push(nextTitle);
+        }
+        if (nextAllowApply !== undefined) {
+          setParts.push(`allow_apply=$${idx++}`);
+          values.push(nextAllowApply);
+        }
+        setParts.push("updated_at=now()");
+        values.push(orderId, req.user!.userId);
+        await client.query(`UPDATE client_market_orders SET ${setParts.join(", ")} WHERE id=$${idx++} AND client_id=$${idx++}`, values);
+      }
+
+      if (detailPayload || attachments) {
+        let detailWithMerchant: any = detailPayload ? { ...(detailPayload as any) } : null;
+        if (detailWithMerchant) {
+          const tpl = await client.query<{ shop_name: string; product_type: string; shop_link: string; shop_rating: string; user_reviews: string }>(
+            `SELECT shop_name, product_type, shop_link, shop_rating, user_reviews FROM client_merchant_info_templates WHERE client_id=$1`,
+            [req.user!.userId]
+          );
+          const merchantTemplate = tpl.rows[0];
+          if (merchantTemplate) {
+            detailWithMerchant = {
+              ...detailWithMerchant,
+              merchant_info: {
+                shop_name: merchantTemplate.shop_name,
+                product_type: merchantTemplate.product_type,
+                shop_link: merchantTemplate.shop_link,
+                shop_rating: merchantTemplate.shop_rating,
+                user_reviews: merchantTemplate.user_reviews,
+              },
+            };
+          }
+        }
+        await client.query(
+          `INSERT INTO matching_order_details (order_id, detail_json, attachment_urls)
+           VALUES ($1, COALESCE($2::jsonb, '{}'::jsonb), COALESCE($3::jsonb, '[]'::jsonb))
+           ON CONFLICT (order_id)
+           DO UPDATE SET detail_json=COALESCE(EXCLUDED.detail_json, matching_order_details.detail_json),
+                         attachment_urls=COALESCE(EXCLUDED.attachment_urls, matching_order_details.attachment_urls),
+                         updated_at=now()`,
+          [orderId, detailWithMerchant ? JSON.stringify(detailWithMerchant) : null, attachments ? JSON.stringify(attachments) : null]
+        );
+      }
+
+      return { kind: "ok" as const };
+    });
+
+    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+    if (ret.kind === "locked") return res.status(409).json({ error: "ORDER_LOCKED", message: "订单当前状态不可编辑。" });
+    if (ret.kind === "amount_locked") return res.status(400).json({ error: "AMOUNT_LOCKED", message: "任务金额已锁定，不支持修改。" });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("client matching order update error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
 /** 达人端：模式一任务大厅（只看撮合免积分开放单）。 */
 router.get("/influencer/matching-task-hall", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
@@ -444,10 +564,14 @@ router.get("/influencer/matching-task-hall", async (req: AuthRequest, res: Respo
     const rows = await query(
       `SELECT mo.id, mo.order_no, mo.title, mo.task_amount, mo.status, mo.match_status, mo.created_at,
               md.detail_json, md.attachment_urls,
+              COALESCE(md.detail_json->>'cooperation_type_id','') AS cooperation_type_id,
+              COALESCE(cs.phase,'none') AS coop_phase,
+              COALESCE(cs.publish_links,'[]'::jsonb) AS coop_publish_links,
               u.username AS client_username, COALESCE(NULLIF(u.display_name,''),u.username) AS client_name
          FROM client_market_orders mo
          JOIN users u ON u.id=mo.client_id
          LEFT JOIN matching_order_details md ON md.order_id=mo.id
+         LEFT JOIN cooperation_order_states cs ON cs.order_id=mo.id
         WHERE mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1 AND mo.status='open' AND COALESCE(mo.allow_apply,1)=1
         ORDER BY mo.id DESC`
     );
@@ -513,11 +637,15 @@ router.get("/influencer/my-matching-applies", async (req: AuthRequest, res: Resp
       `SELECT a.id, a.status AS apply_status, a.note, a.created_at,
               mo.id AS order_id, mo.order_no, mo.title, mo.task_amount, mo.status AS order_status, mo.match_status, mo.work_links,
               md.detail_json, md.attachment_urls,
+              COALESCE(md.detail_json->>'cooperation_type_id','') AS cooperation_type_id,
+              COALESCE(cs.phase,'none') AS coop_phase,
+              COALESCE(cs.publish_links,'[]'::jsonb) AS coop_publish_links,
               u.username AS client_username
          FROM market_order_applications a
          JOIN client_market_orders mo ON mo.id=a.market_order_id
          JOIN users u ON u.id=mo.client_id
          LEFT JOIN matching_order_details md ON md.order_id=mo.id
+         LEFT JOIN cooperation_order_states cs ON cs.order_id=mo.id
         WHERE a.influencer_id=$1 AND mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1
         ORDER BY a.id DESC`,
       [req.user.userId]
@@ -533,9 +661,16 @@ router.get("/influencer/my-matching-applies", async (req: AuthRequest, res: Resp
 router.post("/influencer/matching-orders/:id/submit-proof", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   const orderId = Number(req.params.id);
+  const urlsRaw = Array.isArray(req.body?.video_urls) ? (req.body.video_urls as unknown[]) : null;
   const videoUrl = String(req.body?.video_url || "").trim();
+  const videoUrls =
+    urlsRaw && urlsRaw.length
+      ? urlsRaw.map((u) => String(u || "").trim()).filter(Boolean).slice(0, 20)
+      : videoUrl
+      ? [videoUrl]
+      : [];
   if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
-  if (!videoUrl) return res.status(400).json({ error: "INVALID_VIDEO", message: "请填写回传短视频链接。" });
+  if (!videoUrls.length) return res.status(400).json({ error: "INVALID_VIDEO", message: "请填写回传短视频链接。" });
   try {
     const ret = await withTx(async (client) => {
       const app = await client.query<{ id: number; market_order_id: number }>(
@@ -549,8 +684,22 @@ router.post("/influencer/matching-orders/:id/submit-proof", async (req: AuthRequ
       );
       const row = app.rows[0];
       if (!row) return { kind: "not_found" as const };
-      await client.query(`UPDATE client_market_orders SET status='completed', work_links=$2::jsonb, updated_at=now(), completed_at=now() WHERE id=$1`, [orderId, JSON.stringify([videoUrl])]);
-      await client.query(`UPDATE market_order_applications SET note=$2, updated_at=now() WHERE id=$1`, [row.id, `proof:${videoUrl}`]);
+      const detail = await client.query<{ detail_json: any }>(`SELECT detail_json FROM matching_order_details WHERE order_id=$1`, [orderId]);
+      const coopTypeId = String((detail.rows[0]?.detail_json as any)?.cooperation_type_id || "").trim();
+      await client.query(`UPDATE client_market_orders SET status='completed', work_links=$2::jsonb, updated_at=now(), completed_at=now() WHERE id=$1`, [
+        orderId,
+        JSON.stringify(videoUrls),
+      ]);
+      await client.query(`UPDATE market_order_applications SET note=$2, updated_at=now() WHERE id=$1`, [row.id, `proof:${videoUrls[0]}`]);
+      if (coopTypeId === "creator_review_video") {
+        await client.query(`INSERT INTO cooperation_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [orderId]);
+        await client.query(
+          `UPDATE cooperation_order_states
+              SET phase='review_pending', publish_links='[]'::jsonb, review_note=NULL, reviewed_by=NULL, reviewed_at=NULL, updated_at=now()
+            WHERE order_id=$1`,
+          [orderId]
+        );
+      }
       const owner = await client.query<{ client_id: number }>(`SELECT client_id FROM client_market_orders WHERE id=$1`, [orderId]);
       return { kind: "ok" as const, clientId: owner.rows[0]?.client_id || 0 };
     });
@@ -559,6 +708,51 @@ router.post("/influencer/matching-orders/:id/submit-proof", async (req: AuthRequ
     return res.json({ ok: true });
   } catch (e) {
     console.error("influencer submit matching proof error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
+router.post("/influencer/matching-orders/:id/publish", async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+  const orderId = Number(req.params.id);
+  const publishUrl = String(req.body?.publish_url || "").trim();
+  if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
+  if (!publishUrl) return res.status(400).json({ error: "INVALID_PUBLISH_URL", message: "请填写发布链接。" });
+  try {
+    const ret = await withTx(async (client) => {
+      const app = await client.query<{ market_order_id: number }>(
+        `SELECT a.market_order_id
+           FROM market_order_applications a
+           JOIN client_market_orders mo ON mo.id=a.market_order_id
+          WHERE a.market_order_id=$1 AND a.influencer_id=$2 AND a.status='selected'
+            AND mo.status='completed' AND COALESCE(mo.order_type,0)=1
+          FOR UPDATE`,
+        [orderId, req.user!.userId]
+      );
+      if (!app.rows[0]) return { kind: "not_found" as const };
+      const detail = await client.query<{ detail_json: any }>(`SELECT detail_json FROM matching_order_details WHERE order_id=$1`, [orderId]);
+      const coopTypeId = String((detail.rows[0]?.detail_json as any)?.cooperation_type_id || "").trim();
+      if (coopTypeId !== "creator_review_video") return { kind: "not_supported" as const };
+      await client.query(`INSERT INTO cooperation_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [orderId]);
+      const st = await client.query<{ phase: string; publish_links: any }>(`SELECT phase, publish_links FROM cooperation_order_states WHERE order_id=$1 FOR UPDATE`, [orderId]);
+      const curPhase = String(st.rows[0]?.phase || "none");
+      if (curPhase !== "approved_to_publish") return { kind: "bad_phase" as const, phase: curPhase };
+      const oldLinks = Array.isArray(st.rows[0]?.publish_links) ? (st.rows[0]!.publish_links as unknown[]) : [];
+      const nextLinks = [...oldLinks.map((x) => String(x || "").trim()).filter(Boolean), publishUrl].slice(0, 20);
+      await client.query(`UPDATE cooperation_order_states SET phase='published', publish_links=$2::jsonb, updated_at=now() WHERE order_id=$1`, [
+        orderId,
+        JSON.stringify(nextLinks),
+      ]);
+      const owner = await client.query<{ client_id: number }>(`SELECT client_id FROM client_market_orders WHERE id=$1`, [orderId]);
+      return { kind: "ok" as const, clientId: owner.rows[0]?.client_id || 0 };
+    });
+    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "未找到可发布的订单。" });
+    if (ret.kind === "not_supported") return res.status(400).json({ error: "NOT_SUPPORTED", message: "该订单无需提交发布链接。" });
+    if (ret.kind === "bad_phase") return res.status(409).json({ error: "BAD_STATE", message: `当前阶段不可提交发布链接（${ret.phase}）。` });
+    if (ret.clientId > 0) await createMessage(ret.clientId, "cooperation_published", "达人已提交发布链接", `订单 #${orderId} 已提交发布链接，请验收。`, "matching_order", orderId);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("influencer publish matching order error:", e);
     return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   }
 });
@@ -659,6 +853,21 @@ router.post("/client/matching-orders/:id/accept", async (req: AuthRequest, res: 
       );
       const row = ord.rows[0];
       if (!row || !row.influencer_id) return { kind: "not_found" as const };
+
+      const detail = await client.query<{ detail_json: any }>(`SELECT detail_json FROM matching_order_details WHERE order_id=$1`, [orderId]);
+      const coopTypeId = String((detail.rows[0]?.detail_json as any)?.cooperation_type_id || "").trim();
+      if (coopTypeId === "creator_review_video") {
+        await client.query(`INSERT INTO cooperation_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [orderId]);
+        const st = await client.query<{ phase: string; publish_links: any }>(
+          `SELECT phase, publish_links FROM cooperation_order_states WHERE order_id=$1 FOR UPDATE`,
+          [orderId]
+        );
+        const phase = String(st.rows[0]?.phase || "none");
+        const links = Array.isArray(st.rows[0]?.publish_links) ? (st.rows[0]!.publish_links as unknown[]) : [];
+        const hasLink = links.map((x) => String(x || "").trim()).filter(Boolean).length > 0;
+        if (phase !== "published" || !hasLink) return { kind: "publish_required" as const };
+      }
+
       await client.query(`UPDATE client_market_orders SET match_status='completed', updated_at=now() WHERE id=$1`, [orderId]);
       const amount = Number(row.task_amount || 0);
       if (amount > 0) {
@@ -682,6 +891,7 @@ router.post("/client/matching-orders/:id/accept", async (req: AuthRequest, res: 
       return { kind: "ok" as const, payment: inf.rows[0] || null, influencerId: row.influencer_id };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "未找到可验收订单。" });
+    if (ret.kind === "publish_required") return res.status(400).json({ error: "PUBLISH_REQUIRED", message: "请等待后台审核与达人发布完成后再验收。" });
     await createMessage(ret.influencerId, "matching_accept", "撮合订单已验收通过", `撮合订单 #${orderId} 已验收通过，请等待商家打款。`, "matching_order", orderId);
     return res.json({ ok: true, payment_profile: ret.payment });
   } catch (e) {
