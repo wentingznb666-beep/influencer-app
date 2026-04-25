@@ -433,6 +433,7 @@ router.post("/client/matching-orders/upload", (req: AuthRequest, res: Response) 
 router.get("/client/matching-orders", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
+    const videoTypeIds = ["high_quality_custom_video", "monthly_package", "creator_review_video"];
     const rows = await query(
       `SELECT mo.id, mo.order_no, mo.title, mo.status, mo.match_status, mo.order_type, mo.allow_apply, mo.task_amount, mo.deposit_frozen, mo.influencer_id, mo.work_links, mo.created_at, mo.updated_at,
               md.detail_json, md.attachment_urls,
@@ -443,8 +444,9 @@ router.get("/client/matching-orders", async (req: AuthRequest, res: Response) =>
          LEFT JOIN matching_order_details md ON md.order_id=mo.id
          LEFT JOIN cooperation_order_states cs ON cs.order_id=mo.id
         WHERE mo.client_id=$1 AND mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1
+          AND COALESCE(md.detail_json->>'cooperation_type_id','') <> ALL($2::text[])
         ORDER BY mo.id DESC`,
-      [req.user.userId]
+      [req.user.userId, videoTypeIds]
     );
     return res.json({ list: rows.rows });
   } catch (e) {
@@ -474,6 +476,9 @@ router.put("/client/matching-orders/:id", async (req: AuthRequest, res: Response
     if (detailPayload) {
       const coopTypeId = typeof (detailPayload as any).cooperation_type_id === "string" ? String((detailPayload as any).cooperation_type_id).trim() : "";
       if (coopTypeId) {
+        if (coopTypeId === "high_quality_custom_video" || coopTypeId === "monthly_package" || coopTypeId === "creator_review_video") {
+          return res.status(400).json({ error: "VIDEO_ORDERS_ONLY", message: "该类型属于视频分级订单，请在【视频分级订单】模块发布订单。" });
+        }
         const cfg = await readCooperationTypesConfig();
         if (!isVisibleCooperationType(cfg, coopTypeId, "client")) {
           return res.status(400).json({ error: "INVALID_COOPERATION_TYPE", message: "无效的合作业务类型。" });

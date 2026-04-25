@@ -104,6 +104,10 @@ router.get("/admin/cooperation-orders", requireRole("admin", "employee"), async 
   const params: any[] = [];
   let idx = 1;
 
+  const videoTypeIds = ["high_quality_custom_video", "monthly_package", "creator_review_video"];
+  where.push(`COALESCE(md.detail_json->>'cooperation_type_id','') <> ALL($${idx++}::text[])`);
+  params.push(videoTypeIds);
+
   if (type) {
     where.push(`COALESCE(md.detail_json->>'cooperation_type_id','') = $${idx++}`);
     params.push(type);

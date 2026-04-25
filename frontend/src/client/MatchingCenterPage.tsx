@@ -43,7 +43,7 @@ type MatchingFormState = {
 };
 
 const defaultForm: MatchingFormState = {
-  cooperation_type_id: "high_quality_custom_video",
+  cooperation_type_id: "",
   task_name: "",
   task_type: "短视频",
   industry: "美妆",
@@ -124,8 +124,9 @@ export default function MatchingCenterPage() {
     const loadCoopTypes = async () => {
       const ret = await getCooperationTypes();
       const types = Array.isArray(ret?.config?.types) ? ret.config.types : [];
+      const blocked = new Set(["graded_video", "high_quality_custom_video", "monthly_package", "creator_review_video"]);
       const list = types
-        .filter((t: any) => t && typeof t.id === "string" && t.id !== "graded_video")
+        .filter((t: any) => t && typeof t.id === "string" && !blocked.has(String(t.id)))
         .map((t: any) => ({
           id: String(t.id),
           label: String(t?.name?.zh || t.id),
@@ -439,9 +440,9 @@ export default function MatchingCenterPage() {
                     id="cooperation_type_id"
                     value={form.cooperation_type_id}
                     onChange={(e) => setField("cooperation_type_id", e.target.value)}
-                    disabled={cooperationTypes.length === 0}
                   >
-                    {(cooperationTypes.length ? cooperationTypes : [{ id: form.cooperation_type_id, label: form.cooperation_type_id }]).map((t) => (
+                    <option value="">（常规撮合：不选择类型）</option>
+                    {cooperationTypes.map((t) => (
                       <option key={t.id} value={t.id}>
                         {t.label}
                       </option>
