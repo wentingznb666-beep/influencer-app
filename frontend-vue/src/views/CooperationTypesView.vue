@@ -3,7 +3,7 @@
     <div style="font-weight: 700">合作业务类型配置</div>
     <el-button @click="load" :loading="loading">刷新</el-button>
     <el-button type="primary" @click="save" :disabled="!canEdit" :loading="saving">保存</el-button>
-    <div v-if="!canEdit" style="color: #888">仅管理员/员工可编辑</div>
+    <div v-if="!canEdit" style="color: #888">仅管理员可编辑</div>
   </div>
 
   <el-alert v-if="error" type="error" :title="error" show-icon style="margin-bottom: 12px" />
@@ -44,7 +44,7 @@ import { getCooperationTypes, updateCooperationTypes, type CooperationTypesConfi
 import { useAuthStore } from "@/stores/auth";
 
 const auth = useAuthStore();
-const canEdit = computed(() => auth.user?.role === "admin" || auth.user?.role === "employee");
+const canEdit = computed(() => auth.user?.role === "admin");
 
 const loading = ref(false);
 const saving = ref(false);

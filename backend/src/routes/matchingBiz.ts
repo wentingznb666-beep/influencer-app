@@ -564,6 +564,7 @@ router.put("/client/matching-orders/:id", async (req: AuthRequest, res: Response
 router.get("/influencer/matching-task-hall", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
+    const blockedVideoTypes = ["high_quality_custom_video", "monthly_package", "creator_review_video"];
     const rows = await query(
       `SELECT mo.id, mo.order_no, mo.title, mo.task_amount, mo.status, mo.match_status, mo.created_at,
               md.detail_json, md.attachment_urls,
@@ -576,7 +577,10 @@ router.get("/influencer/matching-task-hall", async (req: AuthRequest, res: Respo
          LEFT JOIN matching_order_details md ON md.order_id=mo.id
          LEFT JOIN cooperation_order_states cs ON cs.order_id=mo.id
         WHERE mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1 AND mo.status='open' AND COALESCE(mo.allow_apply,1)=1
+          AND COALESCE(md.detail_json->>'cooperation_type_id','') <> ALL($1::text[])
         ORDER BY mo.id DESC`
+      ,
+      [blockedVideoTypes]
     );
     return res.json({ list: rows.rows });
   } catch (e) {
@@ -592,6 +596,7 @@ router.post("/influencer/matching-orders/:id/apply", async (req: AuthRequest, re
   const orderId = Number(req.params.id);
   if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
   try {
+    const blockedVideoTypes = ["high_quality_custom_video", "monthly_package", "creator_review_video"];
     const profile = await query<{
       tiktok_account: string | null;
       tiktok_fans: string | null;
@@ -611,8 +616,9 @@ router.post("/influencer/matching-orders/:id/apply", async (req: AuthRequest, re
     const ord = await query<{ id: number; client_id: number }>(
       `SELECT id, client_id
          FROM client_market_orders
-        WHERE id=$1 AND is_deleted=0 AND COALESCE(order_type,0)=1 AND status='open' AND COALESCE(allow_apply,1)=1`,
-      [orderId]
+        WHERE id=$1 AND is_deleted=0 AND COALESCE(order_type,0)=1 AND status='open' AND COALESCE(allow_apply,1)=1
+          AND COALESCE((SELECT detail_json->>'cooperation_type_id' FROM matching_order_details WHERE order_id=$1),'') <> ALL($2::text[])`,
+      [orderId, blockedVideoTypes]
     );
     const row = ord.rows[0];
     if (!row) return res.status(404).json({ error: "NOT_FOUND", message: "任务不存在或不可报名。" });
@@ -636,6 +642,7 @@ router.post("/influencer/matching-orders/:id/apply", async (req: AuthRequest, re
 router.get("/influencer/my-matching-applies", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
+    const blockedVideoTypes = ["high_quality_custom_video", "monthly_package", "creator_review_video"];
     const rows = await query(
       `SELECT a.id, a.status AS apply_status, a.note, a.created_at,
               mo.id AS order_id, mo.order_no, mo.title, mo.task_amount, mo.status AS order_status, mo.match_status, mo.work_links,
@@ -650,8 +657,9 @@ router.get("/influencer/my-matching-applies", async (req: AuthRequest, res: Resp
          LEFT JOIN matching_order_details md ON md.order_id=mo.id
          LEFT JOIN cooperation_order_states cs ON cs.order_id=mo.id
         WHERE a.influencer_id=$1 AND mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1
+          AND COALESCE(md.detail_json->>'cooperation_type_id','') <> ALL($2::text[])
         ORDER BY a.id DESC`,
-      [req.user.userId]
+      [req.user.userId, blockedVideoTypes]
     );
     return res.json({ list: rows.rows });
   } catch (e) {
@@ -675,6 +683,7 @@ router.post("/influencer/matching-orders/:id/submit-proof", async (req: AuthRequ
   if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
   if (!videoUrls.length) return res.status(400).json({ error: "INVALID_VIDEO", message: "请填写回传短视频链接。" });
   try {
+    const blockedVideoTypes = ["high_quality_custom_video", "monthly_package", "creator_review_video"];
     const ret = await withTx(async (client) => {
       const app = await client.query<{ id: number; market_order_id: number }>(
         `SELECT a.id, a.market_order_id
@@ -689,6 +698,7 @@ router.post("/influencer/matching-orders/:id/submit-proof", async (req: AuthRequ
       if (!row) return { kind: "not_found" as const };
       const detail = await client.query<{ detail_json: any }>(`SELECT detail_json FROM matching_order_details WHERE order_id=$1`, [orderId]);
       const coopTypeId = String((detail.rows[0]?.detail_json as any)?.cooperation_type_id || "").trim();
+      if (blockedVideoTypes.includes(coopTypeId)) return { kind: "forbidden_video" as const };
       await client.query(`UPDATE client_market_orders SET status='completed', work_links=$2::jsonb, updated_at=now(), completed_at=now() WHERE id=$1`, [
         orderId,
         JSON.stringify(videoUrls),
@@ -707,6 +717,7 @@ router.post("/influencer/matching-orders/:id/submit-proof", async (req: AuthRequ
       return { kind: "ok" as const, clientId: owner.rows[0]?.client_id || 0 };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "未找到可提交的撮合任务。" });
+    if (ret.kind === "forbidden_video") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问视频合作项目任务。" });
     if (ret.clientId > 0) await createMessage(ret.clientId, "matching_submit", "达人已提交完成凭证", `撮合订单 #${orderId} 已提交完成凭证，请验收。`, "matching_order", orderId);
     return res.json({ ok: true });
   } catch (e) {
@@ -722,6 +733,7 @@ router.post("/influencer/matching-orders/:id/publish", async (req: AuthRequest, 
   if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
   if (!publishUrl) return res.status(400).json({ error: "INVALID_PUBLISH_URL", message: "请填写发布链接。" });
   try {
+    const blockedVideoTypes = ["high_quality_custom_video", "monthly_package", "creator_review_video"];
     const ret = await withTx(async (client) => {
       const app = await client.query<{ market_order_id: number }>(
         `SELECT a.market_order_id
@@ -735,6 +747,7 @@ router.post("/influencer/matching-orders/:id/publish", async (req: AuthRequest, 
       if (!app.rows[0]) return { kind: "not_found" as const };
       const detail = await client.query<{ detail_json: any }>(`SELECT detail_json FROM matching_order_details WHERE order_id=$1`, [orderId]);
       const coopTypeId = String((detail.rows[0]?.detail_json as any)?.cooperation_type_id || "").trim();
+      if (blockedVideoTypes.includes(coopTypeId)) return { kind: "forbidden_video" as const };
       if (coopTypeId !== "creator_review_video") return { kind: "not_supported" as const };
       await client.query(`INSERT INTO cooperation_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [orderId]);
       const st = await client.query<{ phase: string; publish_links: any }>(`SELECT phase, publish_links FROM cooperation_order_states WHERE order_id=$1 FOR UPDATE`, [orderId]);
@@ -750,6 +763,7 @@ router.post("/influencer/matching-orders/:id/publish", async (req: AuthRequest, 
       return { kind: "ok" as const, clientId: owner.rows[0]?.client_id || 0 };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "未找到可发布的订单。" });
+    if (ret.kind === "forbidden_video") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问视频合作项目任务。" });
     if (ret.kind === "not_supported") return res.status(400).json({ error: "NOT_SUPPORTED", message: "该订单无需提交发布链接。" });
     if (ret.kind === "bad_phase") return res.status(409).json({ error: "BAD_STATE", message: `当前阶段不可提交发布链接（${ret.phase}）。` });
     if (ret.clientId > 0) await createMessage(ret.clientId, "cooperation_published", "达人已提交发布链接", `订单 #${orderId} 已提交发布链接，请验收。`, "matching_order", orderId);

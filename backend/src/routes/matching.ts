@@ -83,7 +83,7 @@ router.get("/cooperation-types", requireRole("admin", "employee", "client"), asy
   return res.json({ key: COOPERATION_TYPES_CONFIG_KEY, config });
 });
 
-router.put("/cooperation-types", requireRole("admin", "employee"), async (req: AuthRequest, res: Response) => {
+router.put("/cooperation-types", requireRole("admin"), async (req: AuthRequest, res: Response) => {
   const cfg = normalizeCooperationTypesConfig(req.body?.config ?? req.body);
   if (!cfg) return res.status(400).json({ error: "INVALID_CONFIG", message: "无效的配置结构。" });
   await query(

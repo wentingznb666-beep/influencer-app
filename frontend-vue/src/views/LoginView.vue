@@ -38,7 +38,11 @@ async function onLogin() {
     if (user.role === "admin") router.replace("/admin");
     else if (user.role === "employee") router.replace("/employee");
     else if (user.role === "client") router.replace("/client");
-    else router.replace("/login");
+    else {
+      auth.logout();
+      ElMessage.error("达人端无权限访问四类视频项目系统");
+      router.replace("/login");
+    }
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "登录失败");
   } finally {

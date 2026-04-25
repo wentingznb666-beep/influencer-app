@@ -31,7 +31,6 @@ export const router = createRouter({
       meta: { roles: ["employee"] satisfies Role[] },
       children: [
         { path: "", redirect: "/employee/video-orders" },
-        { path: "cooperation-types", component: CooperationTypesView },
         { path: "video-orders", component: EmployeeWorkbenchView },
       ],
     },
@@ -67,6 +66,10 @@ router.beforeEach(async (to) => {
   if (to.path === "/login") return true;
   if (!auth.user) await auth.ensureMe();
   if (!auth.user) return { path: "/login" };
+  if (auth.user.role === "influencer") {
+    auth.logout();
+    return { path: "/login" };
+  }
 
   const roles = (to.meta?.roles as Role[] | undefined) || undefined;
   if (roles && !roles.includes(auth.user.role)) {
