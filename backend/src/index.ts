@@ -61,6 +61,10 @@ import clientShowcaseContentCreatorsRoutes from "./routes/clientShowcaseContentC
 import matchingRoutes from "./routes/matching";
 import matchingBizRoutes from "./routes/matchingBiz";
 
+import videoOrdersClientRoutes from "./routes/videoOrdersClient";
+import videoOrdersEmployeeRoutes from "./routes/videoOrdersEmployee";
+import videoOrdersAdminRoutes from "./routes/videoOrdersAdmin";
+
 import { initDb } from "./db";
 
 import { ensureUploadsSubdirs, getUploadsRoot } from "./uploadsConfig";
@@ -156,6 +160,12 @@ app.use("/api/admin/photos", adminPhotosRouter);
 /** 员工端：本人上传的模特照片删除（与文档路径 /api/employee/photos 对齐） */
 
 app.use("/api/employee/photos", employeePhotosRouter);
+
+/** 视频分级订单（线下支付三类） */
+
+app.use("/api/client", videoOrdersClientRoutes);
+app.use("/api/employee", videoOrdersEmployeeRoutes);
+app.use("/api/admin", videoOrdersAdminRoutes);
 
 /** 达人端：任务大厅、领取、我的任务、投稿、积分 */
 

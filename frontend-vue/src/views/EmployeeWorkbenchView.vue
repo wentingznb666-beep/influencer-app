@@ -34,66 +34,86 @@
       </el-table>
     </el-tab-pane>
 
-    <el-tab-pane label="合作视频单（三类）" name="coop">
+    <el-tab-pane label="线下支付视频单（三类）" name="offline">
       <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap">
-        <el-input v-model="coopQ" placeholder="搜索：订单号/标题" style="max-width: 360px" />
-        <el-select v-model="coopType" placeholder="类型" style="width: 220px" clearable>
+        <el-input v-model="offlineQ" placeholder="搜索：标题/商家" style="max-width: 360px" />
+        <el-select v-model="offlineType" placeholder="类型" style="width: 220px" clearable>
           <el-option label="high_quality_custom_video" value="high_quality_custom_video" />
           <el-option label="monthly_package" value="monthly_package" />
           <el-option label="creator_review_video" value="creator_review_video" />
         </el-select>
-        <el-select v-model="coopPhase" placeholder="阶段" style="width: 200px" clearable>
-          <el-option label="none" value="none" />
+        <el-select v-model="offlinePhase" placeholder="阶段" style="width: 200px" clearable>
+          <el-option label="created" value="created" />
+          <el-option label="paid" value="paid" />
           <el-option label="assigned" value="assigned" />
           <el-option label="in_progress" value="in_progress" />
-          <el-option label="submitted" value="submitted" />
           <el-option label="review_pending" value="review_pending" />
           <el-option label="approved_to_publish" value="approved_to_publish" />
           <el-option label="published" value="published" />
+          <el-option label="delivered" value="delivered" />
           <el-option label="completed" value="completed" />
         </el-select>
-        <el-button @click="loadCoop" :loading="loadingCoop">刷新</el-button>
+        <el-button @click="loadOffline" :loading="loadingOffline">刷新</el-button>
       </div>
 
-      <el-table :data="coopOrders" stripe style="width: 100%">
+      <el-table :data="offlineOrders" stripe style="width: 100%">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="order_no" label="订单号" width="180" />
-        <el-table-column prop="cooperation_type_id" label="类型" width="220" />
-        <el-table-column prop="status" label="状态" width="110" />
+        <el-table-column prop="type_id" label="类型" width="220" />
+        <el-table-column prop="payment_status" label="付款" width="110" />
         <el-table-column prop="phase" label="阶段" width="150" />
-        <el-table-column prop="client_name" label="商家" width="160" />
+        <el-table-column prop="client_username" label="商家" width="160" />
         <el-table-column prop="title" label="标题" min-width="240" />
-        <el-table-column label="操作" width="520" fixed="right">
+        <el-table-column label="操作" width="560" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" type="primary" v-if="row.status === 'open'" @click="onClaimCoop(row.id)" :loading="acting[`c${row.id}`]">接单</el-button>
-            <el-button size="small" v-if="row.status === 'claimed'" @click="openSubmitCoop(row.id)" :loading="acting[`c${row.id}`]">提交交付</el-button>
             <el-button
               size="small"
-              v-if="row.cooperation_type_id === 'creator_review_video' && row.phase === 'review_pending'"
+              type="primary"
+              v-if="isEmployee && !row.assigned_employee_id"
+              @click="onClaimOffline(row.id)"
+              :loading="acting[`o${row.id}`]"
+            >
+              接单
+            </el-button>
+            <el-button size="small" v-if="isEmployee && row.assigned_employee_id" @click="openSubmitOffline(row.id)" :loading="acting[`o${row.id}`]">
+              提交交付
+            </el-button>
+            <el-button
+              size="small"
+              v-if="isAdmin && row.type_id === 'creator_review_video' && row.phase === 'review_pending'"
               type="success"
-              @click="onReview(row.id, 'approve')"
-              :loading="acting[`c${row.id}`]"
+              @click="onReviewOffline(row.id, 'approve')"
+              :loading="acting[`o${row.id}`]"
             >
               审核通过
             </el-button>
             <el-button
               size="small"
-              v-if="row.cooperation_type_id === 'creator_review_video' && row.phase === 'review_pending'"
+              v-if="isAdmin && row.type_id === 'creator_review_video' && row.phase === 'review_pending'"
               type="danger"
-              @click="onReview(row.id, 'reject')"
-              :loading="acting[`c${row.id}`]"
+              @click="onReviewOffline(row.id, 'reject')"
+              :loading="acting[`o${row.id}`]"
             >
               审核驳回
             </el-button>
-            <el-button size="small" v-if="row.phase === 'approved_to_publish' || row.cooperation_type_id !== 'creator_review_video'" @click="openPublishCoop(row.id)" :loading="acting[`c${row.id}`]"
-              >提交发布链接</el-button
+            <el-button
+              size="small"
+              v-if="isEmployee && row.type_id === 'creator_review_video' && row.phase === 'approved_to_publish'"
+              @click="openPublishOffline(row.id)"
+              :loading="acting[`o${row.id}`]"
             >
-            <el-select v-model="phaseDraft[row.id]" placeholder="更新阶段" size="small" style="width: 160px" @change="(v: string) => onSetPhase(row.id, v)">
-              <el-option label="assigned" value="assigned" />
+              提交发布链接
+            </el-button>
+            <el-select
+              v-if="isEmployee && row.assigned_employee_id"
+              v-model="phaseDraft[row.id]"
+              placeholder="更新阶段"
+              size="small"
+              style="width: 160px"
+              @change="(v: string) => onSetOfflinePhase(row.id, v)"
+            >
               <el-option label="in_progress" value="in_progress" />
               <el-option label="submitted" value="submitted" />
               <el-option label="delivered" value="delivered" />
-              <el-option label="completed" value="completed" />
             </el-select>
           </template>
         </el-table-column>
@@ -117,49 +137,56 @@
     </template>
   </el-dialog>
 
-  <el-dialog v-model="dialogCoopSubmit.open" title="提交交付链接" width="520px">
-    <el-input v-model="dialogCoopSubmit.linksText" type="textarea" :rows="6" placeholder="每行一个链接" />
+  <el-dialog v-model="dialogOfflineSubmit.open" title="提交交付链接" width="520px">
+    <el-input v-model="dialogOfflineSubmit.linksText" type="textarea" :rows="6" placeholder="每行一个链接" />
     <template #footer>
-      <el-button @click="dialogCoopSubmit.open = false">取消</el-button>
-      <el-button type="primary" :loading="dialogCoopSubmit.loading" @click="submitCoopProof">提交</el-button>
+      <el-button @click="dialogOfflineSubmit.open = false">取消</el-button>
+      <el-button type="primary" :loading="dialogOfflineSubmit.loading" @click="submitOfflineProof">提交</el-button>
     </template>
   </el-dialog>
 
-  <el-dialog v-model="dialogCoopPublish.open" title="提交发布链接" width="520px">
-    <el-input v-model="dialogCoopPublish.link" placeholder="发布链接" />
+  <el-dialog v-model="dialogOfflinePublish.open" title="提交发布链接" width="520px">
+    <el-input v-model="dialogOfflinePublish.link" placeholder="发布链接" />
     <template #footer>
-      <el-button @click="dialogCoopPublish.open = false">取消</el-button>
-      <el-button type="primary" :loading="dialogCoopPublish.loading" @click="submitCoopPublish">提交</el-button>
+      <el-button @click="dialogOfflinePublish.open = false">取消</el-button>
+      <el-button type="primary" :loading="dialogOfflinePublish.loading" @click="submitOfflinePublish">提交</el-button>
     </template>
   </el-dialog>
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { claimMarketOrder, completeMarketOrder, listAdminOrders, publishMarketOrder, type AdminMarketOrder } from "@/api/employee";
 import {
-  claimAdminCooperationOrder,
-  getAdminCooperationOrders,
-  publishAdminCooperationOrder,
-  reviewAdminCooperationOrder,
-  setAdminCooperationOrderPhase,
-  submitAdminCooperationOrderProof,
-  type AdminCooperationOrder,
-} from "@/api/cooperation";
+  claimEmployeeOfflineVideoOrder,
+  listAdminOfflineVideoOrders,
+  listEmployeeOfflineVideoOrders,
+  publishEmployeeOfflineVideoOrder,
+  reviewAdminOfflineVideoOrder,
+  setEmployeeOfflineVideoOrderPhase,
+  submitEmployeeOfflineVideoOrderProof,
+  type OfflineVideoOrderTypeId,
+  type VideoOrder,
+} from "@/api/videoOrders";
+import { useAuthStore } from "@/stores/auth";
 
-const tab = ref<"market" | "coop">("market");
+const auth = useAuthStore();
+const isAdmin = computed(() => auth.role === "admin");
+const isEmployee = computed(() => auth.role === "employee");
+
+const tab = ref<"market" | "offline">("market");
 
 const marketOrders = ref<AdminMarketOrder[]>([]);
 const loadingMarket = ref(false);
 const marketQ = ref("");
 const marketStatus = ref<string | undefined>();
 
-const coopOrders = ref<AdminCooperationOrder[]>([]);
-const loadingCoop = ref(false);
-const coopQ = ref("");
-const coopType = ref<string | undefined>();
-const coopPhase = ref<string | undefined>();
+const offlineOrders = ref<VideoOrder[]>([]);
+const loadingOffline = ref(false);
+const offlineQ = ref("");
+const offlineType = ref<OfflineVideoOrderTypeId | undefined>();
+const offlinePhase = ref<string | undefined>();
 
 const acting = reactive<Record<string | number, boolean>>({});
 const phaseDraft = reactive<Record<number, string>>({});
@@ -167,8 +194,8 @@ const pollTimer = ref<number | null>(null);
 
 const dialogMarketComplete = reactive({ open: false, orderId: 0, linksText: "", loading: false });
 const dialogMarketPublish = reactive({ open: false, orderId: 0, link: "", loading: false });
-const dialogCoopSubmit = reactive({ open: false, orderId: 0, linksText: "", loading: false });
-const dialogCoopPublish = reactive({ open: false, orderId: 0, link: "", loading: false });
+const dialogOfflineSubmit = reactive({ open: false, orderId: 0, linksText: "", loading: false });
+const dialogOfflinePublish = reactive({ open: false, orderId: 0, link: "", loading: false });
 
 function splitLinks(text: string): string[] {
   return String(text || "")
@@ -252,32 +279,40 @@ async function submitMarketPublish() {
   }
 }
 
-async function loadCoop() {
-  if (loadingCoop.value) return;
-  loadingCoop.value = true;
+async function loadOffline() {
+  if (loadingOffline.value) return;
+  loadingOffline.value = true;
   try {
-    const ret = await getAdminCooperationOrders({
-      q: coopQ.value.trim() || undefined,
-      type: coopType.value || undefined,
-      phase: coopPhase.value || undefined,
-      limit: 200,
-    });
-    coopOrders.value = ret.list;
-    for (const o of ret.list) phaseDraft[o.id] = "";
+    // 该页面同时用于 admin / employee，按角色选择不同接口（避免非员工“接单”能力）。
+    const list = isAdmin.value
+      ? await listAdminOfflineVideoOrders({
+          q: offlineQ.value.trim() || undefined,
+          type: offlineType.value,
+          phase: offlinePhase.value,
+          limit: 200,
+        })
+      : await listEmployeeOfflineVideoOrders({
+          q: offlineQ.value.trim() || undefined,
+          type: offlineType.value,
+          phase: offlinePhase.value,
+          limit: 200,
+        });
+    offlineOrders.value = list;
+    for (const o of list) phaseDraft[o.id] = "";
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "加载失败");
   } finally {
-    loadingCoop.value = false;
+    loadingOffline.value = false;
   }
 }
 
-async function onClaimCoop(orderId: number) {
-  const key = `c${orderId}`;
+async function onClaimOffline(orderId: number) {
+  const key = `o${orderId}`;
   acting[key] = true;
   try {
-    await claimAdminCooperationOrder(orderId);
+    await claimEmployeeOfflineVideoOrder(orderId);
     ElMessage.success("已接单");
-    await loadCoop();
+    await loadOffline();
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "接单失败");
   } finally {
@@ -285,57 +320,57 @@ async function onClaimCoop(orderId: number) {
   }
 }
 
-function openSubmitCoop(orderId: number) {
-  dialogCoopSubmit.open = true;
-  dialogCoopSubmit.orderId = orderId;
-  dialogCoopSubmit.linksText = "";
+function openSubmitOffline(orderId: number) {
+  dialogOfflineSubmit.open = true;
+  dialogOfflineSubmit.orderId = orderId;
+  dialogOfflineSubmit.linksText = "";
 }
 
-async function submitCoopProof() {
-  const links = splitLinks(dialogCoopSubmit.linksText);
+async function submitOfflineProof() {
+  const links = splitLinks(dialogOfflineSubmit.linksText);
   if (!links.length) {
     ElMessage.error("请填写交付链接");
     return;
   }
-  dialogCoopSubmit.loading = true;
+  dialogOfflineSubmit.loading = true;
   try {
-    await submitAdminCooperationOrderProof(dialogCoopSubmit.orderId, links);
+    await submitEmployeeOfflineVideoOrderProof(dialogOfflineSubmit.orderId, links);
     ElMessage.success("已提交");
-    dialogCoopSubmit.open = false;
-    await loadCoop();
+    dialogOfflineSubmit.open = false;
+    await loadOffline();
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "提交失败");
   } finally {
-    dialogCoopSubmit.loading = false;
+    dialogOfflineSubmit.loading = false;
   }
 }
 
-function openPublishCoop(orderId: number) {
-  dialogCoopPublish.open = true;
-  dialogCoopPublish.orderId = orderId;
-  dialogCoopPublish.link = "";
+function openPublishOffline(orderId: number) {
+  dialogOfflinePublish.open = true;
+  dialogOfflinePublish.orderId = orderId;
+  dialogOfflinePublish.link = "";
 }
 
-async function submitCoopPublish() {
-  if (!dialogCoopPublish.link.trim()) {
+async function submitOfflinePublish() {
+  if (!dialogOfflinePublish.link.trim()) {
     ElMessage.error("请填写发布链接");
     return;
   }
-  dialogCoopPublish.loading = true;
+  dialogOfflinePublish.loading = true;
   try {
-    await publishAdminCooperationOrder(dialogCoopPublish.orderId, dialogCoopPublish.link.trim());
+    await publishEmployeeOfflineVideoOrder(dialogOfflinePublish.orderId, dialogOfflinePublish.link.trim());
     ElMessage.success("已提交");
-    dialogCoopPublish.open = false;
-    await loadCoop();
+    dialogOfflinePublish.open = false;
+    await loadOffline();
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "提交失败");
   } finally {
-    dialogCoopPublish.loading = false;
+    dialogOfflinePublish.loading = false;
   }
 }
 
-async function onReview(orderId: number, action: "approve" | "reject") {
-  const key = `c${orderId}`;
+async function onReviewOffline(orderId: number, action: "approve" | "reject") {
+  const key = `o${orderId}`;
   const note =
     action === "reject"
       ? await ElMessageBox.prompt("请输入驳回原因（可留空）", "审核驳回", { confirmButtonText: "提交", cancelButtonText: "取消", inputType: "textarea" })
@@ -346,9 +381,9 @@ async function onReview(orderId: number, action: "approve" | "reject") {
 
   acting[key] = true;
   try {
-    await reviewAdminCooperationOrder(orderId, { action, note: action === "reject" ? (note || undefined) : undefined });
+    await reviewAdminOfflineVideoOrder(orderId, { action, note: action === "reject" ? (note || undefined) : undefined });
     ElMessage.success("已提交审核结果");
-    await loadCoop();
+    await loadOffline();
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "操作失败");
   } finally {
@@ -356,13 +391,13 @@ async function onReview(orderId: number, action: "approve" | "reject") {
   }
 }
 
-async function onSetPhase(orderId: number, phase: string) {
-  const key = `c${orderId}`;
+async function onSetOfflinePhase(orderId: number, phase: string) {
+  const key = `o${orderId}`;
   acting[key] = true;
   try {
-    await setAdminCooperationOrderPhase(orderId, phase);
+    await setEmployeeOfflineVideoOrderPhase(orderId, phase);
     ElMessage.success("已更新");
-    await loadCoop();
+    await loadOffline();
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "更新失败");
   } finally {
@@ -372,19 +407,19 @@ async function onSetPhase(orderId: number, phase: string) {
 }
 
 function isAnyDialogOpen(): boolean {
-  return !!(dialogMarketComplete.open || dialogMarketPublish.open || dialogCoopSubmit.open || dialogCoopPublish.open);
+  return !!(dialogMarketComplete.open || dialogMarketPublish.open || dialogOfflineSubmit.open || dialogOfflinePublish.open);
 }
 
 async function pollOnce() {
   if (document.hidden) return;
   if (isAnyDialogOpen()) return;
   if (tab.value === "market") return loadMarket();
-  return loadCoop();
+  return loadOffline();
 }
 
 onMounted(() => {
   loadMarket();
-  loadCoop();
+  loadOffline();
   pollTimer.value = window.setInterval(pollOnce, 5000);
 });
 

@@ -50,7 +50,7 @@
       <el-form-item label="要求/备注">
         <el-input v-model="requirement" type="textarea" :rows="4" />
       </el-form-item>
-      <el-alert type="info" show-icon title="该三类视频单默认不开放达人报名，交由员工端接单处理。"></el-alert>
+      <el-alert type="info" show-icon title="支付方式：仅线下支付。创建后请在订单列表中标记“已付款”，员工端才可接单。"></el-alert>
     </template>
 
     <el-form-item>
@@ -62,8 +62,9 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { ElMessage } from "element-plus";
-import { createClientMarketOrder, createClientMatchingOrder } from "@/api/client";
+import { createClientMarketOrder } from "@/api/client";
 import { getCooperationTypes } from "@/api/cooperation";
+import { createClientOfflineVideoOrder, type OfflineVideoOrderTypeId } from "@/api/videoOrders";
 
 const loadingTypes = ref(false);
 const typeId = ref<"graded_video" | "high_quality_custom_video" | "monthly_package" | "creator_review_video">("graded_video");
@@ -109,13 +110,13 @@ async function create() {
       });
       ElMessage.success(`已创建：${ret.order_no}`);
     } else {
-      const ret = await createClientMatchingOrder({
+      const ret = await createClientOfflineVideoOrder({
+        type_id: typeId.value as OfflineVideoOrderTypeId,
         title: title.value.trim(),
-        task_amount: taskAmount.value,
-        requirement: requirement.value.trim(),
-        cooperation_type_id: typeId.value,
+        amount_thb: taskAmount.value,
+        requirements: { requirement: requirement.value.trim() },
       });
-      ElMessage.success(`已创建：${ret.order_no}`);
+      ElMessage.success(`已创建线下支付订单：#${ret.id}（请到列表中标记已付款后，员工端才可接单）`);
     }
     title.value = "";
     requirement.value = "";

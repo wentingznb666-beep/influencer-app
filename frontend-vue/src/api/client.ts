@@ -80,13 +80,6 @@ export async function listClientMatchingOrders(): Promise<ClientMatchingOrder[]>
   return (data.list as ClientMatchingOrder[]) || [];
 }
 
-const VIDEO_COOP_TYPE_IDS = new Set(["high_quality_custom_video", "monthly_package", "creator_review_video"]);
-
-export async function listClientVideoCoopOrders(): Promise<ClientMatchingOrder[]> {
-  const list = await listClientMatchingOrders();
-  return list.filter((o) => VIDEO_COOP_TYPE_IDS.has(String((o as any).cooperation_type_id || "")));
-}
-
 export async function acceptClientMatchingOrder(orderId: number): Promise<void> {
   const res = await fetchWithAuth(`/api/matching/client/matching-orders/${orderId}/accept`, { method: "POST" });
   if (!res.ok) throw new Error(await readErrorMessage(res, "验收失败"));

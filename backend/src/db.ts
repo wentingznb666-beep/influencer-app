@@ -1623,6 +1623,37 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     published_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`);
 
+  await query(`CREATE TABLE IF NOT EXISTS video_orders (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES users(id),
+    type_id TEXT NOT NULL CHECK (type_id IN ('high_quality_custom_video','monthly_package','creator_review_video')),
+    title TEXT NOT NULL,
+    requirements JSONB NOT NULL DEFAULT '{}'::jsonb,
+    amount_thb NUMERIC(18,2) NOT NULL DEFAULT 0,
+    payment_method TEXT NOT NULL DEFAULT 'offline' CHECK (payment_method IN ('offline')),
+    payment_status TEXT NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid','paid')),
+    paid_at TIMESTAMPTZ,
+    assigned_employee_id INTEGER REFERENCES users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+
+  await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_client ON video_orders(client_id, id DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_assignee ON video_orders(assigned_employee_id, id DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_type ON video_orders(type_id, id DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_payment ON video_orders(payment_status, id DESC)`);
+
+  await query(`CREATE TABLE IF NOT EXISTS video_order_states (
+    order_id INTEGER PRIMARY KEY REFERENCES video_orders(id) ON DELETE CASCADE,
+    phase TEXT NOT NULL DEFAULT 'created',
+    review_note TEXT,
+    reviewed_by INTEGER REFERENCES users(id),
+    reviewed_at TIMESTAMPTZ,
+    proof_links JSONB NOT NULL DEFAULT '[]'::jsonb,
+    publish_links JSONB NOT NULL DEFAULT '[]'::jsonb,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+
 
   await query(`CREATE TABLE IF NOT EXISTS client_merchant_info_templates (
     client_id INTEGER PRIMARY KEY REFERENCES users(id),

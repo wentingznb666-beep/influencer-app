@@ -1,4 +1,4 @@
-﻿﻿﻿﻿import { Router, Response } from "express";
+﻿import { Router, Response } from "express";
 import multer from "multer";
 import path from "path";
 import { promises as fs } from "fs";
@@ -326,7 +326,7 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
       }
     }
     if (coopTypeId === "high_quality_custom_video" || coopTypeId === "monthly_package" || coopTypeId === "creator_review_video") {
-      allowApply = 0;
+      return res.status(400).json({ error: "VIDEO_ORDERS_ONLY", message: "该类型属于视频分级订单，请在【视频分级订单】模块发布订单。" });
     }
     const ret = await withTx(async (client) => {
       await client.query("INSERT INTO merchant_profiles (client_id) VALUES ($1) ON CONFLICT (client_id) DO NOTHING", [req.user!.userId]);

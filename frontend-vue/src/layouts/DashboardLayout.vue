@@ -1,7 +1,7 @@
 <template>
   <el-container style="min-height: 100vh">
     <el-aside width="240px" style="border-right: 1px solid #eee">
-      <div style="padding: 12px 12px 8px; font-weight: 700">视频合作</div>
+      <div style="padding: 12px 12px 8px; font-weight: 700">视频分级订单</div>
       <el-menu :default-active="active" @select="onSelect" style="border-right: none">
         <template v-if="role === 'admin'">
           <el-menu-item :index="`/${role}/video-orders`">视频订单工作台</el-menu-item>
