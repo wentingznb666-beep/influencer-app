@@ -7,6 +7,7 @@ import { ensurePointAccountLocked } from "../pointAccounts";
 import { allocateMarketOrderNo } from "../marketOrderNo";
 
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
+import { COOPERATION_TYPES_CONFIG_KEY } from "../cooperationTypes";
 
 import { recordOperationLogTx } from "../operationLog";
 
@@ -44,21 +45,31 @@ const skuUpload = multer({
 
 
 
-/**
-
- * 达人领单类订单积分规则：
-
- * - 商家发单即扣积分（按档位 A/B/C：60/40/20）
-
- * - 订单完成后，达人收益固定为 5（不随商家支付变化）
-
- */
-
-const MARKET_ORDER_CREATOR_REWARD = 5;
+const DEFAULT_MARKET_ORDER_CREATOR_REWARD = 5;
 
 const PUBLISH_METHOD_CLIENT_SELF = "client_self_publish";
 
 const PUBLISH_METHOD_INFLUENCER_CART = "influencer_publish_with_cart";
+
+async function resolveMarketOrderCreatorRewardUnitFromConfig(client: { query: Function }, tier: string): Promise<number> {
+  const t = String(tier || "").trim().toUpperCase();
+  const fallback = t === "A" ? 15 : t === "B" ? 10 : t === "C" ? 5 : DEFAULT_MARKET_ORDER_CREATOR_REWARD;
+  try {
+    const row = await client.query("SELECT value FROM config WHERE key=$1", [COOPERATION_TYPES_CONFIG_KEY]);
+    const raw = row?.rows?.[0]?.value;
+    if (!raw || typeof raw !== "string") return fallback;
+    const parsed = JSON.parse(raw) as any;
+    const types = Array.isArray(parsed?.types) ? parsed.types : [];
+    const graded = types.find((x: any) => x && x.id === "graded_video");
+    const partTime = graded?.spec?.pricing_points?.part_time;
+    const v = partTime?.[t];
+    const n = typeof v === "number" ? v : Number(v);
+    if (!Number.isFinite(n) || n <= 0) return fallback;
+    return Math.floor(n);
+  } catch {
+    return fallback;
+  }
+}
 
 
 
@@ -1586,7 +1597,8 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
 
       const payPoints = resolved.payPoints;
 
-      const platformProfitUnit = Math.max(payPoints - MARKET_ORDER_CREATOR_REWARD, 0);
+      const creatorRewardUnit = await resolveMarketOrderCreatorRewardUnitFromConfig(client, resolved.tier);
+      const platformProfitUnit = Math.max(payPoints - creatorRewardUnit, 0);
 
       const countRaw = task_count == null ? 1 : Number(task_count);
 
@@ -1653,7 +1665,7 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
           titleText,
           payPoints,
           resolved.tier,
-          MARKET_ORDER_CREATOR_REWARD,
+          creatorRewardUnit,
           platformProfitTotal,
           resolved.tier === "A" ? (voiceLink || null) : null,
           resolved.tier === "A" ? (voiceNote || null) : null,

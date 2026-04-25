@@ -639,7 +639,7 @@ export default function ClientOrdersHallPage() {
 
       <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16 }}>
 
-        {t("领取商家发布的任务，完成后提交交付链接即可获得固定 5 积分收益。可使用搜索或手动刷新保持最新数据。")}
+        {t("领取商家发布的任务，完成后提交交付链接即可获得对应档位的结算积分。可使用搜索或手动刷新保持最新数据。")}
 
       </p>
 

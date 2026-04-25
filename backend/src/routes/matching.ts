@@ -59,12 +59,31 @@ function normalizeCooperationTypesConfig(input: unknown): CooperationTypesConfig
   return input as CooperationTypesConfig;
 }
 
+function normalizeCooperationPhase(input: unknown): string {
+  const v = typeof input === "string" ? input.trim() : "";
+  const allowed = new Set([
+    "none",
+    "assigned",
+    "in_progress",
+    "submitted",
+    "review_pending",
+    "review_rejected",
+    "approved_to_publish",
+    "published",
+    "delivered",
+    "completed",
+  ]);
+  if (!v || v.length > 50) return "";
+  if (!allowed.has(v)) return "";
+  return v;
+}
+
 router.get("/cooperation-types", requireRole("admin", "employee", "client"), async (_req: AuthRequest, res: Response) => {
   const config = await readCooperationTypesConfig();
   return res.json({ key: COOPERATION_TYPES_CONFIG_KEY, config });
 });
 
-router.put("/cooperation-types", requireRole("admin"), async (req: AuthRequest, res: Response) => {
+router.put("/cooperation-types", requireRole("admin", "employee"), async (req: AuthRequest, res: Response) => {
   const cfg = normalizeCooperationTypesConfig(req.body?.config ?? req.body);
   if (!cfg) return res.status(400).json({ error: "INVALID_CONFIG", message: "无效的配置结构。" });
   await query(
@@ -200,12 +219,40 @@ router.post("/admin/cooperation-orders/:id/review", requireRole("admin", "employ
   }
 });
 
+router.patch("/admin/cooperation-orders/:id/phase", requireRole("admin", "employee"), async (req: AuthRequest, res: Response) => {
+  const orderId = Number(req.params.id);
+  const phase = normalizeCooperationPhase(req.body?.phase);
+  if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
+  if (!phase) return res.status(400).json({ error: "INVALID_PHASE", message: "无效流程阶段。" });
+
+  try {
+    const ret = await withTx(async (client) => {
+      const ord = await client.query<{ id: number; client_id: number; influencer_id: number | null }>(
+        `SELECT id, client_id, influencer_id
+           FROM client_market_orders
+          WHERE id=$1 AND is_deleted=0 AND COALESCE(order_type,0)=1
+          FOR UPDATE`,
+        [orderId]
+      );
+      const row = ord.rows[0];
+      if (!row) return { kind: "not_found" as const };
+
+      await client.query(`INSERT INTO cooperation_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [orderId]);
+      await client.query(`UPDATE cooperation_order_states SET phase=$2, updated_at=now() WHERE order_id=$1`, [orderId, phase]);
+      return { kind: "ok" as const, clientId: row.client_id, influencerId: row.influencer_id || 0 };
+    });
+
+    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("admin cooperation order phase error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
 
 
-/** 创建系统消息 */
 
 router.get("/client/market-orders/:id/applications", async (req: AuthRequest, res: Response) => {
-
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
 
   const clientId = req.user.userId;
@@ -830,8 +877,166 @@ router.put("/influencer/demands/:id", async (req: AuthRequest, res: Response) =>
   }
 });
 /** 创建系统消息 */
+router.post("/admin/cooperation-orders/:id/claim", requireRole("admin", "employee"), async (req: AuthRequest, res: Response) => {
+  const orderId = Number(req.params.id);
+  if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
+  try {
+    const ret = await withTx(async (client) => {
+      const ord = await client.query<{ id: number; status: string; influencer_id: number | null; client_id: number }>(
+        `SELECT id, status, influencer_id, client_id
+           FROM client_market_orders
+          WHERE id=$1 AND is_deleted=0 AND COALESCE(order_type,0)=1
+          FOR UPDATE`,
+        [orderId]
+      );
+      const row = ord.rows[0];
+      if (!row) return { kind: "not_found" as const };
+      if (row.status !== "open") return { kind: "locked" as const, status: row.status };
+      if (row.influencer_id) return { kind: "already_claimed" as const };
+
+      await client.query(
+        `UPDATE client_market_orders
+            SET influencer_id=$2,
+                status='claimed',
+                match_status=CASE WHEN match_status IN ('open','pending_selection') THEN 'matched' ELSE match_status END,
+                allow_apply=0,
+                updated_at=now()
+          WHERE id=$1`,
+        [orderId, req.user!.userId]
+      );
+
+      await client.query(`INSERT INTO cooperation_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [orderId]);
+      await client.query(`UPDATE cooperation_order_states SET phase='assigned', updated_at=now() WHERE order_id=$1`, [orderId]);
+      return { kind: "ok" as const, clientId: row.client_id };
+    });
+
+    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+    if (ret.kind === "locked") return res.status(409).json({ error: "LOCKED", message: `当前订单不可接单（${ret.status}）。` });
+    if (ret.kind === "already_claimed") return res.status(409).json({ error: "ALREADY_CLAIMED", message: "订单已被接单。" });
+
+    await createMessage(ret.clientId, "cooperation_claim", "订单已接单", `订单 #${orderId} 已由员工接单并开始处理。`, "matching_order", orderId);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("admin cooperation order claim error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
+router.post("/admin/cooperation-orders/:id/submit-proof", requireRole("admin", "employee"), async (req: AuthRequest, res: Response) => {
+  const orderId = Number(req.params.id);
+  const urlsRaw = Array.isArray(req.body?.video_urls) ? (req.body.video_urls as unknown[]) : null;
+  const videoUrl = String(req.body?.video_url || "").trim();
+  const videoUrls =
+    urlsRaw && urlsRaw.length
+      ? urlsRaw.map((u) => String(u || "").trim()).filter(Boolean).slice(0, 20)
+      : videoUrl
+      ? [videoUrl]
+      : [];
+  if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
+  if (!videoUrls.length) return res.status(400).json({ error: "INVALID_VIDEO", message: "请填写回传短视频链接。" });
+  try {
+    const ret = await withTx(async (client) => {
+      const ord = await client.query<{ id: number; status: string; influencer_id: number | null; client_id: number }>(
+        `SELECT id, status, influencer_id, client_id
+           FROM client_market_orders
+          WHERE id=$1 AND is_deleted=0 AND COALESCE(order_type,0)=1
+          FOR UPDATE`,
+        [orderId]
+      );
+      const row = ord.rows[0];
+      if (!row) return { kind: "not_found" as const };
+      if (!row.influencer_id || row.influencer_id !== req.user!.userId) return { kind: "not_owner" as const };
+      if (row.status !== "claimed") return { kind: "bad_status" as const, status: row.status };
+
+      const detail = await client.query<{ detail_json: any }>(`SELECT detail_json FROM matching_order_details WHERE order_id=$1`, [orderId]);
+      const coopTypeId = String((detail.rows[0]?.detail_json as any)?.cooperation_type_id || "").trim();
+
+      await client.query(`UPDATE client_market_orders SET status='completed', work_links=$2::jsonb, updated_at=now(), completed_at=now() WHERE id=$1`, [
+        orderId,
+        JSON.stringify(videoUrls),
+      ]);
+
+      await client.query(`INSERT INTO cooperation_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [orderId]);
+      if (coopTypeId === "creator_review_video") {
+        await client.query(
+          `UPDATE cooperation_order_states
+              SET phase='review_pending', publish_links='[]'::jsonb, review_note=NULL, reviewed_by=NULL, reviewed_at=NULL, updated_at=now()
+            WHERE order_id=$1`,
+          [orderId]
+        );
+      } else {
+        await client.query(`UPDATE cooperation_order_states SET phase='submitted', updated_at=now() WHERE order_id=$1`, [orderId]);
+      }
+
+      return { kind: "ok" as const, clientId: row.client_id, coopTypeId };
+    });
+
+    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+    if (ret.kind === "not_owner") return res.status(403).json({ error: "FORBIDDEN", message: "无权限操作该订单。" });
+    if (ret.kind === "bad_status") return res.status(409).json({ error: "BAD_STATE", message: `当前状态不可提交（${ret.status}）。` });
+
+    await createMessage(ret.clientId, "cooperation_submit", "已提交交付", `订单 #${orderId} 已提交交付链接，等待后续处理。`, "matching_order", orderId);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("admin cooperation order submit proof error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
+router.post("/admin/cooperation-orders/:id/publish", requireRole("admin", "employee"), async (req: AuthRequest, res: Response) => {
+  const orderId = Number(req.params.id);
+  const publishLink = String(req.body?.publish_link || "").trim();
+  if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
+  if (!publishLink) return res.status(400).json({ error: "INVALID_LINK", message: "请填写发布链接。" });
+  try {
+    const ret = await withTx(async (client) => {
+      const ord = await client.query<{ id: number; influencer_id: number | null; client_id: number }>(
+        `SELECT id, influencer_id, client_id
+           FROM client_market_orders
+          WHERE id=$1 AND is_deleted=0 AND COALESCE(order_type,0)=1
+          FOR UPDATE`,
+        [orderId]
+      );
+      const row = ord.rows[0];
+      if (!row) return { kind: "not_found" as const };
+      if (!row.influencer_id || row.influencer_id !== req.user!.userId) return { kind: "not_owner" as const };
+
+      const detail = await client.query<{ detail_json: any }>(`SELECT detail_json FROM matching_order_details WHERE order_id=$1`, [orderId]);
+      const coopTypeId = String((detail.rows[0]?.detail_json as any)?.cooperation_type_id || "").trim();
+
+      await client.query(`INSERT INTO cooperation_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [orderId]);
+      const st = await client.query<{ phase: string }>(`SELECT phase FROM cooperation_order_states WHERE order_id=$1 FOR UPDATE`, [orderId]);
+      const curPhase = String(st.rows[0]?.phase || "none");
+      if (coopTypeId === "creator_review_video" && curPhase !== "approved_to_publish") return { kind: "bad_phase" as const, phase: curPhase };
+
+      await client.query(
+        `UPDATE cooperation_order_states
+            SET phase='published',
+                publish_links = COALESCE(publish_links,'[]'::jsonb) || to_jsonb(ARRAY[$2]::text[]),
+                updated_at=now()
+          WHERE order_id=$1`,
+        [orderId, publishLink]
+      );
+
+      return { kind: "ok" as const, clientId: row.client_id, coopTypeId };
+    });
+
+    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+    if (ret.kind === "not_owner") return res.status(403).json({ error: "FORBIDDEN", message: "无权限操作该订单。" });
+    if (ret.kind === "bad_phase") return res.status(409).json({ error: "BAD_STATE", message: `当前阶段不可提交发布链接（${ret.phase}）。` });
+
+    await createMessage(ret.clientId, "cooperation_publish", "已提交发布链接", `订单 #${orderId} 已提交发布链接。`, "matching_order", orderId);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("admin cooperation order publish error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
 
 router.get("/influencer/demands/:id/applications", async (req: AuthRequest, res: Response) => {
+
+  if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
 
   if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
 

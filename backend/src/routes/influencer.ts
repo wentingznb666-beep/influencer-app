@@ -9,6 +9,7 @@ import { requireAuth, requireRole, type AuthRequest } from "../auth";
 import { recordOperationLogTx } from "../operationLog";
 
 import { normalizeWorkLinksFromDb, parseWorkLinksFromBody, validateWorkLinksForAdminEdit, validateWorkLinksForComplete } from "../marketOrderWorkLinks";
+import { COOPERATION_TYPES_CONFIG_KEY } from "../cooperationTypes";
 
 
 
@@ -40,17 +41,25 @@ function normalizeDateOnly(value: unknown): string {
 
 
 
-/**
-
- * 将 client_market_orders 完成结算：
-
- * - 若发单时尚未扣款（历史订单 pay_deducted=0），则先从商家端扣除商家支付积分（reward_points）
-
- * - 达人收益固定为 5（creator_reward_points）
-
- * - 平台利润记录为（商家支付 - 5）
-
- */
+async function resolveMarketOrderCreatorRewardUnitFromConfig(client: { query: Function }, tier: string): Promise<number> {
+  const t = String(tier || "").trim().toUpperCase();
+  const fallback = t === "A" ? 15 : t === "B" ? 10 : t === "C" ? 5 : 5;
+  try {
+    const row = await client.query("SELECT value FROM config WHERE key=$1", [COOPERATION_TYPES_CONFIG_KEY]);
+    const raw = row?.rows?.[0]?.value;
+    if (!raw || typeof raw !== "string") return fallback;
+    const parsed = JSON.parse(raw) as any;
+    const types = Array.isArray(parsed?.types) ? parsed.types : [];
+    const graded = types.find((x: any) => x && x.id === "graded_video");
+    const partTime = graded?.spec?.pricing_points?.part_time;
+    const v = partTime?.[t];
+    const n = typeof v === "number" ? v : Number(v);
+    if (!Number.isFinite(n) || n <= 0) return fallback;
+    return Math.floor(n);
+  } catch {
+    return fallback;
+  }
+}
 
 async function settleMarketOrderComplete(params: {
 
@@ -96,9 +105,11 @@ async function settleMarketOrderComplete(params: {
 
       task_count: number;
 
+      tier: string;
+
     }>(
 
-      "SELECT id, client_id, influencer_id, status, reward_points, creator_reward_points, platform_profit_points, pay_deducted, COALESCE(task_count, 1) AS task_count FROM client_market_orders WHERE id = $1 FOR UPDATE",
+      "SELECT id, client_id, influencer_id, status, reward_points, creator_reward_points, platform_profit_points, pay_deducted, COALESCE(task_count, 1) AS task_count, tier FROM client_market_orders WHERE id = $1 FOR UPDATE",
 
       [orderId]
 
@@ -122,7 +133,8 @@ async function settleMarketOrderComplete(params: {
 
     const clientPay = ord.reward_points * tc;
 
-    const creatorRewardUnit = Number(ord.creator_reward_points) > 0 ? Number(ord.creator_reward_points) : 5;
+    const configRewardUnit = await resolveMarketOrderCreatorRewardUnitFromConfig(client, ord.tier);
+    const creatorRewardUnit = configRewardUnit > 0 ? configRewardUnit : Number(ord.creator_reward_points) > 0 ? Number(ord.creator_reward_points) : 5;
 
     const creatorReward = creatorRewardUnit * tc;
 
@@ -177,6 +189,8 @@ async function settleMarketOrderComplete(params: {
     ]);
 
     await client.query("UPDATE point_accounts SET balance = balance + $1, updated_at = now() WHERE id = $2", [creatorReward, infAcc.id]);
+
+    await client.query("UPDATE client_market_orders SET creator_reward_points = $1 WHERE id = $2", [creatorRewardUnit, orderId]);
 
     await client.query("UPDATE client_market_orders SET platform_profit_points = $1 WHERE id = $2", [platformProfit, orderId]);
 

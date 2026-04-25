@@ -77,6 +77,8 @@ router.get("/", (req: AuthRequest, res: Response) => {
              mo.tier,
 
              mo.publish_method,
+             pl.publish_link,
+             pl.published_at,
 
              mo.status,
 
@@ -95,6 +97,13 @@ router.get("/", (req: AuthRequest, res: Response) => {
       JOIN users uc ON mo.client_id = uc.id
 
       LEFT JOIN users ui ON mo.influencer_id = ui.id
+      LEFT JOIN LATERAL (
+        SELECT publish_link, published_at
+          FROM market_order_publish_logs
+         WHERE order_id=mo.id
+         ORDER BY id DESC
+         LIMIT 1
+      ) pl ON true
 
     `;
 

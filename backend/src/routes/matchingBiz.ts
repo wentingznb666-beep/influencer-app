@@ -308,7 +308,7 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   const title = String(req.body?.title || "").trim();
   const taskAmount = Number(req.body?.task_amount);
-  const allowApply = req.body?.allow_apply === false ? 0 : 1;
+  let allowApply = req.body?.allow_apply === false ? 0 : 1;
   const requirement = String(req.body?.requirement || "").trim();
   const detailPayload = req.body?.detail && typeof req.body.detail === "object" ? req.body.detail : null;
   const attachments = Array.isArray(req.body?.attachments)
@@ -324,6 +324,9 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
       if (!isVisibleCooperationType(cfg, coopTypeId, "client")) {
         return res.status(400).json({ error: "INVALID_COOPERATION_TYPE", message: "无效的合作业务类型。" });
       }
+    }
+    if (coopTypeId === "high_quality_custom_video" || coopTypeId === "monthly_package" || coopTypeId === "creator_review_video") {
+      allowApply = 0;
     }
     const ret = await withTx(async (client) => {
       await client.query("INSERT INTO merchant_profiles (client_id) VALUES ($1) ON CONFLICT (client_id) DO NOTHING", [req.user!.userId]);

@@ -1613,6 +1613,8 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`);
 
+  await query(`ALTER TABLE cooperation_order_states DROP CONSTRAINT IF EXISTS cooperation_order_states_phase_check`);
+
   await query(`CREATE TABLE IF NOT EXISTS market_order_publish_logs (
     id SERIAL PRIMARY KEY,
     order_id INTEGER NOT NULL REFERENCES client_market_orders(id) ON DELETE CASCADE,
