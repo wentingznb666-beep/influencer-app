@@ -1,312 +1,204 @@
-<template>
-  <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap">
-    <div style="font-weight: 800; font-size: 18px">发布视频订单 / สร้างออเดอร์วิดีโอ</div>
-    <el-button @click="reloadPickers" :loading="loadingPickers">刷新列表 / รีเฟรช</el-button>
-  </div>
+﻿<template>
+  <div class="page-wrap">
+    <div class="header-row">
+      <div class="title">视频分级订单 / คำสั่งวิดีโอแบบแบ่งระดับ</div>
+      <el-button @click="loadTypes" :loading="loadingTypes">刷新</el-button>
+    </div>
 
-  <el-form label-width="170px" style="max-width: 900px">
-    <el-form-item label="订单类型 / ประเภท">
-      <el-radio-group v-model="typeId" style="display: flex; gap: 14px; flex-wrap: wrap">
-        <el-radio-button label="graded_video">分级视频 / คลิปแบ่งเกรด</el-radio-button>
-        <el-radio-button label="high_quality_custom_video">高质量 / วิดีโอคุณภาพสูง</el-radio-button>
-        <el-radio-button label="monthly_package">包月套餐 / แพ็กเกจรายเดือน</el-radio-button>
-        <el-radio-button label="creator_review_video">测评带货 / รีวิวติดตะกร้า</el-radio-button>
-      </el-radio-group>
-    </el-form-item>
-
-    <el-alert v-if="typeId === 'graded_video'" type="warning" show-icon style="margin-bottom: 12px">
-      <template #title>
-        <div style="font-weight: 700">下单即扣积分（1 积分 = 1 THB）/ หักพอยท์ทันที (1 พอยท์ = 1 บาท)</div>
-      </template>
-      <div style="line-height: 1.7">
-        A：60 积分/条｜B：40 积分/条｜C：20 积分/条<br />
-        兼职结算（参考）：A 15฿/条｜B 10฿/条｜C 5฿/条
-      </div>
-    </el-alert>
-
-    <el-alert v-else type="info" show-icon style="margin-bottom: 12px">
-      <template #title>
-        <div style="font-weight: 700">支付方式：线下支付 / ชำระเงินออฟไลน์</div>
-      </template>
-      <div style="line-height: 1.7">创建后请到列表中标记“已付款”，员工端才可接单。</div>
-    </el-alert>
-
-    <el-form-item label="标题 / ชื่อออเดอร์">
-      <el-input v-model="title" placeholder="1-200 字 / 1-200 ตัวอักษร" />
-    </el-form-item>
-
-    <template v-if="typeId === 'graded_video'">
-      <el-form-item label="分级档位 / เกรด">
-        <el-radio-group v-model="tier">
-          <el-radio-button label="A">A</el-radio-button>
-          <el-radio-button label="B">B</el-radio-button>
-          <el-radio-button label="C">C</el-radio-button>
+    <el-form label-width="160px" style="max-width: 920px">
+      <el-form-item label="订单类型">
+        <el-radio-group v-model="typeId" class="type-radio-group">
+          <el-radio-button label="graded_video">① 分级视频 A/B/C</el-radio-button>
+          <el-radio-button label="high_quality_custom_video">② 高质量视频</el-radio-button>
+          <el-radio-button label="monthly_package">③ 包月合作套餐</el-radio-button>
+          <el-radio-button label="creator_review_video">④ Creator带货测评</el-radio-button>
         </el-radio-group>
       </el-form-item>
 
-      <el-form-item label="数量(条) / จำนวนคลิป">
-        <el-input-number v-model="taskCount" :min="1" :max="100" />
-        <div style="margin-left: 10px; font-weight: 700">扣除：{{ pointsTotal }} 积分</div>
+      <el-alert type="info" :closable="false" show-icon>
+        <template #title>{{ activeRuleTitle }}</template>
+        <template #default>{{ activeRuleDesc }}</template>
+      </el-alert>
+
+      <el-form-item label="标题">
+        <el-input v-model="title" placeholder="1-200 字" />
       </el-form-item>
 
-      <el-form-item label="店铺名称 / ชื่อร้าน">
-        <el-input v-model="shopName" />
-      </el-form-item>
-
-      <el-form-item label="对接群聊 / กลุ่มแชท">
-        <el-input v-model="groupChat" />
-      </el-form-item>
-
-      <el-form-item label="发布方式 / วิธีโพสต์">
-        <el-select v-model="publishMethod" style="width: 360px">
-          <el-option label="商家自行发布 / ร้านค้าโพสต์เอง" value="client_self_publish" />
-          <el-option label="平台提供 Creator 发布并 TAP 挂车 / Creator โพสต์และติดตะกร้า" value="tap_creator_publish" />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item label="自动备注 / หมายเหตุอัตโนมัติ">
-        <el-input v-model="autoNote" type="textarea" :rows="4" readonly />
-      </el-form-item>
-    </template>
-
-    <template v-else-if="typeId === 'high_quality_custom_video'">
-      <el-form-item label="Influencer / อินฟลูเอนเซอร์">
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
-          <el-input v-model="influencerQ" placeholder="搜索 / ค้นหา" style="width: 260px" @keyup.enter="loadInfluencers" />
-          <el-button @click="loadInfluencers" :loading="loadingInfluencers">搜索</el-button>
-          <el-select v-model="selectedInfluencerId" filterable placeholder="选择 / เลือก" style="width: 360px">
-            <el-option v-for="p in influencers" :key="p.id" :label="p.name" :value="p.id" />
+      <template v-if="typeId === 'graded_video'">
+        <el-form-item label="分级档位">
+          <el-select v-model="tier" style="width: 220px">
+            <el-option label="A（60积分/条）" value="A" />
+            <el-option label="B（40积分/条）" value="B" />
+            <el-option label="C（20积分/条）" value="C" />
           </el-select>
-        </div>
-      </el-form-item>
-
-      <el-form-item label="单价(฿) / ราคาต่อคลิป">
-        <el-input-number v-model="taskAmount" :min="4000" :max="5000" :precision="0" />
-      </el-form-item>
-
-      <el-form-item label="脚本/参考 / สคริปต์">
-        <el-input v-model="requirement" type="textarea" :rows="4" placeholder="可填写脚本或参考视频链接 / ใส่สคริปต์หรือคลิปลิงก์อ้างอิง" />
-      </el-form-item>
-    </template>
-
-    <template v-else-if="typeId === 'monthly_package'">
-      <el-form-item label="合作周期(月) / ระยะเวลา(เดือน)">
-        <el-select v-model="monthlyMonths" style="width: 220px">
-          <el-option label="1" :value="1" />
-          <el-option label="3" :value="3" />
-          <el-option label="6" :value="6" />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item label="每月数量 / จำนวนต่อเดือน">
-        <el-input-number v-model="monthlyCount" :min="20" :max="200" />
-        <div style="margin-left: 10px; font-weight: 700">单价：650฿/条</div>
-      </el-form-item>
-
-      <el-form-item label="模特/Creator / โมเดล/Creator">
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
-          <el-input v-model="modelQ" placeholder="搜索模特 / ค้นหาโมเดล" style="width: 260px" @keyup.enter="loadModels" />
-          <el-button @click="loadModels" :loading="loadingModels">搜索</el-button>
-          <el-select v-model="selectedModelId" filterable placeholder="选择模特 / เลือกโมเดล" style="width: 360px">
-            <el-option v-for="m in models" :key="m.id" :label="m.name" :value="m.id" />
+        </el-form-item>
+        <el-form-item label="数量（条）">
+          <el-input-number v-model="taskCount" :min="1" :max="200" />
+          <span class="inline-tip">预计扣除积分：{{ gradedTotalPoints }}</span>
+        </el-form-item>
+        <el-form-item label="店铺名称"><el-input v-model="shopName" /></el-form-item>
+        <el-form-item label="对接群聊"><el-input v-model="groupChat" /></el-form-item>
+        <el-form-item label="发布方式">
+          <el-select v-model="publishMethod" style="width: 360px">
+            <el-option label="商家自行发布" value="client_self_publish" />
+            <el-option label="我方Creator发布并TAP挂车" value="influencer_publish_with_cart" />
           </el-select>
-        </div>
-      </el-form-item>
+        </el-form-item>
+        <el-form-item label="固定备注">
+          <el-input :model-value="gradedFixedNotes" type="textarea" :rows="4" readonly />
+        </el-form-item>
+      </template>
 
-      <el-form-item label="备注 / หมายเหตุ">
-        <el-input v-model="requirement" type="textarea" :rows="4" placeholder="交付：成品视频+原始素材；前 1-4 条可修改 / ส่งไฟล์สำเร็จ + ฟุตเทจ; แก้ได้ 1-4 คลิปแรก" />
-      </el-form-item>
-    </template>
+      <template v-else-if="typeId === 'high_quality_custom_video'">
+        <el-form-item label="单价（THB）"><el-input-number v-model="taskAmount" :min="4000" :max="5000" :precision="2" /></el-form-item>
+        <el-form-item label="选择Influencer"><el-input v-model="talentName" placeholder="输入已选优质Influencer" /></el-form-item>
+        <el-form-item label="需求说明"><el-input v-model="requirement" type="textarea" :rows="5" placeholder="可填写脚本/参考视频/修改要求" /></el-form-item>
+      </template>
 
-    <template v-else>
-      <el-form-item label="Creator / Creator">
-        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
-          <el-input v-model="creatorQ" placeholder="搜索 / ค้นหา" style="width: 260px" @keyup.enter="loadCreators" />
-          <el-button @click="loadCreators" :loading="loadingCreators">搜索</el-button>
-          <el-select v-model="selectedCreatorId" filterable clearable placeholder="可选：不选则平台匹配" style="width: 360px">
-            <el-option v-for="p in creators" :key="p.id" :label="p.name" :value="p.id" />
-          </el-select>
-        </div>
-      </el-form-item>
+      <template v-else-if="typeId === 'monthly_package'">
+        <el-form-item label="合作周期（月）"><el-input-number v-model="contractMonths" :min="1" :max="12" /></el-form-item>
+        <el-form-item label="每月条数（>=20）"><el-input-number v-model="monthlyMinVideos" :min="20" :max="200" /></el-form-item>
+        <el-form-item label="单价（THB/条）"><el-input-number v-model="taskAmount" :min="650" :max="650" :precision="2" /></el-form-item>
+        <el-form-item label="合作模特/Creator"><el-input v-model="talentName" placeholder="输入平台内已选模特/Creator" /></el-form-item>
+        <el-form-item label="按周分批验收">
+          <el-switch v-model="weeklyBatchEnabled" />
+          <span class="inline-tip">默认按周生成批次，支持待验收/已验收/已结算</span>
+        </el-form-item>
+        <el-form-item label="补充要求"><el-input v-model="requirement" type="textarea" :rows="4" placeholder="前1-4条支持修改，交付成品+Footage" /></el-form-item>
+      </template>
 
-      <el-form-item label="数量(条) / จำนวนคลิป">
-        <el-input-number v-model="creatorReviewCount" :min="8" :max="10" />
-      </el-form-item>
+      <template v-else>
+        <el-form-item label="单价（THB）"><el-input-number v-model="taskAmount" :min="1" :precision="2" /></el-form-item>
+        <el-form-item label="Creator选择/匹配"><el-input v-model="talentName" placeholder="可填目标Creator，或留空由我方匹配" /></el-form-item>
+        <el-form-item label="任务条数（8-10）"><el-input-number v-model="creatorTaskCount" :min="8" :max="10" /></el-form-item>
+        <el-form-item label="老板定价字段"><el-input-number v-model="creatorBossPrice" :min="0" :precision="2" /></el-form-item>
+        <el-form-item label="审核要求"><el-input v-model="requirement" type="textarea" :rows="4" placeholder="全部视频先审核，通过后再发布" /></el-form-item>
+      </template>
 
-      <el-form-item label="单价(฿) / ราคา">
-        <el-input v-model="creatorPricePlaceholder" disabled />
+      <el-form-item>
+        <el-button type="primary" :loading="creating" @click="create">发布需求</el-button>
       </el-form-item>
-
-      <el-form-item label="备注 / หมายเหตุ">
-        <el-input v-model="requirement" type="textarea" :rows="4" placeholder="需先提交审核，通过后才可发布 / ต้องส่งตรวจอนุมัติก่อนโพสต์" />
-      </el-form-item>
-    </template>
-
-    <el-form-item>
-      <el-button type="primary" :loading="creating" @click="create">创建订单 / สร้าง</el-button>
-    </el-form-item>
-  </el-form>
+    </el-form>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref } from "vue";
 import { ElMessage } from "element-plus";
-import { listClientModels, listClientShowcaseContentCreators, listClientShowcaseInfluencers } from "@/api/client";
-import { createClientVideoOrder, type VideoOrderTypeId } from "@/api/videoOrders";
+import { createClientMarketOrder } from "@/api/client";
+import { getCooperationTypes } from "@/api/cooperation";
+import { createClientOfflineVideoOrder, type OfflineVideoOrderTypeId } from "@/api/videoOrders";
 
-const typeId = ref<VideoOrderTypeId>("graded_video");
+const loadingTypes = ref(false);
+const typeId = ref<"graded_video" | OfflineVideoOrderTypeId>("graded_video");
 const title = ref("");
 
 const tier = ref<"A" | "B" | "C">("C");
 const taskCount = ref(1);
 const shopName = ref("");
 const groupChat = ref("");
-const publishMethod = ref<"client_self_publish" | "tap_creator_publish">("client_self_publish");
+const publishMethod = ref<"client_self_publish" | "influencer_publish_with_cart">("client_self_publish");
 
 const taskAmount = ref(4000);
 const requirement = ref("");
+const talentName = ref("");
+const contractMonths = ref(1);
+const monthlyMinVideos = ref(20);
+const weeklyBatchEnabled = ref(true);
+const creatorTaskCount = ref(8);
+const creatorBossPrice = ref(0);
 
-const influencerQ = ref("");
-const loadingInfluencers = ref(false);
-const influencers = ref<Array<{ id: number; name: string }>>([]);
-const selectedInfluencerId = ref<number | null>(null);
-
-const creatorQ = ref("");
-const loadingCreators = ref(false);
-const creators = ref<Array<{ id: number; name: string }>>([]);
-const selectedCreatorId = ref<number | null>(null);
-const creatorReviewCount = ref(8);
-const creatorPricePlaceholder = ref("待老板配置 / รอผู้ดูแลตั้งราคา");
-
-const modelQ = ref("");
-const loadingModels = ref(false);
-const models = ref<Array<{ id: number; name: string }>>([]);
-const selectedModelId = ref<number | null>(null);
-const monthlyMonths = ref(1);
-const monthlyCount = ref(20);
-
-const loadingPickers = ref(false);
 const creating = ref(false);
 
-const pointsPerVideo = computed(() => (tier.value === "A" ? 60 : tier.value === "B" ? 40 : 20));
-const pointsTotal = computed(() => pointsPerVideo.value * Math.max(1, Number(taskCount.value || 1)));
-
-const autoNote = computed(() => {
-  const zh = "兼职仅负责拍摄剪辑，无TikTok账号、不发布视频，需到我方办公室拍摄；视频不露脸、不提供脚本、不支持修改。";
-  const th = "พนักงานพาร์ทไทม์รับผิดชอบเฉพาะถ่ายทำ/ตัดต่อ ไม่มีบัญชี TikTok และไม่โพสต์ ต้องมาถ่ายที่ออฟฟิศของเรา; ไม่โชว์หน้า ไม่ทำสคริปต์ และไม่รับแก้ไข";
-  return `${zh}\n${th}`;
+/** 计算分级视频预计积分。 */
+const gradedTotalPoints = computed(() => {
+  const unit = tier.value === "A" ? 60 : tier.value === "B" ? 40 : 20;
+  return unit * Math.max(1, taskCount.value);
 });
 
-async function loadInfluencers() {
-  if (loadingInfluencers.value) return;
-  loadingInfluencers.value = true;
+/** 固定业务备注文案。 */
+const gradedFixedNotes = computed(
+  () =>
+    "兼职仅负责拍摄剪辑，无TikTok账号、不发布视频，需到我方办公室拍摄；\n视频不露脸、不提供脚本、不支持修改；\n发布方式可选：商家自行发布 / 我方Creator发布并通过TAP挂购物车（Creator仅负责发布挂车，不参与拍摄剪辑）。"
+);
+
+/** 当前类型规则标题。 */
+const activeRuleTitle = computed(() => {
+  if (typeId.value === "graded_video") return "分级视频：付款后直接进入制作中，按A/B/C扣积分";
+  if (typeId.value === "high_quality_custom_video") return "高质量视频：4000-5000 THB/条，可脚本、可露脸、支持1-2次修改";
+  if (typeId.value === "monthly_package") return "包月合作：650 THB/条，按周批次验收与结算，不少于20条/月";
+  return "Creator带货测评：8-10条/次，先审后发，支持TAP挂购物车";
+});
+
+/** 当前类型规则说明。 */
+const activeRuleDesc = computed(() => {
+  if (typeId.value === "graded_video") return "A 60/B 40/C 20 积分每条（1积分=1THB），下单即扣；员工端可分配兼职并交付/发布。";
+  if (typeId.value === "high_quality_custom_video") return "不扣积分，线下付款后进入员工对接Influencer流程：拍摄→初稿→修改→定稿发布。";
+  if (typeId.value === "monthly_package") return "不扣积分，按周提交批次，支持待验收/已验收/已结算状态及结算金额追踪。";
+  return "不扣积分，单价字段预留给老板后续配置；视频需先审核通过再发布。";
+});
+
+/** 加载合作类型配置。 */
+async function loadTypes() {
+  loadingTypes.value = true;
   try {
-    const list = await listClientShowcaseInfluencers(influencerQ.value.trim() || undefined);
-    influencers.value = list.map((x) => ({ id: x.id, name: x.name }));
+    await getCooperationTypes();
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "加载失败");
   } finally {
-    loadingInfluencers.value = false;
+    loadingTypes.value = false;
   }
 }
 
-async function loadCreators() {
-  if (loadingCreators.value) return;
-  loadingCreators.value = true;
-  try {
-    const list = await listClientShowcaseContentCreators(creatorQ.value.trim() || undefined);
-    creators.value = list.map((x) => ({ id: x.id, name: x.name }));
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "加载失败");
-  } finally {
-    loadingCreators.value = false;
-  }
-}
-
-async function loadModels() {
-  if (loadingModels.value) return;
-  loadingModels.value = true;
-  try {
-    const list = await listClientModels(modelQ.value.trim() || undefined);
-    models.value = list.map((x) => ({ id: x.id, name: x.name }));
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "加载失败");
-  } finally {
-    loadingModels.value = false;
-  }
-}
-
-async function reloadPickers() {
-  if (loadingPickers.value) return;
-  loadingPickers.value = true;
-  try {
-    await Promise.all([loadInfluencers(), loadCreators(), loadModels()]);
-  } finally {
-    loadingPickers.value = false;
-  }
-}
-
+/** 创建订单并按类型路由至不同接口。 */
 async function create() {
-  if (!title.value.trim()) {
-    ElMessage.error("请填写标题");
-    return;
-  }
+  if (!title.value.trim()) return ElMessage.error("请填写标题");
   creating.value = true;
   try {
-    const req: Record<string, unknown> = {};
-
     if (typeId.value === "graded_video") {
-      req.tier = tier.value;
-      req.task_count = taskCount.value;
-      req.client_shop_name = shopName.value.trim();
-      req.client_group_chat = groupChat.value.trim();
-      req.publish_method = publishMethod.value;
-      req.auto_note = autoNote.value;
-      const ret = await createClientVideoOrder({ type_id: "graded_video", title: title.value.trim(), amount_thb: 0, requirements: req });
-      ElMessage.success(`已创建分级视频订单：#${ret.id}（已扣除 ${pointsTotal.value} 积分）`);
-    } else if (typeId.value === "high_quality_custom_video") {
-      if (!selectedInfluencerId.value) {
-        ElMessage.error("请选择 Influencer");
-        return;
-      }
-      req.showcase_influencer_id = selectedInfluencerId.value;
-      req.script_or_reference = requirement.value.trim();
-      req.revisions = 2;
-      const ret = await createClientVideoOrder({
-        type_id: "high_quality_custom_video",
+      if (!shopName.value.trim() || !groupChat.value.trim()) return ElMessage.error("请补全店铺名称与对接群聊");
+      const ret = await createClientMarketOrder({
         title: title.value.trim(),
-        amount_thb: Number(taskAmount.value || 0),
-        requirements: req,
+        tier: tier.value,
+        task_count: taskCount.value,
+        client_shop_name: shopName.value.trim(),
+        client_group_chat: groupChat.value.trim(),
+        publish_method: publishMethod.value,
       });
-      ElMessage.success(`已创建高质量视频订单：#${ret.id}（请到列表中标记已付款）`);
-    } else if (typeId.value === "monthly_package") {
-      if (!selectedModelId.value) {
-        ElMessage.error("请选择模特/Creator");
-        return;
-      }
-      req.model_id = selectedModelId.value;
-      req.months = monthlyMonths.value;
-      req.monthly_count = monthlyCount.value;
-      req.unit_price_thb = 650;
-      req.note = requirement.value.trim();
-      const total = Number(monthlyCount.value || 0) * 650 * Number(monthlyMonths.value || 1);
-      const ret = await createClientVideoOrder({
-        type_id: "monthly_package",
-        title: title.value.trim(),
-        amount_thb: total > 0 ? total : 0,
-        requirements: req,
-      });
-      ElMessage.success(`已创建包月套餐订单：#${ret.id}（按周批次验收结算）`);
+      ElMessage.success(`已创建分级订单：${ret.order_no}`);
     } else {
-      req.showcase_creator_id = selectedCreatorId.value || null;
-      req.count = creatorReviewCount.value;
-      req.note = requirement.value.trim();
-      const ret = await createClientVideoOrder({ type_id: "creator_review_video", title: title.value.trim(), amount_thb: 0, requirements: req });
-      ElMessage.success(`已创建测评带货订单：#${ret.id}（价格待配置；请到列表中标记已付款）`);
+      if (typeId.value === "monthly_package" && monthlyMinVideos.value < 20) return ElMessage.error("包月订单每月不少于20条");
+      const requirements: Record<string, unknown> = {
+        requirement: requirement.value.trim(),
+        selected_talent: talentName.value.trim() || null,
+      };
+      if (typeId.value === "high_quality_custom_video") {
+        requirements.price_range = "4000-5000";
+        requirements.flow = ["paid", "shooting", "draft", "revision", "published"];
+      }
+      if (typeId.value === "monthly_package") {
+        requirements.contract_months = contractMonths.value;
+        requirements.min_videos_per_month = monthlyMinVideos.value;
+        requirements.weekly_batch_enabled = weeklyBatchEnabled.value;
+        requirements.unit_price = 650;
+      }
+      if (typeId.value === "creator_review_video") {
+        requirements.task_count = creatorTaskCount.value;
+        requirements.creator_price_pending = creatorBossPrice.value;
+        requirements.must_review_before_publish = true;
+      }
+      const ret = await createClientOfflineVideoOrder({
+        type_id: typeId.value,
+        title: title.value.trim(),
+        amount_thb: taskAmount.value,
+        requirements,
+      });
+      ElMessage.success(`已创建订单 #${ret.id}`);
     }
 
     title.value = "";
     requirement.value = "";
+    talentName.value = "";
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "创建失败");
   } finally {
@@ -314,24 +206,13 @@ async function create() {
   }
 }
 
-watch(
-  () => typeId.value,
-  (v) => {
-    if (v === "graded_video") {
-      taskCount.value = Math.max(1, taskCount.value || 1);
-      tier.value = tier.value || "C";
-    } else if (v === "high_quality_custom_video") {
-      taskAmount.value = 4000;
-    } else if (v === "monthly_package") {
-      monthlyCount.value = Math.max(20, monthlyCount.value || 20);
-      monthlyMonths.value = monthlyMonths.value || 1;
-    } else {
-      creatorReviewCount.value = Math.max(8, creatorReviewCount.value || 8);
-    }
-  },
-  { immediate: true }
-);
-
-reloadPickers();
+loadTypes();
 </script>
 
+<style scoped>
+.page-wrap { padding: 8px 4px; }
+.header-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.title { font-weight: 700; font-size: 18px; letter-spacing: 0.2px; }
+.type-radio-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.inline-tip { margin-left: 8px; color: #334155; font-size: 13px; }
+</style>

@@ -12,11 +12,11 @@ const router = Router();
 router.use(requireAuth);
 router.use(requireRole("employee"));
 
-type VideoOrderTypeId = CooperationTypeId;
+type VideoOrderTypeId = Exclude<CooperationTypeId, "graded_video">;
 
 function normalizeTypeId(input: unknown): VideoOrderTypeId | "" {
   const v = typeof input === "string" ? input.trim() : "";
-  if (v === "graded_video" || v === "high_quality_custom_video" || v === "monthly_package" || v === "creator_review_video") return v;
+  if (v === "high_quality_custom_video" || v === "monthly_package" || v === "creator_review_video") return v;
   return "";
 }
 
@@ -35,7 +35,6 @@ function normalizePhase(input: unknown): string {
     "delivered",
     "completed",
     "rejected",
-    "cancelled",
   ]);
   if (!v || v.length > 50) return "";
   if (!allowed.has(v)) return "";
@@ -50,20 +49,6 @@ function normalizeUrls(input: unknown): string[] {
 async function ensureTypeVisibleToEmployee(typeId: VideoOrderTypeId): Promise<boolean> {
   const cfg = await readCooperationTypesConfig();
   return isVisibleCooperationType(cfg, typeId, "employee");
-}
-
-function normalizeDate(input: unknown): string {
-  const v = typeof input === "string" ? input.trim() : "";
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return "";
-  return v;
-}
-
-function normalizeInt(input: unknown, min: number, max: number): number {
-  const n = Number(input);
-  if (!Number.isFinite(n)) return NaN;
-  const k = Math.floor(n);
-  if (k < min || k > max) return NaN;
-  return k;
 }
 
 router.get("/video-orders", async (req: AuthRequest, res: Response) => {
@@ -98,24 +83,11 @@ router.get("/video-orders", async (req: AuthRequest, res: Response) => {
               COALESCE(s.phase,'created') AS phase,
               COALESCE(s.proof_links,'[]'::jsonb) AS proof_links,
               COALESCE(s.publish_links,'[]'::jsonb) AS publish_links,
-              s.review_note, s.reviewed_by, s.reviewed_at,
-              COALESCE(mb.accepted_count,0) AS monthly_accepted_count,
-              COALESCE(mb.planned_count,0) AS monthly_planned_count,
-              COALESCE(ms.settled_amount_thb,0) AS monthly_settled_amount_thb
+              COALESCE(s.batch_payload,'[]'::jsonb) AS batch_payload,
+              s.review_note, s.reviewed_by, s.reviewed_at
          FROM video_orders o
          JOIN users c ON c.id=o.client_id
          LEFT JOIN video_order_states s ON s.order_id=o.id
-         LEFT JOIN (
-           SELECT order_id, SUM(accepted_count) AS accepted_count, SUM(planned_count) AS planned_count
-             FROM video_order_monthly_batches
-            GROUP BY order_id
-         ) mb ON mb.order_id=o.id
-         LEFT JOIN (
-           SELECT order_id, SUM(amount_thb) AS settled_amount_thb
-             FROM video_order_weekly_settlements
-            WHERE status='paid'
-            GROUP BY order_id
-         ) ms ON ms.order_id=o.id
         WHERE ${where.join(" AND ")}
         ORDER BY o.id DESC
         LIMIT ${limit}`,
@@ -151,7 +123,7 @@ router.post("/video-orders/:id/claim", async (req: AuthRequest, res: Response) =
       return { kind: "ok" as const };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "订单未完成付款，暂不可接单。" });
+    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "订单未完成线下付款，暂不可接单。" });
     if (ret.kind === "not_allowed") return res.status(403).json({ error: "FORBIDDEN", message: "该类型当前不可处理。" });
     if (ret.kind === "already_claimed") return res.status(409).json({ error: "ALREADY_CLAIMED", message: "订单已被其他员工接单。" });
     return res.json({ ok: true });
@@ -186,7 +158,7 @@ router.patch("/video-orders/:id/phase", async (req: AuthRequest, res: Response) 
       return { kind: "ok" as const };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "订单未完成付款。" });
+    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "订单未完成线下付款。" });
     if (ret.kind === "not_allowed") return res.status(403).json({ error: "FORBIDDEN", message: "该类型当前不可处理。" });
     if (ret.kind === "not_assigned") return res.status(403).json({ error: "NOT_ASSIGNED", message: "请先接单后再更新流程。" });
     return res.json({ ok: true });
@@ -228,7 +200,7 @@ router.post("/video-orders/:id/submit-proof", async (req: AuthRequest, res: Resp
       return { kind: "ok" as const, nextPhase };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "订单未完成付款。" });
+    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "订单未完成线下付款。" });
     if (ret.kind === "not_allowed") return res.status(403).json({ error: "FORBIDDEN", message: "该类型当前不可处理。" });
     if (ret.kind === "not_assigned") return res.status(403).json({ error: "NOT_ASSIGNED", message: "请先接单后再提交交付。" });
     return res.json({ ok: true });
@@ -271,7 +243,7 @@ router.post("/video-orders/:id/publish", async (req: AuthRequest, res: Response)
       return { kind: "ok" as const };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "订单未完成付款。" });
+    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "订单未完成线下付款。" });
     if (ret.kind === "not_supported") return res.status(400).json({ error: "NOT_SUPPORTED", message: "该类型不需要发布环节。" });
     if (ret.kind === "not_assigned") return res.status(403).json({ error: "NOT_ASSIGNED", message: "请先接单后再提交发布。" });
     if (ret.kind === "not_approved") return res.status(400).json({ error: "REVIEW_REQUIRED", message: "该订单需先审核通过后再发布。" });
@@ -282,83 +254,31 @@ router.post("/video-orders/:id/publish", async (req: AuthRequest, res: Response)
   }
 });
 
-router.patch("/video-orders/:id/requirements", async (req: AuthRequest, res: Response) => {
-  const id = Number(req.params.id);
-  const patch = req.body?.patch;
-  if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "INVALID_ID", message: "无效订单ID。" });
-  if (!patch || typeof patch !== "object") return res.status(400).json({ error: "INVALID_INPUT", message: "无效更新内容。" });
-  try {
-    const ret = await withTx(async (client) => {
-      const cur = await client.query<{ type_id: VideoOrderTypeId; payment_status: string; assigned_employee_id: number | null; requirements: any }>(
-        `SELECT type_id, payment_status, assigned_employee_id, requirements
-           FROM video_orders
-          WHERE id=$1
-          FOR UPDATE`,
-        [id]
-      );
-      const row = cur.rows[0];
-      if (!row) return { kind: "not_found" as const };
-      if (row.payment_status !== "paid") return { kind: "not_paid" as const };
-      if (!(await ensureTypeVisibleToEmployee(row.type_id))) return { kind: "not_allowed" as const };
-      if (!row.assigned_employee_id || row.assigned_employee_id !== req.user!.userId) return { kind: "not_assigned" as const };
 
-      const next = { ...(row.requirements || {}), ...(patch as Record<string, unknown>) };
-      await client.query(`UPDATE video_orders SET requirements=$2::jsonb, updated_at=now() WHERE id=$1`, [id, JSON.stringify(next)]);
-      return { kind: "ok" as const };
-    });
-    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "订单未完成付款。" });
-    if (ret.kind === "not_allowed") return res.status(403).json({ error: "FORBIDDEN", message: "该类型当前不可处理。" });
-    if (ret.kind === "not_assigned") return res.status(403).json({ error: "NOT_ASSIGNED", message: "请先接单后再更新。" });
-    return res.json({ ok: true });
-  } catch (e) {
-    console.error("employee patch requirements error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-  }
-});
 
-router.get("/video-orders/:id/monthly/batches", async (req: AuthRequest, res: Response) => {
+/** 员工提交包月订单批次交付。 */
+router.post("/video-orders/:id/monthly-batches/submit", async (req: AuthRequest, res: Response) => {
   const id = Number(req.params.id);
-  if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "INVALID_ID", message: "无效订单ID。" });
-  try {
-    const rows = await query(
-      `SELECT b.*, COALESCE(s.id,0) AS settlement_id, COALESCE(s.status,'') AS settlement_status, COALESCE(s.amount_thb,0) AS settlement_amount_thb, s.paid_at AS settlement_paid_at
-         FROM video_orders o
-         JOIN video_order_monthly_batches b ON b.order_id=o.id
-         LEFT JOIN video_order_weekly_settlements s ON s.batch_id=b.id
-        WHERE o.id=$1 AND o.payment_status='paid' AND o.type_id='monthly_package' AND (o.assigned_employee_id IS NULL OR o.assigned_employee_id=$2)
-        ORDER BY b.week_start DESC`,
-      [id, req.user!.userId]
-    );
-    return res.json({ list: rows.rows });
-  } catch (e) {
-    console.error("employee list monthly batches error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-  }
-});
-
-router.post("/video-orders/:id/monthly/batches", async (req: AuthRequest, res: Response) => {
-  const id = Number(req.params.id);
-  const weekStart = normalizeDate(req.body?.week_start);
-  const weekEnd = normalizeDate(req.body?.week_end);
-  const plannedCount = normalizeInt(req.body?.planned_count ?? 0, 0, 1000);
-  const submittedCountRaw = req.body?.submitted_count;
-  const submittedCount = submittedCountRaw == null ? NaN : normalizeInt(submittedCountRaw, 0, 1000);
+  const batchNo = Number(req.body?.batch_no || 0);
+  const videoCount = Number(req.body?.video_count || 0);
   const videoUrls = normalizeUrls(req.body?.video_urls);
-  if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "INVALID_ID", message: "无效订单ID。" });
-  if (!weekStart || !weekEnd) return res.status(400).json({ error: "INVALID_DATE", message: "请填写有效的周起止日期（YYYY-MM-DD）。" });
-  if (!Number.isFinite(plannedCount)) return res.status(400).json({ error: "INVALID_PLANNED_COUNT", message: "计划数量不合法。" });
-  if (!videoUrls.length) return res.status(400).json({ error: "INVALID_INPUT", message: "请提交交付链接。" });
-
-  const finalSubmitted = Number.isFinite(submittedCount) ? submittedCount : videoUrls.length;
-  if (finalSubmitted < 1) return res.status(400).json({ error: "INVALID_SUBMITTED_COUNT", message: "提交数量不合法。" });
+  if (!Number.isFinite(id) || id <= 0 || !Number.isFinite(batchNo) || batchNo <= 0) {
+    return res.status(400).json({ error: "INVALID_ID", message: "无效参数。" });
+  }
+  if (!Number.isFinite(videoCount) || videoCount < 1) {
+    return res.status(400).json({ error: "INVALID_INPUT", message: "请输入有效视频数量。" });
+  }
+  if (!videoUrls.length) {
+    return res.status(400).json({ error: "INVALID_INPUT", message: "请提交该批次视频链接。" });
+  }
 
   try {
     const ret = await withTx(async (client) => {
-      const cur = await client.query<{ type_id: VideoOrderTypeId; payment_status: string; assigned_employee_id: number | null }>(
-        `SELECT type_id, payment_status, assigned_employee_id
-           FROM video_orders
-          WHERE id=$1
+      const cur = await client.query<{ type_id: string; payment_status: string; assigned_employee_id: number | null; batch_payload: any }>(
+        `SELECT o.type_id, o.payment_status, o.assigned_employee_id, COALESCE(s.batch_payload,'[]'::jsonb) AS batch_payload
+           FROM video_orders o
+           LEFT JOIN video_order_states s ON s.order_id=o.id
+          WHERE o.id=$1
           FOR UPDATE`,
         [id]
       );
@@ -366,29 +286,31 @@ router.post("/video-orders/:id/monthly/batches", async (req: AuthRequest, res: R
       if (!row) return { kind: "not_found" as const };
       if (row.type_id !== "monthly_package") return { kind: "not_supported" as const };
       if (row.payment_status !== "paid") return { kind: "not_paid" as const };
-      if (!(await ensureTypeVisibleToEmployee(row.type_id))) return { kind: "not_allowed" as const };
       if (!row.assigned_employee_id || row.assigned_employee_id !== req.user!.userId) return { kind: "not_assigned" as const };
 
-      const ins = await client.query<{ id: number }>(
-        `INSERT INTO video_order_monthly_batches (order_id, week_start, week_end, planned_count, submitted_count, status, proof_links, updated_at)
-         VALUES ($1, $2::date, $3::date, $4, $5, 'submitted', $6::jsonb, now())
-         ON CONFLICT (order_id, week_start, week_end)
-         DO UPDATE SET planned_count=EXCLUDED.planned_count, submitted_count=EXCLUDED.submitted_count, status='submitted', proof_links=EXCLUDED.proof_links, updated_at=now()
-         RETURNING id`,
-        [id, weekStart, weekEnd, plannedCount, finalSubmitted, JSON.stringify(videoUrls)]
-      );
-      const bid = ins.rows[0]?.id;
-      if (!bid) return null;
+      const list = Array.isArray(row.batch_payload) ? row.batch_payload : [];
+      const idx = list.findIndex((x: any) => Number(x?.batch_no) === batchNo);
+      const next = {
+        ...(idx >= 0 ? list[idx] : {}),
+        batch_no: batchNo,
+        status: "pending_acceptance",
+        video_count: Math.floor(videoCount),
+        proof_links: videoUrls,
+        submitted_at: new Date().toISOString(),
+      };
+      if (idx >= 0) list[idx] = next;
+      else list.push(next);
+      list.sort((a: any, b: any) => Number(a?.batch_no || 0) - Number(b?.batch_no || 0));
+
+      await client.query(`UPDATE video_order_states SET phase='delivered', batch_payload=$2::jsonb, updated_at=now() WHERE order_id=$1`, [id, JSON.stringify(list)]);
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
-      return { kind: "ok" as const, id: bid };
+      return { kind: "ok" as const, batch: next };
     });
-    if (!ret) return res.status(500).json({ error: "DB_ERROR", message: "提交失败，请重试。" });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-    if (ret.kind === "not_supported") return res.status(400).json({ error: "NOT_SUPPORTED", message: "该订单类型不支持批次。" });
-    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "订单未完成付款。" });
-    if (ret.kind === "not_allowed") return res.status(403).json({ error: "FORBIDDEN", message: "该类型当前不可处理。" });
-    if (ret.kind === "not_assigned") return res.status(403).json({ error: "NOT_ASSIGNED", message: "请先接单后再提交批次。" });
-    return res.status(201).json({ id: (ret as any).id });
+    if (ret.kind === "not_supported") return res.status(400).json({ error: "NOT_SUPPORTED", message: "仅包月订单支持批次提交。" });
+    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "订单未完成线下付款。" });
+    if (ret.kind === "not_assigned") return res.status(403).json({ error: "NOT_ASSIGNED", message: "请先接单后再提交批次交付。" });
+    return res.json({ ok: true, batch: ret.batch });
   } catch (e) {
     console.error("employee submit monthly batch error:", e);
     return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
@@ -396,3 +318,4 @@ router.post("/video-orders/:id/monthly/batches", async (req: AuthRequest, res: R
 });
 
 export default router;
+

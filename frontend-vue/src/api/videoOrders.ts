@@ -6,19 +6,34 @@ async function readErrorMessage(res: Response, fallback: string): Promise<string
 }
 
 export type OfflineVideoOrderTypeId = "high_quality_custom_video" | "monthly_package" | "creator_review_video";
-export type VideoOrderTypeId = "graded_video" | OfflineVideoOrderTypeId;
+
+export type MonthlyBatchStatus = "pending_acceptance" | "accepted" | "settled";
+
+export type MonthlyBatchItem = {
+  batch_no: number;
+  status: MonthlyBatchStatus;
+  video_count: number;
+  accepted_count?: number;
+  settled_amount?: number;
+  proof_links?: string[];
+  submitted_at?: string;
+  accepted_at?: string;
+  settled_at?: string;
+  accept_note?: string | null;
+};
 
 export type VideoOrder = {
   id: number;
   client_id?: number;
   client_username?: string;
   employee_username?: string | null;
-  type_id: VideoOrderTypeId;
+  type_id: OfflineVideoOrderTypeId;
   title: string;
-  requirements?: any;
+  requirements?: Record<string, unknown>;
+  batch_payload?: MonthlyBatchItem[];
   amount_thb: string | number;
-  payment_method: "offline" | "points";
-  payment_status: "unpaid" | "paid" | "refunded";
+  payment_method: "offline";
+  payment_status: "unpaid" | "paid";
   paid_at: string | null;
   assigned_employee_id: number | null;
   created_at: string;
@@ -29,13 +44,10 @@ export type VideoOrder = {
   review_note: string | null;
   reviewed_by: number | null;
   reviewed_at: string | null;
-  monthly_accepted_count?: number;
-  monthly_planned_count?: number;
-  monthly_settled_amount_thb?: string | number;
 };
 
-export async function createClientVideoOrder(body: {
-  type_id: VideoOrderTypeId;
+export async function createClientOfflineVideoOrder(body: {
+  type_id: OfflineVideoOrderTypeId;
   title: string;
   amount_thb: number;
   requirements?: Record<string, unknown>;
@@ -55,24 +67,11 @@ export async function createClientVideoOrder(body: {
   return data as any;
 }
 
-export async function createClientOfflineVideoOrder(body: {
-  type_id: OfflineVideoOrderTypeId;
-  title: string;
-  amount_thb: number;
-  requirements?: Record<string, unknown>;
-}): Promise<{ id: number }> {
-  return createClientVideoOrder(body);
-}
-
-export async function listClientVideoOrders(): Promise<VideoOrder[]> {
+export async function listClientOfflineVideoOrders(): Promise<VideoOrder[]> {
   const res = await fetchWithAuth("/api/client/video-orders");
   if (!res.ok) throw new Error(await readErrorMessage(res, "加载失败"));
   const data = (await res.json()) as any;
   return (data.list as VideoOrder[]) || [];
-}
-
-export async function listClientOfflineVideoOrders(): Promise<VideoOrder[]> {
-  return listClientVideoOrders();
 }
 
 export async function markClientOfflineVideoOrderPaid(orderId: number): Promise<void> {
@@ -94,13 +93,8 @@ export async function rejectClientOfflineVideoOrder(orderId: number, note?: stri
   if (!res.ok) throw new Error(await readErrorMessage(res, "驳回失败"));
 }
 
-export async function cancelClientVideoOrder(orderId: number): Promise<void> {
-  const res = await fetchWithAuth(`/api/client/video-orders/${orderId}/cancel`, { method: "POST" });
-  if (!res.ok) throw new Error(await readErrorMessage(res, "取消失败"));
-}
-
 export async function listEmployeeOfflineVideoOrders(params?: {
-  type?: VideoOrderTypeId;
+  type?: OfflineVideoOrderTypeId;
   phase?: string;
   q?: string;
   limit?: number;
@@ -149,7 +143,7 @@ export async function publishEmployeeOfflineVideoOrder(orderId: number, publishL
 }
 
 export async function listAdminOfflineVideoOrders(params?: {
-  type?: VideoOrderTypeId;
+  type?: OfflineVideoOrderTypeId;
   phase?: string;
   q?: string;
   limit?: number;
@@ -174,74 +168,40 @@ export async function reviewAdminOfflineVideoOrder(orderId: number, body: { acti
   if (!res.ok) throw new Error(await readErrorMessage(res, "审核失败"));
 }
 
-export type MonthlyBatch = {
-  id: number;
-  order_id: number;
-  week_start: string;
-  week_end: string;
-  planned_count: number;
-  submitted_count: number;
-  accepted_count: number;
-  status: string;
-  proof_links: any;
-  review_note: string | null;
-  reviewed_by: number | null;
-  reviewed_at: string | null;
-  created_at: string;
-  updated_at: string;
-  settlement_id?: number;
-  settlement_status?: string;
-  settlement_amount_thb?: string | number;
-  settlement_paid_at?: string | null;
-};
 
-export async function listClientMonthlyBatches(orderId: number): Promise<MonthlyBatch[]> {
-  const res = await fetchWithAuth(`/api/client/video-orders/${orderId}/monthly/batches`);
-  if (!res.ok) throw new Error(await readErrorMessage(res, "加载失败"));
-  const data = (await res.json()) as any;
-  return (data.list as MonthlyBatch[]) || [];
-}
 
-export async function acceptClientMonthlyBatch(orderId: number, batchId: number, acceptedCount?: number): Promise<void> {
-  const res = await fetchWithAuth(`/api/client/video-orders/${orderId}/monthly/batches/${batchId}/accept`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json; charset=utf-8" },
-    body: JSON.stringify({ accepted_count: acceptedCount }),
-  });
-  if (!res.ok) throw new Error(await readErrorMessage(res, "验收失败"));
-}
-
-export async function markClientMonthlySettlementPaid(orderId: number, settlementId: number): Promise<void> {
-  const res = await fetchWithAuth(`/api/client/video-orders/${orderId}/monthly/settlements/${settlementId}/mark-paid`, { method: "POST" });
-  if (!res.ok) throw new Error(await readErrorMessage(res, "结算失败"));
-}
-
-export async function listEmployeeMonthlyBatches(orderId: number): Promise<MonthlyBatch[]> {
-  const res = await fetchWithAuth(`/api/employee/video-orders/${orderId}/monthly/batches`);
-  if (!res.ok) throw new Error(await readErrorMessage(res, "加载失败"));
-  const data = (await res.json()) as any;
-  return (data.list as MonthlyBatch[]) || [];
-}
-
-export async function submitEmployeeMonthlyBatch(
-  orderId: number,
-  body: { week_start: string; week_end: string; planned_count?: number; submitted_count?: number; video_urls: string[] }
-): Promise<{ id: number }> {
-  const res = await fetchWithAuth(`/api/employee/video-orders/${orderId}/monthly/batches`, {
+export async function submitEmployeeMonthlyBatch(orderId: number, body: {
+  batch_no: number;
+  video_count: number;
+  video_urls: string[];
+}): Promise<void> {
+  const res = await fetchWithAuth(`/api/employee/video-orders/${orderId}/monthly-batches/submit`, {
     method: "POST",
     headers: { "Content-Type": "application/json; charset=utf-8" },
     body: JSON.stringify(body),
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data.message as string) || "提交失败");
-  return data as any;
+  if (!res.ok) throw new Error(await readErrorMessage(res, "提交失败"));
 }
 
-export async function patchEmployeeVideoOrderRequirements(orderId: number, patch: Record<string, unknown>): Promise<void> {
-  const res = await fetchWithAuth(`/api/employee/video-orders/${orderId}/requirements`, {
-    method: "PATCH",
+export async function acceptClientMonthlyBatch(orderId: number, batchNo: number, body: {
+  accepted_count: number;
+  note?: string;
+}): Promise<void> {
+  const res = await fetchWithAuth(`/api/client/video-orders/${orderId}/monthly-batches/${batchNo}/accept`, {
+    method: "POST",
     headers: { "Content-Type": "application/json; charset=utf-8" },
-    body: JSON.stringify({ patch }),
+    body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(await readErrorMessage(res, "更新失败"));
+  if (!res.ok) throw new Error(await readErrorMessage(res, "验收失败"));
+}
+
+export async function settleClientMonthlyBatch(orderId: number, batchNo: number, body: {
+  settled_amount: number;
+}): Promise<void> {
+  const res = await fetchWithAuth(`/api/client/video-orders/${orderId}/monthly-batches/${batchNo}/settle`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "结算失败"));
 }

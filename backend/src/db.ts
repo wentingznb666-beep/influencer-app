@@ -1626,33 +1626,17 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`CREATE TABLE IF NOT EXISTS video_orders (
     id SERIAL PRIMARY KEY,
     client_id INTEGER NOT NULL REFERENCES users(id),
-    type_id TEXT NOT NULL CHECK (type_id IN ('graded_video','high_quality_custom_video','monthly_package','creator_review_video')),
+    type_id TEXT NOT NULL CHECK (type_id IN ('high_quality_custom_video','monthly_package','creator_review_video')),
     title TEXT NOT NULL,
     requirements JSONB NOT NULL DEFAULT '{}'::jsonb,
     amount_thb NUMERIC(18,2) NOT NULL DEFAULT 0,
-    payment_method TEXT NOT NULL DEFAULT 'offline' CHECK (payment_method IN ('offline','points')),
-    payment_status TEXT NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid','paid','refunded')),
+    payment_method TEXT NOT NULL DEFAULT 'offline' CHECK (payment_method IN ('offline')),
+    payment_status TEXT NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid','paid')),
     paid_at TIMESTAMPTZ,
     assigned_employee_id INTEGER REFERENCES users(id),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`);
-
-  await query(`ALTER TABLE video_orders DROP CONSTRAINT IF EXISTS video_orders_type_id_check`);
-  await query(
-    `ALTER TABLE video_orders ADD CONSTRAINT video_orders_type_id_check
-     CHECK (type_id IN ('graded_video','high_quality_custom_video','monthly_package','creator_review_video'))`
-  );
-  await query(`ALTER TABLE video_orders DROP CONSTRAINT IF EXISTS video_orders_payment_method_check`);
-  await query(
-    `ALTER TABLE video_orders ADD CONSTRAINT video_orders_payment_method_check
-     CHECK (payment_method IN ('offline','points'))`
-  );
-  await query(`ALTER TABLE video_orders DROP CONSTRAINT IF EXISTS video_orders_payment_status_check`);
-  await query(
-    `ALTER TABLE video_orders ADD CONSTRAINT video_orders_payment_status_check
-     CHECK (payment_status IN ('unpaid','paid','refunded'))`
-  );
 
   await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_client ON video_orders(client_id, id DESC)`);
   await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_assignee ON video_orders(assigned_employee_id, id DESC)`);
@@ -1669,52 +1653,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     publish_links JSONB NOT NULL DEFAULT '[]'::jsonb,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`);
-
-  await query(`CREATE TABLE IF NOT EXISTS video_order_monthly_batches (
-    id SERIAL PRIMARY KEY,
-    order_id INTEGER NOT NULL REFERENCES video_orders(id) ON DELETE CASCADE,
-    week_start DATE NOT NULL,
-    week_end DATE NOT NULL,
-    planned_count INTEGER NOT NULL DEFAULT 0,
-    submitted_count INTEGER NOT NULL DEFAULT 0,
-    accepted_count INTEGER NOT NULL DEFAULT 0,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','submitted','accepted','settled','rejected')),
-    proof_links JSONB NOT NULL DEFAULT '[]'::jsonb,
-    review_note TEXT,
-    reviewed_by INTEGER REFERENCES users(id),
-    reviewed_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE(order_id, week_start, week_end)
-  )`);
-
-  await query(`CREATE INDEX IF NOT EXISTS idx_video_order_monthly_batches_order ON video_order_monthly_batches(order_id, week_start DESC)`);
-  await query(`CREATE INDEX IF NOT EXISTS idx_video_order_monthly_batches_status ON video_order_monthly_batches(status, updated_at DESC)`);
-
-  await query(`CREATE TABLE IF NOT EXISTS video_order_weekly_settlements (
-    id SERIAL PRIMARY KEY,
-    order_id INTEGER NOT NULL REFERENCES video_orders(id) ON DELETE CASCADE,
-    batch_id INTEGER NOT NULL REFERENCES video_order_monthly_batches(id) ON DELETE CASCADE,
-    unit_price_thb NUMERIC(18,2) NOT NULL DEFAULT 0,
-    video_count INTEGER NOT NULL DEFAULT 0,
-    amount_thb NUMERIC(18,2) NOT NULL DEFAULT 0,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid')),
-    paid_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-  )`);
-
-  await query(`
-    DO $$
-    BEGIN
-      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'video_order_weekly_settlements_batch_unique') THEN
-        ALTER TABLE video_order_weekly_settlements
-          ADD CONSTRAINT video_order_weekly_settlements_batch_unique UNIQUE(batch_id);
-      END IF;
-    END $$;
-  `);
-
-  await query(`CREATE INDEX IF NOT EXISTS idx_video_order_weekly_settlements_order ON video_order_weekly_settlements(order_id, id DESC)`);
-  await query(`CREATE INDEX IF NOT EXISTS idx_video_order_weekly_settlements_batch ON video_order_weekly_settlements(batch_id)`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS batch_payload JSONB NOT NULL DEFAULT '[]'::jsonb`);
 
 
   await query(`CREATE TABLE IF NOT EXISTS client_merchant_info_templates (

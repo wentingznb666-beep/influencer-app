@@ -2120,9 +2120,9 @@ router.delete("/market-orders/:id", (req: AuthRequest, res: Response) => {
 
     await withTx(async (client) => {
 
-      const updated = await client.query<{ id: number }>(
+      const updated = await client.query<{ id: number; pay_deducted: number; reward_points: number; task_count: number }>(
 
-        "UPDATE client_market_orders SET is_deleted = 1, deleted_at = now(), updated_at = now() WHERE id = $1 AND client_id = $2 AND status = 'open' AND is_deleted = 0 RETURNING id",
+        "UPDATE client_market_orders SET is_deleted = 1, deleted_at = now(), updated_at = now() WHERE id = $1 AND client_id = $2 AND status = 'open' AND is_deleted = 0 RETURNING id, pay_deducted, reward_points, task_count",
 
         [id, clientId]
 
@@ -2134,6 +2134,21 @@ router.delete("/market-orders/:id", (req: AuthRequest, res: Response) => {
 
         return;
 
+      }
+
+      const row = updated.rows[0];
+      if (row.pay_deducted === 1) {
+        const refundPoints = Math.max(Number(row.reward_points || 0), 0) * Math.max(Number(row.task_count || 1), 1);
+        if (refundPoints > 0) {
+          const acc = await ensurePointAccountLocked(client, clientId);
+          await client.query("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES ($1, $2, 'market_order_cancel_refund', $3)", [
+            acc.id,
+            refundPoints,
+            id,
+          ]);
+          await client.query("UPDATE point_accounts SET balance = balance + $1, updated_at = now() WHERE id = $2", [refundPoints, acc.id]);
+          await client.query("UPDATE client_market_orders SET pay_deducted = 0 WHERE id = $1", [id]);
+        }
       }
 
       await recordOperationLogTx(client, { userId: clientId, actionType: "delete", targetType: "order", targetId: id });

@@ -1,29 +1,21 @@
-<template>
+﻿<template>
   <el-tabs v-model="tab">
-    <el-tab-pane label="分级视频（旧积分单）" name="market">
-      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px">
-        <el-input v-model="marketQ" placeholder="搜索：订单号/标题/账号" style="max-width: 360px" />
-        <el-select v-model="marketStatus" placeholder="状态" style="width: 160px" clearable>
+    <el-tab-pane label="分级视频（积分单）" name="market">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+        <el-input v-model="marketQ" placeholder="搜索：订单号/标题" style="max-width: 360px" />
+        <el-select v-model="marketStatus" placeholder="状态" style="width:160px" clearable>
           <el-option label="open" value="open" />
           <el-option label="claimed" value="claimed" />
           <el-option label="completed" value="completed" />
         </el-select>
         <el-button @click="loadMarket" :loading="loadingMarket">刷新</el-button>
       </div>
-
-      <el-table :data="marketOrders" stripe style="width: 100%">
+      <el-table :data="marketOrders" stripe style="width:100%">
         <el-table-column prop="id" label="ID" width="80" />
         <el-table-column prop="order_no" label="订单号" width="180" />
         <el-table-column prop="tier" label="档位" width="80" />
         <el-table-column prop="status" label="状态" width="110" />
-        <el-table-column prop="client_shop_name" label="店铺" min-width="160" />
         <el-table-column prop="title" label="标题" min-width="220" />
-        <el-table-column label="发布链接" min-width="220">
-          <template #default="{ row }">
-            <span v-if="row.publish_link">{{ row.publish_link }}</span>
-            <span v-else style="color: #888">-</span>
-          </template>
-        </el-table-column>
         <el-table-column label="操作" width="320" fixed="right">
           <template #default="{ row }">
             <el-button size="small" type="primary" v-if="row.status === 'open'" @click="onClaimMarket(row.id)" :loading="acting[row.id]">接单</el-button>
@@ -34,17 +26,15 @@
       </el-table>
     </el-tab-pane>
 
-    <el-tab-pane label="视频订单（四类）" name="offline">
-      <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap">
-        <el-input v-model="offlineQ" placeholder="搜索：标题/商家" style="max-width: 360px" />
-        <el-select v-model="offlineType" placeholder="类型" style="width: 220px" clearable>
-          <el-option label="graded_video" value="graded_video" />
-          <el-option label="high_quality_custom_video" value="high_quality_custom_video" />
-          <el-option label="monthly_package" value="monthly_package" />
-          <el-option label="creator_review_video" value="creator_review_video" />
+    <el-tab-pane label="视频订单（4类）" name="offline">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+        <el-input v-model="offlineQ" placeholder="搜索：标题/商家" style="max-width:360px" />
+        <el-select v-model="offlineType" placeholder="类型" style="width:220px" clearable>
+          <el-option label="② 高质量视频" value="high_quality_custom_video" />
+          <el-option label="③ 包月合作套餐" value="monthly_package" />
+          <el-option label="④ Creator带货测评" value="creator_review_video" />
         </el-select>
-        <el-select v-model="offlinePhase" placeholder="阶段" style="width: 200px" clearable>
-          <el-option label="created" value="created" />
+        <el-select v-model="offlinePhase" placeholder="阶段" style="width:200px" clearable>
           <el-option label="paid" value="paid" />
           <el-option label="assigned" value="assigned" />
           <el-option label="in_progress" value="in_progress" />
@@ -53,87 +43,32 @@
           <el-option label="published" value="published" />
           <el-option label="delivered" value="delivered" />
           <el-option label="completed" value="completed" />
-          <el-option label="cancelled" value="cancelled" />
         </el-select>
         <el-button @click="loadOffline" :loading="loadingOffline">刷新</el-button>
       </div>
 
-      <el-table :data="offlineOrders" stripe style="width: 100%">
+      <el-table :data="offlineOrders" stripe style="width:100%">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="type_id" label="类型" width="220" />
-        <el-table-column label="付款" width="140">
+        <el-table-column label="类型" width="180"><template #default="{ row }"><el-tag :type="tagType(row.type_id)">{{ typeText(row.type_id) }}</el-tag></template></el-table-column>
+        <el-table-column prop="payment_status" label="付款" width="100" />
+        <el-table-column prop="phase" label="阶段" width="130" />
+        <el-table-column prop="client_username" label="商家" width="160" />
+        <el-table-column prop="title" label="标题" min-width="220" />
+        <el-table-column label="包月进度" min-width="200">
           <template #default="{ row }">
-            <span v-if="row.payment_method === 'points'">{{ row.payment_status === 'refunded' ? 'refunded' : 'points_paid' }}</span>
-            <span v-else>{{ row.payment_status }}</span>
+            <template v-if="row.type_id === 'monthly_package'">{{ monthlyAccepted(row) }}/{{ monthlyTarget(row) }} 已验收</template>
+            <span v-else style="color:#94a3b8">-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="phase" label="阶段" width="150" />
-        <el-table-column prop="client_username" label="商家" width="160" />
-        <el-table-column prop="title" label="标题" min-width="240" />
-        <el-table-column label="操作" width="560" fixed="right">
+        <el-table-column label="操作" width="620" fixed="right">
           <template #default="{ row }">
-            <el-button
-              size="small"
-              type="primary"
-              v-if="isEmployee && !row.assigned_employee_id"
-              @click="onClaimOffline(row.id)"
-              :loading="acting[`o${row.id}`]"
-            >
-              接单
-            </el-button>
-            <el-button size="small" v-if="isEmployee && row.assigned_employee_id" @click="openSubmitOffline(row.id)" :loading="acting[`o${row.id}`]">
-              提交交付
-            </el-button>
-            <el-button
-              size="small"
-              v-if="isEmployee && row.type_id === 'monthly_package' && row.assigned_employee_id"
-              @click="openMonthlyBatch(row.id)"
-              :loading="acting[`o${row.id}`]"
-            >
-              批次提交
-            </el-button>
-            <el-button
-              size="small"
-              v-if="isEmployee && row.type_id === 'graded_video' && row.assigned_employee_id"
-              @click="openAssignPartTime(row.id)"
-              :loading="acting[`o${row.id}`]"
-            >
-              分配兼职
-            </el-button>
-            <el-button
-              size="small"
-              v-if="isAdmin && row.type_id === 'creator_review_video' && row.phase === 'review_pending'"
-              type="success"
-              @click="onReviewOffline(row.id, 'approve')"
-              :loading="acting[`o${row.id}`]"
-            >
-              审核通过
-            </el-button>
-            <el-button
-              size="small"
-              v-if="isAdmin && row.type_id === 'creator_review_video' && row.phase === 'review_pending'"
-              type="danger"
-              @click="onReviewOffline(row.id, 'reject')"
-              :loading="acting[`o${row.id}`]"
-            >
-              审核驳回
-            </el-button>
-            <el-button
-              size="small"
-              v-if="isEmployee && row.type_id === 'creator_review_video' && row.phase === 'approved_to_publish'"
-              @click="openPublishOffline(row.id)"
-              :loading="acting[`o${row.id}`]"
-            >
-              提交发布链接
-            </el-button>
-            <el-select
-              v-if="isEmployee && row.assigned_employee_id"
-              v-model="phaseDraft[row.id]"
-              placeholder="更新阶段"
-              size="small"
-              style="width: 160px"
-              @change="(v: string) => onSetOfflinePhase(row.id, v)"
-            >
+            <el-button size="small" type="primary" v-if="isEmployee && !row.assigned_employee_id" @click="onClaimOffline(row.id)" :loading="acting[`o${row.id}`]">接单</el-button>
+            <el-button size="small" v-if="isEmployee && row.assigned_employee_id && row.type_id !== 'monthly_package'" @click="openSubmitOffline(row.id)" :loading="acting[`o${row.id}`]">提交交付</el-button>
+            <el-button size="small" type="warning" v-if="isEmployee && row.assigned_employee_id && row.type_id === 'monthly_package'" @click="openMonthlyBatchSubmit(row.id)" :loading="acting[`o${row.id}`]">批次验收提交</el-button>
+            <el-button size="small" v-if="isEmployee && row.type_id === 'creator_review_video' && row.phase === 'approved_to_publish'" @click="openPublishOffline(row.id)" :loading="acting[`o${row.id}`]">提交发布链接</el-button>
+            <el-button size="small" type="success" v-if="isAdmin && row.type_id === 'creator_review_video' && row.phase === 'review_pending'" @click="onReviewOffline(row.id, 'approve')" :loading="acting[`o${row.id}`]">审核通过</el-button>
+            <el-button size="small" type="danger" v-if="isAdmin && row.type_id === 'creator_review_video' && row.phase === 'review_pending'" @click="onReviewOffline(row.id, 'reject')" :loading="acting[`o${row.id}`]">审核驳回</el-button>
+            <el-select v-if="isEmployee && row.assigned_employee_id" v-model="phaseDraft[row.id]" placeholder="更新阶段" size="small" style="width:160px" @change="(v: string) => onSetOfflinePhase(row.id, v)">
               <el-option label="in_progress" value="in_progress" />
               <el-option label="submitted" value="submitted" />
               <el-option label="delivered" value="delivered" />
@@ -146,84 +81,28 @@
 
   <el-dialog v-model="dialogMarketComplete.open" title="提交交付链接" width="520px">
     <el-input v-model="dialogMarketComplete.linksText" type="textarea" :rows="6" placeholder="每行一个链接" />
-    <template #footer>
-      <el-button @click="dialogMarketComplete.open = false">取消</el-button>
-      <el-button type="primary" :loading="dialogMarketComplete.loading" @click="submitMarketComplete">提交</el-button>
-    </template>
+    <template #footer><el-button @click="dialogMarketComplete.open = false">取消</el-button><el-button type="primary" :loading="dialogMarketComplete.loading" @click="submitMarketComplete">提交</el-button></template>
   </el-dialog>
-
   <el-dialog v-model="dialogMarketPublish.open" title="提交发布链接" width="520px">
     <el-input v-model="dialogMarketPublish.link" placeholder="发布链接" />
-    <template #footer>
-      <el-button @click="dialogMarketPublish.open = false">取消</el-button>
-      <el-button type="primary" :loading="dialogMarketPublish.loading" @click="submitMarketPublish">提交</el-button>
-    </template>
+    <template #footer><el-button @click="dialogMarketPublish.open = false">取消</el-button><el-button type="primary" :loading="dialogMarketPublish.loading" @click="submitMarketPublish">提交</el-button></template>
   </el-dialog>
-
   <el-dialog v-model="dialogOfflineSubmit.open" title="提交交付链接" width="520px">
     <el-input v-model="dialogOfflineSubmit.linksText" type="textarea" :rows="6" placeholder="每行一个链接" />
-    <template #footer>
-      <el-button @click="dialogOfflineSubmit.open = false">取消</el-button>
-      <el-button type="primary" :loading="dialogOfflineSubmit.loading" @click="submitOfflineProof">提交</el-button>
-    </template>
+    <template #footer><el-button @click="dialogOfflineSubmit.open = false">取消</el-button><el-button type="primary" :loading="dialogOfflineSubmit.loading" @click="submitOfflineProof">提交</el-button></template>
   </el-dialog>
-
   <el-dialog v-model="dialogOfflinePublish.open" title="提交发布链接" width="520px">
     <el-input v-model="dialogOfflinePublish.link" placeholder="发布链接" />
-    <template #footer>
-      <el-button @click="dialogOfflinePublish.open = false">取消</el-button>
-      <el-button type="primary" :loading="dialogOfflinePublish.loading" @click="submitOfflinePublish">提交</el-button>
-    </template>
+    <template #footer><el-button @click="dialogOfflinePublish.open = false">取消</el-button><el-button type="primary" :loading="dialogOfflinePublish.loading" @click="submitOfflinePublish">提交</el-button></template>
   </el-dialog>
 
-  <el-dialog v-model="dialogAssignPartTime.open" title="分配兼职" width="640px">
-    <el-form label-width="140px">
-      <el-form-item label="兼职姓名/备注">
-        <el-input v-model="dialogAssignPartTime.partTimeName" placeholder="可填写姓名或备注" />
-      </el-form-item>
-      <el-form-item label="结算单价(฿/条)">
-        <el-input-number v-model="dialogAssignPartTime.unitPrice" :min="0" :precision="0" />
-      </el-form-item>
+  <el-dialog v-model="monthlyBatchDialog.open" title="包月批次提交" width="520px">
+    <el-form label-width="120px">
+      <el-form-item label="批次号"><el-input-number v-model="monthlyBatchDialog.batchNo" :min="1" /></el-form-item>
+      <el-form-item label="视频数量"><el-input-number v-model="monthlyBatchDialog.videoCount" :min="1" /></el-form-item>
+      <el-form-item label="视频链接"><el-input v-model="monthlyBatchDialog.linksText" type="textarea" :rows="6" placeholder="每行一个链接" /></el-form-item>
     </el-form>
-    <template #footer>
-      <el-button @click="dialogAssignPartTime.open = false">取消</el-button>
-      <el-button type="primary" :loading="dialogAssignPartTime.loading" @click="submitAssignPartTime">保存</el-button>
-    </template>
-  </el-dialog>
-
-  <el-dialog v-model="dialogMonthlyBatch.open" title="包月批次提交" width="980px">
-    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap">
-      <el-date-picker v-model="dialogMonthlyBatch.weekRange" type="daterange" range-separator="-" start-placeholder="周开始" end-placeholder="周结束" value-format="YYYY-MM-DD" />
-      <el-input-number v-model="dialogMonthlyBatch.plannedCount" :min="0" :precision="0" />
-      <span style="color: #666">计划数量</span>
-      <el-input-number v-model="dialogMonthlyBatch.submittedCount" :min="0" :precision="0" />
-      <span style="color: #666">提交数量</span>
-    </div>
-    <el-input v-model="dialogMonthlyBatch.linksText" type="textarea" :rows="6" placeholder="每行一个交付链接" />
-    <div style="margin-top: 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
-      <el-button type="primary" :loading="dialogMonthlyBatch.loading" @click="submitMonthlyBatch">提交批次</el-button>
-      <el-button @click="loadMonthlyBatches" :loading="dialogMonthlyBatch.loadingBatches">刷新批次列表</el-button>
-    </div>
-
-    <div style="margin-top: 12px; font-weight: 800">批次列表</div>
-    <el-table :data="dialogMonthlyBatch.batches" stripe style="width: 100%; margin-top: 8px">
-      <el-table-column prop="week_start" label="周开始" width="120" />
-      <el-table-column prop="week_end" label="周结束" width="120" />
-      <el-table-column prop="planned_count" label="计划" width="90" />
-      <el-table-column prop="submitted_count" label="提交" width="90" />
-      <el-table-column prop="accepted_count" label="已验收" width="90" />
-      <el-table-column prop="status" label="状态" width="120" />
-      <el-table-column label="结算" width="180">
-        <template #default="{ row }">
-          <span v-if="row.settlement_id">{{ row.settlement_status }} / {{ row.settlement_amount_thb }} ฿</span>
-          <span v-else style="color: #888">-</span>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <template #footer>
-      <el-button @click="dialogMonthlyBatch.open = false">关闭</el-button>
-    </template>
+    <template #footer><el-button @click="monthlyBatchDialog.open = false">取消</el-button><el-button type="primary" :loading="monthlyBatchDialog.loading" @click="submitMonthlyBatch">提交批次</el-button></template>
   </el-dialog>
 </template>
 
@@ -233,17 +112,15 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { claimMarketOrder, completeMarketOrder, listAdminOrders, publishMarketOrder, type AdminMarketOrder } from "@/api/employee";
 import {
   claimEmployeeOfflineVideoOrder,
-  listEmployeeMonthlyBatches,
   listAdminOfflineVideoOrders,
   listEmployeeOfflineVideoOrders,
-  patchEmployeeVideoOrderRequirements,
   publishEmployeeOfflineVideoOrder,
   reviewAdminOfflineVideoOrder,
   setEmployeeOfflineVideoOrderPhase,
   submitEmployeeMonthlyBatch,
   submitEmployeeOfflineVideoOrderProof,
+  type OfflineVideoOrderTypeId,
   type VideoOrder,
-  type VideoOrderTypeId,
 } from "@/api/videoOrders";
 import { useAuthStore } from "@/stores/auth";
 
@@ -251,19 +128,16 @@ const auth = useAuthStore();
 const isAdmin = computed(() => auth.role === "admin");
 const isEmployee = computed(() => auth.role === "employee");
 
-const tab = ref<"market" | "offline">("market");
-
+const tab = ref<"market" | "offline">("offline");
 const marketOrders = ref<AdminMarketOrder[]>([]);
 const loadingMarket = ref(false);
 const marketQ = ref("");
 const marketStatus = ref<string | undefined>();
-
 const offlineOrders = ref<VideoOrder[]>([]);
 const loadingOffline = ref(false);
 const offlineQ = ref("");
-const offlineType = ref<VideoOrderTypeId | undefined>();
+const offlineType = ref<OfflineVideoOrderTypeId | undefined>();
 const offlinePhase = ref<string | undefined>();
-
 const acting = reactive<Record<string | number, boolean>>({});
 const phaseDraft = reactive<Record<number, string>>({});
 const pollTimer = ref<number | null>(null);
@@ -272,27 +146,40 @@ const dialogMarketComplete = reactive({ open: false, orderId: 0, linksText: "", 
 const dialogMarketPublish = reactive({ open: false, orderId: 0, link: "", loading: false });
 const dialogOfflineSubmit = reactive({ open: false, orderId: 0, linksText: "", loading: false });
 const dialogOfflinePublish = reactive({ open: false, orderId: 0, link: "", loading: false });
-const dialogAssignPartTime = reactive({ open: false, orderId: 0, partTimeName: "", unitPrice: 0, loading: false });
-const dialogMonthlyBatch = reactive({
-  open: false,
-  orderId: 0,
-  weekRange: [] as string[],
-  plannedCount: 0,
-  submittedCount: 0,
-  linksText: "",
-  loading: false,
-  loadingBatches: false,
-  batches: [] as any[],
-});
+const monthlyBatchDialog = reactive({ open: false, orderId: 0, batchNo: 1, videoCount: 1, linksText: "", loading: false });
 
-function splitLinks(text: string): string[] {
-  return String(text || "")
-    .split(/\r?\n/g)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .slice(0, 20);
+/** 类型文案。 */
+function typeText(type: OfflineVideoOrderTypeId): string {
+  if (type === "high_quality_custom_video") return "② 高质量视频";
+  if (type === "monthly_package") return "③ 包月合作套餐";
+  return "④ Creator带货测评";
 }
 
+/** 类型标签色。 */
+function tagType(type: OfflineVideoOrderTypeId): "success" | "warning" | "danger" {
+  if (type === "high_quality_custom_video") return "success";
+  if (type === "monthly_package") return "warning";
+  return "danger";
+}
+
+/** 拆分多行链接。 */
+function splitLinks(text: string): string[] {
+  return String(text || "").split(/\r?\n/g).map((s) => s.trim()).filter(Boolean).slice(0, 20);
+}
+
+/** 包月目标数量。 */
+function monthlyTarget(row: VideoOrder): number {
+  const req = (row.requirements || {}) as Record<string, unknown>;
+  return Number(req.min_videos_per_month || 0) || 0;
+}
+
+/** 包月已验收数量。 */
+function monthlyAccepted(row: VideoOrder): number {
+  const list = Array.isArray(row.batch_payload) ? row.batch_payload : [];
+  return list.reduce((s: number, x: any) => s + Number(x?.accepted_count || 0), 0);
+}
+
+/** 加载分级订单。 */
 async function loadMarket() {
   if (loadingMarket.value) return;
   loadingMarket.value = true;
@@ -305,6 +192,7 @@ async function loadMarket() {
   }
 }
 
+/** 接单分级订单。 */
 async function onClaimMarket(orderId: number) {
   acting[orderId] = true;
   try {
@@ -318,18 +206,17 @@ async function onClaimMarket(orderId: number) {
   }
 }
 
+/** 打开分级交付弹窗。 */
 function openCompleteMarket(orderId: number) {
   dialogMarketComplete.open = true;
   dialogMarketComplete.orderId = orderId;
   dialogMarketComplete.linksText = "";
 }
 
+/** 提交分级订单交付。 */
 async function submitMarketComplete() {
   const links = splitLinks(dialogMarketComplete.linksText);
-  if (!links.length) {
-    ElMessage.error("请填写交付链接");
-    return;
-  }
+  if (!links.length) return ElMessage.error("请填写交付链接");
   dialogMarketComplete.loading = true;
   try {
     await completeMarketOrder(dialogMarketComplete.orderId, links);
@@ -343,17 +230,16 @@ async function submitMarketComplete() {
   }
 }
 
+/** 打开分级发布弹窗。 */
 function openPublishMarket(orderId: number) {
   dialogMarketPublish.open = true;
   dialogMarketPublish.orderId = orderId;
   dialogMarketPublish.link = "";
 }
 
+/** 提交分级订单发布链接。 */
 async function submitMarketPublish() {
-  if (!dialogMarketPublish.link.trim()) {
-    ElMessage.error("请填写发布链接");
-    return;
-  }
+  if (!dialogMarketPublish.link.trim()) return ElMessage.error("请填写发布链接");
   dialogMarketPublish.loading = true;
   try {
     await publishMarketOrder(dialogMarketPublish.orderId, dialogMarketPublish.link.trim());
@@ -367,24 +253,14 @@ async function submitMarketPublish() {
   }
 }
 
+/** 加载线下订单。 */
 async function loadOffline() {
   if (loadingOffline.value) return;
   loadingOffline.value = true;
   try {
-    // 该页面同时用于 admin / employee，按角色选择不同接口（避免非员工“接单”能力）。
     const list = isAdmin.value
-      ? await listAdminOfflineVideoOrders({
-          q: offlineQ.value.trim() || undefined,
-          type: offlineType.value,
-          phase: offlinePhase.value,
-          limit: 200,
-        })
-      : await listEmployeeOfflineVideoOrders({
-          q: offlineQ.value.trim() || undefined,
-          type: offlineType.value,
-          phase: offlinePhase.value,
-          limit: 200,
-        });
+      ? await listAdminOfflineVideoOrders({ q: offlineQ.value.trim() || undefined, type: offlineType.value, phase: offlinePhase.value, limit: 200 })
+      : await listEmployeeOfflineVideoOrders({ q: offlineQ.value.trim() || undefined, type: offlineType.value, phase: offlinePhase.value, limit: 200 });
     offlineOrders.value = list;
     for (const o of list) phaseDraft[o.id] = "";
   } catch (e) {
@@ -394,6 +270,7 @@ async function loadOffline() {
   }
 }
 
+/** 员工接单。 */
 async function onClaimOffline(orderId: number) {
   const key = `o${orderId}`;
   acting[key] = true;
@@ -408,18 +285,17 @@ async function onClaimOffline(orderId: number) {
   }
 }
 
+/** 打开线下交付弹窗。 */
 function openSubmitOffline(orderId: number) {
   dialogOfflineSubmit.open = true;
   dialogOfflineSubmit.orderId = orderId;
   dialogOfflineSubmit.linksText = "";
 }
 
+/** 提交线下交付证明。 */
 async function submitOfflineProof() {
   const links = splitLinks(dialogOfflineSubmit.linksText);
-  if (!links.length) {
-    ElMessage.error("请填写交付链接");
-    return;
-  }
+  if (!links.length) return ElMessage.error("请填写交付链接");
   dialogOfflineSubmit.loading = true;
   try {
     await submitEmployeeOfflineVideoOrderProof(dialogOfflineSubmit.orderId, links);
@@ -433,17 +309,46 @@ async function submitOfflineProof() {
   }
 }
 
+/** 打开包月批次提交弹窗。 */
+function openMonthlyBatchSubmit(orderId: number) {
+  monthlyBatchDialog.open = true;
+  monthlyBatchDialog.orderId = orderId;
+  monthlyBatchDialog.batchNo = 1;
+  monthlyBatchDialog.videoCount = 1;
+  monthlyBatchDialog.linksText = "";
+}
+
+/** 提交包月批次交付。 */
+async function submitMonthlyBatch() {
+  const links = splitLinks(monthlyBatchDialog.linksText);
+  if (!links.length) return ElMessage.error("请填写该批次视频链接");
+  monthlyBatchDialog.loading = true;
+  try {
+    await submitEmployeeMonthlyBatch(monthlyBatchDialog.orderId, {
+      batch_no: monthlyBatchDialog.batchNo,
+      video_count: monthlyBatchDialog.videoCount,
+      video_urls: links,
+    });
+    ElMessage.success("已提交批次，待商家验收");
+    monthlyBatchDialog.open = false;
+    await loadOffline();
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : "批次提交失败");
+  } finally {
+    monthlyBatchDialog.loading = false;
+  }
+}
+
+/** 打开发布链接弹窗。 */
 function openPublishOffline(orderId: number) {
   dialogOfflinePublish.open = true;
   dialogOfflinePublish.orderId = orderId;
   dialogOfflinePublish.link = "";
 }
 
+/** 提交发布链接。 */
 async function submitOfflinePublish() {
-  if (!dialogOfflinePublish.link.trim()) {
-    ElMessage.error("请填写发布链接");
-    return;
-  }
+  if (!dialogOfflinePublish.link.trim()) return ElMessage.error("请填写发布链接");
   dialogOfflinePublish.loading = true;
   try {
     await publishEmployeeOfflineVideoOrder(dialogOfflinePublish.orderId, dialogOfflinePublish.link.trim());
@@ -457,6 +362,7 @@ async function submitOfflinePublish() {
   }
 }
 
+/** 管理员审核 Creator 类型订单。 */
 async function onReviewOffline(orderId: number, action: "approve" | "reject") {
   const key = `o${orderId}`;
   const note =
@@ -469,7 +375,7 @@ async function onReviewOffline(orderId: number, action: "approve" | "reject") {
 
   acting[key] = true;
   try {
-    await reviewAdminOfflineVideoOrder(orderId, { action, note: action === "reject" ? (note || undefined) : undefined });
+    await reviewAdminOfflineVideoOrder(orderId, { action, note: action === "reject" ? note || undefined : undefined });
     ElMessage.success("已提交审核结果");
     await loadOffline();
   } catch (e) {
@@ -479,6 +385,7 @@ async function onReviewOffline(orderId: number, action: "approve" | "reject") {
   }
 }
 
+/** 更新线下订单阶段。 */
 async function onSetOfflinePhase(orderId: number, phase: string) {
   const key = `o${orderId}`;
   acting[key] = true;
@@ -494,97 +401,12 @@ async function onSetOfflinePhase(orderId: number, phase: string) {
   }
 }
 
-function openAssignPartTime(orderId: number) {
-  dialogAssignPartTime.open = true;
-  dialogAssignPartTime.orderId = orderId;
-  dialogAssignPartTime.partTimeName = "";
-  dialogAssignPartTime.unitPrice = 0;
-}
-
-async function submitAssignPartTime() {
-  dialogAssignPartTime.loading = true;
-  try {
-    await patchEmployeeVideoOrderRequirements(dialogAssignPartTime.orderId, {
-      part_time_assignee: dialogAssignPartTime.partTimeName.trim(),
-      part_time_unit_price_thb: dialogAssignPartTime.unitPrice,
-      updated_at_local: new Date().toISOString(),
-    });
-    ElMessage.success("已保存");
-    dialogAssignPartTime.open = false;
-    await loadOffline();
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "保存失败");
-  } finally {
-    dialogAssignPartTime.loading = false;
-  }
-}
-
-function openMonthlyBatch(orderId: number) {
-  dialogMonthlyBatch.open = true;
-  dialogMonthlyBatch.orderId = orderId;
-  dialogMonthlyBatch.weekRange = [];
-  dialogMonthlyBatch.plannedCount = 0;
-  dialogMonthlyBatch.submittedCount = 0;
-  dialogMonthlyBatch.linksText = "";
-  dialogMonthlyBatch.batches = [];
-  loadMonthlyBatches();
-}
-
-async function loadMonthlyBatches() {
-  if (!dialogMonthlyBatch.orderId) return;
-  if (dialogMonthlyBatch.loadingBatches) return;
-  dialogMonthlyBatch.loadingBatches = true;
-  try {
-    dialogMonthlyBatch.batches = await listEmployeeMonthlyBatches(dialogMonthlyBatch.orderId);
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "加载失败");
-  } finally {
-    dialogMonthlyBatch.loadingBatches = false;
-  }
-}
-
-async function submitMonthlyBatch() {
-  const links = splitLinks(dialogMonthlyBatch.linksText);
-  if (!links.length) {
-    ElMessage.error("请填写交付链接");
-    return;
-  }
-  const [start, end] = dialogMonthlyBatch.weekRange || [];
-  if (!start || !end) {
-    ElMessage.error("请选择周起止日期");
-    return;
-  }
-  dialogMonthlyBatch.loading = true;
-  try {
-    await submitEmployeeMonthlyBatch(dialogMonthlyBatch.orderId, {
-      week_start: start,
-      week_end: end,
-      planned_count: dialogMonthlyBatch.plannedCount,
-      submitted_count: dialogMonthlyBatch.submittedCount || links.length,
-      video_urls: links,
-    });
-    ElMessage.success("已提交批次");
-    dialogMonthlyBatch.linksText = "";
-    await loadMonthlyBatches();
-    await loadOffline();
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "提交失败");
-  } finally {
-    dialogMonthlyBatch.loading = false;
-  }
-}
-
+/** 检查是否有弹窗打开，避免轮询打断输入。 */
 function isAnyDialogOpen(): boolean {
-  return !!(
-    dialogMarketComplete.open ||
-    dialogMarketPublish.open ||
-    dialogOfflineSubmit.open ||
-    dialogOfflinePublish.open ||
-    dialogAssignPartTime.open ||
-    dialogMonthlyBatch.open
-  );
+  return !!(dialogMarketComplete.open || dialogMarketPublish.open || dialogOfflineSubmit.open || dialogOfflinePublish.open || monthlyBatchDialog.open);
 }
 
+/** 轮询刷新。 */
 async function pollOnce() {
   if (document.hidden) return;
   if (isAnyDialogOpen()) return;
@@ -605,4 +427,3 @@ onBeforeUnmount(() => {
   }
 });
 </script>
-

@@ -1,164 +1,110 @@
-<template>
-  <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap">
-    <div style="font-weight: 800; font-size: 18px">我的视频订单 / ออเดอร์ของฉัน</div>
-    <el-button @click="loadAll" :loading="loading">刷新 / รีเฟรช</el-button>
-    <el-select v-model="typeFilter" clearable placeholder="订单类型 / ประเภท" style="width: 260px">
-      <el-option label="分级视频 / คลิปแบ่งเกรด" value="graded_video" />
-      <el-option label="高质量 / วิดีโอคุณภาพสูง" value="high_quality_custom_video" />
-      <el-option label="包月套餐 / แพ็กเกจรายเดือน" value="monthly_package" />
-      <el-option label="测评带货 / รีวิวติดตะกร้า" value="creator_review_video" />
-    </el-select>
-    <el-input v-model="q" placeholder="搜索标题 / ค้นหา" style="width: 260px" @keyup.enter="loadAll" />
-  </div>
+﻿<template>
+  <el-tabs v-model="tab">
+    <el-tab-pane label="分级视频（积分单）" name="market">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+        <el-button @click="loadMarket" :loading="loadingMarket">刷新</el-button>
+      </div>
+      <el-table :data="marketOrders" stripe style="width:100%">
+        <el-table-column prop="order_no" label="订单号" width="180" />
+        <el-table-column prop="tier" label="档位" width="80" />
+        <el-table-column prop="status" label="状态" width="110" />
+        <el-table-column prop="title" label="标题" min-width="260" />
+      </el-table>
+    </el-tab-pane>
 
-  <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap">
-    <el-tag type="info">总数 {{ stats.total }}</el-tag>
-    <el-tag type="warning">待付款 {{ stats.unpaid }}</el-tag>
-    <el-tag type="success">已完成 {{ stats.completed }}</el-tag>
-    <el-tag type="primary">总金额 {{ stats.amountThb }} ฿</el-tag>
-  </div>
+    <el-tab-pane label="视频订单（4类）" name="offline">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+        <el-button @click="loadOffline" :loading="loadingOffline">刷新</el-button>
+        <el-select v-model="offlineType" clearable placeholder="订单类型" style="width:240px" @change="loadOffline">
+          <el-option label="② 高质量视频" value="high_quality_custom_video" />
+          <el-option label="③ 包月合作套餐" value="monthly_package" />
+          <el-option label="④ Creator带货测评" value="creator_review_video" />
+        </el-select>
+        <el-input v-model="offlineQ" placeholder="搜索标题" style="width:260px" @keyup.enter="loadOffline" />
+      </div>
 
-  <el-table :data="filtered" stripe style="width: 100%" @row-click="openDetail">
-    <el-table-column label="订单" width="140">
-      <template #default="{ row }">
-        <span v-if="row.source === 'video'">#{{ row.id }}</span>
-        <span v-else>{{ row.order_no }}</span>
-      </template>
-    </el-table-column>
-    <el-table-column label="类型" width="180">
-      <template #default="{ row }">
-        <el-tag :type="tagType(row.type_id)" effect="dark">{{ typeLabel(row.type_id) }}</el-tag>
-      </template>
-    </el-table-column>
-    <el-table-column label="付款" width="140">
-      <template #default="{ row }">
-        <span v-if="row.source === 'market'">已扣积分</span>
-        <span v-else>{{ paymentLabel(row) }}</span>
-      </template>
-    </el-table-column>
-    <el-table-column label="阶段/状态" width="160">
-      <template #default="{ row }">
-        <span>{{ row.source === 'market' ? row.status : row.phase }}</span>
-      </template>
-    </el-table-column>
-    <el-table-column prop="title" label="标题" min-width="260" />
-    <el-table-column label="金额" width="160">
-      <template #default="{ row }">
-        <span v-if="row.source === 'market'">{{ row.reward_points_total }} 积分</span>
-        <span v-else>{{ row.amount_thb }} ฿</span>
-      </template>
-    </el-table-column>
-    <el-table-column label="包月进度" width="220">
-      <template #default="{ row }">
-        <template v-if="row.source === 'video' && row.type_id === 'monthly_package'">
-          <div>{{ row.monthly_accepted_count || 0 }}/{{ row.monthly_planned_count || 0 }}</div>
-          <div style="color: #111; font-weight: 700">已结算 {{ row.monthly_settled_amount_thb || 0 }} ฿</div>
-        </template>
-        <span v-else style="color: #888">-</span>
-      </template>
-    </el-table-column>
-    <el-table-column label="操作" width="380" fixed="right">
-      <template #default="{ row }">
-        <template v-if="row.source === 'video'">
-          <el-button size="small" type="primary" :disabled="row.payment_method !== 'offline' || row.payment_status !== 'unpaid'" :loading="acting[row.id]" @click.stop="markPaid(row.id)">
-            标记已付款
-          </el-button>
-          <el-button size="small" type="success" :disabled="!canAccept(row)" :loading="acting[row.id]" @click.stop="accept(row.id)">
-            验收通过
-          </el-button>
-          <el-button size="small" type="danger" :disabled="!canReject(row)" :loading="acting[row.id]" @click.stop="reject(row.id)">
-            验收驳回
-          </el-button>
-          <el-button size="small" :disabled="!canCancel(row)" :loading="acting[row.id]" @click.stop="cancel(row.id)">
-            取消/退款
-          </el-button>
-        </template>
-        <span v-else style="color: #888">点击查看详情</span>
-      </template>
-    </el-table-column>
-  </el-table>
+      <el-row :gutter="10" style="margin-bottom:10px">
+        <el-col :span="6"><el-statistic title="订单总数" :value="stats.total" /></el-col>
+        <el-col :span="6"><el-statistic title="总金额(THB)" :value="stats.amount" /></el-col>
+        <el-col :span="6"><el-statistic title="完成率" :value="stats.finishRate" suffix="%" /></el-col>
+        <el-col :span="6"><el-statistic title="包月已结算(THB)" :value="stats.monthlySettled" /></el-col>
+      </el-row>
 
-  <el-dialog v-model="detail.open" :title="detailTitle" width="980px">
-    <template v-if="detail.row">
+      <el-table :data="offlineOrders" stripe style="width:100%">
+        <el-table-column prop="id" label="ID" width="90" />
+        <el-table-column label="类型" width="180">
+          <template #default="{ row }"><el-tag :type="tagType(row.type_id)">{{ typeText(row.type_id) }}</el-tag></template>
+        </el-table-column>
+        <el-table-column prop="payment_status" label="付款" width="100" />
+        <el-table-column prop="phase" label="阶段" width="130" />
+        <el-table-column prop="title" label="标题" min-width="220" />
+        <el-table-column prop="amount_thb" label="金额(฿)" width="120" />
+        <el-table-column label="包月进度" min-width="220">
+          <template #default="{ row }">
+            <template v-if="row.type_id === 'monthly_package'">
+              {{ monthlyAccepted(row) }}/{{ monthlyTarget(row) }} ｜ 已结算 {{ monthlySettled(row) }}฿
+            </template>
+            <span v-else style="color:#94a3b8">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="460" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="openDetail(row)">详情</el-button>
+            <el-button size="small" type="primary" :disabled="row.payment_status !== 'unpaid'" :loading="acting[row.id]" @click="markPaid(row.id)">标记已付款</el-button>
+            <el-button size="small" type="success" :disabled="!canAcceptOffline(row)" :loading="acting[row.id]" @click="acceptOffline(row.id)">验收通过</el-button>
+            <el-button size="small" type="danger" :disabled="!canRejectOffline(row)" :loading="acting[row.id]" @click="rejectOffline(row.id)">验收驳回</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-tab-pane>
+  </el-tabs>
+
+  <el-drawer v-model="detailOpen" title="订单详情" size="58%">
+    <template v-if="activeOrder">
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="类型">{{ typeLabel(detail.row.type_id) }}</el-descriptions-item>
-        <el-descriptions-item label="标题">{{ detail.row.title }}</el-descriptions-item>
-        <el-descriptions-item label="付款">{{ detail.row.source === 'video' ? paymentLabel(detail.row) : '已扣积分' }}</el-descriptions-item>
-        <el-descriptions-item label="阶段/状态">{{ detail.row.source === 'video' ? detail.row.phase : detail.row.status }}</el-descriptions-item>
+        <el-descriptions-item label="订单ID">{{ activeOrder.id }}</el-descriptions-item>
+        <el-descriptions-item label="订单类型">{{ typeText(activeOrder.type_id) }}</el-descriptions-item>
+        <el-descriptions-item label="标题">{{ activeOrder.title }}</el-descriptions-item>
+        <el-descriptions-item label="金额">{{ activeOrder.amount_thb }} ฿</el-descriptions-item>
+        <el-descriptions-item label="付款状态">{{ activeOrder.payment_status }}</el-descriptions-item>
+        <el-descriptions-item label="流程阶段">{{ activeOrder.phase }}</el-descriptions-item>
       </el-descriptions>
 
-      <el-divider />
+      <el-alert style="margin-top:12px" type="info" :closable="false" show-icon :title="detailRuleTitle" :description="detailRuleDesc" />
 
-      <el-alert type="info" show-icon>
-        <template #title>
-          <div style="font-weight: 700">规则说明 / ข้อกำหนด</div>
-        </template>
-        <div style="line-height: 1.75; white-space: pre-wrap">{{ rulesText(detail.row) }}</div>
-      </el-alert>
-
-      <el-divider />
-
-      <template v-if="detail.row.source === 'video'">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="需求(JSON)"><pre style="margin: 0; white-space: pre-wrap">{{ pretty(detail.row.requirements) }}</pre></el-descriptions-item>
-          <el-descriptions-item label="交付链接">
-            <div v-if="linksOf(detail.row.proof_links).length">
-              <div v-for="u in linksOf(detail.row.proof_links)" :key="u">{{ u }}</div>
-            </div>
-            <span v-else style="color: #888">-</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="发布链接">
-            <div v-if="linksOf(detail.row.publish_links).length">
-              <div v-for="u in linksOf(detail.row.publish_links)" :key="u">{{ u }}</div>
-            </div>
-            <span v-else style="color: #888">-</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="审核备注">{{ detail.row.review_note || "-" }}</el-descriptions-item>
-        </el-descriptions>
-      </template>
-
-      <template v-if="detail.row.source === 'video' && detail.row.type_id === 'monthly_package'">
-        <el-divider />
-        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px; flex-wrap: wrap">
-          <div style="font-weight: 800">批次验收 / ตรวจรับเป็นรอบ</div>
-          <el-button @click="loadBatches" :loading="detail.loadingBatches">刷新批次</el-button>
-        </div>
-
-        <el-table :data="detail.batches" stripe style="width: 100%">
-          <el-table-column prop="week_start" label="周开始" width="120" />
-          <el-table-column prop="week_end" label="周结束" width="120" />
-          <el-table-column prop="planned_count" label="计划" width="90" />
-          <el-table-column prop="submitted_count" label="提交" width="90" />
-          <el-table-column prop="accepted_count" label="已验收" width="90" />
-          <el-table-column prop="status" label="状态" width="120" />
-          <el-table-column label="结算" width="160">
+      <div v-if="activeOrder.type_id === 'monthly_package'" style="margin-top:12px">
+        <div style="font-weight:700;margin-bottom:8px">批次验收 / 结算</div>
+        <el-table :data="monthlyBatches(activeOrder)" border>
+          <el-table-column prop="batch_no" label="批次" width="80" />
+          <el-table-column prop="video_count" label="提交数量" width="120" />
+          <el-table-column prop="accepted_count" label="验收数量" width="120" />
+          <el-table-column prop="status" label="状态" width="150" />
+          <el-table-column prop="settled_amount" label="结算金额(฿)" width="140" />
+          <el-table-column label="操作" width="240">
             <template #default="{ row }">
-              <span v-if="row.settlement_id">{{ row.settlement_status }} / {{ row.settlement_amount_thb }} ฿</span>
-              <span v-else style="color: #888">-</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="280" fixed="right">
-            <template #default="{ row }">
-              <el-button size="small" type="success" :disabled="!(row.status === 'submitted' || row.status === 'pending')" :loading="detail.actingBatches[row.id]" @click="acceptBatch(row.id)">
-                验收本批
-              </el-button>
-              <el-button
-                size="small"
-                type="primary"
-                :disabled="!row.settlement_id || row.settlement_status !== 'pending'"
-                :loading="detail.actingBatches[row.id]"
-                @click="markSettlementPaid(row)"
-              >
-                标记已结算
-              </el-button>
+              <el-button size="small" type="success" :disabled="row.status !== 'pending_acceptance'" @click="openBatchAccept(row.batch_no)">验收</el-button>
+              <el-button size="small" type="primary" :disabled="row.status !== 'accepted'" @click="openBatchSettle(row.batch_no)">结算</el-button>
             </template>
           </el-table-column>
         </el-table>
-      </template>
+      </div>
     </template>
+  </el-drawer>
 
+  <el-dialog v-model="batchAcceptOpen" title="批次验收" width="420px">
+    <el-input-number v-model="batchAcceptedCount" :min="0" />
+    <el-input v-model="batchAcceptNote" type="textarea" :rows="3" placeholder="验收备注（可选）" style="margin-top:8px" />
     <template #footer>
-      <el-button @click="detail.open = false">关闭</el-button>
+      <el-button @click="batchAcceptOpen = false">取消</el-button>
+      <el-button type="primary" :loading="batchLoading" @click="submitBatchAccept">确认验收</el-button>
+    </template>
+  </el-dialog>
+
+  <el-dialog v-model="batchSettleOpen" title="批次结算" width="420px">
+    <el-input-number v-model="batchSettledAmount" :min="0" :precision="2" />
+    <template #footer>
+      <el-button @click="batchSettleOpen = false">取消</el-button>
+      <el-button type="primary" :loading="batchLoading" @click="submitBatchSettle">确认结算</el-button>
     </template>
   </el-dialog>
 </template>
@@ -168,70 +114,150 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { listClientMarketOrders, type ClientMarketOrder } from "@/api/client";
 import {
-  acceptClientOfflineVideoOrder,
   acceptClientMonthlyBatch,
-  cancelClientVideoOrder,
+  acceptClientOfflineVideoOrder,
   listClientOfflineVideoOrders,
-  listClientMonthlyBatches,
   markClientOfflineVideoOrderPaid,
-  markClientMonthlySettlementPaid,
   rejectClientOfflineVideoOrder,
-  type MonthlyBatch,
+  settleClientMonthlyBatch,
+  type MonthlyBatchItem,
+  type OfflineVideoOrderTypeId,
   type VideoOrder,
-  type VideoOrderTypeId,
 } from "@/api/videoOrders";
 
-type Row =
-  | (VideoOrder & { source: "video" })
-  | (ClientMarketOrder & { source: "market"; type_id: "graded_video"; phase: string; payment_method: "points"; payment_status: "paid" });
-
-const loading = ref(false);
-const typeFilter = ref<VideoOrderTypeId | "">("");
-const q = ref("");
-
+const tab = ref<"market" | "offline">("offline");
+const loadingMarket = ref(false);
 const marketOrders = ref<ClientMarketOrder[]>([]);
-const videoOrders = ref<VideoOrder[]>([]);
-
+const loadingOffline = ref(false);
+const offlineOrders = ref<VideoOrder[]>([]);
+const offlineType = ref<OfflineVideoOrderTypeId | "">("");
+const offlineQ = ref("");
 const acting = reactive<Record<number, boolean>>({});
 const pollTimer = ref<number | null>(null);
 
-const all = computed<Row[]>(() => {
-  const v: Row[] = videoOrders.value.map((x) => ({ ...(x as any), source: "video" }));
-  const m: Row[] = marketOrders.value.map((x) => ({ ...(x as any), source: "market", type_id: "graded_video", phase: x.status, payment_method: "points", payment_status: "paid" }));
-  return [...v, ...m].sort((a: any, b: any) => {
-    const at = new Date((a as any).created_at || (a as any).updated_at || 0).getTime();
-    const bt = new Date((b as any).created_at || (b as any).updated_at || 0).getTime();
-    return bt - at;
-  });
+const detailOpen = ref(false);
+const activeOrder = ref<VideoOrder | null>(null);
+const batchAcceptOpen = ref(false);
+const batchSettleOpen = ref(false);
+const activeBatchNo = ref(0);
+const batchAcceptedCount = ref(0);
+const batchAcceptNote = ref("");
+const batchSettledAmount = ref(0);
+const batchLoading = ref(false);
+
+/** 类型文本。 */
+function typeText(type: OfflineVideoOrderTypeId): string {
+  if (type === "high_quality_custom_video") return "② 高质量视频";
+  if (type === "monthly_package") return "③ 包月合作套餐";
+  return "④ Creator带货测评";
+}
+
+/** 类型标签颜色。 */
+function tagType(type: OfflineVideoOrderTypeId): "success" | "warning" | "danger" {
+  if (type === "high_quality_custom_video") return "success";
+  if (type === "monthly_package") return "warning";
+  return "danger";
+}
+
+/** 包月批次列表。 */
+function monthlyBatches(row: VideoOrder): MonthlyBatchItem[] {
+  return Array.isArray(row.batch_payload) ? row.batch_payload : [];
+}
+
+/** 包月目标数量。 */
+function monthlyTarget(row: VideoOrder): number {
+  const req = (row.requirements || {}) as Record<string, unknown>;
+  return Number(req.min_videos_per_month || 0) || 0;
+}
+
+/** 包月已验收数量。 */
+function monthlyAccepted(row: VideoOrder): number {
+  return monthlyBatches(row).reduce((s, b) => s + Number(b.accepted_count || 0), 0);
+}
+
+/** 包月已结算金额。 */
+function monthlySettled(row: VideoOrder): number {
+  return monthlyBatches(row).reduce((s, b) => s + Number(b.settled_amount || 0), 0);
+}
+
+/** 当前详情规则标题。 */
+const detailRuleTitle = computed(() => {
+  if (!activeOrder.value) return "";
+  if (activeOrder.value.type_id === "high_quality_custom_video") return "高质量视频：可脚本/可露脸/支持1-2次修改";
+  if (activeOrder.value.type_id === "monthly_package") return "包月合作：按周批次验收与结算";
+  return "Creator测评：先审后发，支持TAP挂车";
 });
 
-const filtered = computed<Row[]>(() => {
-  const t = typeFilter.value;
-  const kw = q.value.trim().toLowerCase();
-  return all.value.filter((r: any) => {
-    if (t && r.type_id !== t) return false;
-    if (kw && !String(r.title || "").toLowerCase().includes(kw)) return false;
-    return true;
-  });
+/** 当前详情规则描述。 */
+const detailRuleDesc = computed(() => {
+  if (!activeOrder.value) return "";
+  if (activeOrder.value.type_id === "high_quality_custom_video") return "流程：付款 → 员工对接Influencer拍摄 → 初稿交付 → 修改 → 定稿发布。";
+  if (activeOrder.value.type_id === "monthly_package") return "要求：>=20条/月，前1-4条支持修改，交付成品+原始素材，商家自发。";
+  return "流程：付款 → 对接Creator拍摄 → 审核通过 → 发布 → 结算。";
 });
 
+/** 列表统计信息。 */
 const stats = computed(() => {
-  const list = filtered.value as any[];
-  const total = list.length;
-  const unpaid = list.filter((x) => x.source === "video" && x.payment_method === "offline" && x.payment_status === "unpaid").length;
-  const completed = list.filter((x) => (x.source === "video" ? x.phase === "completed" : x.status === "completed")).length;
-  const amountThb = list
-    .filter((x) => x.source === "video")
-    .reduce((sum, x) => sum + Number(x.amount_thb || 0), 0);
-  return { total, unpaid, completed, amountThb };
+  const total = offlineOrders.value.length;
+  const amount = offlineOrders.value.reduce((s, x) => s + Number(x.amount_thb || 0), 0);
+  const completed = offlineOrders.value.filter((x) => x.phase === "completed").length;
+  const finishRate = total > 0 ? Number(((completed / total) * 100).toFixed(1)) : 0;
+  const monthlySettledTotal = offlineOrders.value.filter((x) => x.type_id === "monthly_package").reduce((s, x) => s + monthlySettled(x), 0);
+  return { total, amount: Number(amount.toFixed(2)), finishRate, monthlySettled: Number(monthlySettledTotal.toFixed(2)) };
 });
 
+/** 是否允许整单验收通过。 */
+function canAcceptOffline(row: VideoOrder): boolean {
+  if (row.payment_status !== "paid") return false;
+  if (row.type_id === "monthly_package") return monthlyTarget(row) > 0 && monthlyAccepted(row) >= monthlyTarget(row);
+  if (row.type_id === "creator_review_video") return row.phase === "published";
+  return row.phase === "delivered";
+}
+
+/** 是否允许驳回。 */
+function canRejectOffline(row: VideoOrder): boolean {
+  if (row.payment_status !== "paid") return false;
+  return row.phase === "delivered" || row.phase === "published";
+}
+
+/** 加载分级订单。 */
+async function loadMarket() {
+  if (loadingMarket.value) return;
+  loadingMarket.value = true;
+  try {
+    marketOrders.value = await listClientMarketOrders();
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : "加载失败");
+  } finally {
+    loadingMarket.value = false;
+  }
+}
+
+/** 加载线下订单并应用筛选。 */
+async function loadOffline() {
+  if (loadingOffline.value) return;
+  loadingOffline.value = true;
+  try {
+    const list = await listClientOfflineVideoOrders();
+    offlineOrders.value = list.filter((x) => {
+      if (offlineType.value && x.type_id !== offlineType.value) return false;
+      if (offlineQ.value.trim() && !String(x.title || "").toLowerCase().includes(offlineQ.value.trim().toLowerCase())) return false;
+      return true;
+    });
+  } catch (e) {
+    ElMessage.error(e instanceof Error ? e.message : "加载失败");
+  } finally {
+    loadingOffline.value = false;
+  }
+}
+
+/** 商家标记已付款。 */
 async function markPaid(orderId: number) {
   acting[orderId] = true;
   try {
     await markClientOfflineVideoOrderPaid(orderId);
     ElMessage.success("已标记已付款");
-    await loadAll();
+    await loadOffline();
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "操作失败");
   } finally {
@@ -239,12 +265,13 @@ async function markPaid(orderId: number) {
   }
 }
 
-async function accept(orderId: number) {
+/** 商家整单验收通过。 */
+async function acceptOffline(orderId: number) {
   acting[orderId] = true;
   try {
     await acceptClientOfflineVideoOrder(orderId);
     ElMessage.success("已验收通过");
-    await loadAll();
+    await loadOffline();
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "验收失败");
   } finally {
@@ -252,7 +279,8 @@ async function accept(orderId: number) {
   }
 }
 
-async function reject(orderId: number) {
+/** 商家整单驳回。 */
+async function rejectOffline(orderId: number) {
   const reason = await ElMessageBox.prompt("请输入驳回原因（可留空）", "验收驳回", { confirmButtonText: "提交", cancelButtonText: "取消", inputType: "textarea" })
     .then((r) => String(r.value || "").trim())
     .catch(() => null);
@@ -262,7 +290,7 @@ async function reject(orderId: number) {
   try {
     await rejectClientOfflineVideoOrder(orderId, reason || "");
     ElMessage.success("已驳回");
-    await loadAll();
+    await loadOffline();
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "驳回失败");
   } finally {
@@ -270,177 +298,74 @@ async function reject(orderId: number) {
   }
 }
 
-async function cancel(orderId: number) {
-  const ok = await ElMessageBox.confirm("确认取消该订单？积分单将自动退款。", "取消订单", { confirmButtonText: "确认", cancelButtonText: "取消", type: "warning" })
-    .then(() => true)
-    .catch(() => false);
-  if (!ok) return;
-  acting[orderId] = true;
+/** 打开订单详情。 */
+function openDetail(row: VideoOrder) {
+  activeOrder.value = row;
+  detailOpen.value = true;
+}
+
+/** 打开批次验收弹窗。 */
+function openBatchAccept(batchNo: number) {
+  activeBatchNo.value = batchNo;
+  batchAcceptedCount.value = 0;
+  batchAcceptNote.value = "";
+  batchAcceptOpen.value = true;
+}
+
+/** 打开批次结算弹窗。 */
+function openBatchSettle(batchNo: number) {
+  activeBatchNo.value = batchNo;
+  batchSettledAmount.value = 0;
+  batchSettleOpen.value = true;
+}
+
+/** 提交批次验收。 */
+async function submitBatchAccept() {
+  if (!activeOrder.value) return;
+  batchLoading.value = true;
   try {
-    await cancelClientVideoOrder(orderId);
-    ElMessage.success("已取消");
-    await loadAll();
+    await acceptClientMonthlyBatch(activeOrder.value.id, activeBatchNo.value, {
+      accepted_count: batchAcceptedCount.value,
+      note: batchAcceptNote.value.trim() || undefined,
+    });
+    batchAcceptOpen.value = false;
+    ElMessage.success("批次已验收");
+    await loadOffline();
   } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "取消失败");
+    ElMessage.error(e instanceof Error ? e.message : "批次验收失败");
   } finally {
-    acting[orderId] = false;
+    batchLoading.value = false;
   }
 }
 
-function tagType(typeId: VideoOrderTypeId): "success" | "warning" | "info" | "primary" | "danger" {
-  if (typeId === "graded_video") return "warning";
-  if (typeId === "high_quality_custom_video") return "primary";
-  if (typeId === "monthly_package") return "success";
-  return "danger";
-}
-
-function typeLabel(typeId: VideoOrderTypeId): string {
-  if (typeId === "graded_video") return "分级视频 / เกรด";
-  if (typeId === "high_quality_custom_video") return "高质量 / คุณภาพสูง";
-  if (typeId === "monthly_package") return "包月 / รายเดือน";
-  return "测评带货 / รีวิว";
-}
-
-function paymentLabel(row: any): string {
-  if (row.payment_method === "points") return row.payment_status === "refunded" ? "已退款" : "积分已扣";
-  return row.payment_status === "paid" ? "已付款" : row.payment_status === "refunded" ? "已退款" : "未付款";
-}
-
-function canAccept(row: any): boolean {
-  if (row.payment_status !== "paid") return false;
-  if (row.phase === "completed") return false;
-  if (row.type_id === "creator_review_video") return row.phase === "published";
-  return row.phase === "delivered";
-}
-
-function canReject(row: any): boolean {
-  if (row.payment_status !== "paid") return false;
-  if (row.phase === "completed") return false;
-  return row.phase === "delivered" || row.phase === "published";
-}
-
-function canCancel(row: any): boolean {
-  if (row.payment_method !== "points") return false;
-  if (row.payment_status !== "paid") return false;
-  if (row.phase === "completed") return false;
-  return true;
-}
-
-function linksOf(v: any): string[] {
-  if (Array.isArray(v)) return v.map((x) => (typeof x === "string" ? x : x && typeof x === "object" ? String((x as any).url || "") : "")).filter(Boolean);
-  return [];
-}
-
-function pretty(v: any): string {
+/** 提交批次结算。 */
+async function submitBatchSettle() {
+  if (!activeOrder.value) return;
+  batchLoading.value = true;
   try {
-    return JSON.stringify(v ?? {}, null, 2);
-  } catch {
-    return String(v ?? "");
-  }
-}
-
-function rulesText(row: any): string {
-  if (row.type_id === "graded_video") {
-    return "兼职仅负责拍摄剪辑，无TikTok账号、不发布视频，需到我方办公室拍摄；视频不露脸、不提供脚本、不支持修改。\nพนักงานพาร์ทไทม์รับผิดชอบเฉพาะถ่ายทำ/ตัดต่อ ไม่มีบัญชี TikTok และไม่โพสต์ ต้องมาถ่ายที่ออฟฟิศของเรา; ไม่โชว์หน้า ไม่ทำสคริปต์ และไม่รับแก้ไข";
-  }
-  if (row.type_id === "high_quality_custom_video") {
-    return "可提供脚本/参考视频；可露脸；支持 1-2 次合理修改；Influencer 在 TikTok 发布，支持广告投放。\nสามารถให้สคริปต์/คลิปอ้างอิง โชว์หน้าได้ แก้ไขได้ 1-2 ครั้ง และโพสต์โดย Influencer";
-  }
-  if (row.type_id === "monthly_package") {
-    return "单价 650฿/条；每月不少于 20 条；前 1-4 条可修改；交付包含成品+原始素材；商家自行发布；按周分批验收结算。\n650฿/คลิป อย่างน้อย 20 คลิป/เดือน แก้ได้ 1-4 คลิปแรก ส่งไฟล์สำเร็จ + ฟุตเทจ ร้านค้าโพสต์เอง ตรวจรับ/ชำระรายสัปดาห์";
-  }
-  return "8-10 条/单；可露脸；需 TikTok 发布并 TAP 挂车；先提交审核，通过后才可发布。\n8-10 คลิป/งาน โชว์หน้าได้ ต้องโพสต์ TikTok และติดตะกร้า ส่งตรวจอนุมัติก่อนโพสต์";
-}
-
-const detail = reactive({
-  open: false,
-  row: null as any,
-  loadingBatches: false,
-  batches: [] as MonthlyBatch[],
-  actingBatches: {} as Record<number, boolean>,
-});
-
-const detailTitle = computed(() => {
-  if (!detail.row) return "订单详情";
-  return detail.row.source === "video" ? `订单详情 #${detail.row.id}` : `订单详情 ${detail.row.order_no}`;
-});
-
-function openDetail(row: any) {
-  detail.open = true;
-  detail.row = row;
-  detail.batches = [];
-  detail.actingBatches = {};
-  if (row.source === "video" && row.type_id === "monthly_package") {
-    loadBatches();
-  }
-}
-
-async function loadBatches() {
-  if (!detail.row) return;
-  if (detail.loadingBatches) return;
-  detail.loadingBatches = true;
-  try {
-    detail.batches = await listClientMonthlyBatches(detail.row.id);
+    await settleClientMonthlyBatch(activeOrder.value.id, activeBatchNo.value, {
+      settled_amount: batchSettledAmount.value,
+    });
+    batchSettleOpen.value = false;
+    ElMessage.success("批次已结算");
+    await loadOffline();
   } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "加载失败");
+    ElMessage.error(e instanceof Error ? e.message : "批次结算失败");
   } finally {
-    detail.loadingBatches = false;
+    batchLoading.value = false;
   }
 }
 
-async function acceptBatch(batchId: number) {
-  if (!detail.row) return;
-  detail.actingBatches[batchId] = true;
-  try {
-    await acceptClientMonthlyBatch(detail.row.id, batchId);
-    ElMessage.success("已验收");
-    await loadBatches();
-    await loadAll();
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "验收失败");
-  } finally {
-    detail.actingBatches[batchId] = false;
-  }
-}
-
-async function markSettlementPaid(b: MonthlyBatch) {
-  if (!detail.row) return;
-  if (!b.settlement_id) return;
-  detail.actingBatches[b.id] = true;
-  try {
-    await markClientMonthlySettlementPaid(detail.row.id, Number(b.settlement_id));
-    ElMessage.success("已结算");
-    await loadBatches();
-    await loadAll();
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "结算失败");
-  } finally {
-    detail.actingBatches[b.id] = false;
-  }
-}
-
-async function loadAll() {
-  if (loading.value) return;
-  loading.value = true;
-  try {
-    const [m, v] = await Promise.all([listClientMarketOrders().catch(() => [] as ClientMarketOrder[]), listClientOfflineVideoOrders()]);
-    marketOrders.value = m;
-    videoOrders.value = v;
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "加载失败");
-  } finally {
-    loading.value = false;
-  }
-}
-
+/** 轮询更新当前标签页列表。 */
 async function pollOnce() {
   if (document.hidden) return;
-  if (detail.open) return;
-  return loadAll();
+  if (tab.value === "market") return loadMarket();
+  return loadOffline();
 }
 
 onMounted(() => {
-  loadAll();
+  loadMarket();
+  loadOffline();
   pollTimer.value = window.setInterval(pollOnce, 5000);
 });
 
@@ -451,4 +376,3 @@ onBeforeUnmount(() => {
   }
 });
 </script>
-
