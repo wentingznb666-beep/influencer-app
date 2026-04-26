@@ -1,4 +1,4 @@
-﻿<template>
+﻿﻿<template>
   <el-tabs v-model="tab">
     <el-tab-pane label="分级视频（积分单）" name="market">
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
