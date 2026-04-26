@@ -22,6 +22,16 @@ export default function InfluencerPermissionsPage() {
     return v;
   };
 
+  const renderTruncatedText = (value: unknown, lines: 1 | 2 = 1, placeholder = "-") => {
+    const text = value === null || value === undefined ? "" : String(value).trim();
+    if (!text) return renderPlaceholder(placeholder);
+    return (
+      <div className={lines === 1 ? "xt-perm-ellipsis-1" : "xt-perm-ellipsis-2"} title={text}>
+        {text}
+      </div>
+    );
+  };
+
   const statusTagStyle = (status: string | null | undefined) => {
     const v = String(status || "unapplied");
     if (v === "approved") return { background: "#ecfdf5", borderColor: "#10b981", color: "#047857" };
@@ -116,6 +126,7 @@ export default function InfluencerPermissionsPage() {
           padding: 10px 12px;
           border-bottom: 1px solid #e2e8f0;
           white-space: nowrap;
+          min-width: 0;
         }
         .xt-perm-table tbody td {
           padding: 10px 12px;
@@ -123,6 +134,8 @@ export default function InfluencerPermissionsPage() {
           vertical-align: top;
           color: #0f172a;
           font-size: 13px;
+          min-width: 0;
+          overflow: hidden;
         }
         .xt-perm-table tbody tr:nth-child(odd) td {
           background: #fcfcfd;
@@ -177,6 +190,7 @@ export default function InfluencerPermissionsPage() {
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
+          overflow-wrap: anywhere;
           word-break: break-word;
           line-height: 1.35;
         }
@@ -184,6 +198,7 @@ export default function InfluencerPermissionsPage() {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+          min-width: 0;
         }
         .xt-perm-cards {
           display: grid;
@@ -237,6 +252,17 @@ export default function InfluencerPermissionsPage() {
           flex: 1 1 auto;
           min-width: 0;
         }
+        @media (max-width: 480px) {
+          .xt-perm-card {
+            padding: 10px;
+          }
+          .xt-perm-card-row {
+            grid-template-columns: 72px 1fr;
+          }
+          .xt-perm-card-actions .xt-perm-btn {
+            flex-basis: calc(50% - 4px);
+          }
+        }
       `}</style>
 
       {isMobile ? (
@@ -250,9 +276,7 @@ export default function InfluencerPermissionsPage() {
               <div key={it.id} className="xt-perm-card">
                 <div className="xt-perm-card-top">
                   <div style={{ minWidth: 0 }}>
-                    <div className="xt-perm-card-title xt-perm-ellipsis-1" title={String(name || "")}>
-                      {renderValue(name)}
-                    </div>
+                    <div className="xt-perm-card-title">{renderTruncatedText(name)}</div>
                   </div>
                   <span className="xt-perm-tag" style={statusTagStyle(it.influencer_status)}>
                     {formatInfluencerPermissionStatus(it.influencer_status)}
@@ -262,9 +286,7 @@ export default function InfluencerPermissionsPage() {
                 <div className="xt-perm-card-rows">
                   <div className="xt-perm-card-row">
                     <div className="xt-perm-card-label">TikTok账号</div>
-                    <div className="xt-perm-card-value xt-perm-ellipsis-1" title={String(tiktokAccount)}>
-                      {renderValue(tiktokAccount)}
-                    </div>
+                    <div className="xt-perm-card-value">{renderTruncatedText(tiktokAccount)}</div>
                   </div>
                   <div className="xt-perm-card-row">
                     <div className="xt-perm-card-label">粉丝数</div>
@@ -272,15 +294,11 @@ export default function InfluencerPermissionsPage() {
                   </div>
                   <div className="xt-perm-card-row">
                     <div className="xt-perm-card-label">类目/简介</div>
-                    <div className="xt-perm-card-value" title={String(category)}>
-                      <div className="xt-perm-ellipsis-2">{renderValue(category)}</div>
-                    </div>
+                    <div className="xt-perm-card-value">{renderTruncatedText(category, 2)}</div>
                   </div>
                   <div className="xt-perm-card-row">
                     <div className="xt-perm-card-label">收款信息</div>
-                    <div className="xt-perm-card-value" title={String(bankText)}>
-                      {bankText ? <div className="xt-perm-ellipsis-2">{bankText}</div> : renderPlaceholder("未填写")}
-                    </div>
+                    <div className="xt-perm-card-value">{renderTruncatedText(bankText, 2, "未填写")}</div>
                   </div>
                 </div>
 
@@ -335,13 +353,13 @@ export default function InfluencerPermissionsPage() {
       ) : (
         <table className="xt-perm-table">
           <colgroup>
-            <col style={{ width: 150 }} />
-            <col style={{ width: 110 }} />
-            <col style={{ width: 180 }} />
-            <col style={{ width: 110 }} />
-            <col style={{ width: 320 }} />
-            <col style={{ width: 260 }} />
-            <col style={{ width: 240 }} />
+            <col style={{ width: "15%" }} />
+            <col style={{ width: "10%" }} />
+            <col style={{ width: "16%" }} />
+            <col style={{ width: "9%" }} />
+            <col style={{ width: "22%" }} />
+            <col style={{ width: "14%" }} />
+            <col style={{ width: "14%" }} />
           </colgroup>
           <thead>
             <tr>
@@ -357,27 +375,17 @@ export default function InfluencerPermissionsPage() {
               return (
                 <tr key={it.id}>
                   <td style={{ whiteSpace: "nowrap" }}>
-                    <div className="xt-perm-ellipsis-1" title={String(name || "")}>
-                      {renderValue(name)}
-                    </div>
+                    {renderTruncatedText(name)}
                   </td>
                   <td>
                     <span className="xt-perm-tag" style={statusTagStyle(it.influencer_status)}>
                       {formatInfluencerPermissionStatus(it.influencer_status)}
                     </span>
                   </td>
-                  <td style={{ textAlign: "left" }}>
-                    <div className="xt-perm-ellipsis-1" title={String(tiktokAccount)}>
-                      {renderValue(tiktokAccount)}
-                    </div>
-                  </td>
+                  <td style={{ textAlign: "left" }}>{renderTruncatedText(tiktokAccount)}</td>
                   <td>{renderValue(it.tiktok_fans)}</td>
-                  <td title={String(category)}>
-                    <div className="xt-perm-ellipsis-2">{renderValue(category)}</div>
-                  </td>
-                  <td style={{ textAlign: "left" }} title={String(bankText)}>
-                    {bankText ? <div className="xt-perm-ellipsis-2">{bankText}</div> : renderPlaceholder("未填写")}
-                  </td>
+                  <td>{renderTruncatedText(category, 2)}</td>
+                  <td style={{ textAlign: "left" }}>{renderTruncatedText(bankText, 2, "未填写")}</td>
                   <td>
                     <div className="xt-perm-actions">
                       <button
