@@ -96,7 +96,24 @@ export async function readCooperationTypesConfig(): Promise<CooperationTypesConf
   try {
     const parsed = JSON.parse(raw) as CooperationTypesConfig;
     if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.types)) return getDefaultCooperationTypesConfig();
-    return parsed;
+
+    const defaults = getDefaultCooperationTypesConfig();
+    const existingIds = new Set(parsed.types.map((t) => t.id));
+    const mergedTypes = [...parsed.types];
+    let changed = false;
+
+    for (const t of defaults.types) {
+      if (!existingIds.has(t.id)) {
+        mergedTypes.push(t);
+        changed = true;
+      }
+    }
+
+    const merged: CooperationTypesConfig = { version: 1, types: mergedTypes };
+    if (changed) {
+      await query("UPDATE config SET value=$2 WHERE key=$1", [COOPERATION_TYPES_CONFIG_KEY, JSON.stringify(merged)]);
+    }
+    return merged;
   } catch {
     return getDefaultCooperationTypesConfig();
   }
@@ -107,4 +124,3 @@ export function isVisibleCooperationType(config: CooperationTypesConfig, typeId:
   if (!item) return false;
   return Array.isArray(item.visible_roles) && item.visible_roles.includes(role);
 }
-

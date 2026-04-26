@@ -412,6 +412,112 @@ export async function createMarketOrder(body: {
 
 }
 
+export type OfflineVideoOrderTypeId = "high_quality_custom_video" | "monthly_package" | "creator_review_video";
+
+export type OfflineVideoOrderPhase =
+  | "created"
+  | "paid"
+  | "assigned"
+  | "in_progress"
+  | "submitted"
+  | "review_pending"
+  | "review_rejected"
+  | "approved_to_publish"
+  | "published"
+  | "delivered"
+  | "completed"
+  | "rejected";
+
+export type OfflineVideoOrder = {
+  id: number;
+  type_id: OfflineVideoOrderTypeId;
+  title: string;
+  requirements: Record<string, unknown>;
+  amount_thb: number;
+  payment_method: string;
+  payment_status: "unpaid" | "paid";
+  paid_at?: string | null;
+  assigned_employee_id: number | null;
+  phase: OfflineVideoOrderPhase;
+  proof_links: unknown[];
+  publish_links: unknown[];
+  batch_payload: unknown[];
+  created_at: string;
+  updated_at: string;
+  review_note?: string | null;
+  reviewed_by?: number | null;
+  reviewed_at?: string | null;
+};
+
+export async function getClientVideoOrders() {
+  const res = await fetchWithAuth("/api/client/video-orders");
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json() as Promise<{ list: OfflineVideoOrder[] }>;
+}
+
+export async function getClientVideoOrderDetail(id: number) {
+  const res = await fetchWithAuth(`/api/client/video-orders/${id}`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json() as Promise<{ order: OfflineVideoOrder }>;
+}
+
+export async function createClientVideoOrder(body: {
+  type_id: OfflineVideoOrderTypeId;
+  title: string;
+  amount_thb: number;
+  requirements: Record<string, unknown>;
+}) {
+  const res = await fetchWithAuth("/api/client/video-orders", {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "创建失败");
+  return res.json() as Promise<{ id: number }>;
+}
+
+export async function markClientVideoOrderPaid(id: number) {
+  const res = await fetchWithAuth(`/api/client/video-orders/${id}/mark-paid`, { method: "POST" });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  return res.json();
+}
+
+export async function acceptClientVideoOrder(id: number) {
+  const res = await fetchWithAuth(`/api/client/video-orders/${id}/accept`, { method: "POST" });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  return res.json();
+}
+
+export async function rejectClientVideoOrder(id: number, note?: string) {
+  const res = await fetchWithAuth(`/api/client/video-orders/${id}/reject`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+    body: JSON.stringify({ note: note || "" }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  return res.json();
+}
+
+export async function acceptClientMonthlyBatch(id: number, batchNo: number, body: { accepted_count: number; note?: string }) {
+  const res = await fetchWithAuth(`/api/client/video-orders/${id}/monthly-batches/${batchNo}/accept`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  return res.json();
+}
+
+export async function settleClientMonthlyBatch(id: number, batchNo: number, body: { settled_amount: number }) {
+  const res = await fetchWithAuth(`/api/client/video-orders/${id}/monthly-batches/${batchNo}/settle`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  return res.json();
+}
+
 
 
 /** 编辑发单（仅 open 可编辑） */

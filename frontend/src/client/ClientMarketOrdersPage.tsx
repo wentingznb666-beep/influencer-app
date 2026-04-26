@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, type CSSProperties } from "react";
 
 import { useNavigate } from "react-router-dom";
 
@@ -63,6 +63,15 @@ type MarketOrder = {
   task_count?: number;
 
 };
+
+type OfflineVideoOrder = api.OfflineVideoOrder;
+type OfflineVideoOrderTypeId = api.OfflineVideoOrderTypeId;
+
+type VideoOrderTypeId = "graded_video" | OfflineVideoOrderTypeId;
+
+type UnifiedRow =
+  | { kind: "graded"; created_at: string; id: number; order: MarketOrder }
+  | { kind: "offline"; created_at: string; id: number; order: OfflineVideoOrder };
 
 
 
@@ -192,7 +201,8 @@ export default function ClientMarketOrdersPage() {
 
   const nav = useNavigate();
 
-  const [list, setList] = useState<MarketOrder[]>([]);
+  const [marketOrders, setMarketOrders] = useState<MarketOrder[]>([]);
+  const [offlineOrders, setOfflineOrders] = useState<OfflineVideoOrder[]>([]);
 
   const [loading, setLoading] = useState(true);
 
@@ -201,6 +211,8 @@ export default function ClientMarketOrdersPage() {
   const [balance, setBalance] = useState<number | null>(null);
 
   const [showForm, setShowForm] = useState(false);
+
+  const [orderTypeId, setOrderTypeId] = useState<VideoOrderTypeId>("graded_video");
 
   const [title, setTitle] = useState("");
 
@@ -211,6 +223,14 @@ export default function ClientMarketOrdersPage() {
   const [tier, setTier] = useState<"C" | "B" | "A">("C");
 
   const [publishMethod, setPublishMethod] = useState<"client_self_publish" | "influencer_publish_with_cart">("client_self_publish");
+
+  const [offlineAmount, setOfflineAmount] = useState(4000);
+  const [offlineRequirement, setOfflineRequirement] = useState("");
+  const [offlineTalent, setOfflineTalent] = useState("");
+  const [contractMonths, setContractMonths] = useState(1);
+  const [monthlyMinVideos, setMonthlyMinVideos] = useState(20);
+  const [weeklyBatchEnabled, setWeeklyBatchEnabled] = useState(true);
+  const [creatorTaskCount, setCreatorTaskCount] = useState(8);
 
   const [isPublicApply, setIsPublicApply] = useState(true);
 
@@ -229,6 +249,8 @@ export default function ClientMarketOrdersPage() {
   const [taskCount, setTaskCount] = useState(1);
 
   const [searchQ, setSearchQ] = useState("");
+
+  const [typeFilter, setTypeFilter] = useState<VideoOrderTypeId | "">("");
 
   const [dateFilter, setDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
 
@@ -294,11 +316,15 @@ export default function ClientMarketOrdersPage() {
 
       };
 
-      const data = await api.getMarketOrders(Object.keys(query).length > 0 ? query : undefined);
+      const [marketData, offlineData] = await Promise.all([
+        api.getMarketOrders(Object.keys(query).length > 0 ? query : undefined),
+        api.getClientVideoOrders(),
+      ]);
 
-      const rows = (data.list || []) as MarketOrder[];
+      const rows = (marketData.list || []) as MarketOrder[];
+      setMarketOrders(rows.map((r) => ({ ...r, work_links: normalizeWorkLinks(r.work_links) })));
 
-      setList(rows.map((r) => ({ ...r, work_links: normalizeWorkLinks(r.work_links) })));
+      setOfflineOrders((offlineData.list || []) as OfflineVideoOrder[]);
 
     } catch (e) {
 
@@ -436,6 +462,13 @@ export default function ClientMarketOrdersPage() {
 
   const canSubmitClientInfo = clientShopName.trim().length > 0 && clientGroupChat.trim().length > 0 && publishMethod.trim().length > 0;
 
+  const canSubmit = useMemo(() => {
+    if (orderTypeId === "graded_video") return canAfford && canSubmitClientInfo;
+    if (orderTypeId === "high_quality_custom_video") return !!title.trim() && offlineAmount >= 4000 && offlineAmount <= 5000 && !!offlineTalent.trim();
+    if (orderTypeId === "monthly_package") return !!title.trim() && monthlyMinVideos >= 20;
+    return !!title.trim() && creatorTaskCount >= 8 && creatorTaskCount <= 10;
+  }, [orderTypeId, canAfford, canSubmitClientInfo, title, offlineAmount, offlineTalent, monthlyMinVideos, creatorTaskCount]);
+
 
 
   /**
@@ -458,105 +491,200 @@ export default function ClientMarketOrdersPage() {
 
     }
 
-    if (!clientShopName.trim()) {
-
-      setError("请输入商家店铺名称");
-
-      return;
-
-    }
-
-    if (!clientGroupChat.trim()) {
-
-      setError("请输入商家对接群聊（群号/链接）");
-
-      return;
-
-    }
-
-    if (balance != null && balance < consumePoints) {
-
-      setError(`积分余额不足：本次将消耗 ${totalConsumePoints} 积分，当前余额 ${balance}。`);
-
-      return;
-
-    }
-
     try {
+      if (orderTypeId === "graded_video") {
+        if (!clientShopName.trim()) {
+          setError("请输入商家店铺名称");
+          return;
+        }
 
-      const chosen = skuList.filter((s) => selectedSkuIds.includes(s.id));
+        if (!clientGroupChat.trim()) {
+          setError("请输入商家对接群聊（群号/链接）");
+          return;
+        }
 
-      const skuCodes = chosen.map((s) => (s.sku_name ? `${s.sku_code} / ${s.sku_name}` : s.sku_code));
+        if (balance != null && balance < consumePoints) {
+          setError(`积分余额不足：本次将消耗 ${totalConsumePoints} 积分，当前余额 ${balance}。`);
+          return;
+        }
 
-      const skuImages = chosen.flatMap((s) => (Array.isArray(s.sku_images) ? s.sku_images : [])).slice(0, 100);
+        const chosen = skuList.filter((s) => selectedSkuIds.includes(s.id));
+        const skuCodes = chosen.map((s) => (s.sku_name ? `${s.sku_code} / ${s.sku_name}` : s.sku_code));
+        const skuImages = chosen.flatMap((s) => (Array.isArray(s.sku_images) ? s.sku_images : [])).slice(0, 100);
 
-      await api.createMarketOrder({
+        await api.createMarketOrder({
+          title: titleText,
+          client_shop_name: clientShopName.trim(),
+          client_group_chat: clientGroupChat.trim(),
+          tier,
+          voice_link: tier === "A" ? (voiceLink.trim() || undefined) : undefined,
+          voice_note: tier === "A" ? (voiceNote.trim() || undefined) : undefined,
+          publish_method: publishMethod,
+          is_public_apply: isPublicApply,
+          tiktok_link: tiktokLink.trim() || undefined,
+          product_images: [],
+          sku_ids: selectedSkuIds,
+          sku_codes: skuCodes,
+          sku_images: skuImages,
+          task_count: taskCount,
+        });
+      } else {
+        const req: Record<string, unknown> = {
+          requirement: offlineRequirement.trim() || null,
+          selected_talent: offlineTalent.trim() || null,
+          client_shop_name: clientShopName.trim() || null,
+          client_group_chat: clientGroupChat.trim() || null,
+        };
 
-        title: titleText,
+        if (orderTypeId === "high_quality_custom_video") {
+          if (!Number.isFinite(offlineAmount) || offlineAmount < 4000 || offlineAmount > 5000) {
+            setError("高质量视频单价需在 4000-5000 THB 之间");
+            return;
+          }
+          if (!offlineTalent.trim()) {
+            setError("请填写或选择优质 Influencer");
+            return;
+          }
+          req.price_range = "4000-5000";
+        }
 
-        client_shop_name: clientShopName.trim(),
+        if (orderTypeId === "monthly_package") {
+          if (monthlyMinVideos < 20) {
+            setError("包月合作每月不少于 20 条");
+            return;
+          }
+          req.contract_months = Math.max(1, Math.floor(contractMonths || 1));
+          req.min_videos_per_month = Math.max(20, Math.floor(monthlyMinVideos || 20));
+          req.weekly_batch_enabled = !!weeklyBatchEnabled;
+          req.unit_price = 650;
+        }
 
-        client_group_chat: clientGroupChat.trim(),
+        if (orderTypeId === "creator_review_video") {
+          if (creatorTaskCount < 8 || creatorTaskCount > 10) {
+            setError("测评视频任务条数需为 8-10 条");
+            return;
+          }
+          req.task_count = Math.floor(creatorTaskCount);
+          req.must_review_before_publish = true;
+        }
 
-        tier,
-
-        voice_link: tier === "A" ? (voiceLink.trim() || undefined) : undefined,
-
-        voice_note: tier === "A" ? (voiceNote.trim() || undefined) : undefined,
-
-        publish_method: publishMethod,
-
-        is_public_apply: isPublicApply,
-
-        tiktok_link: tiktokLink.trim() || undefined,
-
-        product_images: [],
-
-        sku_ids: selectedSkuIds,
-
-        sku_codes: skuCodes,
-
-        sku_images: skuImages,
-
-        task_count: taskCount,
-
-      });
+        await api.createClientVideoOrder({
+          type_id: orderTypeId,
+          title: titleText,
+          amount_thb: orderTypeId === "high_quality_custom_video" ? offlineAmount : 0,
+          requirements: req,
+        });
+      }
 
       setShowForm(false);
-
       setTitle("");
-
       setClientShopName("");
-
       setClientGroupChat("");
-
       setTier("C");
-
       setPublishMethod("client_self_publish");
-
       setIsPublicApply(true);
-
       setVoiceLink("");
-
       setVoiceNote("");
-
       setTiktokLink("");
-
       setSelectedSkuIds([]);
-
       setTaskCount(1);
 
+      setOfflineAmount(4000);
+      setOfflineRequirement("");
+      setOfflineTalent("");
+      setContractMonths(1);
+      setMonthlyMinVideos(20);
+      setWeeklyBatchEnabled(true);
+      setCreatorTaskCount(8);
+
       loadBalance();
-
       load(searchQ, dateFilter);
-
     } catch (e) {
-
       setError(e instanceof Error ? e.message : "创建失败");
-
     }
 
   };
+
+
+  const typeText = (t: VideoOrderTypeId): string => {
+    if (t === "graded_video") return "① 分级视频（A/B/C）";
+    if (t === "high_quality_custom_video") return "② 高质量视频";
+    if (t === "monthly_package") return "③ 包月合作套餐";
+    return "④ Creator带货测评";
+  };
+
+  const tagStyle = (t: VideoOrderTypeId): CSSProperties => {
+    const base: CSSProperties = { padding: "2px 8px", borderRadius: 999, fontSize: 12, fontWeight: 700, border: "1px solid #dbe1ea" };
+    if (t === "graded_video") return { ...base, background: "#f1f5f9", color: "#0f172a" };
+    if (t === "high_quality_custom_video") return { ...base, background: "#dcfce7", color: "#166534", borderColor: "#bbf7d0" };
+    if (t === "monthly_package") return { ...base, background: "#ffedd5", color: "#9a3412", borderColor: "#fed7aa" };
+    return { ...base, background: "#fee2e2", color: "#991b1b", borderColor: "#fecaca" };
+  };
+
+  const phaseText = (o: OfflineVideoOrder) => {
+    const map: Record<string, string> = {
+      created: "已创建",
+      paid: "已付款",
+      assigned: "已分配",
+      in_progress: "制作中",
+      submitted: "已提交",
+      review_pending: "待审核",
+      review_rejected: "审核驳回",
+      approved_to_publish: "可发布",
+      published: "已发布",
+      delivered: "已交付",
+      completed: "已完成",
+      rejected: "已驳回",
+    };
+    return map[o.phase] || o.phase;
+  };
+
+  const combinedRows = useMemo(() => {
+    const rows: UnifiedRow[] = [
+      ...marketOrders.map((o) => ({ kind: "graded" as const, created_at: o.created_at, id: o.id, order: o })),
+      ...offlineOrders.map((o) => ({ kind: "offline" as const, created_at: o.created_at, id: o.id, order: o })),
+    ];
+
+    const q = searchQ.trim();
+    const matchQ = (text: string) => (q ? text.toLowerCase().includes(q.toLowerCase()) : true);
+
+    const matchDate = (iso: string) => {
+      if (dateFilter.mode === "all") return true;
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return true;
+      const day = d.toISOString().slice(0, 10);
+      if (dateFilter.mode === "day") return !!dateFilter.day && day === dateFilter.day;
+      if (dateFilter.mode === "range") {
+        const s = dateFilter.startDate || "";
+        const e = dateFilter.endDate || "";
+        if (s && day < s) return false;
+        if (e && day > e) return false;
+      }
+      return true;
+    };
+
+    return rows
+      .filter((r) => {
+        const typeId: VideoOrderTypeId = r.kind === "graded" ? "graded_video" : r.order.type_id;
+        if (typeFilter && typeId !== typeFilter) return false;
+        if (!matchDate(r.created_at)) return false;
+        if (!q) return true;
+        if (r.kind === "graded") {
+          const no = r.order.order_no || String(r.order.id);
+          const title = String(r.order.title || "");
+          return matchQ(no) || matchQ(title);
+        }
+        const no = `VO-${r.order.id}`;
+        const title = r.order.title || "";
+        return matchQ(no) || matchQ(title);
+      })
+      .sort((a, b) => {
+        const ta = new Date(a.created_at).getTime();
+        const tb = new Date(b.created_at).getTime();
+        if (Number.isFinite(ta) && Number.isFinite(tb) && ta !== tb) return tb - ta;
+        return b.id - a.id;
+      });
+  }, [marketOrders, offlineOrders, searchQ, dateFilter, typeFilter]);
 
 
 
@@ -598,6 +726,62 @@ export default function ClientMarketOrdersPage() {
 
   };
 
+  const handleOfflineMarkPaid = async (id: number) => {
+    setError(null);
+    try {
+      await api.markClientVideoOrderPaid(id);
+      load(searchQ, dateFilter);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "操作失败");
+    }
+  };
+
+  const handleOfflineAccept = async (id: number) => {
+    setError(null);
+    try {
+      await api.acceptClientVideoOrder(id);
+      load(searchQ, dateFilter);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "操作失败");
+    }
+  };
+
+  const handleOfflineReject = async (id: number) => {
+    const note = window.prompt("请输入驳回原因（可留空）", "") || "";
+    setError(null);
+    try {
+      await api.rejectClientVideoOrder(id, note);
+      load(searchQ, dateFilter);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "操作失败");
+    }
+  };
+
+  const handleMonthlyBatchAccept = async (orderId: number, batchNo: number) => {
+    const raw = window.prompt("请输入验收数量（accepted_count）", "0") || "0";
+    const accepted = Math.max(0, Math.floor(Number(raw) || 0));
+    const note = window.prompt("验收备注（可留空）", "") || "";
+    setError(null);
+    try {
+      await api.acceptClientMonthlyBatch(orderId, batchNo, { accepted_count: accepted, note });
+      load(searchQ, dateFilter);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "操作失败");
+    }
+  };
+
+  const handleMonthlyBatchSettle = async (orderId: number, batchNo: number) => {
+    const raw = window.prompt("请输入结算金额（THB）", "0") || "0";
+    const amt = Math.max(0, Math.round((Number(raw) || 0) * 100) / 100);
+    setError(null);
+    try {
+      await api.settleClientMonthlyBatch(orderId, batchNo, { settled_amount: amt });
+      load(searchQ, dateFilter);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "操作失败");
+    }
+  };
+
 
 
   return (
@@ -606,12 +790,8 @@ export default function ClientMarketOrdersPage() {
 
       <h2 style={{ marginTop: 0 }}>视频订单</h2>
 
-      <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16 }}>
-
-        填写订单标题后发布订单，系统将生成唯一订单号；员工端接单并在完成后上传交付链接。发单时将从您的积分余额中扣除{" "}
-
-        <strong>20/40/60</strong> 积分（按订单档位 C/B/A）。
-
+      <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16, lineHeight: 1.7 }}>
+        本模块支持 4 类视频订单：①分级视频（A/B/C）②高质量视频③包月合作套餐④Creator带货测评。仅①分级视频会扣除积分（20/40/60，按 C/B/A），其余类型不扣积分。
       </p>
 
       {error && <p style={{ color: "#c00" }}>{error}</p>}
@@ -662,6 +842,18 @@ export default function ClientMarketOrdersPage() {
 
         </button>
 
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter((e.target.value as VideoOrderTypeId) || "")}
+          style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
+        >
+          <option value="">全部类型</option>
+          <option value="graded_video">① 分级视频（A/B/C）</option>
+          <option value="high_quality_custom_video">② 高质量视频</option>
+          <option value="monthly_package">③ 包月合作套餐</option>
+          <option value="creator_review_video">④ Creator带货测评</option>
+        </select>
+
         <OrderDateFilter value={dateFilter} onChange={setDateFilter} />
 
       </div>
@@ -708,6 +900,26 @@ export default function ClientMarketOrdersPage() {
 
           />
 
+          <label htmlFor="orderType">订单类型（4类）</label>
+          <select
+            id="orderType"
+            value={orderTypeId}
+            onChange={(e) => setOrderTypeId(e.target.value as VideoOrderTypeId)}
+            style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
+          >
+            <option value="graded_video">① 分级视频（A/B/C）- 扣积分</option>
+            <option value="high_quality_custom_video">② 高质量视频（4000-5000฿/条）</option>
+            <option value="monthly_package">③ 包月合作套餐（650฿/条，≥20条/月）</option>
+            <option value="creator_review_video">④ Creator带货测评（8-10条/次，单价待配置）</option>
+          </select>
+
+          <div style={{ margin: "-4px 0 12px", padding: "10px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, color: "#334155", fontSize: 13, lineHeight: 1.7 }}>
+            {orderTypeId === "graded_video" && "分级视频：A/B/C 分别扣 60/40/20 积分/条（1积分=1THB）；兼职拍摄剪辑线下完成，可选商家自发或Creator发布挂车。"}
+            {orderTypeId === "high_quality_custom_video" && "高质量视频：不扣积分，商家选择优质Influencer，单价4000-5000฿/条；可提供脚本/参考，支持1-2次合理修改，Influencer账号发布。"}
+            {orderTypeId === "monthly_package" && "包月合作：不扣积分，650฿/条，按周分批提交与验收结算，要求≥20条/月；前1-4条可修改，交付成品+Footage，商家自行发布。"}
+            {orderTypeId === "creator_review_video" && "Creator测评：不扣积分，8-10条/次，Creator需具备TAP挂车能力；所有视频需先提交我方审核，通过后发布；单价由老板后续配置。"}
+          </div>
+
           <label htmlFor="clientShopName">商家店铺名称（必填）</label>
 
           <input
@@ -728,7 +940,7 @@ export default function ClientMarketOrdersPage() {
 
           />
 
-          {!clientShopName.trim() && <div style={{ marginBottom: 10, fontSize: 12, color: "#b91c1c" }}>请输入商家店铺名称</div>}
+          {orderTypeId === "graded_video" && !clientShopName.trim() && <div style={{ marginBottom: 10, fontSize: 12, color: "#b91c1c" }}>请输入商家店铺名称</div>}
 
           <label htmlFor="clientGroupChat">商家对接群聊（必填）</label>
 
@@ -750,183 +962,196 @@ export default function ClientMarketOrdersPage() {
 
           />
 
-          {!clientGroupChat.trim() && <div style={{ marginBottom: 10, fontSize: 12, color: "#b91c1c" }}>请输入商家对接群聊（群号/链接）</div>}
+          {orderTypeId === "graded_video" && !clientGroupChat.trim() && <div style={{ marginBottom: 10, fontSize: 12, color: "#b91c1c" }}>请输入商家对接群聊（群号/链接）</div>}
 
-          <label htmlFor="tier">订单档位（决定扣除积分）</label>
-
-          <select
-
-            id="tier"
-
-            value={tier}
-
-            onChange={(e) => setTier(e.target.value as "C" | "B" | "A")}
-
-            style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
-
-          >
-
-            <option value="C">C 类：消耗 20 积分（基础功能：背景音乐、文字贴纸）</option>
-
-            <option value="B">B 类：消耗 40 积分（含 C 类功能 + 场景切换 + 特效转场）</option>
-
-            <option value="A">A 类：消耗 60 积分（含 B 类功能 + 配音服务）</option>
-
-          </select>
-
-          <label htmlFor="publishMethod">{"发布方式（必填）"}</label>
-
-          <select
-
-            id="publishMethod"
-
-            value={publishMethod}
-
-            onChange={(e) => setPublishMethod(e.target.value as "client_self_publish" | "influencer_publish_with_cart")}
-
-            style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
-
-          >
-
-            <option value="client_self_publish">{"视频拍完后自己发布"}</option>
-
-            <option value="influencer_publish_with_cart">{"达人在TikTok账号发布视频和挂在购物车"}</option>
-
-          </select>
-
-          {tier === "A" && (
-
+          {orderTypeId === "graded_video" ? (
             <>
+              <label htmlFor="tier">订单档位（决定扣除积分）</label>
+              <select
+                id="tier"
+                value={tier}
+                onChange={(e) => setTier(e.target.value as "C" | "B" | "A")}
+                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
+              >
+                <option value="C">C 类：消耗 20 积分（基础功能：背景音乐、文字贴纸）</option>
+                <option value="B">B 类：消耗 40 积分（含 C 类功能 + 场景切换 + 特效转场）</option>
+                <option value="A">A 类：消耗 60 积分（含 B 类功能 + 配音服务）</option>
+              </select>
 
-              <label htmlFor="voiceLink">配音素材下载链接（可选）</label>
+              <label htmlFor="publishMethod">发布方式（必填）</label>
+              <select
+                id="publishMethod"
+                value={publishMethod}
+                onChange={(e) => setPublishMethod(e.target.value as "client_self_publish" | "influencer_publish_with_cart")}
+                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
+              >
+                <option value="client_self_publish">视频拍完后自己发布</option>
+                <option value="influencer_publish_with_cart">达人在TikTok账号发布视频和挂在购物车</option>
+              </select>
 
-              <input
-
-                id="voiceLink"
-
-                type="url"
-
-                value={voiceLink}
-
-                onChange={(e) => setVoiceLink(e.target.value)}
-
-                placeholder="https://..."
-
-                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
-
-              />
-
-              <label htmlFor="voiceNote">配音要求备注（可选）</label>
-
-              <textarea
-
-                id="voiceNote"
-
-                value={voiceNote}
-
-                onChange={(e) => setVoiceNote(e.target.value)}
-
-                placeholder="如：语速/情绪/关键词/禁用词等"
-
-                rows={3}
-
-                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
-
-              />
-
-            </>
-
-          )}
-
-          <label htmlFor="taskCount">购买数量（同一 SKU 多数量合并为一条订单）</label>
-
-          <input
-
-            id="taskCount"
-
-            type="number"
-
-            min={1}
-
-            max={100}
-
-            value={taskCount}
-
-            onChange={(e) => setTaskCount(Math.max(1, Math.min(100, Number(e.target.value) || 1)))}
-
-            style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 180, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
-
-          />
-
-          <label htmlFor="tiktokLink">TikTok 链接（可选）</label>
-
-          <input
-
-            id="tiktokLink"
-
-            type="url"
-
-            value={tiktokLink}
-
-            onChange={(e) => setTiktokLink(e.target.value)}
-
-            placeholder="https://www.tiktok.com/..."
-
-            style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
-
-          />
-
-          <div style={{ marginBottom: 12 }}>
-
-            <label>SKU 信息（从 SKU 列表勾选）</label>
-
-            <input
-
-              value={skuKeyword}
-
-              onChange={(e) => setSkuKeyword(e.target.value)}
-
-              placeholder="搜索 SKU 编码/名称"
-
-              style={{ display: "block", marginTop: 8, marginBottom: 8, width: "100%", maxWidth: 420, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
-
-            />
-
-            <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
-
-              {filteredSkuList.map((s) => (
-
-                <label key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-
+              {tier === "A" && (
+                <>
+                  <label htmlFor="voiceLink">配音素材下载链接（可选）</label>
                   <input
-
-                    type="checkbox"
-
-                    checked={selectedSkuIds.includes(s.id)}
-
-                    onChange={(e) => {
-
-                      const checked = e.target.checked;
-
-                      setSelectedSkuIds((prev) => (checked ? Array.from(new Set([...prev, s.id])) : prev.filter((id) => id !== s.id)));
-
-                    }}
-
+                    id="voiceLink"
+                    type="url"
+                    value={voiceLink}
+                    onChange={(e) => setVoiceLink(e.target.value)}
+                    placeholder="https://..."
+                    style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
                   />
 
-                  <span>{s.sku_name ? `${s.sku_code} / ${s.sku_name}` : s.sku_code}</span>
+                  <label htmlFor="voiceNote">配音要求备注（可选）</label>
+                  <textarea
+                    id="voiceNote"
+                    value={voiceNote}
+                    onChange={(e) => setVoiceNote(e.target.value)}
+                    placeholder="如：语速/情绪/关键词/禁用词等"
+                    rows={3}
+                    style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                  />
+                </>
+              )}
 
-                </label>
+              <label htmlFor="taskCount">购买数量（同一 SKU 多数量合并为一条订单）</label>
+              <input
+                id="taskCount"
+                type="number"
+                min={1}
+                max={100}
+                value={taskCount}
+                onChange={(e) => setTaskCount(Math.max(1, Math.min(100, Number(e.target.value) || 1)))}
+                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 180, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+              />
 
-              ))}
+              <label htmlFor="tiktokLink">TikTok 链接（可选）</label>
+              <input
+                id="tiktokLink"
+                type="url"
+                value={tiktokLink}
+                onChange={(e) => setTiktokLink(e.target.value)}
+                placeholder="https://www.tiktok.com/..."
+                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+              />
 
-              {skuList.length === 0 && <span style={{ color: "#64748b", fontSize: 13 }}>暂无 SKU，可先前往「SKU 列表」维护。</span>}
+              <div style={{ marginBottom: 12 }}>
+                <label>SKU 信息（从 SKU 列表勾选）</label>
+                <input
+                  value={skuKeyword}
+                  onChange={(e) => setSkuKeyword(e.target.value)}
+                  placeholder="搜索 SKU 编码/名称"
+                  style={{ display: "block", marginTop: 8, marginBottom: 8, width: "100%", maxWidth: 420, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                />
+                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+                  {filteredSkuList.map((s) => (
+                    <label key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedSkuIds.includes(s.id)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setSelectedSkuIds((prev) => (checked ? Array.from(new Set([...prev, s.id])) : prev.filter((id) => id !== s.id)));
+                        }}
+                      />
+                      <span>{s.sku_name ? `${s.sku_code} / ${s.sku_name}` : s.sku_code}</span>
+                    </label>
+                  ))}
 
-              {skuList.length > 0 && filteredSkuList.length === 0 && <span style={{ color: "#64748b", fontSize: 13 }}>无匹配 SKU</span>}
+                  {skuList.length === 0 && <span style={{ color: "#64748b", fontSize: 13 }}>暂无 SKU，可先前往「SKU 列表」维护。</span>}
+                  {skuList.length > 0 && filteredSkuList.length === 0 && <span style={{ color: "#64748b", fontSize: 13 }}>无匹配 SKU</span>}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {orderTypeId === "high_quality_custom_video" && (
+                <>
+                  <label htmlFor="offlineAmount">单价（THB/条，4000-5000）</label>
+                  <input
+                    id="offlineAmount"
+                    type="number"
+                    min={4000}
+                    max={5000}
+                    value={offlineAmount}
+                    onChange={(e) => setOfflineAmount(Math.max(0, Number(e.target.value) || 0))}
+                    style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                  />
+                </>
+              )}
 
-            </div>
+              {orderTypeId === "monthly_package" && (
+                <>
+                  <label htmlFor="contractMonths">合作周期（月）</label>
+                  <input
+                    id="contractMonths"
+                    type="number"
+                    min={1}
+                    max={12}
+                    value={contractMonths}
+                    onChange={(e) => setContractMonths(Math.max(1, Math.min(12, Number(e.target.value) || 1)))}
+                    style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                  />
 
-          </div>
+                  <label htmlFor="monthlyMinVideos">每月条数（≥20）</label>
+                  <input
+                    id="monthlyMinVideos"
+                    type="number"
+                    min={20}
+                    max={999}
+                    value={monthlyMinVideos}
+                    onChange={(e) => setMonthlyMinVideos(Math.max(0, Number(e.target.value) || 0))}
+                    style={{ display: "block", marginTop: 8, marginBottom: 6, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                  />
+                  <div style={{ marginBottom: 12, color: "#64748b", fontSize: 13 }}>
+                    预计金额：{Math.max(20, monthlyMinVideos) * 650} ฿（650 × {Math.max(20, monthlyMinVideos)}）
+                  </div>
+
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <input type="checkbox" checked={weeklyBatchEnabled} onChange={(e) => setWeeklyBatchEnabled(e.target.checked)} />
+                    按周分批验收与结算
+                  </label>
+                </>
+              )}
+
+              {orderTypeId === "creator_review_video" && (
+                <>
+                  <label htmlFor="creatorTaskCount">任务条数（8-10）</label>
+                  <input
+                    id="creatorTaskCount"
+                    type="number"
+                    min={8}
+                    max={10}
+                    value={creatorTaskCount}
+                    onChange={(e) => setCreatorTaskCount(Math.max(0, Number(e.target.value) || 0))}
+                    style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                  />
+                  <div style={{ marginBottom: 12, color: "#64748b", fontSize: 13 }}>
+                    单价待老板配置；创建后如金额为 0，将无法标记已付款。
+                  </div>
+                </>
+              )}
+
+              <label htmlFor="offlineTalent">Influencer/Creator（类型2必填，其余可选）</label>
+              <input
+                id="offlineTalent"
+                type="text"
+                value={offlineTalent}
+                onChange={(e) => setOfflineTalent(e.target.value)}
+                placeholder="输入平台内已选账号/昵称，或留空由我方匹配（按类型规则）"
+                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+              />
+
+              <label htmlFor="offlineRequirement">需求说明（可选）</label>
+              <textarea
+                id="offlineRequirement"
+                value={offlineRequirement}
+                onChange={(e) => setOfflineRequirement(e.target.value)}
+                placeholder="可填写脚本/参考视频/审核要求/修改说明等"
+                rows={4}
+                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+              />
+            </>
+          )}
 
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
 
@@ -936,7 +1161,7 @@ export default function ClientMarketOrdersPage() {
 
               onClick={handleCreate}
 
-              disabled={!canAfford || !canSubmitClientInfo}
+              disabled={!canSubmit}
 
               style={{
 
@@ -950,9 +1175,9 @@ export default function ClientMarketOrdersPage() {
 
                 borderRadius: 8,
 
-                cursor: !canAfford || !canSubmitClientInfo ? "not-allowed" : "pointer",
+                cursor: !canSubmit ? "not-allowed" : "pointer",
 
-                opacity: !canAfford || !canSubmitClientInfo ? 0.6 : 1,
+                opacity: !canSubmit ? 0.6 : 1,
 
               }}
 
@@ -962,13 +1187,18 @@ export default function ClientMarketOrdersPage() {
 
             </button>
 
-            <span style={{ fontSize: 13, color: canAfford ? "#64748b" : "#c00" }}>
-
-              本次将消耗 <strong>{totalConsumePoints}</strong> 积分（{consumePoints} × {taskCount}）
-
-              {balance != null ? `（当前余额 ${balance}）` : ""}
-
-            </span>
+            {orderTypeId === "graded_video" ? (
+              <span style={{ fontSize: 13, color: canAfford ? "#64748b" : "#c00" }}>
+                本次将消耗 <strong>{totalConsumePoints}</strong> 积分（{consumePoints} × {taskCount}）
+                {balance != null ? `（当前余额 ${balance}）` : ""}
+              </span>
+            ) : (
+              <span style={{ fontSize: 13, color: "#64748b" }}>
+                {orderTypeId === "high_quality_custom_video" && `金额：${offlineAmount} ฿/条`}
+                {orderTypeId === "monthly_package" && `金额：${Math.max(20, monthlyMinVideos) * 650} ฿（按月目标估算）`}
+                {orderTypeId === "creator_review_video" && "金额：待配置（创建后可能为0，需配置后才能标记已付款）"}
+              </span>
+            )}
 
             <button
 
@@ -998,200 +1228,275 @@ export default function ClientMarketOrdersPage() {
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
 
-          {list.map((o) => (
+          {combinedRows.map((row) => {
+            if (row.kind === "graded") {
+              const o = row.order;
+              return (
+                <div key={`m-${o.id}`} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+                  <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 8, background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: 13 }}>
+                    订单日期：{formatDateTime(o.created_at)}
+                  </div>
 
-            <div key={o.id} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-
-              <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 8, background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: 13 }}>
-
-                订单日期：{formatDateTime(o.created_at)}
-
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
-
-                <div>
-
-                  <div style={{ fontWeight: 600 }}>订单号：{o.order_no || `（内部ID ${o.id}）`}</div>
-
-                  {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>}
-
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-
-                  <div style={{ color: "#64748b", fontSize: 13 }}>视频数量/积分</div>
-                  <div style={{ fontSize: 14 }}>
-                    <div style={{ marginBottom: 4 }}>
-                      视频数量：{o.task_count || "-"} 条
-                    </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
                     <div>
-                      金额：
-                      <span style={{ fontWeight: 600, color: "var(--xt-accent)" }}>
-                        {marketOrderTotalRewardPoints(o)} 积分
-                      </span>
-                      <span style={{ color: "#64748b", marginLeft: 4 }}>
-                        （单套 {o.reward_points} 积分 × 视频数量：{marketOrderTaskCount(o)}）
-                      </span>
+                      <div style={{ fontWeight: 600, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                        <span>订单号：{o.order_no || `（内部ID ${o.id}）`}</span>
+                        <span style={tagStyle("graded_video")}>{typeText("graded_video")}</span>
+                      </div>
+                      {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>}
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                      <div style={{ color: "#64748b", fontSize: 13 }}>视频数量/积分</div>
+                      <div style={{ fontSize: 14 }}>
+                        <div style={{ marginBottom: 4 }}>视频数量：{o.task_count || "-"} 条</div>
+                        <div>
+                          金额：
+                          <span style={{ fontWeight: 600, color: "var(--xt-accent)" }}>{marketOrderTotalRewardPoints(o)} 积分</span>
+                          <span style={{ color: "#64748b", marginLeft: 4 }}>（单套 {o.reward_points} 积分 × 视频数量：{marketOrderTaskCount(o)}）</span>
+                        </div>
+                      </div>
+
+                      {o.status === "open" && (
+                        <>
+                          <button type="button" onClick={() => nav(`/client/market-orders/${o.id}/edit`)} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}>
+                            编辑
+                          </button>
+
+                          <button type="button" onClick={() => handleDelete(o.id)} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: "pointer" }}>
+                            删除
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
-                  {o.status === "open" && (
-
-                    <>
-
-                      <button
-
-                        type="button"
-
-                        onClick={() => nav(`/client/market-orders/${o.id}/edit`)}
-
-                        style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
-
-                      >
-
-                        编辑
-
-                      </button>
-
-                      <button
-
-                        type="button"
-
-                        onClick={() => handleDelete(o.id)}
-
-                        style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: "pointer" }}
-
-                      >
-
-                        删除
-
-                      </button>
-
-                    </>
-
+                  {(o.status === "claimed" || o.status === "completed" || !!o.influencer_id || !!o.influencer_username) && (
+                    <p style={{ margin: "8px 0 0", fontSize: 14, fontWeight: 600, color: "#0f766e" }}>领取达人账号昵称：{resolveClaimerText(o)}</p>
                   )}
 
-                </div>
+                  <p style={{ margin: "8px 0 0", fontSize: 13, color: "#475569" }}>发布方式：{resolvePublishMethodText(o.publish_method)}</p>
 
-              </div>
-
-              {(o.status === "claimed" || o.status === "completed" || !!o.influencer_id || !!o.influencer_username) && (
-
-                <p style={{ margin: "8px 0 0", fontSize: 14, fontWeight: 600, color: "#0f766e" }}>
-
-                  领取达人账号昵称：{resolveClaimerText(o)}
-
-                </p>
-
-              )}
-
-              <p style={{ margin: "8px 0 0", fontSize: 13, color: "#475569" }}>{"发布方式："}{resolvePublishMethodText(o.publish_method)}</p>
-
-              {!!resolveTikTokLink(o) && (
-
-                <p style={{ margin: "8px 0 0", fontSize: 13 }}>
-
-                  TikTok：
-
-                  <a href={resolveTikTokLink(o)} target="_blank" rel="noreferrer">
-
-                    {resolveTikTokLink(o)}
-
-                  </a>
-
-                </p>
-
-              )}
-
-              {!!resolvePublishLink(o) && (
-                <p style={{ margin: "8px 0 0", fontSize: 13 }}>
-                  发布链接：
-                  <a href={resolvePublishLink(o)} target="_blank" rel="noreferrer">
-                    {resolvePublishLink(o)}
-                  </a>
-                </p>
-              )}
-
-              {(Array.isArray(o.sku_codes) && o.sku_codes.length > 0) || (Array.isArray(o.sku_images) && o.sku_images.length > 0) ? (
-
-                <div style={{ marginTop: 8 }}>
-
-                  <div style={{ fontSize: 13, color: "#475569" }}>SKU 信息</div>
-
-                  {Array.isArray(o.sku_codes) && o.sku_codes.length > 0 && (
-
-                    <div style={{ marginTop: 4, fontSize: 13, color: "#334155" }}>{o.sku_codes.join("，")}</div>
-
+                  {!!resolveTikTokLink(o) && (
+                    <p style={{ margin: "8px 0 0", fontSize: 13 }}>
+                      TikTok：
+                      <a href={resolveTikTokLink(o)} target="_blank" rel="noreferrer">
+                        {resolveTikTokLink(o)}
+                      </a>
+                    </p>
                   )}
 
-                  {Array.isArray(o.sku_images) && o.sku_images.length > 0 && (
+                  {!!resolvePublishLink(o) && (
+                    <p style={{ margin: "8px 0 0", fontSize: 13 }}>
+                      发布链接：
+                      <a href={resolvePublishLink(o)} target="_blank" rel="noreferrer">
+                        {resolvePublishLink(o)}
+                      </a>
+                    </p>
+                  )}
 
-                    <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
-
-                      {o.sku_images.slice(0, 6).map((url, i) => (
-
-                        <a key={`${o.id}-sku-${i}`} href={url} target="_blank" rel="noreferrer">
-
-                          <img src={url} alt={`sku-${o.id}-${i}`} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 6, border: "1px solid #eee" }} />
-
-                        </a>
-
-                      ))}
-
+                  {(Array.isArray(o.sku_codes) && o.sku_codes.length > 0) || (Array.isArray(o.sku_images) && o.sku_images.length > 0) ? (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 13, color: "#475569" }}>SKU 信息</div>
+                      {Array.isArray(o.sku_codes) && o.sku_codes.length > 0 && <div style={{ marginTop: 4, fontSize: 13, color: "#334155" }}>{o.sku_codes.join("，")}</div>}
+                      {Array.isArray(o.sku_images) && o.sku_images.length > 0 && (
+                        <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {o.sku_images.slice(0, 6).map((url, i) => (
+                            <a key={`${o.id}-sku-${i}`} href={url} target="_blank" rel="noreferrer">
+                              <img src={url} alt={`sku-${o.id}-${i}`} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 6, border: "1px solid #eee" }} />
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
+                  ) : null}
 
-                  )}
+                  <p style={{ margin: "8px 0 0", fontSize: 13, color: "#475569" }}>
+                    店铺名称：{o.client_shop_name?.trim() || "未填写"} · 对接群聊：{o.client_group_chat?.trim() || "未填写"}
+                  </p>
 
+                  <p style={{ margin: "8px 0 0", fontSize: 14 }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLinksModalLinks(normalizeWorkLinks(o.work_links));
+                        setLinksModalOpen(true);
+                      }}
+                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                    >
+                      查看链接
+                    </button>
+                  </p>
+
+                  <p style={{ margin: "8px 0 0", fontSize: 12, color: "#999" }}>{o.completed_at ? `完成：${formatDateTime(o.completed_at)}` : "完成：—"}</p>
+                </div>
+              );
+            }
+
+            const o = row.order;
+            const req = (o.requirements || {}) as Record<string, any>;
+            const shopName = String(req.client_shop_name || "").trim();
+            const groupChat = String(req.client_group_chat || "").trim();
+            const proofLinks = (Array.isArray(o.proof_links) ? o.proof_links : [])
+              .map((x: any) => (typeof x === "string" ? x : String(x?.url || x?.link || "")).trim())
+              .filter(Boolean);
+            const publishLinks = (Array.isArray(o.publish_links) ? o.publish_links : [])
+              .map((x: any) => (typeof x === "string" ? x : String(x?.url || x?.link || "")).trim())
+              .filter(Boolean);
+            const batches = Array.isArray(o.batch_payload) ? (o.batch_payload as any[]) : [];
+
+            const canAccept =
+              o.payment_status === "paid" &&
+              (o.type_id === "creator_review_video" ? o.phase === "published" : o.phase === "delivered");
+            const canReject = o.payment_status === "paid" && ["delivered", "published"].includes(o.phase);
+
+            return (
+              <div key={`v-${o.id}`} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+                <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 8, background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: 13 }}>
+                  订单日期：{formatDateTime(o.created_at)}
                 </div>
 
-              ) : null}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+                  <div>
+                    <div style={{ fontWeight: 600, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <span>订单号：VO-{o.id}</span>
+                      <span style={tagStyle(o.type_id)}>{typeText(o.type_id)}</span>
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>
+                    <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
+                      付款：{o.payment_status === "paid" ? "已付款" : "未付款"} · 状态：{phaseText(o)}
+                    </div>
+                  </div>
 
-              <p style={{ margin: "8px 0 0", fontSize: 13, color: "#475569" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <div style={{ color: "#64748b", fontSize: 13 }}>金额(฿)</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--xt-accent)" }}>{Number(o.amount_thb || 0).toFixed(2)}</div>
 
-                店铺名称：{o.client_shop_name?.trim() || "未填写"} · 对接群聊：{o.client_group_chat?.trim() || "未填写"}
+                    {o.payment_status !== "paid" && (
+                      <button type="button" onClick={() => handleOfflineMarkPaid(o.id)} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}>
+                        标记已付款
+                      </button>
+                    )}
 
-              </p>
+                    <button
+                      type="button"
+                      disabled={!canAccept}
+                      onClick={() => handleOfflineAccept(o.id)}
+                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #bbf7d0", background: "#fff", color: "#166534", cursor: canAccept ? "pointer" : "not-allowed", opacity: canAccept ? 1 : 0.5 }}
+                    >
+                      验收通过
+                    </button>
 
-              <p style={{ margin: "8px 0 0", fontSize: 14 }}>
+                    <button
+                      type="button"
+                      disabled={!canReject}
+                      onClick={() => handleOfflineReject(o.id)}
+                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: canReject ? "pointer" : "not-allowed", opacity: canReject ? 1 : 0.5 }}
+                    >
+                      驳回
+                    </button>
+                  </div>
+                </div>
 
-                <button
+                {(shopName || groupChat) && (
+                  <p style={{ margin: "8px 0 0", fontSize: 13, color: "#475569" }}>
+                    店铺名称：{shopName || "未填写"} · 对接群聊：{groupChat || "未填写"}
+                  </p>
+                )}
 
-                  type="button"
+                {Array.isArray(proofLinks) && proofLinks.length > 0 && (
+                  <div style={{ marginTop: 8, fontSize: 13 }}>
+                    <div style={{ color: "#475569" }}>交付链接</div>
+                    <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 4 }}>
+                      {proofLinks.slice(0, 8).map((url, i) => (
+                        <a key={`proof-${o.id}-${i}`} href={url} target="_blank" rel="noreferrer">
+                          {url}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                  onClick={() => {
+                {Array.isArray(publishLinks) && publishLinks.length > 0 && (
+                  <div style={{ marginTop: 8, fontSize: 13 }}>
+                    <div style={{ color: "#475569" }}>发布链接</div>
+                    <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 4 }}>
+                      {publishLinks.slice(0, 8).map((url, i) => (
+                        <a key={`pub-${o.id}-${i}`} href={url} target="_blank" rel="noreferrer">
+                          {url}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                    setLinksModalLinks(normalizeWorkLinks(o.work_links));
-
-                    setLinksModalOpen(true);
-
-                  }}
-
-                  style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
-
-                >
-
-                  查看链接
-
-                </button>
-
-              </p>
-
-              <p style={{ margin: "8px 0 0", fontSize: 12, color: "#999" }}>
-
-                {o.completed_at ? `完成：${formatDateTime(o.completed_at)}` : "完成：—"}
-
-              </p>
-
-            </div>
-
-          ))}
+                {o.type_id === "monthly_package" && (
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{ fontSize: 13, color: "#475569", marginBottom: 6 }}>批次验收 / 结算</div>
+                    {batches.length === 0 ? (
+                      <div style={{ fontSize: 13, color: "#94a3b8" }}>暂无批次（员工提交后会生成）</div>
+                    ) : (
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                          <thead>
+                            <tr>
+                              <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>批次</th>
+                              <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>提交</th>
+                              <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>验收</th>
+                              <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>状态</th>
+                              <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>结算(฿)</th>
+                              <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>操作</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {batches.map((b) => {
+                              const bn = Number(b?.batch_no || 0);
+                              const status = String(b?.status || "");
+                              const canBatchAccept = o.payment_status === "paid" && status === "pending_acceptance";
+                              const canBatchSettle = o.payment_status === "paid" && status === "accepted";
+                              return (
+                                <tr key={`batch-${o.id}-${bn}`}>
+                                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{bn || "-"}</td>
+                                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{Number(b?.video_count || 0) || 0}</td>
+                                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{Number(b?.accepted_count || 0) || 0}</td>
+                                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{status || "-"}</td>
+                                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{Number(b?.settled_amount || 0).toFixed(2)}</td>
+                                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                                    <button
+                                      type="button"
+                                      disabled={!canBatchAccept}
+                                      onClick={() => handleMonthlyBatchAccept(o.id, bn)}
+                                      style={{ padding: "4px 8px", borderRadius: 8, border: "1px solid #bbf7d0", background: "#fff", color: "#166534", cursor: canBatchAccept ? "pointer" : "not-allowed", opacity: canBatchAccept ? 1 : 0.5, marginRight: 6 }}
+                                    >
+                                      验收
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={!canBatchSettle}
+                                      onClick={() => handleMonthlyBatchSettle(o.id, bn)}
+                                      style={{ padding: "4px 8px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: canBatchSettle ? "pointer" : "not-allowed", opacity: canBatchSettle ? 1 : 0.5 }}
+                                    >
+                                      结算
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
         </div>
 
       )}
 
-      {!loading && list.length === 0 && <p style={{ color: "#666" }}>暂无订单</p>}
+      {!loading && combinedRows.length === 0 && <p style={{ color: "#666" }}>暂无订单</p>}
 
       <WorkLinksModal open={linksModalOpen} onClose={() => setLinksModalOpen(false)} links={linksModalLinks} title="交付链接" />
 

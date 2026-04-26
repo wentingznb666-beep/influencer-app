@@ -10,8 +10,8 @@ services:
     runtime: node
     region: singapore
     plan: starter
-    buildCommand: npm install --include=dev && npm run build
-    startCommand: npm start
+    buildCommand: npm ci --include=dev && npm --prefix ../frontend ci --include=dev && npm --prefix ../frontend run build && npm run build
+    startCommand: npm run start:server
     disk:
       name: uploads-disk
       mountPath: /var/render/uploads
@@ -19,8 +19,6 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3000
       # 必须与上方 disk.mountPath 完全相同
       - key: UPLOADS_ROOT
         value: /var/render/uploads
