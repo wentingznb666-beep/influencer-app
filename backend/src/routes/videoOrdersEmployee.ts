@@ -119,6 +119,7 @@ router.post("/video-orders/:id/claim", async (req: AuthRequest, res: Response) =
       if (!(await ensureTypeVisibleToEmployee(row.type_id))) return { kind: "not_allowed" as const };
       if (row.assigned_employee_id && row.assigned_employee_id !== req.user!.userId) return { kind: "already_claimed" as const };
       await client.query(`UPDATE video_orders SET assigned_employee_id=$2, updated_at=now() WHERE id=$1`, [id, req.user!.userId]);
+      await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
       await client.query(`UPDATE video_order_states SET phase='assigned', updated_at=now() WHERE order_id=$1`, [id]);
       return { kind: "ok" as const };
     });
@@ -153,6 +154,7 @@ router.patch("/video-orders/:id/phase", async (req: AuthRequest, res: Response) 
       if (row.payment_status !== "paid") return { kind: "not_paid" as const };
       if (!(await ensureTypeVisibleToEmployee(row.type_id))) return { kind: "not_allowed" as const };
       if (!row.assigned_employee_id || row.assigned_employee_id !== req.user!.userId) return { kind: "not_assigned" as const };
+      await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
       await client.query(`UPDATE video_order_states SET phase=$2, updated_at=now() WHERE order_id=$1`, [id, phase]);
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
       return { kind: "ok" as const };
@@ -190,6 +192,7 @@ router.post("/video-orders/:id/submit-proof", async (req: AuthRequest, res: Resp
       if (!row.assigned_employee_id || row.assigned_employee_id !== req.user!.userId) return { kind: "not_assigned" as const };
 
       const nextPhase = row.type_id === "creator_review_video" ? "review_pending" : "delivered";
+      await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
       await client.query(
         `UPDATE video_order_states
             SET phase=$2, proof_links=$3::jsonb, updated_at=now()
@@ -235,6 +238,7 @@ router.post("/video-orders/:id/publish", async (req: AuthRequest, res: Response)
 
       const list = Array.isArray(row.publish_links) ? row.publish_links : [];
       list.push({ url: publishLink, by: req.user!.userId, at: new Date().toISOString() });
+      await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
       await client.query(
         `UPDATE video_order_states SET phase='published', publish_links=$2::jsonb, updated_at=now() WHERE order_id=$1`,
         [id, JSON.stringify(list)]
@@ -302,6 +306,7 @@ router.post("/video-orders/:id/monthly-batches/submit", async (req: AuthRequest,
       else list.push(next);
       list.sort((a: any, b: any) => Number(a?.batch_no || 0) - Number(b?.batch_no || 0));
 
+      await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
       await client.query(`UPDATE video_order_states SET phase='delivered', batch_payload=$2::jsonb, updated_at=now() WHERE order_id=$1`, [id, JSON.stringify(list)]);
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
       return { kind: "ok" as const, batch: next };

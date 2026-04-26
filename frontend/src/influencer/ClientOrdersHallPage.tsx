@@ -98,6 +98,7 @@ type MyOrder = {
 type OfflineTypeId = employeeApi.EmployeeVideoOrderTypeId;
 type OfflinePhase = employeeApi.EmployeeVideoOrderPhase;
 type OfflineOrder = employeeApi.EmployeeVideoOrder;
+type OfflineMonthlyDraft = { batchNo: string; videoCount: string; urls: string };
 
 
 
@@ -357,6 +358,12 @@ export default function ClientOrdersHallPage() {
   const [offlineList, setOfflineList] = useState<OfflineOrder[]>([]);
   const [offlineSearch, setOfflineSearch] = useState("");
   const [offlinePhaseFilter, setOfflinePhaseFilter] = useState<"" | OfflinePhase>("");
+  const [offlineDraftUrls, setOfflineDraftUrls] = useState<Record<number, string>>({});
+  const [offlinePublishDraft, setOfflinePublishDraft] = useState<Record<number, string>>({});
+  const [offlineMonthlyDraft, setOfflineMonthlyDraft] = useState<Record<number, OfflineMonthlyDraft>>({});
+  const [offlineActionLoading, setOfflineActionLoading] = useState<Record<string, boolean>>({});
+  const [offlineActionError, setOfflineActionError] = useState<Record<number, string>>({});
+  const [offlineActionOk, setOfflineActionOk] = useState<Record<number, string>>({});
 
   const [completeId, setCompleteId] = useState<number | null>(null);
 
@@ -685,78 +692,127 @@ export default function ClientOrdersHallPage() {
 
   const handleOfflineClaim = async (orderId: number) => {
     setError(null);
+    setOfflineActionError((p) => ({ ...p, [orderId]: "" }));
+    setOfflineActionOk((p) => ({ ...p, [orderId]: "" }));
+    setOfflineActionLoading((p) => ({ ...p, [`${orderId}:claim`]: true }));
     try {
       await employeeApi.claimEmployeeVideoOrder(orderId);
+      setOfflineActionOk((p) => ({ ...p, [orderId]: t("接单成功") }));
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("接单失败"));
+      const msg = e instanceof Error ? e.message : t("接单失败");
+      setError(msg);
+      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
+    } finally {
+      setOfflineActionLoading((p) => ({ ...p, [`${orderId}:claim`]: false }));
     }
   };
 
   const handleOfflineSetPhase = async (orderId: number, phase: OfflinePhase) => {
     setError(null);
+    setOfflineActionError((p) => ({ ...p, [orderId]: "" }));
+    setOfflineActionOk((p) => ({ ...p, [orderId]: "" }));
+    setOfflineActionLoading((p) => ({ ...p, [`${orderId}:phase:${phase}`]: true }));
     try {
       await employeeApi.setEmployeeVideoOrderPhase(orderId, phase);
+      setOfflineActionOk((p) => ({ ...p, [orderId]: t("状态已更新") }));
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("更新失败"));
+      const msg = e instanceof Error ? e.message : t("更新失败");
+      setError(msg);
+      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
+    } finally {
+      setOfflineActionLoading((p) => ({ ...p, [`${orderId}:phase:${phase}`]: false }));
     }
   };
 
   const handleOfflineSubmitProof = async (orderId: number) => {
-    const raw = window.prompt(t("请输入交付链接（多条用换行分隔）"), "") || "";
+    const raw = String(offlineDraftUrls[orderId] || "");
     const urls = raw
       .split(/\r?\n/g)
       .map((s) => s.trim())
       .filter(Boolean)
       .slice(0, 20);
     if (!urls.length) {
-      setError(t("请至少填写一条交付链接。"));
+      const msg = t("请至少填写一条交付链接。");
+      setError(msg);
+      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
       return;
     }
     setError(null);
+    setOfflineActionError((p) => ({ ...p, [orderId]: "" }));
+    setOfflineActionOk((p) => ({ ...p, [orderId]: "" }));
+    setOfflineActionLoading((p) => ({ ...p, [`${orderId}:submit-proof`]: true }));
     try {
       await employeeApi.submitEmployeeVideoOrderProof(orderId, urls);
+      setOfflineDraftUrls((p) => ({ ...p, [orderId]: "" }));
+      setOfflineActionOk((p) => ({ ...p, [orderId]: t("已提交交付") }));
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("提交失败"));
+      const msg = e instanceof Error ? e.message : t("提交失败");
+      setError(msg);
+      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
+    } finally {
+      setOfflineActionLoading((p) => ({ ...p, [`${orderId}:submit-proof`]: false }));
     }
   };
 
   const handleOfflinePublish = async (orderId: number) => {
-    const link = window.prompt(t("请输入发布链接"), "") || "";
-    if (!link.trim()) {
-      setError(t("请先填写发布链接。"));
+    const link = String(offlinePublishDraft[orderId] || "").trim();
+    if (!link) {
+      const msg = t("请先填写发布链接。");
+      setError(msg);
+      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
       return;
     }
     setError(null);
+    setOfflineActionError((p) => ({ ...p, [orderId]: "" }));
+    setOfflineActionOk((p) => ({ ...p, [orderId]: "" }));
+    setOfflineActionLoading((p) => ({ ...p, [`${orderId}:publish`]: true }));
     try {
-      await employeeApi.publishEmployeeVideoOrder(orderId, link.trim());
+      await employeeApi.publishEmployeeVideoOrder(orderId, link);
+      setOfflinePublishDraft((p) => ({ ...p, [orderId]: "" }));
+      setOfflineActionOk((p) => ({ ...p, [orderId]: t("已提交发布链接") }));
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("提交失败"));
+      const msg = e instanceof Error ? e.message : t("提交失败");
+      setError(msg);
+      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
+    } finally {
+      setOfflineActionLoading((p) => ({ ...p, [`${orderId}:publish`]: false }));
     }
   };
 
   const handleMonthlySubmitBatch = async (orderId: number) => {
-    const bn = Math.max(1, Math.floor(Number(window.prompt(t("请输入批次号（batch_no）"), "1") || "1") || 1));
-    const vc = Math.max(1, Math.floor(Number(window.prompt(t("请输入提交数量（video_count）"), "1") || "1") || 1));
-    const raw = window.prompt(t("请输入该批次视频链接（多条用换行分隔）"), "") || "";
-    const urls = raw
+    const draft = offlineMonthlyDraft[orderId] || { batchNo: "1", videoCount: "1", urls: "" };
+    const bn = Math.max(1, Math.floor(Number(draft.batchNo || "1") || 1));
+    const vc = Math.max(1, Math.floor(Number(draft.videoCount || "1") || 1));
+    const urls = String(draft.urls || "")
       .split(/\r?\n/g)
       .map((s) => s.trim())
       .filter(Boolean)
       .slice(0, 20);
     if (!urls.length) {
-      setError(t("请至少填写一条交付链接。"));
+      const msg = t("请至少填写一条交付链接。");
+      setError(msg);
+      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
       return;
     }
     setError(null);
+    setOfflineActionError((p) => ({ ...p, [orderId]: "" }));
+    setOfflineActionOk((p) => ({ ...p, [orderId]: "" }));
+    setOfflineActionLoading((p) => ({ ...p, [`${orderId}:monthly-submit`]: true }));
     try {
       await employeeApi.submitEmployeeMonthlyBatch(orderId, { batch_no: bn, video_count: vc, video_urls: urls });
+      setOfflineMonthlyDraft((p) => ({ ...p, [orderId]: { ...draft, urls: "" } }));
+      setOfflineActionOk((p) => ({ ...p, [orderId]: t("已提交批次交付") }));
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("提交失败"));
+      const msg = e instanceof Error ? e.message : t("提交失败");
+      setError(msg);
+      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
+    } finally {
+      setOfflineActionLoading((p) => ({ ...p, [`${orderId}:monthly-submit`]: false }));
     }
   };
 
@@ -1461,42 +1517,141 @@ export default function ClientOrdersHallPage() {
                     <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
                       {t("商家")}: {o.client_username} · {t("金额")}: {Number(o.amount_thb || 0).toFixed(2)} ฿ · {t("状态")}: {offlinePhaseText[o.phase]}
                     </div>
+
+                    {offlineActionError[o.id] && <div style={{ marginTop: 8, color: "#b91c1c", fontSize: 13, fontWeight: 700 }}>{offlineActionError[o.id]}</div>}
+                    {offlineActionOk[o.id] && <div style={{ marginTop: 8, color: "#166534", fontSize: 13, fontWeight: 700 }}>{offlineActionOk[o.id]}</div>}
+
+                    {Array.isArray(o.proof_links) && o.proof_links.length > 0 && (
+                      <div style={{ marginTop: 10, fontSize: 13, color: "#334155" }}>
+                        <div style={{ fontWeight: 800, marginBottom: 6 }}>{t("交付链接")}</div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {o.proof_links.slice(0, 20).map((x: any, idx: number) => {
+                            const url = String((typeof x === "string" ? x : x?.url) || "").trim();
+                            if (!url) return null;
+                            return (
+                              <a key={`${o.id}-proof-${idx}`} href={url} target="_blank" rel="noreferrer" style={{ color: "var(--xt-accent)", wordBreak: "break-all" }}>
+                                {url}
+                              </a>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                     <button
                       type="button"
+                      disabled={o.phase !== "assigned" || !!offlineActionLoading[`${o.id}:phase:in_progress`]}
                       onClick={() => void handleOfflineSetPhase(o.id, "in_progress")}
-                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                      style={{
+                        padding: "6px 10px",
+                        borderRadius: 8,
+                        border: "1px solid #dbe1ea",
+                        background: o.phase !== "assigned" ? "#f8fafc" : "#fff",
+                        cursor: o.phase !== "assigned" ? "not-allowed" : "pointer",
+                        opacity: offlineActionLoading[`${o.id}:phase:in_progress`] ? 0.6 : 1,
+                      }}
                     >
-                      {t("开始制作")}
+                      {offlineActionLoading[`${o.id}:phase:in_progress`] ? t("处理中…") : t("开始制作")}
                     </button>
 
                     {o.type_id === "monthly_package" ? (
-                      <button
-                        type="button"
-                        onClick={() => void handleMonthlySubmitBatch(o.id)}
-                        style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
-                      >
-                        {t("提交批次")}
-                      </button>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                          <input
+                            type="number"
+                            value={(offlineMonthlyDraft[o.id]?.batchNo ?? "1") as any}
+                            onChange={(e) => setOfflineMonthlyDraft((p) => ({ ...p, [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), batchNo: e.target.value } }))}
+                            style={{ width: 96, padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                            placeholder={t("批次号")}
+                            min={1}
+                          />
+                          <input
+                            type="number"
+                            value={(offlineMonthlyDraft[o.id]?.videoCount ?? "1") as any}
+                            onChange={(e) => setOfflineMonthlyDraft((p) => ({ ...p, [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), videoCount: e.target.value } }))}
+                            style={{ width: 110, padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                            placeholder={t("数量")}
+                            min={1}
+                          />
+                        </div>
+                        <textarea
+                          value={offlineMonthlyDraft[o.id]?.urls ?? ""}
+                          onChange={(e) => setOfflineMonthlyDraft((p) => ({ ...p, [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), urls: e.target.value } }))}
+                          placeholder={t("交付链接（多条用换行分隔）")}
+                          rows={3}
+                          style={{ width: 320, maxWidth: "80vw", padding: "8px 10px", borderRadius: 10, border: "1px solid #dbe1ea", resize: "vertical" }}
+                        />
+                        <button
+                          type="button"
+                          disabled={!!offlineActionLoading[`${o.id}:monthly-submit`]}
+                          onClick={() => void handleMonthlySubmitBatch(o.id)}
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: 8,
+                            border: "1px solid #dbe1ea",
+                            background: "#fff",
+                            cursor: "pointer",
+                            opacity: offlineActionLoading[`${o.id}:monthly-submit`] ? 0.6 : 1,
+                          }}
+                        >
+                          {offlineActionLoading[`${o.id}:monthly-submit`] ? t("提交中…") : t("提交批次")}
+                        </button>
+                      </div>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => void handleOfflineSubmitProof(o.id)}
-                        style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
-                      >
-                        {t("提交交付")}
-                      </button>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+                        {(o.phase === "assigned" || o.phase === "in_progress" || o.phase === "review_rejected") && (
+                          <textarea
+                            value={offlineDraftUrls[o.id] ?? ""}
+                            onChange={(e) => setOfflineDraftUrls((p) => ({ ...p, [o.id]: e.target.value }))}
+                            placeholder={t("交付链接（多条用换行分隔）")}
+                            rows={3}
+                            style={{ width: 320, maxWidth: "80vw", padding: "8px 10px", borderRadius: 10, border: "1px solid #dbe1ea", resize: "vertical" }}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          disabled={!["assigned", "in_progress", "review_rejected"].includes(o.phase) || !!offlineActionLoading[`${o.id}:submit-proof`]}
+                          onClick={() => void handleOfflineSubmitProof(o.id)}
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: 8,
+                            border: "1px solid #dbe1ea",
+                            background: !["assigned", "in_progress", "review_rejected"].includes(o.phase) ? "#f8fafc" : "#fff",
+                            cursor: !["assigned", "in_progress", "review_rejected"].includes(o.phase) ? "not-allowed" : "pointer",
+                            opacity: offlineActionLoading[`${o.id}:submit-proof`] ? 0.6 : 1,
+                          }}
+                        >
+                          {offlineActionLoading[`${o.id}:submit-proof`] ? t("提交中…") : t("提交交付")}
+                        </button>
+                      </div>
                     )}
 
                     {o.type_id === "creator_review_video" && o.phase === "approved_to_publish" && (
-                      <button
-                        type="button"
-                        onClick={() => void handleOfflinePublish(o.id)}
-                        style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
-                      >
-                        {t("提交发布")}
-                      </button>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+                        <input
+                          type="text"
+                          value={offlinePublishDraft[o.id] ?? ""}
+                          onChange={(e) => setOfflinePublishDraft((p) => ({ ...p, [o.id]: e.target.value }))}
+                          placeholder={t("发布链接")}
+                          style={{ width: 320, maxWidth: "80vw", padding: "6px 10px", borderRadius: 10, border: "1px solid #dbe1ea" }}
+                        />
+                        <button
+                          type="button"
+                          disabled={!!offlineActionLoading[`${o.id}:publish`]}
+                          onClick={() => void handleOfflinePublish(o.id)}
+                          style={{
+                            padding: "6px 10px",
+                            borderRadius: 8,
+                            border: "1px solid #dbe1ea",
+                            background: "#fff",
+                            cursor: "pointer",
+                            opacity: offlineActionLoading[`${o.id}:publish`] ? 0.6 : 1,
+                          }}
+                        >
+                          {offlineActionLoading[`${o.id}:publish`] ? t("提交中…") : t("提交发布")}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
