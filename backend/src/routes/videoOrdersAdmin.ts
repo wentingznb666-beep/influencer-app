@@ -12,11 +12,11 @@ const router = Router();
 router.use(requireAuth);
 router.use(requireRole("admin"));
 
-type VideoOrderTypeId = Exclude<CooperationTypeId, "graded_video">;
+type VideoOrderTypeId = CooperationTypeId;
 
 function normalizeTypeId(input: unknown): VideoOrderTypeId | "" {
   const v = typeof input === "string" ? input.trim() : "";
-  if (v === "high_quality_custom_video" || v === "monthly_package" || v === "creator_review_video") return v;
+  if (v === "graded_video" || v === "high_quality_custom_video" || v === "monthly_package" || v === "creator_review_video") return v;
   return "";
 }
 
@@ -35,6 +35,7 @@ function normalizePhase(input: unknown): string {
     "delivered",
     "completed",
     "rejected",
+    "cancelled",
   ]);
   if (!v || v.length > 50) return "";
   if (!allowed.has(v)) return "";
@@ -73,17 +74,31 @@ router.get("/video-orders", async (req: AuthRequest, res: Response) => {
 
   try {
     const rows = await query(
-      `SELECT o.id, o.client_id, o.type_id, o.title, o.amount_thb, o.payment_method, o.payment_status, o.paid_at, o.assigned_employee_id, o.created_at, o.updated_at,
+      `SELECT o.id, o.client_id, o.type_id, o.title, o.requirements, o.amount_thb, o.payment_method, o.payment_status, o.paid_at, o.assigned_employee_id, o.created_at, o.updated_at,
               c.username AS client_username,
               e.username AS employee_username,
               COALESCE(s.phase,'created') AS phase,
               COALESCE(s.proof_links,'[]'::jsonb) AS proof_links,
               COALESCE(s.publish_links,'[]'::jsonb) AS publish_links,
-              s.review_note, s.reviewed_by, s.reviewed_at
+              s.review_note, s.reviewed_by, s.reviewed_at,
+              COALESCE(mb.accepted_count,0) AS monthly_accepted_count,
+              COALESCE(mb.planned_count,0) AS monthly_planned_count,
+              COALESCE(ms.settled_amount_thb,0) AS monthly_settled_amount_thb
          FROM video_orders o
          JOIN users c ON c.id=o.client_id
          LEFT JOIN users e ON e.id=o.assigned_employee_id
          LEFT JOIN video_order_states s ON s.order_id=o.id
+         LEFT JOIN (
+           SELECT order_id, SUM(accepted_count) AS accepted_count, SUM(planned_count) AS planned_count
+             FROM video_order_monthly_batches
+            GROUP BY order_id
+         ) mb ON mb.order_id=o.id
+         LEFT JOIN (
+           SELECT order_id, SUM(amount_thb) AS settled_amount_thb
+             FROM video_order_weekly_settlements
+            WHERE status='paid'
+            GROUP BY order_id
+         ) ms ON ms.order_id=o.id
         WHERE ${where.join(" AND ")}
         ORDER BY o.id DESC
         LIMIT ${limit}`,
@@ -141,4 +156,3 @@ router.post("/video-orders/:id/review", async (req: AuthRequest, res: Response) 
 });
 
 export default router;
-

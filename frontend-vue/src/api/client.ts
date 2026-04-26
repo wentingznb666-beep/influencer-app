@@ -158,3 +158,75 @@ export async function listClientMarketOrders(): Promise<ClientMarketOrder[]> {
   const data = (await res.json()) as any;
   return (data.list as ClientMarketOrder[]) || [];
 }
+
+export type ShowcaseInfluencer = {
+  id: number;
+  name: string;
+  intro?: string | null;
+  photos?: string[];
+  tiktok_followers_text?: string | null;
+  sales_text?: string | null;
+  sellable_types_text?: string | null;
+  skills_text?: string | null;
+  video_url?: string | null;
+  status?: string | null;
+  selected?: number;
+  updated_at?: string;
+};
+
+export async function listClientShowcaseInfluencers(q?: string): Promise<ShowcaseInfluencer[]> {
+  const sp = new URLSearchParams();
+  if (q && q.trim()) sp.set("q", q.trim());
+  const res = await fetchWithAuth(`/api/client/showcase-influencers${sp.toString() ? `?${sp.toString()}` : ""}`);
+  if (!res.ok) throw new Error(await readErrorMessage(res, "加载失败"));
+  const data = (await res.json()) as any;
+  return (data.list as ShowcaseInfluencer[]) || [];
+}
+
+export type ShowcaseContentCreator = {
+  id: number;
+  name: string;
+  intro?: string | null;
+  photos?: string[];
+  tiktok_followers_text?: string | null;
+  sales_text?: string | null;
+  sellable_types_text?: string | null;
+  skills_text?: string | null;
+  video_url?: string | null;
+  status?: string | null;
+  selected?: number;
+  updated_at?: string;
+};
+
+export async function listClientShowcaseContentCreators(q?: string): Promise<ShowcaseContentCreator[]> {
+  const sp = new URLSearchParams();
+  if (q && q.trim()) sp.set("q", q.trim());
+  const res = await fetchWithAuth(`/api/client/showcase-content-creators${sp.toString() ? `?${sp.toString()}` : ""}`);
+  if (!res.ok) throw new Error(await readErrorMessage(res, "加载失败"));
+  const data = (await res.json()) as any;
+  return (data.list as ShowcaseContentCreator[]) || [];
+}
+
+export type ClientModelProfile = {
+  id: number;
+  name: string;
+  intro?: string | null;
+  photos?: string[];
+  cloud_link?: string | null;
+  tiktok_followers_text?: string | null;
+  tiktok_sales_text?: string | null;
+  sellable_product_types?: string | null;
+  skills_text?: string | null;
+  status?: string | null;
+  selected?: number;
+  updated_at?: string;
+};
+
+export async function listClientModels(q?: string): Promise<ClientModelProfile[]> {
+  const sp = new URLSearchParams();
+  if (q && q.trim()) sp.set("q", q.trim());
+  const res = await fetchWithAuth(`/api/client/models${sp.toString() ? `?${sp.toString()}` : ""}`);
+  if (!res.ok) throw new Error(await readErrorMessage(res, "加载失败"));
+  const data = (await res.json()) as any;
+  return (data.list as ClientModelProfile[]) || [];
+}
