@@ -1,6 +1,6 @@
 import { Router, Response } from "express";
 
-import { query, withTx } from "../db";
+import { ensureVideoOrdersSchemaReady, query, withTx } from "../db";
 
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 import { readCooperationTypesConfig, isVisibleCooperationType, type CooperationTypeId } from "../cooperationTypes";
@@ -11,6 +11,9 @@ const router = Router();
 
 router.use(requireAuth);
 router.use(requireRole("client"));
+router.use((req, res, next) => {
+  void ensureVideoOrdersSchemaReady().then(() => next(), next);
+});
 
 type VideoOrderTypeId = Exclude<CooperationTypeId, "graded_video">;
 

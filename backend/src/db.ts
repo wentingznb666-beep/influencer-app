@@ -9,6 +9,7 @@ import { Pool, PoolClient } from "pg";
 let pool: Pool | null = null;
 
 let initialized = false;
+let videoOrdersSchemaReadyPromise: Promise<void> | null = null;
 
 const FULL_INIT_SQL = `
 
@@ -1007,6 +1008,24 @@ export async function initDb(): Promise<void> {
 
 }
 
+export async function ensureVideoOrdersSchemaReady(): Promise<void> {
+
+  if (!videoOrdersSchemaReadyPromise) {
+
+    videoOrdersSchemaReadyPromise = applyVideoOrdersSchemaPatches().catch((e) => {
+
+      videoOrdersSchemaReadyPromise = null;
+
+      throw e;
+
+    });
+
+  }
+
+  await videoOrdersSchemaReadyPromise;
+
+}
+
 
 
 /**
@@ -1222,6 +1241,71 @@ async function runLightweightInit(): Promise<void> {
 /**
 
  */
+
+async function applyVideoOrdersSchemaPatches(): Promise<void> {
+
+  await query(`CREATE TABLE IF NOT EXISTS video_orders (
+    id SERIAL PRIMARY KEY,
+    client_id INTEGER NOT NULL REFERENCES users(id),
+    type_id TEXT NOT NULL CHECK (type_id IN ('high_quality_custom_video','monthly_package','creator_review_video')),
+    title TEXT NOT NULL,
+    requirements JSONB NOT NULL DEFAULT '{}'::jsonb,
+    amount_thb NUMERIC(18,2) NOT NULL DEFAULT 0,
+    payment_method TEXT NOT NULL DEFAULT 'offline' CHECK (payment_method IN ('offline')),
+    payment_status TEXT NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid','paid')),
+    paid_at TIMESTAMPTZ,
+    assigned_employee_id INTEGER REFERENCES users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_client ON video_orders(client_id, id DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_assignee ON video_orders(assigned_employee_id, id DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_type ON video_orders(type_id, id DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_payment ON video_orders(payment_status, id DESC)`);
+  await query(`ALTER TABLE video_orders ADD COLUMN IF NOT EXISTS unit_price_thb NUMERIC(18,2)`);
+  await query(`ALTER TABLE video_orders ADD COLUMN IF NOT EXISTS unit_count INTEGER NOT NULL DEFAULT 1`);
+  await query(`ALTER TABLE video_orders ADD COLUMN IF NOT EXISTS boss_unit_price_thb NUMERIC(18,2)`);
+  await query(
+    `INSERT INTO config (key, value) VALUES ('creator_review_video_unit_price_thb', '0')
+     ON CONFLICT (key) DO NOTHING`,
+  );
+
+  await query(`CREATE TABLE IF NOT EXISTS video_order_states (
+    order_id INTEGER PRIMARY KEY REFERENCES video_orders(id) ON DELETE CASCADE,
+    phase TEXT NOT NULL DEFAULT 'created',
+    review_note TEXT,
+    reviewed_by INTEGER REFERENCES users(id),
+    reviewed_at TIMESTAMPTZ,
+    proof_links JSONB NOT NULL DEFAULT '[]'::jsonb,
+    publish_links JSONB NOT NULL DEFAULT '[]'::jsonb,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  )`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS phase TEXT NOT NULL DEFAULT 'created'`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS review_note TEXT`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS reviewed_by INTEGER REFERENCES users(id)`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS proof_links JSONB NOT NULL DEFAULT '[]'::jsonb`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS publish_links JSONB NOT NULL DEFAULT '[]'::jsonb`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS batch_payload JSONB NOT NULL DEFAULT '[]'::jsonb`);
+
+  await query(`CREATE TABLE IF NOT EXISTS video_order_settlements (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL REFERENCES video_orders(id) ON DELETE CASCADE,
+    batch_no INTEGER NOT NULL,
+    week_start DATE NOT NULL,
+    amount_thb NUMERIC(18,2) NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(order_id, batch_no)
+  )`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_video_order_settlements_order ON video_order_settlements(order_id, batch_no)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_video_order_settlements_week ON video_order_settlements(week_start, id DESC)`);
+  await query(`ALTER TABLE video_order_settlements ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
+  await query(`ALTER TABLE video_order_settlements ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ`);
+
+}
 
 async function applyOnlineSchemaPatches(): Promise<void> {
 
@@ -1623,69 +1707,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     published_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`);
 
-  await query(`CREATE TABLE IF NOT EXISTS video_orders (
-    id SERIAL PRIMARY KEY,
-    client_id INTEGER NOT NULL REFERENCES users(id),
-    type_id TEXT NOT NULL CHECK (type_id IN ('high_quality_custom_video','monthly_package','creator_review_video')),
-    title TEXT NOT NULL,
-    requirements JSONB NOT NULL DEFAULT '{}'::jsonb,
-    amount_thb NUMERIC(18,2) NOT NULL DEFAULT 0,
-    payment_method TEXT NOT NULL DEFAULT 'offline' CHECK (payment_method IN ('offline')),
-    payment_status TEXT NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('unpaid','paid')),
-    paid_at TIMESTAMPTZ,
-    assigned_employee_id INTEGER REFERENCES users(id),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-  )`);
-
-  await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_client ON video_orders(client_id, id DESC)`);
-  await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_assignee ON video_orders(assigned_employee_id, id DESC)`);
-  await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_type ON video_orders(type_id, id DESC)`);
-  await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_payment ON video_orders(payment_status, id DESC)`);
-
-  await query(`ALTER TABLE video_orders ADD COLUMN IF NOT EXISTS unit_price_thb NUMERIC(18,2)`);
-  await query(`ALTER TABLE video_orders ADD COLUMN IF NOT EXISTS unit_count INTEGER NOT NULL DEFAULT 1`);
-  await query(`ALTER TABLE video_orders ADD COLUMN IF NOT EXISTS boss_unit_price_thb NUMERIC(18,2)`);
-
-  await query(
-    `INSERT INTO config (key, value) VALUES ('creator_review_video_unit_price_thb', '0')
-     ON CONFLICT (key) DO NOTHING`,
-  );
-
-  await query(`CREATE TABLE IF NOT EXISTS video_order_states (
-    order_id INTEGER PRIMARY KEY REFERENCES video_orders(id) ON DELETE CASCADE,
-    phase TEXT NOT NULL DEFAULT 'created',
-    review_note TEXT,
-    reviewed_by INTEGER REFERENCES users(id),
-    reviewed_at TIMESTAMPTZ,
-    proof_links JSONB NOT NULL DEFAULT '[]'::jsonb,
-    publish_links JSONB NOT NULL DEFAULT '[]'::jsonb,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-  )`);
-  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS phase TEXT NOT NULL DEFAULT 'created'`);
-  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS review_note TEXT`);
-  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS reviewed_by INTEGER REFERENCES users(id)`);
-  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ`);
-  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS proof_links JSONB NOT NULL DEFAULT '[]'::jsonb`);
-  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS publish_links JSONB NOT NULL DEFAULT '[]'::jsonb`);
-  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
-  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS batch_payload JSONB NOT NULL DEFAULT '[]'::jsonb`);
-
-  await query(`CREATE TABLE IF NOT EXISTS video_order_settlements (
-    id SERIAL PRIMARY KEY,
-    order_id INTEGER NOT NULL REFERENCES video_orders(id) ON DELETE CASCADE,
-    batch_no INTEGER NOT NULL,
-    week_start DATE NOT NULL,
-    amount_thb NUMERIC(18,2) NOT NULL DEFAULT 0,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE(order_id, batch_no)
-  )`);
-  await query(`CREATE INDEX IF NOT EXISTS idx_video_order_settlements_order ON video_order_settlements(order_id, batch_no)`);
-  await query(`CREATE INDEX IF NOT EXISTS idx_video_order_settlements_week ON video_order_settlements(week_start, id DESC)`);
-  await query(`ALTER TABLE video_order_settlements ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
-  await query(`ALTER TABLE video_order_settlements ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ`);
+  await applyVideoOrdersSchemaPatches();
 
 
   await query(`CREATE TABLE IF NOT EXISTS client_merchant_info_templates (
