@@ -7,6 +7,7 @@ export default function InfluencerPermissionsPage() {
   const [list, setList] = useState<any[]>([]);
   const [msg, setMsg] = useState<string>("");
   const [busy, setBusy] = useState<Record<string, boolean>>({});
+  const [isMobile, setIsMobile] = useState(false);
 
   const setBusyKey = (key: string, value: boolean) => {
     setBusy((prev) => ({ ...prev, [key]: value }));
@@ -44,7 +45,16 @@ export default function InfluencerPermissionsPage() {
   };
 
   useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const onChange = () => setIsMobile(mq.matches);
+    onChange();
+    if (typeof mq.addEventListener === "function") mq.addEventListener("change", onChange);
+    else mq.addListener(onChange);
     load().catch((e) => setMsg(e instanceof Error ? e.message : "加载失败"));
+    return () => {
+      if (typeof mq.removeEventListener === "function") mq.removeEventListener("change", onChange);
+      else mq.removeListener(onChange);
+    };
   }, []);
 
   /** 审核通过或驳回达人权限申请。 */
@@ -82,7 +92,7 @@ export default function InfluencerPermissionsPage() {
   };
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
+    <div style={{ background: "#fff", borderRadius: 16, padding: isMobile ? 12 : 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
       <h2 style={{ marginTop: 0 }}>达人撮合权限审核</h2>
       {msg && <p style={{ margin: "8px 0 12px", color: "#334155" }}>{msg}</p>}
 
@@ -124,6 +134,9 @@ export default function InfluencerPermissionsPage() {
           display: flex;
           gap: 6px;
           flex-wrap: wrap;
+        }
+        .xt-perm-actions > * {
+          flex: 0 0 auto;
         }
         .xt-perm-btn {
           border: 1px solid #e2e8f0;
@@ -167,91 +180,254 @@ export default function InfluencerPermissionsPage() {
           word-break: break-word;
           line-height: 1.35;
         }
+        .xt-perm-ellipsis-1 {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .xt-perm-cards {
+          display: grid;
+          gap: 10px;
+        }
+        .xt-perm-card {
+          border: 1px solid #e2e8f0;
+          border-radius: 12px;
+          padding: 12px;
+          background: #fff;
+        }
+        .xt-perm-card-top {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 10px;
+          margin-bottom: 8px;
+        }
+        .xt-perm-card-title {
+          font-weight: 800;
+          color: #0f172a;
+          font-size: 14px;
+          line-height: 1.2;
+        }
+        .xt-perm-card-rows {
+          display: grid;
+          gap: 6px;
+        }
+        .xt-perm-card-row {
+          display: grid;
+          grid-template-columns: 84px 1fr;
+          gap: 8px;
+          align-items: start;
+          font-size: 13px;
+        }
+        .xt-perm-card-label {
+          color: #64748b;
+          white-space: nowrap;
+        }
+        .xt-perm-card-value {
+          color: #0f172a;
+          min-width: 0;
+        }
+        .xt-perm-card-actions {
+          margin-top: 10px;
+        }
+        .xt-perm-card-actions .xt-perm-actions {
+          gap: 8px;
+        }
+        .xt-perm-card-actions .xt-perm-btn {
+          flex: 1 1 auto;
+          min-width: 0;
+        }
       `}</style>
 
-      <table className="xt-perm-table">
-        <colgroup>
-          <col style={{ width: 140 }} />
-          <col style={{ width: 110 }} />
-          <col style={{ width: 160 }} />
-          <col style={{ width: 110 }} />
-          <col style={{ width: 360 }} />
-          <col style={{ width: 240 }} />
-          <col style={{ width: 240 }} />
-        </colgroup>
-        <thead>
-          <tr>
-            <th>达人</th><th>状态</th><th>TikTok账号</th><th>粉丝数</th><th>类目/简介</th><th>收款信息</th><th>操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          {list.map((it) => (
-            <tr key={it.id}>
-              <td style={{ whiteSpace: "nowrap" }}>{renderValue(it.display_name || it.username)}</td>
-              <td>
-                <span className="xt-perm-tag" style={statusTagStyle(it.influencer_status)}>
-                  {formatInfluencerPermissionStatus(it.influencer_status)}
-                </span>
-              </td>
-              <td style={{ textAlign: "left" }}>{renderValue(it.tiktok_account)}</td>
-              <td>{renderValue(it.tiktok_fans)}</td>
-              <td title={String(it.category || "")}>
-                <div className="xt-perm-ellipsis-2">{renderValue(it.category)}</div>
-              </td>
-              <td style={{ textAlign: "left" }}>
-                {(() => {
-                  const text = [it.real_name, it.bank_name, it.bank_branch].filter(Boolean).join(" / ");
-                  return text ? text : renderPlaceholder("未填写");
-                })()}
-              </td>
-              <td>
-                <div className="xt-perm-actions">
-                  <button
-                    type="button"
-                    className="xt-perm-btn"
-                    style={btnStyle("success")}
-                    title="通过该达人的撮合权限申请"
-                    disabled={Boolean(busy[`review:${it.id}:approve`])}
-                    onClick={() => void review(it.id, "approve")}
-                  >
-                    {busy[`review:${it.id}:approve`] ? "通过中…" : "通过"}
-                  </button>
-                  <button
-                    type="button"
-                    className="xt-perm-btn"
-                    style={btnStyle("danger")}
-                    title="驳回该达人的撮合权限申请"
-                    disabled={Boolean(busy[`review:${it.id}:reject`])}
-                    onClick={() => void review(it.id, "reject")}
-                  >
-                    {busy[`review:${it.id}:reject`] ? "驳回中…" : "驳回"}
-                  </button>
-                  <button
-                    type="button"
-                    className="xt-perm-btn"
-                    style={btnStyle("primary")}
-                    title="开启该达人的撮合权限"
-                    disabled={Boolean(busy[`toggle:${it.id}:on`])}
-                    onClick={() => void toggle(it.id, true)}
-                  >
-                    {busy[`toggle:${it.id}:on`] ? "开启中…" : "开启"}
-                  </button>
-                  <button
-                    type="button"
-                    className="xt-perm-btn"
-                    style={btnStyle("default")}
-                    title="禁用该达人的撮合权限"
-                    disabled={Boolean(busy[`toggle:${it.id}:off`])}
-                    onClick={() => void toggle(it.id, false)}
-                  >
-                    {busy[`toggle:${it.id}:off`] ? "禁用中…" : "禁用"}
-                  </button>
+      {isMobile ? (
+        <div className="xt-perm-cards">
+          {list.map((it) => {
+            const name = it.display_name || it.username;
+            const bankText = [it.real_name, it.bank_name, it.bank_branch].filter(Boolean).join(" / ");
+            const tiktokAccount = it.tiktok_account ?? "";
+            const category = it.category ?? "";
+            return (
+              <div key={it.id} className="xt-perm-card">
+                <div className="xt-perm-card-top">
+                  <div style={{ minWidth: 0 }}>
+                    <div className="xt-perm-card-title xt-perm-ellipsis-1" title={String(name || "")}>
+                      {renderValue(name)}
+                    </div>
+                  </div>
+                  <span className="xt-perm-tag" style={statusTagStyle(it.influencer_status)}>
+                    {formatInfluencerPermissionStatus(it.influencer_status)}
+                  </span>
                 </div>
-              </td>
+
+                <div className="xt-perm-card-rows">
+                  <div className="xt-perm-card-row">
+                    <div className="xt-perm-card-label">TikTok账号</div>
+                    <div className="xt-perm-card-value xt-perm-ellipsis-1" title={String(tiktokAccount)}>
+                      {renderValue(tiktokAccount)}
+                    </div>
+                  </div>
+                  <div className="xt-perm-card-row">
+                    <div className="xt-perm-card-label">粉丝数</div>
+                    <div className="xt-perm-card-value">{renderValue(it.tiktok_fans)}</div>
+                  </div>
+                  <div className="xt-perm-card-row">
+                    <div className="xt-perm-card-label">类目/简介</div>
+                    <div className="xt-perm-card-value" title={String(category)}>
+                      <div className="xt-perm-ellipsis-2">{renderValue(category)}</div>
+                    </div>
+                  </div>
+                  <div className="xt-perm-card-row">
+                    <div className="xt-perm-card-label">收款信息</div>
+                    <div className="xt-perm-card-value" title={String(bankText)}>
+                      {bankText ? <div className="xt-perm-ellipsis-2">{bankText}</div> : renderPlaceholder("未填写")}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="xt-perm-card-actions">
+                  <div className="xt-perm-actions">
+                    <button
+                      type="button"
+                      className="xt-perm-btn"
+                      style={btnStyle("success")}
+                      title="通过该达人的撮合权限申请"
+                      disabled={Boolean(busy[`review:${it.id}:approve`])}
+                      onClick={() => void review(it.id, "approve")}
+                    >
+                      {busy[`review:${it.id}:approve`] ? "通过中…" : "通过"}
+                    </button>
+                    <button
+                      type="button"
+                      className="xt-perm-btn"
+                      style={btnStyle("danger")}
+                      title="驳回该达人的撮合权限申请"
+                      disabled={Boolean(busy[`review:${it.id}:reject`])}
+                      onClick={() => void review(it.id, "reject")}
+                    >
+                      {busy[`review:${it.id}:reject`] ? "驳回中…" : "驳回"}
+                    </button>
+                    <button
+                      type="button"
+                      className="xt-perm-btn"
+                      style={btnStyle("primary")}
+                      title="开启该达人的撮合权限"
+                      disabled={Boolean(busy[`toggle:${it.id}:on`])}
+                      onClick={() => void toggle(it.id, true)}
+                    >
+                      {busy[`toggle:${it.id}:on`] ? "开启中…" : "开启"}
+                    </button>
+                    <button
+                      type="button"
+                      className="xt-perm-btn"
+                      style={btnStyle("default")}
+                      title="禁用该达人的撮合权限"
+                      disabled={Boolean(busy[`toggle:${it.id}:off`])}
+                      onClick={() => void toggle(it.id, false)}
+                    >
+                      {busy[`toggle:${it.id}:off`] ? "禁用中…" : "禁用"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <table className="xt-perm-table">
+          <colgroup>
+            <col style={{ width: 150 }} />
+            <col style={{ width: 110 }} />
+            <col style={{ width: 180 }} />
+            <col style={{ width: 110 }} />
+            <col style={{ width: 320 }} />
+            <col style={{ width: 260 }} />
+            <col style={{ width: 240 }} />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>达人</th><th>状态</th><th>TikTok账号</th><th>粉丝数</th><th>类目/简介</th><th>收款信息</th><th>操作</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {list.map((it) => {
+              const name = it.display_name || it.username;
+              const bankText = [it.real_name, it.bank_name, it.bank_branch].filter(Boolean).join(" / ");
+              const tiktokAccount = it.tiktok_account ?? "";
+              const category = it.category ?? "";
+              return (
+                <tr key={it.id}>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    <div className="xt-perm-ellipsis-1" title={String(name || "")}>
+                      {renderValue(name)}
+                    </div>
+                  </td>
+                  <td>
+                    <span className="xt-perm-tag" style={statusTagStyle(it.influencer_status)}>
+                      {formatInfluencerPermissionStatus(it.influencer_status)}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: "left" }}>
+                    <div className="xt-perm-ellipsis-1" title={String(tiktokAccount)}>
+                      {renderValue(tiktokAccount)}
+                    </div>
+                  </td>
+                  <td>{renderValue(it.tiktok_fans)}</td>
+                  <td title={String(category)}>
+                    <div className="xt-perm-ellipsis-2">{renderValue(category)}</div>
+                  </td>
+                  <td style={{ textAlign: "left" }} title={String(bankText)}>
+                    {bankText ? <div className="xt-perm-ellipsis-2">{bankText}</div> : renderPlaceholder("未填写")}
+                  </td>
+                  <td>
+                    <div className="xt-perm-actions">
+                      <button
+                        type="button"
+                        className="xt-perm-btn"
+                        style={btnStyle("success")}
+                        title="通过该达人的撮合权限申请"
+                        disabled={Boolean(busy[`review:${it.id}:approve`])}
+                        onClick={() => void review(it.id, "approve")}
+                      >
+                        {busy[`review:${it.id}:approve`] ? "通过中…" : "通过"}
+                      </button>
+                      <button
+                        type="button"
+                        className="xt-perm-btn"
+                        style={btnStyle("danger")}
+                        title="驳回该达人的撮合权限申请"
+                        disabled={Boolean(busy[`review:${it.id}:reject`])}
+                        onClick={() => void review(it.id, "reject")}
+                      >
+                        {busy[`review:${it.id}:reject`] ? "驳回中…" : "驳回"}
+                      </button>
+                      <button
+                        type="button"
+                        className="xt-perm-btn"
+                        style={btnStyle("primary")}
+                        title="开启该达人的撮合权限"
+                        disabled={Boolean(busy[`toggle:${it.id}:on`])}
+                        onClick={() => void toggle(it.id, true)}
+                      >
+                        {busy[`toggle:${it.id}:on`] ? "开启中…" : "开启"}
+                      </button>
+                      <button
+                        type="button"
+                        className="xt-perm-btn"
+                        style={btnStyle("default")}
+                        title="禁用该达人的撮合权限"
+                        disabled={Boolean(busy[`toggle:${it.id}:off`])}
+                        onClick={() => void toggle(it.id, false)}
+                      >
+                        {busy[`toggle:${it.id}:off`] ? "禁用中…" : "禁用"}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
