@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
 import * as api from "../influencerApi";
+import * as employeeApi from "../employeeApi";
 
 import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFilter";
 
@@ -93,6 +94,10 @@ type MyOrder = {
   task_count?: number;
 
 };
+
+type OfflineTypeId = employeeApi.EmployeeVideoOrderTypeId;
+type OfflinePhase = employeeApi.EmployeeVideoOrderPhase;
+type OfflineOrder = employeeApi.EmployeeVideoOrder;
 
 
 
@@ -348,6 +353,11 @@ export default function ClientOrdersHallPage() {
 
   const [error, setError] = useState<string | null>(null);
 
+  const [typeFilter, setTypeFilter] = useState<"all" | "graded_video" | OfflineTypeId>("all");
+  const [offlineList, setOfflineList] = useState<OfflineOrder[]>([]);
+  const [offlineSearch, setOfflineSearch] = useState("");
+  const [offlinePhaseFilter, setOfflinePhaseFilter] = useState<"" | OfflinePhase>("");
+
   const [completeId, setCompleteId] = useState<number | null>(null);
 
   const [workLinkRows, setWorkLinkRows] = useState<string[]>([""]);
@@ -375,6 +385,43 @@ export default function ClientOrdersHallPage() {
   const [myDateFilter, setMyDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
 
   const hasInitLoadedRef = useRef(false);
+
+  const offlineTypeText = useMemo(
+    () =>
+      ({
+        high_quality_custom_video: t("② 高质量视频"),
+        monthly_package: t("③ 包月合作套餐"),
+        creator_review_video: t("④ Creator带货测评"),
+      }) as Record<OfflineTypeId, string>,
+    [t]
+  );
+
+  const offlinePhaseText = useMemo(
+    () =>
+      ({
+        created: t("已创建"),
+        paid: t("已付款"),
+        assigned: t("已接单"),
+        in_progress: t("制作中"),
+        submitted: t("已提交"),
+        review_pending: t("待审核"),
+        review_rejected: t("审核驳回"),
+        approved_to_publish: t("可发布"),
+        published: t("已发布"),
+        delivered: t("已交付"),
+        completed: t("已完成"),
+        rejected: t("已驳回"),
+      }) as Record<OfflinePhase, string>,
+    [t]
+  );
+
+  function typeBadgeStyle(kind: "graded" | "hq" | "monthly" | "review"): CSSProperties {
+    const base: CSSProperties = { padding: "2px 8px", borderRadius: 999, fontSize: 12, fontWeight: 800, border: "1px solid #dbe1ea" };
+    if (kind === "graded") return { ...base, background: "#f1f5f9", color: "#0f172a" };
+    if (kind === "hq") return { ...base, background: "#dcfce7", color: "#166534", borderColor: "#bbf7d0" };
+    if (kind === "monthly") return { ...base, background: "#ffedd5", color: "#9a3412", borderColor: "#fed7aa" };
+    return { ...base, background: "#fee2e2", color: "#991b1b", borderColor: "#fecaca" };
+  }
 
 
 
@@ -428,7 +475,7 @@ export default function ClientOrdersHallPage() {
 
       const myDate = nextMyDateFilter ?? myDateFilter;
 
-      const [openRes, myRes] = await Promise.all([
+      const [openRes, myRes, offlineRes] = await Promise.all([
 
         api.getMarketOrders({
 
@@ -446,6 +493,13 @@ export default function ClientOrdersHallPage() {
 
         }),
 
+        employeeApi.getEmployeeVideoOrders({
+          ...(offlinePhaseFilter ? { phase: offlinePhaseFilter } : {}),
+          ...(offlineSearch.trim() ? { q: offlineSearch.trim() } : {}),
+          ...(typeFilter !== "all" && typeFilter !== "graded_video" ? { type: typeFilter } : {}),
+          limit: 200,
+        }),
+
       ]);
 
       setOpenList(openRes.list || []);
@@ -453,6 +507,8 @@ export default function ClientOrdersHallPage() {
       const myRows = (myRes.list || []) as MyOrder[];
 
       setMyList(myRows.map((r) => ({ ...r, work_links: normalizeWorkLinks(r.work_links) })));
+
+      setOfflineList((offlineRes.list || []) as OfflineOrder[]);
 
     } catch (e) {
 
@@ -627,6 +683,86 @@ export default function ClientOrdersHallPage() {
     [t],
   );
 
+  const handleOfflineClaim = async (orderId: number) => {
+    setError(null);
+    try {
+      await employeeApi.claimEmployeeVideoOrder(orderId);
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("接单失败"));
+    }
+  };
+
+  const handleOfflineSetPhase = async (orderId: number, phase: OfflinePhase) => {
+    setError(null);
+    try {
+      await employeeApi.setEmployeeVideoOrderPhase(orderId, phase);
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("更新失败"));
+    }
+  };
+
+  const handleOfflineSubmitProof = async (orderId: number) => {
+    const raw = window.prompt(t("请输入交付链接（多条用换行分隔）"), "") || "";
+    const urls = raw
+      .split(/\r?\n/g)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 20);
+    if (!urls.length) {
+      setError(t("请至少填写一条交付链接。"));
+      return;
+    }
+    setError(null);
+    try {
+      await employeeApi.submitEmployeeVideoOrderProof(orderId, urls);
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("提交失败"));
+    }
+  };
+
+  const handleOfflinePublish = async (orderId: number) => {
+    const link = window.prompt(t("请输入发布链接"), "") || "";
+    if (!link.trim()) {
+      setError(t("请先填写发布链接。"));
+      return;
+    }
+    setError(null);
+    try {
+      await employeeApi.publishEmployeeVideoOrder(orderId, link.trim());
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("提交失败"));
+    }
+  };
+
+  const handleMonthlySubmitBatch = async (orderId: number) => {
+    const bn = Math.max(1, Math.floor(Number(window.prompt(t("请输入批次号（batch_no）"), "1") || "1") || 1));
+    const vc = Math.max(1, Math.floor(Number(window.prompt(t("请输入提交数量（video_count）"), "1") || "1") || 1));
+    const raw = window.prompt(t("请输入该批次视频链接（多条用换行分隔）"), "") || "";
+    const urls = raw
+      .split(/\r?\n/g)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 20);
+    if (!urls.length) {
+      setError(t("请至少填写一条交付链接。"));
+      return;
+    }
+    setError(null);
+    try {
+      await employeeApi.submitEmployeeMonthlyBatch(orderId, { batch_no: bn, video_count: vc, video_urls: urls });
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("提交失败"));
+    }
+  };
+
+  const offlineOpen = useMemo(() => offlineList.filter((o) => !o.assigned_employee_id), [offlineList]);
+  const offlineMine = useMemo(() => offlineList.filter((o) => !!o.assigned_employee_id), [offlineList]);
+
 
 
 
@@ -651,11 +787,29 @@ export default function ClientOrdersHallPage() {
 
       </button>
 
+      <div style={{ marginBottom: 14, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ fontSize: 13, color: "#475569", fontWeight: 700 }}>{t("订单类型")}</div>
+        <select
+          value={typeFilter}
+          onChange={(e) => {
+            setTypeFilter(e.target.value as any);
+            load();
+          }}
+          style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
+        >
+          <option value="all">{t("全部类型")}</option>
+          <option value="graded_video">{t("① 分级视频（A/B/C）")}</option>
+          <option value="high_quality_custom_video">{t("② 高质量视频")}</option>
+          <option value="monthly_package">{t("③ 包月合作套餐")}</option>
+          <option value="creator_review_video">{t("④ Creator带货测评")}</option>
+        </select>
+      </div>
 
-
-      <h3 style={{ fontSize: 16 }}>{t("待领取")}</h3>
-
+      {(typeFilter === "all" || typeFilter === "graded_video") && (
+        <>
+          <h3 style={{ fontSize: 16 }}>{t("待领取")}</h3>
       <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+
 
         <input
 
@@ -810,9 +964,7 @@ export default function ClientOrdersHallPage() {
 
       )}
 
-
-
-      <h3 style={{ fontSize: 16 }}>{t("我的领单")}</h3>
+          <h3 style={{ fontSize: 16 }}>{t("我的领单")}</h3>
 
       <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
 
@@ -1226,6 +1378,133 @@ export default function ClientOrdersHallPage() {
 
         </div>
 
+      )}
+
+        </>
+      )}
+
+      {(typeFilter === "all" || typeFilter !== "graded_video") && (
+        <div style={{ marginTop: 18 }}>
+          <h3 style={{ fontSize: 16 }}>{t("线下视频订单（类型2/3/4）")}</h3>
+
+          <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <input
+              type="text"
+              value={offlineSearch}
+              onChange={(e) => setOfflineSearch(e.target.value)}
+              placeholder={t("搜索标题（模糊）")}
+              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 240 }}
+            />
+            <select
+              value={offlinePhaseFilter}
+              onChange={(e) => setOfflinePhaseFilter((e.target.value as any) || "")}
+              style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
+            >
+              <option value="">{t("全部状态")}</option>
+              <option value="assigned">{t("已接单")}</option>
+              <option value="in_progress">{t("制作中")}</option>
+              <option value="review_pending">{t("待审核")}</option>
+              <option value="approved_to_publish">{t("可发布")}</option>
+              <option value="delivered">{t("已交付")}</option>
+            </select>
+            <button type="button" onClick={() => load()} style={{ padding: "6px 14px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+              {t("刷新")}
+            </button>
+          </div>
+
+          <div style={{ marginBottom: 10, fontSize: 14, fontWeight: 800 }}>{t("待接单")}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 18 }}>
+            {offlineOpen.map((o) => (
+              <div key={`off-open-${o.id}`} style={{ padding: 14, background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontWeight: 800, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <span>VO-{o.id}</span>
+                      {o.type_id === "high_quality_custom_video" && <span style={typeBadgeStyle("hq")}>{offlineTypeText[o.type_id]}</span>}
+                      {o.type_id === "monthly_package" && <span style={typeBadgeStyle("monthly")}>{offlineTypeText[o.type_id]}</span>}
+                      {o.type_id === "creator_review_video" && <span style={typeBadgeStyle("review")}>{offlineTypeText[o.type_id]}</span>}
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>{o.title}</div>
+                    <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
+                      {t("商家")}: {o.client_username} · {t("金额")}: {Number(o.amount_thb || 0).toFixed(2)} ฿ · {t("状态")}: {offlinePhaseText[o.phase]}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => void handleOfflineClaim(o.id)}
+                      style={{ padding: "6px 12px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+                    >
+                      {t("接单")}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {!loading && offlineOpen.length === 0 && <div style={{ color: "#64748b", fontSize: 13 }}>{t("暂无待接单订单")}</div>}
+          </div>
+
+          <div style={{ marginBottom: 10, fontSize: 14, fontWeight: 800 }}>{t("我的接单")}</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {offlineMine.map((o) => (
+              <div key={`off-mine-${o.id}`} style={{ padding: 14, background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontWeight: 800, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <span>VO-{o.id}</span>
+                      {o.type_id === "high_quality_custom_video" && <span style={typeBadgeStyle("hq")}>{offlineTypeText[o.type_id]}</span>}
+                      {o.type_id === "monthly_package" && <span style={typeBadgeStyle("monthly")}>{offlineTypeText[o.type_id]}</span>}
+                      {o.type_id === "creator_review_video" && <span style={typeBadgeStyle("review")}>{offlineTypeText[o.type_id]}</span>}
+                      <span style={{ fontSize: 12, color: "#64748b" }}>{t("已接单")}</span>
+                    </div>
+                    <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>{o.title}</div>
+                    <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
+                      {t("商家")}: {o.client_username} · {t("金额")}: {Number(o.amount_thb || 0).toFixed(2)} ฿ · {t("状态")}: {offlinePhaseText[o.phase]}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      onClick={() => void handleOfflineSetPhase(o.id, "in_progress")}
+                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                    >
+                      {t("开始制作")}
+                    </button>
+
+                    {o.type_id === "monthly_package" ? (
+                      <button
+                        type="button"
+                        onClick={() => void handleMonthlySubmitBatch(o.id)}
+                        style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                      >
+                        {t("提交批次")}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => void handleOfflineSubmitProof(o.id)}
+                        style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                      >
+                        {t("提交交付")}
+                      </button>
+                    )}
+
+                    {o.type_id === "creator_review_video" && o.phase === "approved_to_publish" && (
+                      <button
+                        type="button"
+                        onClick={() => void handleOfflinePublish(o.id)}
+                        style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                      >
+                        {t("提交发布")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {!loading && offlineMine.length === 0 && <div style={{ color: "#64748b", fontSize: 13 }}>{t("暂无我的接单")}</div>}
+          </div>
+        </div>
       )}
 
       <WorkLinksModal open={linksModalOpen} onClose={() => setLinksModalOpen(false)} links={linksModalLinks} title={t("交付链接")} />
