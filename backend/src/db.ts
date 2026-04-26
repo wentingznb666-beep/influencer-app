@@ -1703,7 +1703,15 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`);
 
-  await query(`ALTER TABLE video_order_weekly_settlements ADD CONSTRAINT IF NOT EXISTS video_order_weekly_settlements_batch_unique UNIQUE(batch_id)`);
+  await query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'video_order_weekly_settlements_batch_unique') THEN
+        ALTER TABLE video_order_weekly_settlements
+          ADD CONSTRAINT video_order_weekly_settlements_batch_unique UNIQUE(batch_id);
+      END IF;
+    END $$;
+  `);
 
   await query(`CREATE INDEX IF NOT EXISTS idx_video_order_weekly_settlements_order ON video_order_weekly_settlements(order_id, id DESC)`);
   await query(`CREATE INDEX IF NOT EXISTS idx_video_order_weekly_settlements_batch ON video_order_weekly_settlements(batch_id)`);
