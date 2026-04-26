@@ -1,8 +1,10 @@
 import { Router, Response } from "express";
 
-import { query } from "../db";
+import { query, withTx } from "../db";
 
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
+
+import { ensurePointAccountLocked } from "../pointAccounts";
 
 import { normalizeWorkLinksFromDb, parseWorkLinksFromBody, validateWorkLinksForAdminEdit } from "../marketOrderWorkLinks";
 
@@ -253,6 +255,62 @@ router.get("/", (req: AuthRequest, res: Response) => {
 
   });
 
+});
+
+router.post("/:id/cancel", (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "admin") {
+    res.status(403).json({ error: "FORBIDDEN", message: "仅管理员可取消订单。" });
+    return;
+  }
+
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的订单 ID。" });
+    return;
+  }
+
+  (async () => {
+    const ret = await withTx(async (client) => {
+      const cur = await client.query<{ id: number; client_id: number; status: string; pay_deducted: number; reward_points: number; task_count: number }>(
+        "SELECT id, client_id, status, pay_deducted, reward_points, task_count FROM client_market_orders WHERE id=$1 AND is_deleted=0 FOR UPDATE",
+        [id]
+      );
+      const row = cur.rows[0];
+      if (!row) return { kind: "not_found" as const };
+      if (row.status === "completed") return { kind: "already_done" as const };
+
+      await client.query("UPDATE client_market_orders SET status='cancelled', updated_at=now() WHERE id=$1", [id]);
+
+      if (row.pay_deducted === 1) {
+        const refundPoints = Math.max(Number(row.reward_points || 0), 0) * Math.max(Number(row.task_count || 1), 1);
+        if (refundPoints > 0) {
+          const acc = await ensurePointAccountLocked(client, row.client_id);
+          await client.query("INSERT INTO point_ledger (account_id, amount, type, ref_id) VALUES ($1, $2, 'market_order_admin_cancel_refund', $3)", [
+            acc.id,
+            refundPoints,
+            id,
+          ]);
+          await client.query("UPDATE point_accounts SET balance = balance + $1, updated_at = now() WHERE id = $2", [refundPoints, acc.id]);
+          await client.query("UPDATE client_market_orders SET pay_deducted = 0 WHERE id = $1", [id]);
+        }
+      }
+
+      return { kind: "ok" as const };
+    });
+
+    if (ret.kind === "not_found") {
+      res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+      return;
+    }
+    if (ret.kind === "already_done") {
+      res.status(400).json({ error: "INVALID_STATE", message: "已完成订单不可取消。" });
+      return;
+    }
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("admin cancel market order error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
 });
 
 

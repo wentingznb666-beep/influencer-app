@@ -1,40 +1,19 @@
 ﻿﻿<template>
-  <el-tabs v-model="tab">
-    <el-tab-pane label="分级视频（积分单）" name="market">
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
-        <el-input v-model="marketQ" placeholder="搜索：订单号/标题" style="max-width: 360px" />
-        <el-select v-model="marketStatus" placeholder="状态" style="width:160px" clearable>
-          <el-option label="open" value="open" />
-          <el-option label="claimed" value="claimed" />
-          <el-option label="completed" value="completed" />
-        </el-select>
-        <el-button @click="loadMarket" :loading="loadingMarket">刷新</el-button>
-      </div>
-      <el-table :data="marketOrders" stripe style="width:100%">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="order_no" label="订单号" width="180" />
-        <el-table-column prop="tier" label="档位" width="80" />
-        <el-table-column prop="status" label="状态" width="110" />
-        <el-table-column prop="title" label="标题" min-width="220" />
-        <el-table-column label="操作" width="320" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" type="primary" v-if="row.status === 'open'" @click="onClaimMarket(row.id)" :loading="acting[row.id]">接单</el-button>
-            <el-button size="small" v-if="row.status === 'claimed'" @click="openCompleteMarket(row.id)" :loading="acting[row.id]">提交交付</el-button>
-            <el-button size="small" v-if="row.status === 'completed'" @click="openPublishMarket(row.id)" :loading="acting[row.id]">提交发布链接</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-tab-pane>
-
-    <el-tab-pane label="视频订单（4类）" name="offline">
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
-        <el-input v-model="offlineQ" placeholder="搜索：标题/商家" style="max-width:360px" />
-        <el-select v-model="offlineType" placeholder="类型" style="width:220px" clearable>
+  <div class="page-wrap">
+    <div class="header-row">
+      <div class="title">员工接单工作台 / เวิร์กเบนช์</div>
+      <div class="filters">
+        <el-input v-model="q" placeholder="搜索：订单号/标题/商家" style="max-width: 360px" @keyup.enter="reloadAll" />
+        <el-select v-model="typeFilter" placeholder="类型" style="width: 240px" clearable>
+          <el-option label="① 分级视频 A/B/C" value="graded_video" />
           <el-option label="② 高质量视频" value="high_quality_custom_video" />
           <el-option label="③ 包月合作套餐" value="monthly_package" />
           <el-option label="④ Creator带货测评" value="creator_review_video" />
         </el-select>
-        <el-select v-model="offlinePhase" placeholder="阶段" style="width:200px" clearable>
+        <el-select v-model="stateFilter" placeholder="状态/阶段" style="width: 220px" clearable>
+          <el-option label="open" value="open" />
+          <el-option label="claimed" value="claimed" />
+          <el-option label="completed" value="completed" />
           <el-option label="paid" value="paid" />
           <el-option label="assigned" value="assigned" />
           <el-option label="in_progress" value="in_progress" />
@@ -42,42 +21,57 @@
           <el-option label="approved_to_publish" value="approved_to_publish" />
           <el-option label="published" value="published" />
           <el-option label="delivered" value="delivered" />
-          <el-option label="completed" value="completed" />
+          <el-option label="rejected" value="rejected" />
         </el-select>
-        <el-button @click="loadOffline" :loading="loadingOffline">刷新</el-button>
+        <el-button @click="reloadAll" :loading="loading">刷新</el-button>
       </div>
+    </div>
 
-      <el-table :data="offlineOrders" stripe style="width:100%">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column label="类型" width="180"><template #default="{ row }"><el-tag :type="tagType(row.type_id)">{{ typeText(row.type_id) }}</el-tag></template></el-table-column>
-        <el-table-column prop="payment_status" label="付款" width="100" />
-        <el-table-column prop="phase" label="阶段" width="130" />
-        <el-table-column prop="client_username" label="商家" width="160" />
-        <el-table-column prop="title" label="标题" min-width="220" />
-        <el-table-column label="包月进度" min-width="200">
-          <template #default="{ row }">
-            <template v-if="row.type_id === 'monthly_package'">{{ monthlyAccepted(row) }}/{{ monthlyTarget(row) }} 已验收</template>
-            <span v-else style="color:#94a3b8">-</span>
+    <el-table :data="filtered" stripe style="width: 100%" row-key="row_key">
+      <el-table-column prop="order_no" label="订单号" width="180">
+        <template #default="{ row }">
+          <span style="font-weight: 700">{{ row.order_no }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="类型" width="190">
+        <template #default="{ row }">
+          <el-tag :type="tagType(row.type_id)">{{ typeText(row.type_id) }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="client_text" label="商家" width="160" />
+      <el-table-column prop="payment_text" label="付款" width="100" />
+      <el-table-column prop="phase_text" label="状态" width="130" />
+      <el-table-column prop="title" label="标题" min-width="220" />
+      <el-table-column label="包月进度" min-width="210">
+        <template #default="{ row }">
+          <template v-if="row.kind === 'offline' && row.type_id === 'monthly_package'">{{ monthlyAccepted(row.raw) }}/{{ monthlyTarget(row.raw) }} 已验收</template>
+          <span v-else style="color: #94a3b8">-</span>
+        </template>
+      </el-table-column>
+      <el-table-column label="操作" width="680" fixed="right">
+        <template #default="{ row }">
+          <template v-if="row.kind === 'market'">
+            <el-button size="small" type="primary" v-if="row.raw.status === 'open'" @click="onClaimMarket(row.raw.id)" :loading="acting[row.raw.id]">接单</el-button>
+            <el-button size="small" v-if="row.raw.status === 'claimed'" @click="openCompleteMarket(row.raw.id)" :loading="acting[row.raw.id]">提交交付</el-button>
+            <el-button size="small" v-if="row.raw.status === 'completed'" @click="openPublishMarket(row.raw.id)" :loading="acting[row.raw.id]">提交发布链接</el-button>
           </template>
-        </el-table-column>
-        <el-table-column label="操作" width="620" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" type="primary" v-if="isEmployee && !row.assigned_employee_id" @click="onClaimOffline(row.id)" :loading="acting[`o${row.id}`]">接单</el-button>
-            <el-button size="small" v-if="isEmployee && row.assigned_employee_id && row.type_id !== 'monthly_package'" @click="openSubmitOffline(row.id)" :loading="acting[`o${row.id}`]">提交交付</el-button>
-            <el-button size="small" type="warning" v-if="isEmployee && row.assigned_employee_id && row.type_id === 'monthly_package'" @click="openMonthlyBatchSubmit(row.id)" :loading="acting[`o${row.id}`]">批次验收提交</el-button>
-            <el-button size="small" v-if="isEmployee && row.type_id === 'creator_review_video' && row.phase === 'approved_to_publish'" @click="openPublishOffline(row.id)" :loading="acting[`o${row.id}`]">提交发布链接</el-button>
-            <el-button size="small" type="success" v-if="isAdmin && row.type_id === 'creator_review_video' && row.phase === 'review_pending'" @click="onReviewOffline(row.id, 'approve')" :loading="acting[`o${row.id}`]">审核通过</el-button>
-            <el-button size="small" type="danger" v-if="isAdmin && row.type_id === 'creator_review_video' && row.phase === 'review_pending'" @click="onReviewOffline(row.id, 'reject')" :loading="acting[`o${row.id}`]">审核驳回</el-button>
-            <el-select v-if="isEmployee && row.assigned_employee_id" v-model="phaseDraft[row.id]" placeholder="更新阶段" size="small" style="width:160px" @change="(v: string) => onSetOfflinePhase(row.id, v)">
+          <template v-else>
+            <el-button size="small" type="primary" v-if="isEmployee && !row.raw.assigned_employee_id" @click="onClaimOffline(row.raw.id)" :loading="acting[`o${row.raw.id}`]">接单</el-button>
+            <el-button size="small" v-if="isEmployee && row.raw.assigned_employee_id && row.raw.type_id !== 'monthly_package'" @click="openSubmitOffline(row.raw.id)" :loading="acting[`o${row.raw.id}`]">提交交付</el-button>
+            <el-button size="small" type="warning" v-if="isEmployee && row.raw.assigned_employee_id && row.raw.type_id === 'monthly_package'" @click="openMonthlyBatchSubmit(row.raw.id)" :loading="acting[`o${row.raw.id}`]">批次验收提交</el-button>
+            <el-button size="small" v-if="isEmployee && row.raw.type_id === 'creator_review_video' && row.raw.phase === 'approved_to_publish'" @click="openPublishOffline(row.raw.id)" :loading="acting[`o${row.raw.id}`]">提交发布链接</el-button>
+            <el-button size="small" type="success" v-if="isAdmin && row.raw.type_id === 'creator_review_video' && row.raw.phase === 'review_pending'" @click="onReviewOffline(row.raw.id, 'approve')" :loading="acting[`o${row.raw.id}`]">审核通过</el-button>
+            <el-button size="small" type="danger" v-if="isAdmin && row.raw.type_id === 'creator_review_video' && row.raw.phase === 'review_pending'" @click="onReviewOffline(row.raw.id, 'reject')" :loading="acting[`o${row.raw.id}`]">审核驳回</el-button>
+            <el-select v-if="isEmployee && row.raw.assigned_employee_id" v-model="phaseDraft[row.raw.id]" placeholder="更新阶段" size="small" style="width: 160px" @change="(v: string) => onSetOfflinePhase(row.raw.id, v)">
               <el-option label="in_progress" value="in_progress" />
               <el-option label="submitted" value="submitted" />
               <el-option label="delivered" value="delivered" />
             </el-select>
           </template>
-        </el-table-column>
-      </el-table>
-    </el-tab-pane>
-  </el-tabs>
+        </template>
+      </el-table-column>
+    </el-table>
+  </div>
 
   <el-dialog v-model="dialogMarketComplete.open" title="提交交付链接" width="520px">
     <el-input v-model="dialogMarketComplete.linksText" type="textarea" :rows="6" placeholder="每行一个链接" />
@@ -128,16 +122,38 @@ const auth = useAuthStore();
 const isAdmin = computed(() => auth.role === "admin");
 const isEmployee = computed(() => auth.role === "employee");
 
-const tab = ref<"market" | "offline">("offline");
+type UnifiedTypeId = "graded_video" | OfflineVideoOrderTypeId;
+
+type UnifiedRow =
+  | {
+      row_key: string;
+      kind: "market";
+      type_id: "graded_video";
+      order_no: string;
+      title: string;
+      client_text: string;
+      payment_text: string;
+      phase_text: string;
+      raw: AdminMarketOrder;
+    }
+  | {
+      row_key: string;
+      kind: "offline";
+      type_id: OfflineVideoOrderTypeId;
+      order_no: string;
+      title: string;
+      client_text: string;
+      payment_text: string;
+      phase_text: string;
+      raw: VideoOrder;
+    };
+
+const q = ref("");
+const typeFilter = ref<UnifiedTypeId | "">("");
+const stateFilter = ref<string | "">("");
 const marketOrders = ref<AdminMarketOrder[]>([]);
-const loadingMarket = ref(false);
-const marketQ = ref("");
-const marketStatus = ref<string | undefined>();
 const offlineOrders = ref<VideoOrder[]>([]);
-const loadingOffline = ref(false);
-const offlineQ = ref("");
-const offlineType = ref<OfflineVideoOrderTypeId | undefined>();
-const offlinePhase = ref<string | undefined>();
+const loading = ref(false);
 const acting = reactive<Record<string | number, boolean>>({});
 const phaseDraft = reactive<Record<number, string>>({});
 const pollTimer = ref<number | null>(null);
@@ -149,14 +165,16 @@ const dialogOfflinePublish = reactive({ open: false, orderId: 0, link: "", loadi
 const monthlyBatchDialog = reactive({ open: false, orderId: 0, batchNo: 1, videoCount: 1, linksText: "", loading: false });
 
 /** 类型文案。 */
-function typeText(type: OfflineVideoOrderTypeId): string {
+function typeText(type: UnifiedTypeId): string {
+  if (type === "graded_video") return "① 分级视频 A/B/C";
   if (type === "high_quality_custom_video") return "② 高质量视频";
   if (type === "monthly_package") return "③ 包月合作套餐";
   return "④ Creator带货测评";
 }
 
 /** 类型标签色。 */
-function tagType(type: OfflineVideoOrderTypeId): "success" | "warning" | "danger" {
+function tagType(type: UnifiedTypeId): "success" | "warning" | "danger" | "info" {
+  if (type === "graded_video") return "info";
   if (type === "high_quality_custom_video") return "success";
   if (type === "monthly_package") return "warning";
   return "danger";
@@ -181,15 +199,8 @@ function monthlyAccepted(row: VideoOrder): number {
 
 /** 加载分级订单。 */
 async function loadMarket() {
-  if (loadingMarket.value) return;
-  loadingMarket.value = true;
-  try {
-    marketOrders.value = await listAdminOrders({ q: marketQ.value.trim() || undefined, status: marketStatus.value || undefined });
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : "加载失败");
-  } finally {
-    loadingMarket.value = false;
-  }
+  const status = ["open", "claimed", "completed", "cancelled"].includes(stateFilter.value) ? stateFilter.value : undefined;
+  marketOrders.value = await listAdminOrders({ q: q.value.trim() || undefined, status });
 }
 
 /** 接单分级订单。 */
@@ -255,18 +266,79 @@ async function submitMarketPublish() {
 
 /** 加载线下订单。 */
 async function loadOffline() {
-  if (loadingOffline.value) return;
-  loadingOffline.value = true;
+  const type = typeFilter.value && typeFilter.value !== "graded_video" ? (typeFilter.value as OfflineVideoOrderTypeId) : undefined;
+  const phase = stateFilter.value && !["open", "claimed", "completed", "cancelled"].includes(stateFilter.value) ? stateFilter.value : undefined;
+  const list = isAdmin.value
+    ? await listAdminOfflineVideoOrders({ q: q.value.trim() || undefined, type, phase, limit: 200 })
+    : await listEmployeeOfflineVideoOrders({ q: q.value.trim() || undefined, type, phase, limit: 200 });
+  offlineOrders.value = list;
+  for (const o of list) phaseDraft[o.id] = "";
+}
+
+function normalizeText(v: unknown): string {
+  return String(v || "").trim().toLowerCase();
+}
+
+const unified = computed<UnifiedRow[]>(() => {
+  const rows: UnifiedRow[] = [];
+  for (const mo of marketOrders.value) {
+    rows.push({
+      row_key: `m_${mo.id}`,
+      kind: "market",
+      type_id: "graded_video",
+      order_no: mo.order_no,
+      title: mo.title,
+      client_text: mo.client_shop_name || mo.client_display_name || mo.client_username,
+      payment_text: "积分单",
+      phase_text: mo.status,
+      raw: mo,
+    });
+  }
+  for (const o of offlineOrders.value) {
+    rows.push({
+      row_key: `o_${o.id}`,
+      kind: "offline",
+      type_id: o.type_id,
+      order_no: `#${o.id}`,
+      title: o.title,
+      client_text: o.client_username || "-",
+      payment_text: o.payment_status,
+      phase_text: o.phase,
+      raw: o,
+    });
+  }
+  return rows.sort((a, b) => {
+    const ak = a.kind === "market" ? a.raw.id : a.raw.id;
+    const bk = b.kind === "market" ? b.raw.id : b.raw.id;
+    return bk - ak;
+  });
+});
+
+const filtered = computed(() => {
+  const tf = typeFilter.value;
+  const qq = q.value.trim().toLowerCase();
+  const sf = stateFilter.value;
+  return unified.value.filter((row) => {
+    if (tf && row.type_id !== tf) return false;
+    if (sf) {
+      if (row.kind === "market" && row.raw.status !== sf) return false;
+      if (row.kind === "offline" && row.raw.phase !== sf) return false;
+    }
+    if (!qq) return true;
+    const hay = `${normalizeText(row.order_no)} ${normalizeText(row.title)} ${normalizeText(row.client_text)}`;
+    return hay.includes(qq);
+  });
+});
+
+async function reloadAll() {
+  if (loading.value) return;
+  loading.value = true;
   try {
-    const list = isAdmin.value
-      ? await listAdminOfflineVideoOrders({ q: offlineQ.value.trim() || undefined, type: offlineType.value, phase: offlinePhase.value, limit: 200 })
-      : await listEmployeeOfflineVideoOrders({ q: offlineQ.value.trim() || undefined, type: offlineType.value, phase: offlinePhase.value, limit: 200 });
-    offlineOrders.value = list;
-    for (const o of list) phaseDraft[o.id] = "";
+    await Promise.all([loadMarket(), loadOffline()]);
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : "加载失败");
   } finally {
-    loadingOffline.value = false;
+    loading.value = false;
   }
 }
 
@@ -410,13 +482,11 @@ function isAnyDialogOpen(): boolean {
 async function pollOnce() {
   if (document.hidden) return;
   if (isAnyDialogOpen()) return;
-  if (tab.value === "market") return loadMarket();
-  return loadOffline();
+  return reloadAll();
 }
 
 onMounted(() => {
-  loadMarket();
-  loadOffline();
+  reloadAll();
   pollTimer.value = window.setInterval(pollOnce, 5000);
 });
 
@@ -427,3 +497,32 @@ onBeforeUnmount(() => {
   }
 });
 </script>
+
+<style scoped>
+.page-wrap {
+  padding: 8px 4px;
+}
+
+.header-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-weight: 800;
+  font-size: 18px;
+  color: #0f172a;
+  letter-spacing: 0.2px;
+}
+
+.filters {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+</style>

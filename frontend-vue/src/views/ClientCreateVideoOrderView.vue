@@ -8,10 +8,10 @@
     <el-form label-width="160px" style="max-width: 920px">
       <el-form-item label="订单类型">
         <el-radio-group v-model="typeId" class="type-radio-group">
-          <el-radio-button label="graded_video">① 分级视频 A/B/C</el-radio-button>
-          <el-radio-button label="high_quality_custom_video">② 高质量视频</el-radio-button>
-          <el-radio-button label="monthly_package">③ 包月合作套餐</el-radio-button>
-          <el-radio-button label="creator_review_video">④ Creator带货测评</el-radio-button>
+          <el-radio label="graded_video">① 分级视频 A/B/C</el-radio>
+          <el-radio label="high_quality_custom_video">② 高质量视频</el-radio>
+          <el-radio label="monthly_package">③ 包月合作套餐</el-radio>
+          <el-radio label="creator_review_video">④ Creator带货测评</el-radio>
         </el-radio-group>
       </el-form-item>
 
@@ -68,10 +68,10 @@
       </template>
 
       <template v-else>
-        <el-form-item label="单价（THB）"><el-input-number v-model="taskAmount" :min="1" :precision="2" /></el-form-item>
+        <el-form-item label="单价（THB）"><el-input-number v-model="taskAmount" :min="0" :precision="2" disabled /></el-form-item>
         <el-form-item label="Creator选择/匹配"><el-input v-model="talentName" placeholder="可填目标Creator，或留空由我方匹配" /></el-form-item>
         <el-form-item label="任务条数（8-10）"><el-input-number v-model="creatorTaskCount" :min="8" :max="10" /></el-form-item>
-        <el-form-item label="老板定价字段"><el-input-number v-model="creatorBossPrice" :min="0" :precision="2" /></el-form-item>
+        <el-form-item label="老板定价字段"><el-input-number v-model="creatorBossPrice" :min="0" :precision="2" disabled /></el-form-item>
         <el-form-item label="审核要求"><el-input v-model="requirement" type="textarea" :rows="4" placeholder="全部视频先审核，通过后再发布" /></el-form-item>
       </template>
 
@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { ElMessage } from "element-plus";
 import { createClientMarketOrder } from "@/api/client";
 import { getCooperationTypes } from "@/api/cooperation";
@@ -109,6 +109,16 @@ const creatorTaskCount = ref(8);
 const creatorBossPrice = ref(0);
 
 const creating = ref(false);
+
+watch(
+  () => typeId.value,
+  (v) => {
+    if (v === "high_quality_custom_video") taskAmount.value = 4000;
+    if (v === "monthly_package") taskAmount.value = 650;
+    if (v === "creator_review_video") taskAmount.value = 0;
+  },
+  { immediate: true }
+);
 
 /** 计算分级视频预计积分。 */
 const gradedTotalPoints = computed(() => {
@@ -190,7 +200,7 @@ async function create() {
       const ret = await createClientOfflineVideoOrder({
         type_id: typeId.value,
         title: title.value.trim(),
-        amount_thb: taskAmount.value,
+        amount_thb: typeId.value === "creator_review_video" ? 0 : taskAmount.value,
         requirements,
       });
       ElMessage.success(`已创建订单 #${ret.id}`);

@@ -37,6 +37,29 @@ function normalizeRequirements(input: unknown): Record<string, unknown> {
   return input as Record<string, unknown>;
 }
 
+function clampInt(n: number, min: number, max: number): number {
+  if (!Number.isFinite(n)) return min;
+  return Math.min(Math.max(Math.floor(n), min), max);
+}
+
+async function readNumberConfig(key: string): Promise<number | null> {
+  const row = await query<{ value: string }>("SELECT value FROM config WHERE key=$1", [key]);
+  const raw = row.rows[0]?.value;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n * 100) / 100;
+}
+
+function weekStartMondayUtcFromIso(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return new Date().toISOString().slice(0, 10);
+  const day = d.getUTCDay();
+  const diff = (day + 6) % 7;
+  const ws = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  ws.setUTCDate(ws.getUTCDate() - diff);
+  return ws.toISOString().slice(0, 10);
+}
+
 async function ensureTypeVisibleToClient(typeId: VideoOrderTypeId): Promise<boolean> {
   const cfg = await readCooperationTypesConfig();
   return isVisibleCooperationType(cfg, typeId, "client");
@@ -50,7 +73,38 @@ router.post("/video-orders", async (req: AuthRequest, res: Response) => {
 
   if (!typeId) return res.status(400).json({ error: "INVALID_TYPE", message: "无效的视频订单类型。" });
   if (!title) return res.status(400).json({ error: "INVALID_TITLE", message: "请填写订单标题（1-200字）。" });
-  if (!Number.isFinite(amountThb) || amountThb <= 0) return res.status(400).json({ error: "INVALID_AMOUNT", message: "请填写有效金额（THB）。" });
+  if (!Number.isFinite(amountThb) || amountThb < 0) return res.status(400).json({ error: "INVALID_AMOUNT", message: "请填写有效金额（THB）。" });
+
+  const taskCountRaw = Number((requirements as any)?.task_count || 0);
+  const monthlyMinRaw = Number((requirements as any)?.min_videos_per_month || 0);
+
+  const unitCount =
+    typeId === "creator_review_video"
+      ? clampInt(taskCountRaw || 8, 8, 10)
+      : typeId === "monthly_package"
+        ? clampInt(monthlyMinRaw || 20, 20, 999)
+        : 1;
+
+  if (typeId === "creator_review_video") {
+    if (taskCountRaw && (taskCountRaw < 8 || taskCountRaw > 10)) {
+      return res.status(400).json({ error: "INVALID_TASK_COUNT", message: "测评视频任务条数需为 8-10 条。" });
+    }
+  }
+
+  if (typeId === "monthly_package") {
+    if (monthlyMinRaw && monthlyMinRaw < 20) {
+      return res.status(400).json({ error: "INVALID_MONTHLY_MIN", message: "包月合作每月不少于 20 条。" });
+    }
+  }
+
+  const configUnitPrice = typeId === "creator_review_video" ? await readNumberConfig("creator_review_video_unit_price_thb") : null;
+  const unitPriceThb = typeId === "monthly_package" ? 650 : typeId === "creator_review_video" ? configUnitPrice : null;
+  const computedTotal = unitPriceThb != null ? Math.round(unitPriceThb * unitCount * 100) / 100 : null;
+  const finalAmount = amountThb > 0 ? amountThb : computedTotal != null ? computedTotal : 0;
+
+  if (typeId !== "creator_review_video" && finalAmount <= 0) {
+    return res.status(400).json({ error: "INVALID_AMOUNT", message: "请填写有效金额（THB）。" });
+  }
 
   if (!(await ensureTypeVisibleToClient(typeId))) {
     return res.status(400).json({ error: "TYPE_NOT_AVAILABLE", message: "该类型当前不可用。" });
@@ -59,10 +113,10 @@ router.post("/video-orders", async (req: AuthRequest, res: Response) => {
   try {
     const created = await withTx(async (client) => {
       const ins = await client.query<{ id: number }>(
-        `INSERT INTO video_orders (client_id, type_id, title, requirements, amount_thb, payment_method, payment_status)
-         VALUES ($1, $2, $3, $4::jsonb, $5, 'offline', 'unpaid')
+        `INSERT INTO video_orders (client_id, type_id, title, requirements, amount_thb, unit_price_thb, unit_count, boss_unit_price_thb, payment_method, payment_status)
+         VALUES ($1, $2, $3, $4::jsonb, $5, $6, $7, $8, 'offline', 'unpaid')
          RETURNING id`,
-        [req.user!.userId, typeId, title, JSON.stringify(requirements), amountThb]
+        [req.user!.userId, typeId, title, JSON.stringify({ ...requirements, task_count: unitCount }), finalAmount, unitPriceThb, unitCount, unitPriceThb]
       );
       const row = ins.rows[0];
       if (!row) return null;
@@ -129,18 +183,21 @@ router.post("/video-orders/:id/mark-paid", async (req: AuthRequest, res: Respons
   if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "INVALID_ID", message: "无效订单ID。" });
   try {
     const updated = await withTx(async (client) => {
-      const cur = await client.query<{ payment_status: string }>(
-        `SELECT payment_status FROM video_orders WHERE id=$1 AND client_id=$2 FOR UPDATE`,
+      const cur = await client.query<{ payment_status: string; amount_thb: any }>(
+        `SELECT payment_status, amount_thb FROM video_orders WHERE id=$1 AND client_id=$2 FOR UPDATE`,
         [id, req.user!.userId]
       );
       const row = cur.rows[0];
       if (!row) return { kind: "not_found" as const };
+      const amount = Number(row.amount_thb);
+      if (!Number.isFinite(amount) || amount <= 0) return { kind: "amount_missing" as const };
       if (row.payment_status === "paid") return { kind: "ok" as const };
       await client.query(`UPDATE video_orders SET payment_status='paid', paid_at=now(), updated_at=now() WHERE id=$1`, [id]);
       await client.query(`UPDATE video_order_states SET phase='paid', updated_at=now() WHERE order_id=$1`, [id]);
       return { kind: "ok" as const };
     });
     if (updated.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+    if (updated.kind === "amount_missing") return res.status(400).json({ error: "AMOUNT_REQUIRED", message: "该订单金额尚未配置，暂不可标记已付款。" });
     return res.json({ ok: true });
   } catch (e) {
     console.error("client mark paid error:", e);
@@ -306,6 +363,15 @@ router.post("/video-orders/:id/monthly-batches/:batchNo/settle", async (req: Aut
       list[idx] = item;
       await client.query(`UPDATE video_order_states SET batch_payload=$2::jsonb, updated_at=now() WHERE order_id=$1`, [id, JSON.stringify(list)]);
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
+
+      const weekStart = weekStartMondayUtcFromIso(item.settled_at);
+      await client.query(
+        `INSERT INTO video_order_settlements (order_id, batch_no, week_start, amount_thb, status)
+         VALUES ($1, $2, $3::date, $4, 'pending')
+         ON CONFLICT (order_id, batch_no)
+         DO UPDATE SET week_start=EXCLUDED.week_start, amount_thb=EXCLUDED.amount_thb, updated_at=now()`,
+        [id, batchNo, weekStart, item.settled_amount]
+      );
       return { kind: "ok" as const, item };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });

@@ -1643,6 +1643,15 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_type ON video_orders(type_id, id DESC)`);
   await query(`CREATE INDEX IF NOT EXISTS idx_video_orders_payment ON video_orders(payment_status, id DESC)`);
 
+  await query(`ALTER TABLE video_orders ADD COLUMN IF NOT EXISTS unit_price_thb NUMERIC(18,2)`);
+  await query(`ALTER TABLE video_orders ADD COLUMN IF NOT EXISTS unit_count INTEGER NOT NULL DEFAULT 1`);
+  await query(`ALTER TABLE video_orders ADD COLUMN IF NOT EXISTS boss_unit_price_thb NUMERIC(18,2)`);
+
+  await query(
+    `INSERT INTO config (key, value) VALUES ('creator_review_video_unit_price_thb', '0')
+     ON CONFLICT (key) DO NOTHING`,
+  );
+
   await query(`CREATE TABLE IF NOT EXISTS video_order_states (
     order_id INTEGER PRIMARY KEY REFERENCES video_orders(id) ON DELETE CASCADE,
     phase TEXT NOT NULL DEFAULT 'created',
@@ -1654,6 +1663,21 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`);
   await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS batch_payload JSONB NOT NULL DEFAULT '[]'::jsonb`);
+
+  await query(`CREATE TABLE IF NOT EXISTS video_order_settlements (
+    id SERIAL PRIMARY KEY,
+    order_id INTEGER NOT NULL REFERENCES video_orders(id) ON DELETE CASCADE,
+    batch_no INTEGER NOT NULL,
+    week_start DATE NOT NULL,
+    amount_thb NUMERIC(18,2) NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE(order_id, batch_no)
+  )`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_video_order_settlements_order ON video_order_settlements(order_id, batch_no)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_video_order_settlements_week ON video_order_settlements(week_start, id DESC)`);
+  await query(`ALTER TABLE video_order_settlements ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ`);
 
 
   await query(`CREATE TABLE IF NOT EXISTS client_merchant_info_templates (

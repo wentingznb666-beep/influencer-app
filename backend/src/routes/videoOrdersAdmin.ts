@@ -141,5 +141,60 @@ router.post("/video-orders/:id/review", async (req: AuthRequest, res: Response) 
   }
 });
 
+router.get("/video-orders/settlements", async (req: AuthRequest, res: Response) => {
+  const week = typeof req.query?.week === "string" ? String(req.query.week).trim() : "";
+  const where: string[] = ["1=1"];
+  const params: any[] = [];
+  let idx = 1;
+  if (week) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(week)) return res.status(400).json({ error: "INVALID_WEEK", message: "week 格式应为 YYYY-MM-DD" });
+    where.push(`s.week_start = $${idx++}::date`);
+    params.push(week);
+  }
+  try {
+    const rows = await query(
+      `SELECT s.id, s.order_id, s.batch_no, s.week_start::text AS week_start, s.amount_thb, s.status, s.paid_at,
+              o.type_id, o.title,
+              c.username AS client_username,
+              e.username AS employee_username
+         FROM video_order_settlements s
+         JOIN video_orders o ON o.id = s.order_id
+         JOIN users c ON c.id = o.client_id
+         LEFT JOIN users e ON e.id = o.assigned_employee_id
+        WHERE ${where.join(" AND ")}
+        ORDER BY s.week_start DESC, s.id DESC
+        LIMIT 500`,
+      params
+    );
+    return res.json({ list: rows.rows });
+  } catch (e) {
+    console.error("admin list video order settlements error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
+router.patch("/video-orders/settlements/:id", async (req: AuthRequest, res: Response) => {
+  const id = Number(req.params.id);
+  const status = typeof req.body?.status === "string" ? String(req.body.status).trim() : "";
+  if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "INVALID_ID", message: "无效ID" });
+  if (status !== "paid" && status !== "pending") return res.status(400).json({ error: "INVALID_STATUS", message: "status 必须为 pending 或 paid" });
+  try {
+    const updated = await withTx(async (client) => {
+      const cur = await client.query<{ id: number }>("SELECT id FROM video_order_settlements WHERE id=$1 FOR UPDATE", [id]);
+      if (!cur.rows[0]) return { kind: "not_found" as const };
+      await client.query(
+        "UPDATE video_order_settlements SET status=$1, paid_at=CASE WHEN $1='paid' THEN now() ELSE paid_at END, updated_at=now() WHERE id=$2",
+        [status, id]
+      );
+      return { kind: "ok" as const };
+    });
+    if (updated.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "记录不存在" });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("admin patch video order settlement error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
 export default router;
 
