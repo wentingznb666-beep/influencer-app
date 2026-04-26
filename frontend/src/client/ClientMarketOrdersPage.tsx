@@ -184,7 +184,7 @@ function marketOrderTotalRewardPoints(o: MarketOrder): number {
 
 /**
 
- * 商家端「达人领单」页面：发布要求、查看订单号与标题、搜索、查看状态与交付链接。
+ * 商家端「视频订单」页面：发布要求、查看订单号与标题、搜索、查看状态与交付链接。
 
  */
 
@@ -604,11 +604,11 @@ export default function ClientMarketOrdersPage() {
 
     <div>
 
-      <h2 style={{ marginTop: 0 }}>达人领单</h2>
+      <h2 style={{ marginTop: 0 }}>视频订单</h2>
 
       <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16 }}>
 
-        填写订单标题后发布订单，系统将生成唯一订单号；达人领取并在完成后上传交付链接。发单时将从您的积分余额中扣除{" "}
+        填写订单标题后发布订单，系统将生成唯一订单号；员工端接单并在完成后上传交付链接。发单时将从您的积分余额中扣除{" "}
 
         <strong>20/40/60</strong> 积分（按订单档位 C/B/A）。
 
