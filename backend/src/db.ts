@@ -1662,6 +1662,13 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     publish_links JSONB NOT NULL DEFAULT '[]'::jsonb,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS phase TEXT NOT NULL DEFAULT 'created'`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS review_note TEXT`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS reviewed_by INTEGER REFERENCES users(id)`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS proof_links JSONB NOT NULL DEFAULT '[]'::jsonb`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS publish_links JSONB NOT NULL DEFAULT '[]'::jsonb`);
+  await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
   await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS batch_payload JSONB NOT NULL DEFAULT '[]'::jsonb`);
 
   await query(`CREATE TABLE IF NOT EXISTS video_order_settlements (
@@ -1677,6 +1684,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   )`);
   await query(`CREATE INDEX IF NOT EXISTS idx_video_order_settlements_order ON video_order_settlements(order_id, batch_no)`);
   await query(`CREATE INDEX IF NOT EXISTS idx_video_order_settlements_week ON video_order_settlements(week_start, id DESC)`);
+  await query(`ALTER TABLE video_order_settlements ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
   await query(`ALTER TABLE video_order_settlements ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ`);
 
 
