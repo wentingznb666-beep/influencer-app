@@ -1288,7 +1288,21 @@ async function applyVideoOrdersSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS publish_links JSONB NOT NULL DEFAULT '[]'::jsonb`);
   await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
   await query(`ALTER TABLE video_order_states ADD COLUMN IF NOT EXISTS batch_payload JSONB NOT NULL DEFAULT '[]'::jsonb`);
-  await query(`ALTER TABLE video_order_states DROP CONSTRAINT IF EXISTS video_order_states_phase_check`).catch(() => undefined);
+  await query(`
+    DO $$
+    DECLARE r record;
+    BEGIN
+      FOR r IN
+        SELECT conname
+          FROM pg_constraint
+         WHERE conrelid = 'video_order_states'::regclass
+           AND contype = 'c'
+           AND pg_get_constraintdef(oid) ILIKE '%phase%'
+      LOOP
+        EXECUTE format('ALTER TABLE video_order_states DROP CONSTRAINT IF EXISTS %I', r.conname);
+      END LOOP;
+    END $$;
+  `).catch(() => undefined);
 
   await query(`CREATE TABLE IF NOT EXISTS video_order_settlements (
     id SERIAL PRIMARY KEY,
