@@ -206,7 +206,13 @@ app.use("/api/matching", matchingBizRoutes);
 
 function errorHandler(err: any, _req: Request, res: Response, _next: NextFunction) {
 
-  const statusCode = (err as { statusCode?: number }).statusCode ?? 500;
+  const rawStatus = (err as { statusCode?: number; status?: number }).statusCode ?? (err as { status?: number }).status ?? 500;
+  const statusCode = typeof rawStatus === "number" && Number.isFinite(rawStatus) ? rawStatus : 500;
+
+  if ((err as { type?: string }).type === "entity.parse.failed") {
+    res.status(400).json({ error: "INVALID_JSON", message: "请求体不是有效的 JSON。" });
+    return;
+  }
 
   const message =
 
