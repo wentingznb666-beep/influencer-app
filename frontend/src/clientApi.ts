@@ -476,12 +476,6 @@ export async function createClientVideoOrder(body: {
   return res.json() as Promise<{ id: number }>;
 }
 
-export async function markClientVideoOrderPaid(id: number) {
-  const res = await fetchWithAuth(`/api/client/video-orders/${id}/mark-paid`, { method: "POST" });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
-  return res.json();
-}
-
 export async function acceptClientVideoOrder(id: number) {
   const res = await fetchWithAuth(`/api/client/video-orders/${id}/accept`, { method: "POST" });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");

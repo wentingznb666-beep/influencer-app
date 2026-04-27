@@ -74,11 +74,6 @@ export async function listClientOfflineVideoOrders(): Promise<VideoOrder[]> {
   return (data.list as VideoOrder[]) || [];
 }
 
-export async function markClientOfflineVideoOrderPaid(orderId: number): Promise<void> {
-  const res = await fetchWithAuth(`/api/client/video-orders/${orderId}/mark-paid`, { method: "POST" });
-  if (!res.ok) throw new Error(await readErrorMessage(res, "操作失败"));
-}
-
 export async function acceptClientOfflineVideoOrder(orderId: number): Promise<void> {
   const res = await fetchWithAuth(`/api/client/video-orders/${orderId}/accept`, { method: "POST" });
   if (!res.ok) throw new Error(await readErrorMessage(res, "验收失败"));

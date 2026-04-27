@@ -726,16 +726,6 @@ export default function ClientMarketOrdersPage() {
 
   };
 
-  const handleOfflineMarkPaid = async (id: number) => {
-    setError(null);
-    try {
-      await api.markClientVideoOrderPaid(id);
-      load(searchQ, dateFilter);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败");
-    }
-  };
-
   const handleOfflineAccept = async (id: number) => {
     setError(null);
     try {
@@ -1371,12 +1361,6 @@ export default function ClientMarketOrdersPage() {
                   <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
                     <div style={{ color: "#64748b", fontSize: 13 }}>金额(฿)</div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "var(--xt-accent)" }}>{Number(o.amount_thb || 0).toFixed(2)}</div>
-
-                    {o.payment_status !== "paid" && (
-                      <button type="button" onClick={() => handleOfflineMarkPaid(o.id)} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}>
-                        标记已付款
-                      </button>
-                    )}
 
                     <button
                       type="button"
