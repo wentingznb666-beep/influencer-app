@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="page-wrap hc-thai">
     <div class="header-row">
       <div class="title">{{ t("员工端订单处理") }} / {{ t("หน้าจอพนักงานจัดการคำสั่งงาน") }}</div>
@@ -21,8 +21,50 @@
       <el-table-column :label="t('类型')" width="220"><template #default="{ row }"><el-tag :class="getOrderTypeTagClass(row.type_id)">{{ typeLabel(row.type_id) }}</el-tag></template></el-table-column>
       <el-table-column prop="client_text" :label="t('商家')" width="160" />
       <el-table-column prop="payment_text" :label="t('付款')" width="120" />
-      <el-table-column prop="phase_text" :label="t('状态')" width="140" />
-      <el-table-column prop="title" :label="t('标题')" min-width="210" />
+      <el-table-column :label="t('状态')" width="190">
+        <template #default="{ row }">
+          <div class="status-cell">
+            <el-tag :type="phaseTagType(row.phase_text)">{{ row.phase_text }}</el-tag>
+            <el-tag v-if="row.kind === 'offline' && orderResubmittedMessage(row.raw)" type="info" effect="plain">{{ t("已重新提交") }}</el-tag>
+            <el-tag v-else-if="row.kind === 'offline' && resubmittedBatches(row.raw).length" type="info" effect="plain">{{ t("含重提批次") }}</el-tag>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column prop="title" :label="t('标题')" min-width="360">
+        <template #default="{ row }">
+          <div class="title-cell">
+            <div>{{ row.title }}</div>
+            <div v-if="row.kind === 'offline'">
+              <el-alert
+                v-if="orderRejectedMessage(row.raw)"
+                type="error"
+                :closable="false"
+                show-icon
+                class="rejection-alert"
+                :title="t('被退回原因')"
+                :description="orderRejectedMessage(row.raw)"
+              />
+              <el-alert
+                v-if="orderResubmittedMessage(row.raw)"
+                type="info"
+                :closable="false"
+                show-icon
+                class="resubmit-alert"
+                :title="t('修改完成重新提交')"
+                :description="orderResubmittedMessage(row.raw)"
+              />
+              <div v-if="rejectedBatchSummaries(row.raw).length" class="rejected-batch-list">
+                <div class="rejected-batch-title">{{ t("被退回批次") }}</div>
+                <div v-for="item in rejectedBatchSummaries(row.raw)" :key="item" class="rejected-batch-item">{{ item }}</div>
+              </div>
+              <div v-if="resubmittedBatchSummaries(row.raw).length" class="resubmitted-batch-list">
+                <div class="resubmitted-batch-title">{{ t("已重新提交批次") }}</div>
+                <div v-for="item in resubmittedBatchSummaries(row.raw)" :key="item" class="resubmitted-batch-item">{{ item }}</div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column :label="t('操作')" min-width="620" fixed="right">
         <template #default="{ row }">
           <template v-if="row.kind === 'market'">
@@ -50,11 +92,29 @@
     </el-table>
 
     <el-dialog v-model="dialogOfflineSubmit.open" :title="t('提交交付/初稿链接')" width="520px" :lock-scroll="false">
+      <el-alert
+        v-if="dialogOfflineRejectedNote"
+        type="error"
+        :closable="false"
+        show-icon
+        class="dialog-alert"
+        :title="t('商家退回说明')"
+        :description="dialogOfflineRejectedNote"
+      />
       <el-input v-model="dialogOfflineSubmit.linksText" type="textarea" :rows="6" :placeholder="t('每行一个链接')" />
       <template #footer><el-button @click="dialogOfflineSubmit.open = false">{{ t("关闭") }}</el-button><el-button type="primary" :loading="dialogOfflineSubmit.loading" @click="submitOfflineProof">{{ t("确认") }}</el-button></template>
     </el-dialog>
 
     <el-dialog v-model="monthlyBatchDialog.open" :title="t('类型3批次提交')" width="520px" :lock-scroll="false">
+      <el-alert
+        v-if="dialogMonthlyRejectedBatchText"
+        type="error"
+        :closable="false"
+        show-icon
+        class="dialog-alert"
+        :title="t('商家退回说明')"
+        :description="dialogMonthlyRejectedBatchText"
+      />
       <el-form label-width="120px">
         <el-form-item :label="t('批次号')"><el-input-number v-model="monthlyBatchDialog.batchNo" :min="1" /></el-form-item>
         <el-form-item :label="t('视频数量')"><el-input-number v-model="monthlyBatchDialog.videoCount" :min="1" /></el-form-item>
@@ -150,6 +210,61 @@ function canMarkPaid(order: VideoOrder): boolean {
   if (order.payment_status === "paid") return false;
   return !order.assigned_employee_id || Number(order.assigned_employee_id) === Number(auth.user?.userId || 0);
 }
+
+function orderRejectedMessage(order: VideoOrder): string {
+  if (String(order.phase || "") !== "review_rejected") return "";
+  return String(order.review_note || "").trim() || t("商家已退回，请根据要求修改后重新提交。");
+}
+
+function orderResubmittedMessage(order: VideoOrder): string {
+  const phase = String(order.phase || "");
+  const note = String(order.review_note || "").trim();
+  if (!note) return "";
+  if (!["delivered", "review_pending"].includes(phase)) return "";
+  return t("已按退回意见重新提交，等待商家复核。");
+}
+
+function rejectedBatches(order: VideoOrder): Array<{ batch_no: number; note: string }> {
+  if (!Array.isArray(order.batch_payload)) return [];
+  return order.batch_payload
+    .filter((batch) => String(batch.status || "") === "rejected")
+    .map((batch) => ({
+      batch_no: Number(batch.batch_no || 0),
+      note: String(batch.remark || batch.accept_note || "").trim() || t("商家已退回该批次，请补充内容后重新提交。"),
+    }))
+    .sort((a, b) => a.batch_no - b.batch_no);
+}
+
+function rejectedBatchSummaries(order: VideoOrder): string[] {
+  return rejectedBatches(order).map((batch) => `${t("批次")} ${batch.batch_no}: ${batch.note}`);
+}
+
+function resubmittedBatches(order: VideoOrder): Array<{ batch_no: number; note: string }> {
+  if (!Array.isArray(order.batch_payload)) return [];
+  return order.batch_payload
+    .filter((batch) => String(batch.status || "") === "pending_acceptance" && String(batch.remark || batch.accept_note || "").trim())
+    .map((batch) => ({
+      batch_no: Number(batch.batch_no || 0),
+      note: String(batch.remark || batch.accept_note || "").trim(),
+    }))
+    .sort((a, b) => a.batch_no - b.batch_no);
+}
+
+function resubmittedBatchSummaries(order: VideoOrder): string[] {
+  return resubmittedBatches(order).map((batch) => `${t("批次")} ${batch.batch_no}: ${t("已按退回意见重新提交，等待商家复核。")}`);
+}
+
+function phaseTagType(phase: string): "success" | "warning" | "danger" | "info" {
+  if (["approved_to_publish", "published", "completed", "settled", "accepted"].includes(phase)) return "success";
+  if (["review_rejected", "rejected"].includes(phase)) return "danger";
+  if (["assigned", "in_progress", "submitted", "review_pending", "delivered", "pending_acceptance"].includes(phase)) return "warning";
+  return "info";
+}
+
+const currentOfflineDialogOrder = computed(() => offlineOrders.value.find((item) => Number(item.id) === Number(dialogOfflineSubmit.orderId)) || null);
+const currentMonthlyDialogOrder = computed(() => offlineOrders.value.find((item) => Number(item.id) === Number(monthlyBatchDialog.orderId)) || null);
+const dialogOfflineRejectedNote = computed(() => (currentOfflineDialogOrder.value ? orderRejectedMessage(currentOfflineDialogOrder.value) : ""));
+const dialogMonthlyRejectedBatchText = computed(() => (currentMonthlyDialogOrder.value ? rejectedBatchSummaries(currentMonthlyDialogOrder.value).join("\n") : ""));
 
 const unified = computed(() => {
   const rows: Array<any> = [];
@@ -286,10 +401,11 @@ async function submitOfflineProof(): Promise<void> {
     return;
   }
   dialogOfflineSubmit.loading = true;
+  const isResubmitted = !!dialogOfflineRejectedNote.value;
   try {
     await submitEmployeeOfflineVideoOrderProof(dialogOfflineSubmit.orderId, links);
     dialogOfflineSubmit.open = false;
-    ElMessage.success(t("提交成功"));
+    ElMessage.success(isResubmitted ? t("已按退回意见重新提交，等待商家复核") : t("提交成功"));
     await reloadAll();
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : t("提交失败"));
@@ -300,9 +416,11 @@ async function submitOfflineProof(): Promise<void> {
 
 /** 打开类型3批次提交。 */
 function openMonthlyBatchSubmit(orderId: number): void {
+  const order = offlineOrders.value.find((item) => Number(item.id) === Number(orderId));
+  const firstRejected = order ? rejectedBatches(order)[0] : null;
   monthlyBatchDialog.open = true;
   monthlyBatchDialog.orderId = orderId;
-  monthlyBatchDialog.batchNo = 1;
+  monthlyBatchDialog.batchNo = firstRejected?.batch_no || 1;
   monthlyBatchDialog.videoCount = 1;
   monthlyBatchDialog.linksText = "";
 }
@@ -315,10 +433,12 @@ async function submitMonthlyBatch(): Promise<void> {
     return;
   }
   monthlyBatchDialog.loading = true;
+  const currentOrder = currentMonthlyDialogOrder.value;
+  const isResubmitted = !!currentOrder?.batch_payload?.some((batch) => Number(batch.batch_no || 0) === Number(monthlyBatchDialog.batchNo) && String(batch.status || "") === "rejected");
   try {
     await submitEmployeeMonthlyBatch(monthlyBatchDialog.orderId, { batch_no: monthlyBatchDialog.batchNo, video_count: monthlyBatchDialog.videoCount, video_urls: links });
     monthlyBatchDialog.open = false;
-    ElMessage.success(t("批次提交成功"));
+    ElMessage.success(isResubmitted ? t("批次已按退回意见重新提交，等待商家复核") : t("批次提交成功"));
     await reloadAll();
   } catch (e) {
     ElMessage.error(e instanceof Error ? e.message : t("提交失败"));
@@ -410,6 +530,17 @@ onBeforeUnmount(() => {
 .filters { display: flex; gap: 10px; flex-wrap: wrap; }
 .title { font-size: 21px; font-weight: 800; color: #3d2a00; }
 .hc-thai { line-height: 1.9; }
+.status-cell { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.title-cell { display: flex; flex-direction: column; gap: 8px; }
+.rejection-alert { margin-top: 4px; }
+.resubmit-alert { margin-top: 4px; }
+.rejected-batch-list { border: 1px solid #f5c2c7; background: #fff5f5; border-radius: 8px; padding: 8px 10px; color: #8a1f11; }
+.rejected-batch-title { font-weight: 800; margin-bottom: 4px; }
+.rejected-batch-item { line-height: 1.6; }
+.resubmitted-batch-list { border: 1px solid #b6d4fe; background: #f4f8ff; border-radius: 8px; padding: 8px 10px; color: #114a8a; }
+.resubmitted-batch-title { font-weight: 800; margin-bottom: 4px; }
+.resubmitted-batch-item { line-height: 1.6; }
+.dialog-alert { margin-bottom: 12px; white-space: pre-line; }
 :deep(.tag-gold){ background:#ffe082;color:#5d3a00;border-color:#ffb300;font-weight:700; }
 :deep(.tag-yellow){ background:#fff59d;color:#5d4a00;border-color:#fbc02d;font-weight:700; }
 :deep(.tag-purple){ background:#e1bee7;color:#4a148c;border-color:#ab47bc;font-weight:700; }
