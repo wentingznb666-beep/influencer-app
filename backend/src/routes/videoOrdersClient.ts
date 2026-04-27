@@ -188,185 +188,36 @@ router.post("/video-orders/:id/mark-paid", async (_req: AuthRequest, res: Respon
   });
 });
 
-router.post("/video-orders/:id/accept", async (req: AuthRequest, res: Response) => {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "INVALID_ID", message: "无效订单ID。" });
-  try {
-    const ret = await withTx(async (client) => {
-      const cur = await client.query<{ type_id: VideoOrderTypeId; payment_status: string; phase: string }>(
-        `SELECT o.type_id, o.payment_status, COALESCE(s.phase,'created') AS phase
-           FROM video_orders o
-           LEFT JOIN video_order_states s ON s.order_id=o.id
-          WHERE o.id=$1 AND o.client_id=$2
-          FOR UPDATE`,
-        [id, req.user!.userId]
-      );
-      const row = cur.rows[0];
-      if (!row) return { kind: "not_found" as const };
-      if (row.payment_status !== "paid") return { kind: "not_paid" as const };
-      if (row.type_id === "creator_review_video") {
-        if (row.phase !== "published") return { kind: "publish_required" as const };
-      } else {
-        if (row.phase !== "delivered") return { kind: "deliver_required" as const };
-      }
-      await client.query(`UPDATE video_order_states SET phase='completed', updated_at=now() WHERE order_id=$1`, [id]);
-      await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
-      return { kind: "ok" as const };
-    });
-    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "请先完成线下付款后再验收。" });
-    if (ret.kind === "publish_required") return res.status(400).json({ error: "PUBLISH_REQUIRED", message: "该订单需先发布后才能验收。" });
-    if (ret.kind === "deliver_required") return res.status(400).json({ error: "DELIVER_REQUIRED", message: "员工尚未提交交付内容，暂不可验收。" });
-    return res.json({ ok: true });
-  } catch (e) {
-    console.error("client accept video order error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-  }
+router.post("/video-orders/:id/accept", async (_req: AuthRequest, res: Response) => {
+  return res.status(403).json({
+    error: "FORBIDDEN",
+    message: "商家端当前为只读视图，不支持在该端修改订单状态。",
+  });
 });
 
-router.post("/video-orders/:id/reject", async (req: AuthRequest, res: Response) => {
-  const id = Number(req.params.id);
-  const note = typeof req.body?.note === "string" ? String(req.body.note).trim() : "";
-  if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "INVALID_ID", message: "无效订单ID。" });
-  try {
-    const ret = await withTx(async (client) => {
-      const cur = await client.query<{ payment_status: string; phase: string }>(
-        `SELECT o.payment_status, COALESCE(s.phase,'created') AS phase
-           FROM video_orders o
-           LEFT JOIN video_order_states s ON s.order_id=o.id
-          WHERE o.id=$1 AND o.client_id=$2
-          FOR UPDATE`,
-        [id, req.user!.userId]
-      );
-      const row = cur.rows[0];
-      if (!row) return { kind: "not_found" as const };
-      if (row.payment_status !== "paid") return { kind: "not_paid" as const };
-      if (!["delivered", "published"].includes(row.phase)) return { kind: "not_ready" as const };
-      await client.query(`UPDATE video_order_states SET phase='rejected', review_note=$2, updated_at=now() WHERE order_id=$1`, [id, note || null]);
-      await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
-      return { kind: "ok" as const };
-    });
-    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "请先完成线下付款后再验收。" });
-    if (ret.kind === "not_ready") return res.status(400).json({ error: "NOT_READY", message: "订单当前状态不可驳回。" });
-    return res.json({ ok: true });
-  } catch (e) {
-    console.error("client reject video order error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-  }
+router.post("/video-orders/:id/reject", async (_req: AuthRequest, res: Response) => {
+  return res.status(403).json({
+    error: "FORBIDDEN",
+    message: "商家端当前为只读视图，不支持在该端修改订单状态。",
+  });
 });
 
 
 
 /** 商家确认包月订单某批次验收。 */
-router.post("/video-orders/:id/monthly-batches/:batchNo/accept", async (req: AuthRequest, res: Response) => {
-  const id = Number(req.params.id);
-  const batchNo = Number(req.params.batchNo);
-  const acceptedCount = Number(req.body?.accepted_count || 0);
-  const note = typeof req.body?.note === "string" ? String(req.body.note).trim() : "";
-  if (!Number.isFinite(id) || id <= 0 || !Number.isFinite(batchNo) || batchNo <= 0) {
-    return res.status(400).json({ error: "INVALID_ID", message: "无效参数。" });
-  }
-  if (!Number.isFinite(acceptedCount) || acceptedCount < 0) {
-    return res.status(400).json({ error: "INVALID_INPUT", message: "验收数量不正确。" });
-  }
-
-  try {
-    const ret = await withTx(async (client) => {
-      const cur = await client.query<{ type_id: string; payment_status: string; batch_payload: any }>(
-        `SELECT o.type_id, o.payment_status, COALESCE(s.batch_payload,'[]'::jsonb) AS batch_payload
-           FROM video_orders o
-           LEFT JOIN video_order_states s ON s.order_id=o.id
-          WHERE o.id=$1 AND o.client_id=$2
-          FOR UPDATE`,
-        [id, req.user!.userId]
-      );
-      const row = cur.rows[0];
-      if (!row) return { kind: "not_found" as const };
-      if (row.type_id !== "monthly_package") return { kind: "not_supported" as const };
-      if (row.payment_status !== "paid") return { kind: "not_paid" as const };
-      const list = Array.isArray(row.batch_payload) ? row.batch_payload : [];
-      const idx = list.findIndex((x: any) => Number(x?.batch_no) === batchNo);
-      if (idx < 0) return { kind: "batch_missing" as const };
-      const item = { ...list[idx] };
-      item.status = "accepted";
-      item.accepted_count = Math.floor(acceptedCount);
-      item.accept_note = note || null;
-      item.accepted_at = new Date().toISOString();
-      list[idx] = item;
-      await client.query(`UPDATE video_order_states SET batch_payload=$2::jsonb, updated_at=now() WHERE order_id=$1`, [id, JSON.stringify(list)]);
-      await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
-      return { kind: "ok" as const, item };
-    });
-    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-    if (ret.kind === "not_supported") return res.status(400).json({ error: "NOT_SUPPORTED", message: "仅包月订单支持批次验收。" });
-    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "请先付款后操作。" });
-    if (ret.kind === "batch_missing") return res.status(404).json({ error: "BATCH_NOT_FOUND", message: "批次不存在。" });
-    return res.json({ ok: true, batch: ret.item });
-  } catch (e) {
-    console.error("client accept monthly batch error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-  }
+router.post("/video-orders/:id/monthly-batches/:batchNo/accept", async (_req: AuthRequest, res: Response) => {
+  return res.status(403).json({
+    error: "FORBIDDEN",
+    message: "商家端当前为只读视图，不支持在该端修改批次状态。",
+  });
 });
 
 /** 商家将包月订单某批次标记为已结算。 */
-router.post("/video-orders/:id/monthly-batches/:batchNo/settle", async (req: AuthRequest, res: Response) => {
-  const id = Number(req.params.id);
-  const batchNo = Number(req.params.batchNo);
-  const settledAmount = Number(req.body?.settled_amount || 0);
-  if (!Number.isFinite(id) || id <= 0 || !Number.isFinite(batchNo) || batchNo <= 0) {
-    return res.status(400).json({ error: "INVALID_ID", message: "无效参数。" });
-  }
-  if (!Number.isFinite(settledAmount) || settledAmount < 0) {
-    return res.status(400).json({ error: "INVALID_INPUT", message: "结算金额不正确。" });
-  }
-
-  try {
-    const ret = await withTx(async (client) => {
-      const cur = await client.query<{ type_id: string; payment_status: string; batch_payload: any }>(
-        `SELECT o.type_id, o.payment_status, COALESCE(s.batch_payload,'[]'::jsonb) AS batch_payload
-           FROM video_orders o
-           LEFT JOIN video_order_states s ON s.order_id=o.id
-          WHERE o.id=$1 AND o.client_id=$2
-          FOR UPDATE`,
-        [id, req.user!.userId]
-      );
-      const row = cur.rows[0];
-      if (!row) return { kind: "not_found" as const };
-      if (row.type_id !== "monthly_package") return { kind: "not_supported" as const };
-      if (row.payment_status !== "paid") return { kind: "not_paid" as const };
-      const list = Array.isArray(row.batch_payload) ? row.batch_payload : [];
-      const idx = list.findIndex((x: any) => Number(x?.batch_no) === batchNo);
-      if (idx < 0) return { kind: "batch_missing" as const };
-      const item = { ...list[idx] };
-      if (item.status !== "accepted" && item.status !== "settled") return { kind: "not_accepted" as const };
-      item.status = "settled";
-      item.settled_amount = Math.round(settledAmount * 100) / 100;
-      item.settled_at = new Date().toISOString();
-      list[idx] = item;
-      await client.query(`UPDATE video_order_states SET batch_payload=$2::jsonb, updated_at=now() WHERE order_id=$1`, [id, JSON.stringify(list)]);
-      await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
-
-      const weekStart = weekStartMondayUtcFromIso(item.settled_at);
-      await client.query(
-        `INSERT INTO video_order_settlements (order_id, batch_no, week_start, amount_thb, status)
-         VALUES ($1, $2, $3::date, $4, 'pending')
-         ON CONFLICT (order_id, batch_no)
-         DO UPDATE SET week_start=EXCLUDED.week_start, amount_thb=EXCLUDED.amount_thb, updated_at=now()`,
-        [id, batchNo, weekStart, item.settled_amount]
-      );
-      return { kind: "ok" as const, item };
-    });
-    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-    if (ret.kind === "not_supported") return res.status(400).json({ error: "NOT_SUPPORTED", message: "仅包月订单支持批次结算。" });
-    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "请先付款后操作。" });
-    if (ret.kind === "batch_missing") return res.status(404).json({ error: "BATCH_NOT_FOUND", message: "批次不存在。" });
-    if (ret.kind === "not_accepted") return res.status(400).json({ error: "BATCH_NOT_ACCEPTED", message: "请先完成批次验收。" });
-    return res.json({ ok: true, batch: ret.item });
-  } catch (e) {
-    console.error("client settle monthly batch error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-  }
+router.post("/video-orders/:id/monthly-batches/:batchNo/settle", async (_req: AuthRequest, res: Response) => {
+  return res.status(403).json({
+    error: "FORBIDDEN",
+    message: "商家端当前为只读视图，不支持在该端修改批次状态。",
+  });
 });
 
 export default router;

@@ -38,12 +38,9 @@
           <span v-else>-</span>
         </template>
       </el-table-column>
-      <el-table-column :label="t('操作')" width="220" fixed="right">
+      <el-table-column :label="t('操作')" width="140" fixed="right">
         <template #default="{ row }">
           <el-button size="small" @click="openDetail(row)">{{ t("详情") }}</el-button>
-          <template v-if="row.kind === 'offline'">
-            <el-button size="small" type="success" :disabled="!canAcceptOffline(row.raw)" :loading="acting[row.raw.id]" @click="acceptOffline(row.raw.id)">{{ t("验收通过") }}</el-button>
-          </template>
         </template>
       </el-table-column>
     </el-table>
@@ -75,10 +72,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { ElMessage } from "element-plus";
 import { listClientMarketOrders, type ClientMarketOrder } from "@/api/client";
-import { acceptClientOfflineVideoOrder, listClientOfflineVideoOrders, type MonthlyBatchItem, type OfflineVideoOrderTypeId, type VideoOrder } from "@/api/videoOrders";
+import { listClientOfflineVideoOrders, type MonthlyBatchItem, type OfflineVideoOrderTypeId, type VideoOrder } from "@/api/videoOrders";
 import { readLocale, tr, type Locale } from "@/utils/i18n";
 import { getOrderTypeTagClass, getOrderTypeTh, getOrderTypeZh } from "@/utils/videoOrderRules";
 import { useVideoOrdersStore } from "@/stores/videoOrders";
@@ -103,7 +100,6 @@ const marketOrders = ref<ClientMarketOrder[]>([]);
 const offlineOrders = ref<VideoOrder[]>([]);
 const typeFilter = ref<UnifiedOrderType | "">(store.clientTypeFilter || "");
 const q = ref(store.orderKeyword || "");
-const acting = reactive<Record<number, boolean>>({});
 const detailOpen = ref(false);
 const activeOrder = ref<UnifiedRow | null>(null);
 
@@ -147,14 +143,6 @@ function monthlySettled(row: VideoOrder): number {
 /** 类型3合作月数。 */
 function monthlyMonths(row: VideoOrder): number {
   return Number((row.requirements as any)?.contract_months || 0) || 0;
-}
-
-/** 是否允许整单验收。 */
-function canAcceptOffline(row: VideoOrder): boolean {
-  if (row.payment_status !== "paid") return false;
-  if (row.type_id === "creator_review_video") return row.phase === "published";
-  if (row.type_id === "monthly_package") return monthlyAccepted(row) >= monthlyTarget(row);
-  return row.phase === "delivered";
 }
 
 /** 详情规则标题。 */
@@ -211,20 +199,6 @@ async function reloadAll(): Promise<void> {
 function openDetail(row: UnifiedRow): void {
   activeOrder.value = row;
   detailOpen.value = true;
-}
-
-/** 商家验收通过。 */
-async function acceptOffline(orderId: number): Promise<void> {
-  acting[orderId] = true;
-  try {
-    await acceptClientOfflineVideoOrder(orderId);
-    ElMessage.success(t("验收成功"));
-    await reloadAll();
-  } catch (e) {
-    ElMessage.error(e instanceof Error ? e.message : t("操作失败"));
-  } finally {
-    acting[orderId] = false;
-  }
 }
 
 onMounted(() => {

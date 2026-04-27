@@ -11,6 +11,8 @@
         </el-select>
         <el-input v-model="q" style="width: 260px" :placeholder="t('搜索订单号/标题/商家')" @keyup.enter="reloadAll" @blur="persistUi" />
         <el-button @click="reloadAll" :loading="loading">{{ t("รีเฟรช") }}</el-button>
+        <el-switch v-model="autoRefreshEnabled" :active-text="t('自动刷新')" :inactive-text="t('手动刷新')" />
+        <el-input-number v-model="autoRefreshSec" :min="10" :max="120" :step="5" :disabled="!autoRefreshEnabled" />
       </div>
     </div>
 
@@ -79,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { claimMarketOrder, completeMarketOrder, listAdminOrders, publishMarketOrder, type AdminMarketOrder } from "@/api/employee";
 import {
@@ -116,6 +118,9 @@ const dialogMarketPublish = reactive({ open: false, orderId: 0, link: "", loadin
 const dialogOfflineSubmit = reactive({ open: false, orderId: 0, linksText: "", loading: false });
 const dialogOfflinePublish = reactive({ open: false, orderId: 0, link: "", loading: false });
 const monthlyBatchDialog = reactive({ open: false, orderId: 0, batchNo: 1, videoCount: 1, linksText: "", loading: false });
+const autoRefreshEnabled = ref(true);
+const autoRefreshSec = ref(20);
+const autoRefreshTimer = ref<number | null>(null);
 
 /** 翻译工具。 */
 function t(text: string): string {
@@ -367,8 +372,35 @@ async function onReviewOffline(orderId: number, action: "approve" | "reject"): P
   }
 }
 
+/** 清理自动刷新定时器。 */
+function clearAutoRefreshTimer(): void {
+  if (autoRefreshTimer.value) {
+    window.clearInterval(autoRefreshTimer.value);
+    autoRefreshTimer.value = null;
+  }
+}
+
+/** 重建自动刷新定时器。 */
+function setupAutoRefreshTimer(): void {
+  clearAutoRefreshTimer();
+  if (!autoRefreshEnabled.value) return;
+  const ms = Math.max(10, Number(autoRefreshSec.value || 20)) * 1000;
+  autoRefreshTimer.value = window.setInterval(() => {
+    void reloadAll();
+  }, ms);
+}
+
+watch([autoRefreshEnabled, autoRefreshSec], () => {
+  setupAutoRefreshTimer();
+});
+
 onMounted(() => {
   void reloadAll();
+  setupAutoRefreshTimer();
+});
+
+onBeforeUnmount(() => {
+  clearAutoRefreshTimer();
 });
 </script>
 
