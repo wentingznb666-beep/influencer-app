@@ -61,7 +61,8 @@ router.get("/video-orders", async (req: AuthRequest, res: Response) => {
   const limitRaw = Number(req.query?.limit || 200);
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 1), 500) : 200;
 
-  const where: string[] = ["o.payment_status='paid'", "(o.assigned_employee_id IS NULL OR o.assigned_employee_id=$1)"];
+  /** 员工订单池：允许查看未付款订单，以便执行“手动标记付款”。 */
+  const where: string[] = ["(o.assigned_employee_id IS NULL OR o.assigned_employee_id=$1)"];
   const params: any[] = [req.user!.userId];
   let idx = 2;
 
@@ -118,21 +119,59 @@ router.post("/video-orders/:id/claim", async (req: AuthRequest, res: Response) =
       );
       const row = cur.rows[0];
       if (!row) return { kind: "not_found" as const };
-      if (row.payment_status !== "paid") return { kind: "not_paid" as const };
       if (!(await ensureTypeVisibleToEmployee(row.type_id))) return { kind: "not_allowed" as const };
       if (row.assigned_employee_id && row.assigned_employee_id !== req.user!.userId) return { kind: "already_claimed" as const };
       await client.query(`UPDATE video_orders SET assigned_employee_id=$2, updated_at=now() WHERE id=$1`, [id, req.user!.userId]);
       await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
-      await client.query(`UPDATE video_order_states SET phase='assigned', updated_at=now() WHERE order_id=$1`, [id]);
+      /**
+       * 2/3/4 类型订单：
+       * - 未付款：接单后保持 assigned，等待员工手动标记付款
+       * - 已付款：直接进入制作中 in_progress
+       */
+      const nextPhase = row.payment_status === "paid" ? "in_progress" : "assigned";
+      await client.query(`UPDATE video_order_states SET phase=$2, updated_at=now() WHERE order_id=$1`, [id, nextPhase]);
       return { kind: "ok" as const };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-    if (ret.kind === "not_paid") return res.status(400).json({ error: "PAYMENT_REQUIRED", message: "订单未完成线下付款，暂不可接单。" });
     if (ret.kind === "not_allowed") return res.status(403).json({ error: "FORBIDDEN", message: "该类型当前不可处理。" });
     if (ret.kind === "already_claimed") return res.status(409).json({ error: "ALREADY_CLAIMED", message: "订单已被其他员工接单。" });
     return res.json({ ok: true });
   } catch (e) {
     console.error("employee claim video order error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
+/** 员工手动标记付款：仅 2/3/4 类订单可用，成功后进入制作中。 */
+router.post("/video-orders/:id/mark-paid", async (req: AuthRequest, res: Response) => {
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "INVALID_ID", message: "无效订单ID。" });
+  try {
+    const ret = await withTx(async (client) => {
+      const cur = await client.query<{ payment_status: string; assigned_employee_id: number | null; amount_thb: unknown }>(
+        `SELECT payment_status, assigned_employee_id, amount_thb
+           FROM video_orders
+          WHERE id=$1
+          FOR UPDATE`,
+        [id]
+      );
+      const row = cur.rows[0];
+      if (!row) return { kind: "not_found" as const };
+      if (row.assigned_employee_id && row.assigned_employee_id !== req.user!.userId) return { kind: "not_assigned" as const };
+      const amount = Number(row.amount_thb);
+      if (!Number.isFinite(amount) || amount < 0) return { kind: "invalid_amount" as const };
+
+      await client.query(`UPDATE video_orders SET assigned_employee_id=$2, payment_status='paid', paid_at=now(), updated_at=now() WHERE id=$1`, [id, req.user!.userId]);
+      await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
+      await client.query(`UPDATE video_order_states SET phase='in_progress', updated_at=now() WHERE order_id=$1`, [id]);
+      return { kind: "ok" as const };
+    });
+    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
+    if (ret.kind === "not_assigned") return res.status(403).json({ error: "NOT_ASSIGNED", message: "该订单已由其他员工接单。" });
+    if (ret.kind === "invalid_amount") return res.status(400).json({ error: "INVALID_AMOUNT", message: "订单金额异常，无法标记付款。" });
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("employee mark paid error:", e);
     return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   }
 });

@@ -110,6 +110,14 @@ export async function listEmployeeOfflineVideoOrders(params?: {
   return (data.list as VideoOrder[]) || [];
 }
 
+
+
+/** 员工手动标记线下订单付款。 */
+export async function markEmployeeOfflineVideoOrderPaid(orderId: number): Promise<void> {
+  const res = await fetchWithAuth(`/api/employee/video-orders/${orderId}/mark-paid`, { method: "POST" });
+  if (!res.ok) throw new Error(await readErrorMessage(res, "操作失败"));
+}
+
 export async function claimEmployeeOfflineVideoOrder(orderId: number): Promise<void> {
   const res = await fetchWithAuth(`/api/employee/video-orders/${orderId}/claim`, { method: "POST" });
   if (!res.ok) throw new Error(await readErrorMessage(res, "接单失败"));

@@ -7,6 +7,7 @@ import ElementPlus from "element-plus";
 import App from "./App.vue";
 import { router } from "./router";
 import { useAuthStore } from "./stores/auth";
+import { useVideoOrdersStore } from "./stores/videoOrders";
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -16,6 +17,7 @@ app.use(router);
 app.use(ElementPlus);
 
 useAuthStore(pinia).initFromStorage();
+useVideoOrdersStore(pinia).initFromStorage();
 
 app.mount("#app");
 

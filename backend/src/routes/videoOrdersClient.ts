@@ -181,31 +181,11 @@ router.get("/video-orders/:id", async (req: AuthRequest, res: Response) => {
   }
 });
 
-router.post("/video-orders/:id/mark-paid", async (req: AuthRequest, res: Response) => {
-  const id = Number(req.params.id);
-  if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "INVALID_ID", message: "无效订单ID。" });
-  try {
-    const updated = await withTx(async (client) => {
-      const cur = await client.query<{ payment_status: string; amount_thb: any }>(
-        `SELECT payment_status, amount_thb FROM video_orders WHERE id=$1 AND client_id=$2 FOR UPDATE`,
-        [id, req.user!.userId]
-      );
-      const row = cur.rows[0];
-      if (!row) return { kind: "not_found" as const };
-      const amount = Number(row.amount_thb);
-      if (!Number.isFinite(amount) || amount <= 0) return { kind: "amount_missing" as const };
-      if (row.payment_status === "paid") return { kind: "ok" as const };
-      await client.query(`UPDATE video_orders SET payment_status='paid', paid_at=now(), updated_at=now() WHERE id=$1`, [id]);
-      await client.query(`UPDATE video_order_states SET phase='paid', updated_at=now() WHERE order_id=$1`, [id]);
-      return { kind: "ok" as const };
-    });
-    if (updated.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
-    if (updated.kind === "amount_missing") return res.status(400).json({ error: "AMOUNT_REQUIRED", message: "该订单金额尚未配置，暂不可标记已付款。" });
-    return res.json({ ok: true });
-  } catch (e) {
-    console.error("client mark paid error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-  }
+router.post("/video-orders/:id/mark-paid", async (_req: AuthRequest, res: Response) => {
+  return res.status(403).json({
+    error: "FORBIDDEN",
+    message: "该类型订单需由员工端手动标记付款后进入制作流程。",
+  });
 });
 
 router.post("/video-orders/:id/accept", async (req: AuthRequest, res: Response) => {
