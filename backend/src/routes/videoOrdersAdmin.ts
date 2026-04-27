@@ -65,7 +65,7 @@ router.get("/video-orders", async (req: AuthRequest, res: Response) => {
     params.push(type);
   }
   if (phase) {
-    where.push(`COALESCE(s.phase,'created')=$${idx++}`);
+    where.push(`COALESCE((to_jsonb(s)->>'phase'), 'created')=$${idx++}`);
     params.push(phase);
   }
   if (q) {
@@ -79,11 +79,13 @@ router.get("/video-orders", async (req: AuthRequest, res: Response) => {
       `SELECT o.id, o.client_id, o.type_id, o.title, o.requirements, o.amount_thb, o.payment_method, o.payment_status, o.paid_at, o.assigned_employee_id, o.created_at, o.updated_at,
               c.username AS client_username,
               e.username AS employee_username,
-              COALESCE(s.phase,'created') AS phase,
-              COALESCE(s.proof_links,'[]'::jsonb) AS proof_links,
-              COALESCE(s.publish_links,'[]'::jsonb) AS publish_links,
-              COALESCE(s.batch_payload,'[]'::jsonb) AS batch_payload,
-              s.review_note, s.reviewed_by, s.reviewed_at
+              COALESCE((to_jsonb(s)->>'phase'), 'created') AS phase,
+              COALESCE((to_jsonb(s)->'proof_links'), '[]'::jsonb) AS proof_links,
+              COALESCE((to_jsonb(s)->'publish_links'), '[]'::jsonb) AS publish_links,
+              COALESCE((to_jsonb(s)->'batch_payload'), '[]'::jsonb) AS batch_payload,
+              (to_jsonb(s)->>'review_note') AS review_note,
+              NULLIF((to_jsonb(s)->>'reviewed_by'), '')::int AS reviewed_by,
+              (to_jsonb(s)->>'reviewed_at') AS reviewed_at
          FROM video_orders o
          JOIN users c ON c.id=o.client_id
          LEFT JOIN users e ON e.id=o.assigned_employee_id
@@ -110,7 +112,7 @@ router.post("/video-orders/:id/review", async (req: AuthRequest, res: Response) 
   try {
     const ret = await withTx(async (client) => {
       const cur = await client.query<{ type_id: VideoOrderTypeId; phase: string }>(
-        `SELECT o.type_id, COALESCE(s.phase,'created') AS phase
+        `SELECT o.type_id, COALESCE((to_jsonb(s)->>'phase'), 'created') AS phase
            FROM video_orders o
            LEFT JOIN video_order_states s ON s.order_id=o.id
           WHERE o.id=$1

@@ -726,24 +726,6 @@ export default function ClientOrdersHallPage() {
     }
   };
 
-  const handleOfflineSetPhase = async (orderId: number, phase: OfflinePhase) => {
-    setError(null);
-    setOfflineActionError((p) => ({ ...p, [orderId]: "" }));
-    setOfflineActionOk((p) => ({ ...p, [orderId]: "" }));
-    setOfflineActionLoading((p) => ({ ...p, [`${orderId}:phase:${phase}`]: true }));
-    try {
-      await employeeApi.setEmployeeVideoOrderPhase(orderId, phase);
-      setOfflineActionOk((p) => ({ ...p, [orderId]: t("状态已更新") }));
-      load();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : t("更新失败");
-      setError(msg);
-      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
-    } finally {
-      setOfflineActionLoading((p) => ({ ...p, [`${orderId}:phase:${phase}`]: false }));
-    }
-  };
-
   const handleOfflineSubmitProof = async (orderId: number) => {
     const raw = String(offlineDraftUrls[orderId] || "");
     const urls = raw
@@ -803,8 +785,22 @@ export default function ClientOrdersHallPage() {
 
   const handleMonthlySubmitBatch = async (orderId: number) => {
     const draft = offlineMonthlyDraft[orderId] || { batchNo: "1", videoCount: "1", urls: "" };
-    const bn = Math.max(1, Math.floor(Number(draft.batchNo || "1") || 1));
-    const vc = Math.max(1, Math.floor(Number(draft.videoCount || "1") || 1));
+    const bnRaw = Number(draft.batchNo);
+    const vcRaw = Number(draft.videoCount);
+    const bn = Math.floor(bnRaw);
+    const vc = Math.floor(vcRaw);
+    if (!Number.isFinite(bnRaw) || bn < 1) {
+      const msg = t("请输入有效批次号（>= 1）。");
+      setError(msg);
+      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
+      return;
+    }
+    if (!Number.isFinite(vcRaw) || vc < 1) {
+      const msg = t("请输入有效数量（>= 1）。");
+      setError(msg);
+      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
+      return;
+    }
     const urls = String(draft.urls || "")
       .split(/\r?\n/g)
       .map((s) => s.trim())
@@ -822,7 +818,7 @@ export default function ClientOrdersHallPage() {
     setOfflineActionLoading((p) => ({ ...p, [`${orderId}:monthly-submit`]: true }));
     try {
       await employeeApi.submitEmployeeMonthlyBatch(orderId, { batch_no: bn, video_count: vc, video_urls: urls });
-      setOfflineMonthlyDraft((p) => ({ ...p, [orderId]: { ...draft, urls: "" } }));
+      setOfflineMonthlyDraft((p) => ({ ...p, [orderId]: { ...draft, batchNo: String(bn + 1), urls: "" } }));
       setOfflineActionOk((p) => ({ ...p, [orderId]: t("已提交批次交付") }));
       load();
     } catch (e) {
@@ -1576,28 +1572,61 @@ export default function ClientOrdersHallPage() {
                       </button>
                     )}
 
-                    <button
-                      type="button"
-                      disabled={o.phase !== "assigned" || o.payment_status !== "paid" || !!offlineActionLoading[`${o.id}:phase:in_progress`]}
-                      onClick={() => void handleOfflineSetPhase(o.id, "in_progress")}
-                      style={{
-                        padding: "6px 10px",
-                        borderRadius: 8,
-                        border: "1px solid #dbe1ea",
-                        background: o.phase !== "assigned" || o.payment_status !== "paid" ? "#f8fafc" : "#fff",
-                        cursor: o.phase !== "assigned" || o.payment_status !== "paid" ? "not-allowed" : "pointer",
-                        opacity: offlineActionLoading[`${o.id}:phase:in_progress`] ? 0.6 : 1,
-                      }}
-                    >
-                      {offlineActionLoading[`${o.id}:phase:in_progress`] ? t("处理中…") : t("开始制作")}
-                    </button>
-
                     {o.type_id === "monthly_package" ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+                        {Array.isArray(o.batch_payload) && o.batch_payload.length > 0 && (
+                          <div style={{ width: 320, maxWidth: "80vw", padding: 10, borderRadius: 10, border: "1px solid #e2e8f0", background: "#f8fafc" }}>
+                            <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8 }}>{t("批次记录")}</div>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                              {o.batch_payload
+                                .slice()
+                                .sort((a: any, b: any) => Number(a?.batch_no || 0) - Number(b?.batch_no || 0))
+                                .slice(-10)
+                                .map((x: any, idx: number) => {
+                                  const bn = Number(x?.batch_no || 0);
+                                  const vc = Number(x?.video_count || 0);
+                                  const st = String(x?.status || "");
+                                  const submittedAt = String(x?.submitted_at || "").trim();
+                                  const links = Array.isArray(x?.proof_links) ? x.proof_links : [];
+                                  const statusText =
+                                    st === "pending_acceptance" ? t("待验收") : st === "accepted" ? t("已验收") : st === "settled" ? t("已结算") : st || t("未知");
+                                  return (
+                                    <div key={`${o.id}-batch-${bn}-${idx}`} style={{ fontSize: 12, color: "#334155" }}>
+                                      <div style={{ fontWeight: 700 }}>
+                                        {t("批次")} {bn || "-"} · {statusText} · {t("数量")}: {Number.isFinite(vc) && vc > 0 ? vc : "-"}
+                                        {submittedAt ? <span style={{ color: "#64748b", fontWeight: 500 }}> · {submittedAt}</span> : null}
+                                      </div>
+                                      {links.length > 0 && (
+                                        <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 4 }}>
+                                          {links.slice(0, 5).map((u: any, i: number) => {
+                                            const url = String(u || "").trim();
+                                            if (!url) return null;
+                                            return (
+                                              <a key={`${o.id}-batch-${bn}-link-${i}`} href={url} target="_blank" rel="noreferrer" style={{ color: "var(--xt-accent)", wordBreak: "break-all" }}>
+                                                {url}
+                                              </a>
+                                            );
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )}
                         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                           <input
                             type="number"
-                            value={(offlineMonthlyDraft[o.id]?.batchNo ?? "1") as any}
+                            value={((offlineMonthlyDraft[o.id]?.batchNo ??
+                              String(
+                                Math.max(
+                                  0,
+                                  ...((Array.isArray(o.batch_payload) ? o.batch_payload : [])
+                                    .map((x: any) => Number(x?.batch_no || 0))
+                                    .filter((n: number) => Number.isFinite(n) && n > 0)),
+                                ) + 1,
+                              )) as any)}
                             onChange={(e) => setOfflineMonthlyDraft((p) => ({ ...p, [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), batchNo: e.target.value } }))}
                             style={{ width: 96, padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea" }}
                             placeholder={t("批次号")}
@@ -1621,14 +1650,14 @@ export default function ClientOrdersHallPage() {
                         />
                         <button
                           type="button"
-                          disabled={!!offlineActionLoading[`${o.id}:monthly-submit`]}
+                          disabled={o.payment_status !== "paid" || !!offlineActionLoading[`${o.id}:monthly-submit`]}
                           onClick={() => void handleMonthlySubmitBatch(o.id)}
                           style={{
                             padding: "6px 10px",
                             borderRadius: 8,
                             border: "1px solid #dbe1ea",
-                            background: "#fff",
-                            cursor: "pointer",
+                            background: o.payment_status !== "paid" ? "#f8fafc" : "#fff",
+                            cursor: o.payment_status !== "paid" ? "not-allowed" : "pointer",
                             opacity: offlineActionLoading[`${o.id}:monthly-submit`] ? 0.6 : 1,
                           }}
                         >

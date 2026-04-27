@@ -138,11 +138,13 @@ router.get("/video-orders", async (req: AuthRequest, res: Response) => {
   try {
     const rows = await query(
       `SELECT o.id, o.type_id, o.title, o.requirements, o.amount_thb, o.payment_method, o.payment_status, o.paid_at, o.assigned_employee_id, o.created_at, o.updated_at,
-              COALESCE(s.phase,'created') AS phase,
-              COALESCE(s.proof_links,'[]'::jsonb) AS proof_links,
-              COALESCE(s.publish_links,'[]'::jsonb) AS publish_links,
-              COALESCE(s.batch_payload,'[]'::jsonb) AS batch_payload,
-              s.review_note, s.reviewed_by, s.reviewed_at
+              COALESCE((to_jsonb(s)->>'phase'), 'created') AS phase,
+              COALESCE((to_jsonb(s)->'proof_links'), '[]'::jsonb) AS proof_links,
+              COALESCE((to_jsonb(s)->'publish_links'), '[]'::jsonb) AS publish_links,
+              COALESCE((to_jsonb(s)->'batch_payload'), '[]'::jsonb) AS batch_payload,
+              (to_jsonb(s)->>'review_note') AS review_note,
+              NULLIF((to_jsonb(s)->>'reviewed_by'), '')::int AS reviewed_by,
+              (to_jsonb(s)->>'reviewed_at') AS reviewed_at
          FROM video_orders o
          LEFT JOIN video_order_states s ON s.order_id=o.id
         WHERE o.client_id=$1
@@ -162,11 +164,13 @@ router.get("/video-orders/:id", async (req: AuthRequest, res: Response) => {
   try {
     const rows = await query(
       `SELECT o.id, o.client_id, o.type_id, o.title, o.requirements, o.amount_thb, o.payment_method, o.payment_status, o.paid_at, o.assigned_employee_id, o.created_at, o.updated_at,
-              COALESCE(s.phase,'created') AS phase,
-              COALESCE(s.proof_links,'[]'::jsonb) AS proof_links,
-              COALESCE(s.publish_links,'[]'::jsonb) AS publish_links,
-              COALESCE(s.batch_payload,'[]'::jsonb) AS batch_payload,
-              s.review_note, s.reviewed_by, s.reviewed_at
+              COALESCE((to_jsonb(s)->>'phase'), 'created') AS phase,
+              COALESCE((to_jsonb(s)->'proof_links'), '[]'::jsonb) AS proof_links,
+              COALESCE((to_jsonb(s)->'publish_links'), '[]'::jsonb) AS publish_links,
+              COALESCE((to_jsonb(s)->'batch_payload'), '[]'::jsonb) AS batch_payload,
+              (to_jsonb(s)->>'review_note') AS review_note,
+              NULLIF((to_jsonb(s)->>'reviewed_by'), '')::int AS reviewed_by,
+              (to_jsonb(s)->>'reviewed_at') AS reviewed_at
          FROM video_orders o
          LEFT JOIN video_order_states s ON s.order_id=o.id
         WHERE o.id=$1 AND o.client_id=$2`,
