@@ -111,10 +111,11 @@ router.post("/video-orders/:id/review", async (req: AuthRequest, res: Response) 
 
   try {
     const ret = await withTx(async (client) => {
+      await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
       const cur = await client.query<{ type_id: VideoOrderTypeId; phase: string }>(
-        `SELECT o.type_id, COALESCE((to_jsonb(s)->>'phase'), 'created') AS phase
+        `SELECT o.type_id, (to_jsonb(s)->>'phase') AS phase
            FROM video_orders o
-           LEFT JOIN video_order_states s ON s.order_id=o.id
+           JOIN video_order_states s ON s.order_id=o.id
           WHERE o.id=$1
           FOR UPDATE`,
         [id]

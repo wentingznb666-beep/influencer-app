@@ -265,14 +265,15 @@ router.post("/video-orders/:id/publish", async (req: AuthRequest, res: Response)
 
   try {
     const ret = await withTx(async (client) => {
+      await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
       const cur = await client.query<{ type_id: VideoOrderTypeId; payment_status: string; assigned_employee_id: number | null; phase: string; publish_links: any }>(
         `SELECT o.type_id,
                 o.payment_status,
                 o.assigned_employee_id,
-                COALESCE((to_jsonb(s)->>'phase'), 'created') AS phase,
-                COALESCE((to_jsonb(s)->'publish_links'), '[]'::jsonb) AS publish_links
+                (to_jsonb(s)->>'phase') AS phase,
+                (to_jsonb(s)->'publish_links') AS publish_links
            FROM video_orders o
-           LEFT JOIN video_order_states s ON s.order_id=o.id
+           JOIN video_order_states s ON s.order_id=o.id
           WHERE o.id=$1
           FOR UPDATE`,
         [id]
@@ -286,7 +287,6 @@ router.post("/video-orders/:id/publish", async (req: AuthRequest, res: Response)
 
       const list = Array.isArray(row.publish_links) ? row.publish_links : [];
       list.push({ url: publishLink, by: req.user!.userId, at: new Date().toISOString() });
-      await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
       await client.query(
         `UPDATE video_order_states SET phase='published', publish_links=$2::jsonb, updated_at=now() WHERE order_id=$1`,
         [id, JSON.stringify(list)]
@@ -326,13 +326,14 @@ router.post("/video-orders/:id/monthly-batches/submit", async (req: AuthRequest,
 
   try {
     const ret = await withTx(async (client) => {
+      await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
       const cur = await client.query<{ type_id: string; payment_status: string; assigned_employee_id: number | null; batch_payload: any }>(
         `SELECT o.type_id,
                 o.payment_status,
                 o.assigned_employee_id,
-                COALESCE((to_jsonb(s)->'batch_payload'), '[]'::jsonb) AS batch_payload
+                (to_jsonb(s)->'batch_payload') AS batch_payload
            FROM video_orders o
-           LEFT JOIN video_order_states s ON s.order_id=o.id
+           JOIN video_order_states s ON s.order_id=o.id
           WHERE o.id=$1
           FOR UPDATE`,
         [id]
@@ -357,7 +358,6 @@ router.post("/video-orders/:id/monthly-batches/submit", async (req: AuthRequest,
       else list.push(next);
       list.sort((a: any, b: any) => Number(a?.batch_no || 0) - Number(b?.batch_no || 0));
 
-      await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
       await client.query(`UPDATE video_order_states SET phase='delivered', batch_payload=$2::jsonb, updated_at=now() WHERE order_id=$1`, [id, JSON.stringify(list)]);
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
       return { kind: "ok" as const, batch: next };
