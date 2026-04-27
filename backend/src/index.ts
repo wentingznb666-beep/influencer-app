@@ -496,11 +496,16 @@ app.get("/health", (_req: Request, res: Response) => {
 
 function serveFrontendIfBuilt(appInstance: express.Express): void {
 
-  const frontendDist = path.resolve(__dirname, "../../frontend/dist");
+  /**
+   * 优先托管 frontend-vue/dist（当前主前端），若不存在再回退到 frontend/dist（历史版本）。
+   */
+  const preferredDist = path.resolve(__dirname, "../../frontend-vue/dist");
+  const legacyDist = path.resolve(__dirname, "../../frontend/dist");
+  const frontendDist = fs.existsSync(preferredDist) ? preferredDist : legacyDist;
 
   if (!fs.existsSync(frontendDist)) {
 
-    console.warn(`[frontend.static] dist not found: ${frontendDist}`);
+    console.warn(`[frontend.static] dist not found: ${preferredDist} (preferred), ${legacyDist} (legacy)`);
 
     return;
 
