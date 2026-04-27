@@ -16,11 +16,11 @@ export default function EmployeeLayout() {
   }, [setRole]);
 
   const navItems: DashboardNavItem[] = [
-    { to: "/employee/models", label: "模特展示", icon: "🧑", group: "match" },
-    { to: "/employee/showcase-influencers", label: "Influencer", icon: "⭐", group: "match" },
-    { to: "/employee/showcase-content-creators", label: "Content Creator", icon: "✍", group: "match" },
     { to: "/employee/orders", label: "商家订单", icon: "📦", group: "points" },
     { to: "/employee/market-orders", label: "视频分级订单", icon: "🎬", group: "points" },
+    { to: "/employee/models", label: "模特展示", icon: "🧑", group: "points" },
+    { to: "/employee/showcase-influencers", label: "Influencer", icon: "⭐", group: "points" },
+    { to: "/employee/showcase-content-creators", label: "Content Creator", icon: "✍", group: "points" },
     { to: "/employee/graded-video-hall", label: "视频分级工作台", icon: "🧰", group: "points" },
     { to: "/employee/skus", label: "SKU 列表", icon: "🧱", group: "points" },
     { to: "/employee/points", label: "视频分级结算", icon: "🪙", group: "points" },

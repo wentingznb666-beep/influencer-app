@@ -136,9 +136,9 @@ export default function ShowcaseContentCreatorsPage() {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>Content Creator（短视频拍摄）</h2>
+      <h2 style={{ marginTop: 0 }}>视频分级 - Content Creator（短视频拍摄）</h2>
       <p style={{ fontSize: 14, color: "#64748b" }}>
-        面向短视频拍摄接单。管理员与员工可完整维护资料；表单布局与「模特展示」一致（字段为拍摄类型、技能、视频与作品集图片）。
+        当前已归入视频分级板块，面向短视频拍摄接单。管理员与员工可完整维护资料；表单布局与「模特展示」一致（字段为拍摄类型、技能、视频与作品集图片）。
       </p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 

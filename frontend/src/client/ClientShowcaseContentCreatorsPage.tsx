@@ -58,8 +58,8 @@ export default function ClientShowcaseContentCreatorsPage() {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>Content Creator（短视频拍摄）</h2>
-      <p style={{ fontSize: 14, color: "#64748b" }}>浏览已启用创作者资料，可预约合作；此处不可编辑或上传任何资料。</p>
+      <h2 style={{ marginTop: 0 }}>视频分级 - Content Creator（短视频拍摄）</h2>
+      <p style={{ fontSize: 14, color: "#64748b" }}>当前已归入视频分级板块。浏览已启用创作者资料，可预约合作；此处不可编辑或上传任何资料。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索模特名称/介绍" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 260 }} />

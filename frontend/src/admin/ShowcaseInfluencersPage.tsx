@@ -144,9 +144,9 @@ export default function ShowcaseInfluencersPage() {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>Influencer（带货达人）</h2>
+      <h2 style={{ marginTop: 0 }}>视频分级 - Influencer（带货达人）</h2>
       <p style={{ fontSize: 14, color: "#64748b" }}>
-        面向可露脸出镜、可挂购物车带货的类型，粉丝与带货数据通常较高。管理员与员工可完整维护资料与图片；表单布局与「模特展示」一致。
+        当前已归入视频分级板块，面向可露脸出镜、可挂购物车带货的类型，粉丝与带货数据通常较高。管理员与员工可完整维护资料与图片；表单布局与「模特展示」一致。
       </p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 

@@ -320,8 +320,8 @@ export default function ModelsPage() {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>模特展示</h2>
-      <p style={{ fontSize: 14, color: "#64748b" }}>管理员可新增/编辑/删除/上下架；员工可新增/编辑并提交上下架审核申请。</p>
+      <h2 style={{ marginTop: 0 }}>视频分级 - 模特展示</h2>
+      <p style={{ fontSize: 14, color: "#64748b" }}>当前已归入视频分级板块。管理员可新增/编辑/删除/上下架；员工可新增/编辑并提交上下架审核申请。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       {toast && (
         <div

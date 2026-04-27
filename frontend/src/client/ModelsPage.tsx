@@ -59,8 +59,8 @@ export default function ClientModelsPage() {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>模特展示</h2>
-      <p style={{ fontSize: 14, color: "#64748b" }}>浏览已启用模特，选择长期合作对象；仅显示你自己的合作选择。</p>
+      <h2 style={{ marginTop: 0 }}>视频分级 - 模特展示</h2>
+      <p style={{ fontSize: 14, color: "#64748b" }}>当前已归入视频分级板块。浏览已启用模特，选择长期合作对象；仅显示你自己的合作选择。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索模特名称/介绍" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 260 }} />
