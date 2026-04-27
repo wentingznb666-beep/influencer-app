@@ -708,6 +708,24 @@ export default function ClientOrdersHallPage() {
     }
   };
 
+  const handleOfflineMarkPaid = async (orderId: number) => {
+    setError(null);
+    setOfflineActionError((p) => ({ ...p, [orderId]: "" }));
+    setOfflineActionOk((p) => ({ ...p, [orderId]: "" }));
+    setOfflineActionLoading((p) => ({ ...p, [`${orderId}:mark-paid`]: true }));
+    try {
+      await employeeApi.markEmployeeVideoOrderPaid(orderId);
+      setOfflineActionOk((p) => ({ ...p, [orderId]: t("已标记付款并进入制作中") }));
+      load();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : t("操作失败");
+      setError(msg);
+      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
+    } finally {
+      setOfflineActionLoading((p) => ({ ...p, [`${orderId}:mark-paid`]: false }));
+    }
+  };
+
   const handleOfflineSetPhase = async (orderId: number, phase: OfflinePhase) => {
     setError(null);
     setOfflineActionError((p) => ({ ...p, [orderId]: "" }));
@@ -1539,16 +1557,35 @@ export default function ClientOrdersHallPage() {
                     )}
                   </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    {o.payment_status !== "paid" && (
+                      <button
+                        type="button"
+                        disabled={!!offlineActionLoading[`${o.id}:mark-paid`]}
+                        onClick={() => void handleOfflineMarkPaid(o.id)}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 8,
+                          border: "1px solid #f59e0b",
+                          background: "#fff7ed",
+                          color: "#9a3412",
+                          cursor: "pointer",
+                          opacity: offlineActionLoading[`${o.id}:mark-paid`] ? 0.6 : 1,
+                        }}
+                      >
+                        {offlineActionLoading[`${o.id}:mark-paid`] ? t("处理中…") : t("标记已付款")}
+                      </button>
+                    )}
+
                     <button
                       type="button"
-                      disabled={o.phase !== "assigned" || !!offlineActionLoading[`${o.id}:phase:in_progress`]}
+                      disabled={o.phase !== "assigned" || o.payment_status !== "paid" || !!offlineActionLoading[`${o.id}:phase:in_progress`]}
                       onClick={() => void handleOfflineSetPhase(o.id, "in_progress")}
                       style={{
                         padding: "6px 10px",
                         borderRadius: 8,
                         border: "1px solid #dbe1ea",
-                        background: o.phase !== "assigned" ? "#f8fafc" : "#fff",
-                        cursor: o.phase !== "assigned" ? "not-allowed" : "pointer",
+                        background: o.phase !== "assigned" || o.payment_status !== "paid" ? "#f8fafc" : "#fff",
+                        cursor: o.phase !== "assigned" || o.payment_status !== "paid" ? "not-allowed" : "pointer",
                         opacity: offlineActionLoading[`${o.id}:phase:in_progress`] ? 0.6 : 1,
                       }}
                     >

@@ -56,6 +56,12 @@ export async function claimEmployeeVideoOrder(id: number) {
   return res.json();
 }
 
+export async function markEmployeeVideoOrderPaid(id: number) {
+  const res = await fetchWithAuth(`/api/employee/video-orders/${id}/mark-paid`, { method: "POST" });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  return res.json();
+}
+
 export async function setEmployeeVideoOrderPhase(id: number, phase: EmployeeVideoOrderPhase) {
   const res = await fetchWithAuth(`/api/employee/video-orders/${id}/phase`, {
     method: "PATCH",
