@@ -161,6 +161,12 @@ app.use("/api/admin/photos", adminPhotosRouter);
 
 app.use("/api/employee/photos", employeePhotosRouter);
 
+/** 管理员/员工：资源库（模特 / Influencer / Content Creator） */
+
+app.use("/api/admin/showcase-influencers", showcaseInfluencersRoutes);
+
+app.use("/api/admin/showcase-content-creators", showcaseContentCreatorsRoutes);
+
 /** 视频分级订单（线下支付三类） */
 
 app.use("/api/client", videoOrdersClientRoutes);
@@ -176,10 +182,6 @@ app.use("/api/influencer", influencerRoutes);
 app.use("/api/client", clientRoutes);
 
 app.use("/api/client/models", clientModelsRoutes);
-
-app.use("/api/admin/showcase-influencers", showcaseInfluencersRoutes);
-
-app.use("/api/admin/showcase-content-creators", showcaseContentCreatorsRoutes);
 
 app.use("/api/client/showcase-influencers", clientShowcaseInfluencersRoutes);
 
@@ -611,6 +613,5 @@ main().catch((e) => {
   process.exit(1);
 
 });
-
 
 
