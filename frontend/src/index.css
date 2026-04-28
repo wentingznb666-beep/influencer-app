@@ -288,29 +288,31 @@ body {
 }
 
 .xt-login-home__team {
-  padding: 24px 0 28px;
-  background: #0b0f16;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 18px 0 26px;
+  background: linear-gradient(180deg, rgba(21, 42, 69, 0.035), rgba(224, 112, 32, 0.05));
+  border: 1px solid rgba(216, 224, 235, 0.85);
+  border-left: none;
+  border-right: none;
 }
 
 .xt-login-home__team-title {
-  margin-bottom: 16px;
+  margin-bottom: 14px;
 }
 
 .xt-login-home__team-kicker {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 26px;
-  font-weight: 600;
-  line-height: 1.1;
+  color: var(--xt-text-muted);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .xt-login-home__team-h {
-  color: #ffffff;
-  font-size: 56px;
+  margin-top: 6px;
+  color: var(--xt-primary);
+  font-size: 28px;
   font-weight: 900;
-  line-height: 1.02;
-  letter-spacing: -0.02em;
+  line-height: 1.12;
 }
 
 .xt-login-home__team-grid {
@@ -320,43 +322,31 @@ body {
 }
 
 .xt-login-home__team-card {
-  border-radius: 0;
+  border-radius: 16px;
   overflow: hidden;
-  background: #111826;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--xt-border);
+  box-shadow: 0 10px 34px rgba(21, 42, 69, 0.08);
+  transition: transform 180ms ease, box-shadow 180ms ease;
 }
 
-.xt-login-home__team-photo {
+.xt-login-home__team-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 48px rgba(21, 42, 69, 0.12);
+}
+
+.xt-login-home__team-img {
+  width: 100%;
   height: 220px;
-  background: radial-gradient(260px 160px at 30% 20%, rgba(255, 255, 255, 0.14), transparent 55%),
-    linear-gradient(135deg, rgba(21, 42, 69, 0.65), rgba(11, 15, 22, 0.95));
-}
-
-.xt-login-home__team-photo--ceo {
-  background: radial-gradient(260px 160px at 20% 20%, rgba(255, 255, 255, 0.16), transparent 55%),
-    linear-gradient(135deg, rgba(224, 112, 32, 0.22), rgba(11, 15, 22, 0.95));
-}
-
-.xt-login-home__team-photo--marketing {
-  background: radial-gradient(260px 160px at 20% 20%, rgba(255, 255, 255, 0.16), transparent 55%),
-    linear-gradient(135deg, rgba(21, 42, 69, 0.5), rgba(11, 15, 22, 0.95));
-}
-
-.xt-login-home__team-photo--live {
-  background: radial-gradient(260px 160px at 20% 20%, rgba(255, 255, 255, 0.16), transparent 55%),
-    linear-gradient(135deg, rgba(21, 42, 69, 0.35), rgba(11, 15, 22, 0.95));
-}
-
-.xt-login-home__team-photo--edit {
-  background: radial-gradient(260px 160px at 20% 20%, rgba(255, 255, 255, 0.16), transparent 55%),
-    linear-gradient(135deg, rgba(224, 112, 32, 0.16), rgba(11, 15, 22, 0.95));
+  display: block;
+  object-fit: cover;
 }
 
 .xt-login-home__team-label {
-  background: #f3ff00;
-  color: #0b0f16;
+  background: linear-gradient(135deg, var(--xt-accent), var(--xt-accent-hover));
+  color: #ffffff;
   font-weight: 900;
-  font-size: 18px;
+  font-size: 16px;
   padding: 12px 14px;
   text-align: center;
 }
@@ -541,7 +531,7 @@ body {
   }
 
   .xt-login-home__team-h {
-    font-size: 44px;
+    font-size: 24px;
   }
 
   .xt-login-home__team-grid {

@@ -8,6 +8,147 @@ import { BrandLogo } from "./BrandLogo";
 
 import { xtPrimaryBtn } from "./brandTheme";
 
+const svgDataUri = (svg: string) => `data:image/svg+xml,${encodeURIComponent(svg)}`;
+
+const TEAM_IMAGES = {
+  ceo: svgDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="720" height="480" viewBox="0 0 720 480">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#e4eaf3"/>
+          <stop offset="1" stop-color="#eef2f8"/>
+        </linearGradient>
+        <linearGradient id="b" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#152a45"/>
+          <stop offset="1" stop-color="#1e3a5c"/>
+        </linearGradient>
+        <linearGradient id="a" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#e07020"/>
+          <stop offset="1" stop-color="#ea8938"/>
+        </linearGradient>
+        <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#152a45" flood-opacity=".18"/>
+        </filter>
+      </defs>
+      <rect width="720" height="480" fill="url(#g)"/>
+      <circle cx="140" cy="120" r="120" fill="#ffffff" opacity=".7"/>
+      <circle cx="610" cy="90" r="140" fill="#ffffff" opacity=".55"/>
+      <rect x="90" y="70" width="540" height="340" rx="28" fill="#ffffff" opacity=".9" filter="url(#s)"/>
+      <rect x="90" y="70" width="540" height="340" rx="28" fill="url(#b)" opacity=".08"/>
+      <circle cx="360" cy="190" r="62" fill="url(#b)"/>
+      <path d="M252 332c14-58 66-92 108-92s94 34 108 92" fill="url(#b)" opacity=".95"/>
+      <rect x="280" y="132" width="160" height="12" rx="6" fill="url(#a)" opacity=".95"/>
+      <rect x="280" y="154" width="110" height="10" rx="5" fill="#d8e0eb"/>
+      <rect x="280" y="172" width="140" height="10" rx="5" fill="#d8e0eb"/>
+    </svg>
+  `),
+  marketing: svgDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="720" height="480" viewBox="0 0 720 480">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#e4eaf3"/>
+          <stop offset="1" stop-color="#eef2f8"/>
+        </linearGradient>
+        <linearGradient id="b" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#152a45"/>
+          <stop offset="1" stop-color="#1e3a5c"/>
+        </linearGradient>
+        <linearGradient id="a" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#e07020"/>
+          <stop offset="1" stop-color="#ea8938"/>
+        </linearGradient>
+        <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#152a45" flood-opacity=".18"/>
+        </filter>
+      </defs>
+      <rect width="720" height="480" fill="url(#g)"/>
+      <rect x="86" y="82" width="548" height="316" rx="28" fill="#ffffff" opacity=".92" filter="url(#s)"/>
+      <rect x="110" y="118" width="500" height="54" rx="16" fill="url(#b)" opacity=".10"/>
+      <rect x="110" y="188" width="312" height="180" rx="22" fill="url(#b)" opacity=".08"/>
+      <rect x="440" y="188" width="170" height="180" rx="22" fill="url(#b)" opacity=".06"/>
+      <rect x="132" y="208" width="210" height="10" rx="5" fill="#d8e0eb"/>
+      <rect x="132" y="228" width="170" height="10" rx="5" fill="#d8e0eb"/>
+      <rect x="132" y="248" width="190" height="10" rx="5" fill="#d8e0eb"/>
+      <circle cx="496" cy="250" r="34" fill="url(#a)" opacity=".92"/>
+      <rect x="468" y="298" width="116" height="12" rx="6" fill="url(#b)" opacity=".75"/>
+      <rect x="468" y="320" width="86" height="10" rx="5" fill="#d8e0eb"/>
+      <rect x="130" y="136" width="120" height="12" rx="6" fill="url(#a)" opacity=".9"/>
+      <rect x="262" y="136" width="110" height="12" rx="6" fill="url(#b)" opacity=".72"/>
+      <rect x="384" y="136" width="96" height="12" rx="6" fill="#d8e0eb"/>
+    </svg>
+  `),
+  live: svgDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="720" height="480" viewBox="0 0 720 480">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#e4eaf3"/>
+          <stop offset="1" stop-color="#eef2f8"/>
+        </linearGradient>
+        <linearGradient id="b" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#152a45"/>
+          <stop offset="1" stop-color="#1e3a5c"/>
+        </linearGradient>
+        <linearGradient id="a" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#e07020"/>
+          <stop offset="1" stop-color="#ea8938"/>
+        </linearGradient>
+        <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#152a45" flood-opacity=".18"/>
+        </filter>
+      </defs>
+      <rect width="720" height="480" fill="url(#g)"/>
+      <rect x="86" y="82" width="548" height="316" rx="28" fill="#ffffff" opacity=".92" filter="url(#s)"/>
+      <rect x="306" y="120" width="108" height="220" rx="18" fill="url(#b)" opacity=".88"/>
+      <rect x="320" y="140" width="80" height="140" rx="12" fill="#ffffff" opacity=".10"/>
+      <circle cx="360" cy="304" r="10" fill="#ffffff" opacity=".18"/>
+      <rect x="350" y="340" width="20" height="22" rx="10" fill="url(#b)" opacity=".6"/>
+      <path d="M360 362l-74 64" stroke="url(#b)" stroke-width="10" stroke-linecap="round" opacity=".55"/>
+      <path d="M360 362l74 64" stroke="url(#b)" stroke-width="10" stroke-linecap="round" opacity=".55"/>
+      <path d="M360 362v76" stroke="url(#b)" stroke-width="10" stroke-linecap="round" opacity=".55"/>
+      <circle cx="488" cy="184" r="46" fill="url(#a)" opacity=".88"/>
+      <path d="M470 184h36" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity=".9"/>
+      <path d="M488 166v36" stroke="#ffffff" stroke-width="10" stroke-linecap="round" opacity=".9"/>
+      <rect x="122" y="142" width="150" height="14" rx="7" fill="url(#b)" opacity=".75"/>
+      <rect x="122" y="166" width="120" height="10" rx="5" fill="#d8e0eb"/>
+      <rect x="122" y="186" width="136" height="10" rx="5" fill="#d8e0eb"/>
+    </svg>
+  `),
+  edit: svgDataUri(`
+    <svg xmlns="http://www.w3.org/2000/svg" width="720" height="480" viewBox="0 0 720 480">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#e4eaf3"/>
+          <stop offset="1" stop-color="#eef2f8"/>
+        </linearGradient>
+        <linearGradient id="b" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#152a45"/>
+          <stop offset="1" stop-color="#1e3a5c"/>
+        </linearGradient>
+        <linearGradient id="a" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#e07020"/>
+          <stop offset="1" stop-color="#ea8938"/>
+        </linearGradient>
+        <filter id="s" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#152a45" flood-opacity=".18"/>
+        </filter>
+      </defs>
+      <rect width="720" height="480" fill="url(#g)"/>
+      <rect x="86" y="82" width="548" height="316" rx="28" fill="#ffffff" opacity=".92" filter="url(#s)"/>
+      <rect x="116" y="126" width="488" height="182" rx="18" fill="url(#b)" opacity=".10"/>
+      <rect x="136" y="146" width="200" height="10" rx="5" fill="#d8e0eb"/>
+      <rect x="136" y="168" width="160" height="10" rx="5" fill="#d8e0eb"/>
+      <rect x="136" y="190" width="190" height="10" rx="5" fill="#d8e0eb"/>
+      <rect x="136" y="236" width="440" height="10" rx="5" fill="#d8e0eb"/>
+      <rect x="136" y="258" width="380" height="10" rx="5" fill="#d8e0eb"/>
+      <rect x="116" y="326" width="488" height="48" rx="16" fill="url(#b)" opacity=".08"/>
+      <rect x="138" y="342" width="138" height="16" rx="8" fill="url(#a)" opacity=".92"/>
+      <rect x="290" y="342" width="86" height="16" rx="8" fill="url(#b)" opacity=".72"/>
+      <rect x="388" y="342" width="126" height="16" rx="8" fill="#d8e0eb"/>
+      <polygon points="520,176 570,206 520,236" fill="url(#a)" opacity=".92"/>
+    </svg>
+  `),
+} as const;
+
 
 
 type IconInputProps = {
@@ -381,19 +522,19 @@ export default function Login() {
 
             <div className="xt-login-home__team-grid">
               <div className="xt-login-home__team-card">
-                <div className="xt-login-home__team-photo xt-login-home__team-photo--ceo" aria-hidden="true" />
+                <img className="xt-login-home__team-img" src={TEAM_IMAGES.ceo} alt="CEO" loading="lazy" />
                 <div className="xt-login-home__team-label">CEO</div>
               </div>
               <div className="xt-login-home__team-card">
-                <div className="xt-login-home__team-photo xt-login-home__team-photo--marketing" aria-hidden="true" />
+                <img className="xt-login-home__team-img" src={TEAM_IMAGES.marketing} alt="Marketing team" loading="lazy" />
                 <div className="xt-login-home__team-label">Marketing team</div>
               </div>
               <div className="xt-login-home__team-card">
-                <div className="xt-login-home__team-photo xt-login-home__team-photo--live" aria-hidden="true" />
+                <img className="xt-login-home__team-img" src={TEAM_IMAGES.live} alt="Live team" loading="lazy" />
                 <div className="xt-login-home__team-label">Live team</div>
               </div>
               <div className="xt-login-home__team-card">
-                <div className="xt-login-home__team-photo xt-login-home__team-photo--edit" aria-hidden="true" />
+                <img className="xt-login-home__team-img" src={TEAM_IMAGES.edit} alt="Edit team" loading="lazy" />
                 <div className="xt-login-home__team-label">Edit team</div>
               </div>
             </div>
