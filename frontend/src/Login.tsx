@@ -17,6 +17,8 @@ const TEAM_PHOTO_SRC = {
   edit: "/team/edit.png",
 } as const;
 
+const TEAM_PHOTO_VERSION = "8c05d16";
+
 const TEAM_PHOTO_FALLBACK = {
   ceo: svgDataUri(`
     <svg xmlns="http://www.w3.org/2000/svg" width="720" height="480" viewBox="0 0 720 480">
@@ -159,7 +161,7 @@ const TEAM_PHOTO_FALLBACK = {
 type TeamKey = keyof typeof TEAM_PHOTO_SRC;
 
 function TeamPhoto({ team, alt }: { team: TeamKey; alt: string }) {
-  const src = TEAM_PHOTO_SRC[team];
+  const src = `${TEAM_PHOTO_SRC[team]}?v=${TEAM_PHOTO_VERSION}`;
   const fallback = TEAM_PHOTO_FALLBACK[team];
   const [currentSrc, setCurrentSrc] = useState<string>(src);
 
