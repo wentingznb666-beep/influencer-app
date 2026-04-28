@@ -432,7 +432,7 @@ export default function Login() {
               <div className="xt-login-home__card-desc">欢迎回来，请使用账号密码登录系统</div>
 
               <form onSubmit={handleSubmit}>
-                <div style={{ marginTop: 16, marginBottom: 14 }}>
+                <div style={{ marginTop: 12, marginBottom: 12 }}>
                   <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>账号</label>
                   <LoginInputWithIcon
                     icon="👤"
