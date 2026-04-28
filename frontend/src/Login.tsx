@@ -579,34 +579,40 @@ export default function Login() {
         <div className="xt-login-home__container xt-login-home__footer-inner">
           <div className="xt-login-home__footer-col">
             <div className="xt-login-home__footer-title">客服支持</div>
-            <div className="xt-login-home__footer-text">
-              Line OA：{" "}
-              <a className="xt-login-home__footer-a" href="https://lin.ee/TbYmfgi" target="_blank" rel="noreferrer">
-                https://lin.ee/TbYmfgi
-              </a>
+            <div className="xt-login-home__footer-body">
+              <div className="xt-login-home__footer-text">
+                Line OA：{" "}
+                <a className="xt-login-home__footer-a" href="https://lin.ee/TbYmfgi" target="_blank" rel="noreferrer">
+                  https://lin.ee/TbYmfgi
+                </a>
+              </div>
             </div>
           </div>
 
           <div className="xt-login-home__footer-col">
             <div className="xt-login-home__footer-title">合规信息</div>
-            <div className="xt-login-home__footer-text">
-              เลขทะเบียน:0505564017671 | ประกอบธุรกิจ:โฆษณา | วันที่จดทะเบียน:8 พฤศจิกายน 2564
-            </div>
-            <div className="xt-login-home__footer-text">
-              注册号：0505564017671 | 业务：广告代理 | 成立：2021-11-08
-            </div>
-            <div className="xt-login-home__footer-text">
-              ที่ตั้งแผนที่: 44/34 หมู่ที่ 5 ตำบลหนองป่าครั่ง อำเภอเมืองเชียงใหม่ จ.เชียงใหม่ 50000
-            </div>
-            <div className="xt-login-home__footer-text">
-              办公地址 ：44/34 Moo 5, Nong Pa Khrang, Mueang Chiang Mai, Chiang Mai 50000
+            <div className="xt-login-home__footer-body">
+              <div className="xt-login-home__footer-text">
+                เลขทะเบียน:0505564017671 | ประกอบธุรกิจ:โฆษณา | วันที่จดทะเบียน:8 พฤศจิกายน 2564
+              </div>
+              <div className="xt-login-home__footer-text">
+                注册号：0505564017671 | 业务：广告代理 | 成立：2021-11-08
+              </div>
+              <div className="xt-login-home__footer-text">
+                ที่ตั้งแผนที่: 44/34 หมู่ที่ 5 ตำบลหนองป่าครั่ง อำเภอเมืองเชียงใหม่ จ.เชียงใหม่ 50000
+              </div>
+              <div className="xt-login-home__footer-text">
+                办公地址 ：44/34 Moo 5, Nong Pa Khrang, Mueang Chiang Mai, Chiang Mai 50000
+              </div>
             </div>
           </div>
 
           <div className="xt-login-home__footer-col">
             <div className="xt-login-home__footer-title">联系方式</div>
-            <div className="xt-login-home__footer-text">电话 0653085541 / 0652468116</div>
-            <div className="xt-login-home__footer-text">邮箱 Xt.tiktok7@gmail.com</div>
+            <div className="xt-login-home__footer-body">
+              <div className="xt-login-home__footer-text">电话 0653085541 / 0652468116</div>
+              <div className="xt-login-home__footer-text">邮箱 Xt.tiktok7@gmail.com</div>
+            </div>
           </div>
         </div>
       </footer>
