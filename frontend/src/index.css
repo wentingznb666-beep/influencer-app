@@ -131,7 +131,7 @@ body {
 }
 
 .xt-login-home__content {
-  padding-bottom: 140px;
+  padding-bottom: 160px;
 }
 
 .xt-login-home__container {
@@ -401,7 +401,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 140px;
+  height: 160px;
   background: rgba(255, 255, 255, 0.92);
   border-top: 1px solid var(--xt-border);
   backdrop-filter: blur(12px);
@@ -450,11 +450,11 @@ body {
 
 @media (max-width: 980px) {
   .xt-login-home__content {
-    padding-bottom: 200px;
+    padding-bottom: 220px;
   }
 
   .xt-login-home__footer {
-    height: 200px;
+    height: 220px;
   }
 
   .xt-login-home__hero-inner {
@@ -476,11 +476,11 @@ body {
 
 @media (max-width: 640px) {
   .xt-login-home__content {
-    padding-bottom: 230px;
+    padding-bottom: 260px;
   }
 
   .xt-login-home__footer {
-    height: 230px;
+    height: 260px;
   }
 
   .xt-login-home__grid {

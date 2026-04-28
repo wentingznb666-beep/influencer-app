@@ -414,6 +414,12 @@ export default function Login() {
             <div className="xt-login-home__footer-text">
               注册号：0505564017671 | 业务：广告代理 | 成立：2021-11-08 | 地址：清迈
             </div>
+            <div className="xt-login-home__footer-text">
+              ที่ตั้งแผนที่: 44/34 หมู่ที่ 5 ตำบลหนองป่าครั่ง อำเภอเมืองเชียงใหม่ จ.เชียงใหม่ 50000
+            </div>
+            <div className="xt-login-home__footer-text">
+              办公地址 ：44/34 Moo 5, Nong Pa Khrang, Mueang Chiang Mai, Chiang Mai 50000
+            </div>
           </div>
 
           <div className="xt-login-home__footer-col">
