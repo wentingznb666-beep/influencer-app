@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, type CSSProperties } from "react";
+import { Fragment, useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 
@@ -920,11 +920,66 @@ export default function ClientOrdersHallPage() {
   }, [unifiedOrders, gradedSearch, gradedStatusFilter, gradedDateFilter, gradedSortMode, offlineTypeText]);
 
   const renderUnifiedOrderCard = (o: UnifiedOrder) => {
+    const detailGridStyle: CSSProperties = {
+      display: "grid",
+      gridTemplateColumns: "112px minmax(0,1fr)",
+      gap: "6px 10px",
+      alignItems: "start",
+      marginTop: 8,
+    };
+    const detailLabelStyle: CSSProperties = { color: "#64748b", fontSize: 13, lineHeight: 1.5 };
+    const detailValueStyle: CSSProperties = { fontSize: 13, color: "#0f172a", lineHeight: 1.5, wordBreak: "break-word", whiteSpace: "pre-wrap" };
+
+    const renderDetailRows = (rows: Array<{ label: string; value: ReactNode }>) => (
+      <div style={detailGridStyle}>
+        {rows.map((row, idx) => (
+          <Fragment key={`${row.label}-${idx}`}>
+            <div style={detailLabelStyle}>{row.label}</div>
+            <div style={detailValueStyle}>{row.value}</div>
+          </Fragment>
+        ))}
+      </div>
+    );
+
     if (o._source === "graded") {
+      const gradedDetails: Array<{ label: string; value: ReactNode }> = [
+        { label: t("订单标题"), value: o.title || "—" },
+        { label: t("下单商家账号"), value: o.client_username || "—" },
+        { label: t("商家名称"), value: o.client_display_name || "—" },
+        { label: t("订单创建日期"), value: formatDateTime(o.created_at) },
+        { label: t("订单状态"), value: statusText[String(o.status || "")] || String(o.status || "") || "—" },
+        {
+          label: t("视频数量/积分金额"),
+          value: (
+            <>
+              <span>
+                {t("视频数量：")}
+                {o.task_count || "-"} {t("条")}
+              </span>
+              <span style={{ marginLeft: 10, fontWeight: 700, color: "var(--xt-accent)" }}>
+                {hallMarketOrderTotalPoints(o)} {t("积分")}
+              </span>
+              <span style={{ marginLeft: 6, color: "#64748b" }}>
+                ({t("单套")} {o.reward_points} {t("积分")} x {hallMarketOrderTaskCount(o)})
+              </span>
+            </>
+          ),
+        },
+        {
+          label: t("发布方式"),
+          value: publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish,
+        },
+        { label: t("备注"), value: o.voice_note?.trim() ? o.voice_note : "—" },
+      ];
+
       return (
-        <div key={`${o._source}-${o._list_kind}-${o.id}`} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
+        <div key={`${o._source}-${o._list_kind}-${o.id}`} style={{ padding: 12, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <span style={{ fontWeight: 800, color: "#0f172a" }}>
+                {t("订单号：")}
+                {o.order_no || `#${o.id}`}
+              </span>
               <span style={statusBadgeStyle(String(o.status || ""))}>{statusText[String(o.status || "")] ?? String(o.status || "")}</span>
               <span style={typeBadgeStyle("graded")}>{t("① 分级视频（A/B/C）")}</span>
               <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 12, fontWeight: 800, border: "1px solid #dbe1ea", background: "#f1f5f9", color: "#0f172a" }}>
@@ -937,59 +992,7 @@ export default function ClientOrdersHallPage() {
             </span>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
-            <div>
-              <div style={{ fontWeight: 700 }}>
-                {t("订单号：")}
-                {o.order_no || `#${o.id}`}
-              </div>
-              {o.title && (
-                <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>
-                  {t("标题：")}
-                  {o.title}
-                </div>
-              )}
-              <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
-                {t("下单商家账号：")}
-                {o.client_username} ｜ {t("商家名称：")}
-                {o.client_display_name}
-              </div>
-              <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>
-                {t("订单创建日期：")}
-                {formatDateTime(o.created_at)}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "130px 1fr", gap: 8, alignItems: "start" }}>
-            <div style={{ color: "#64748b", fontSize: 13 }}>{t("状态")}</div>
-            <div style={{ fontSize: 14 }}>{statusText[String(o.status || "")] ?? String(o.status || "")}</div>
-
-            <div style={{ color: "#64748b", fontSize: 13 }}>{t("视频数量/积分")}</div>
-            <div style={{ fontSize: 14 }}>
-              <div style={{ marginBottom: 4 }}>
-                {t("视频数量：")}
-                {o.task_count || "-"} {t("条")}
-              </div>
-              <div>
-                {t("金额：")}
-                <span style={{ fontWeight: 700, color: "var(--xt-accent)" }}>
-                  {hallMarketOrderTotalPoints(o)} {t("积分")}
-                </span>
-                <span style={{ color: "#64748b", marginLeft: 4 }}>
-                  （{t("单套")} {o.reward_points} {t("积分")} × {t("视频数量：")} {hallMarketOrderTaskCount(o)}）
-                </span>
-              </div>
-            </div>
-
-            <div style={{ color: "#64748b", fontSize: 13 }}>{t("发布方式")}</div>
-            <div style={{ fontSize: 14 }}>
-              {publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}
-            </div>
-
-            <div style={{ color: "#64748b", fontSize: 13 }}>{t("备注")}</div>
-            <div style={{ fontSize: 14 }}>{o.voice_note?.trim() ? o.voice_note : "—"}</div>
-          </div>
+          {renderDetailRows(gradedDetails)}
 
           {renderSkuInfo(o, t)}
           {renderTierStandards(String(o.tier || ""), t)}
@@ -1005,7 +1008,7 @@ export default function ClientOrdersHallPage() {
             </button>
           ) : (
             <>
-              <p style={{ marginTop: 8, fontSize: 14 }}>
+              <p style={{ marginTop: 8, marginBottom: 0, fontSize: 14 }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -1019,7 +1022,7 @@ export default function ClientOrdersHallPage() {
               </p>
 
               {String(o.publish_link || "").trim() ? (
-                <p style={{ marginTop: 6, fontSize: 14 }}>
+                <p style={{ marginTop: 6, marginBottom: 0, fontSize: 14 }}>
                   {t("发布链接：")}
                   <a href={String(o.publish_link)} target="_blank" rel="noreferrer" style={{ marginLeft: 6 }}>
                     {t("查看")}
@@ -1187,10 +1190,59 @@ export default function ClientOrdersHallPage() {
       );
     }
 
+    const req = (o.requirements || {}) as Record<string, unknown>;
+    const shopName = String(req.client_shop_name || "").trim();
+    const requirementText = String(req.requirement || "").trim();
+    const selectedTalent = String(req.selected_talent || "").trim();
+    const groupChat = String(req.client_group_chat || "").trim();
+    const proofLinks = (Array.isArray(o.proof_links) ? o.proof_links : [])
+      .map((x: any) => String((typeof x === "string" ? x : x?.url || x?.link || "") || "").trim())
+      .filter(Boolean);
+    const publishLinks = (Array.isArray(o.publish_links) ? o.publish_links : [])
+      .map((x: any) => String((typeof x === "string" ? x : x?.url || x?.link || "") || "").trim())
+      .filter(Boolean);
+    const batchList = Array.isArray(o.batch_payload) ? o.batch_payload.slice().sort((a: any, b: any) => Number(a?.batch_no || 0) - Number(b?.batch_no || 0)) : [];
+    const deliveredBatchCount = batchList.filter((x: any) => Array.isArray(x?.proof_links) && x.proof_links.some((u: unknown) => String(u || "").trim())).length;
+    const pendingBatchCount = batchList.filter((x: any) => String(x?.status || "") === "pending_acceptance").length;
+    const monthlyPlanSummary =
+      o.type_id === "monthly_package"
+        ? `${Number(req.contract_months || 0) || 1}${t("个月")} / ${Number(req.min_videos_per_month || 0) || 20}${t("条/月")}`
+        : "—";
+    const offlinePublishMode =
+      o.type_id === "creator_review_video"
+        ? t("审核通过后发布")
+        : o.type_id === "monthly_package"
+          ? t("按批次交付")
+          : t("商家自行发布");
+
+    const offlineDetails: Array<{ label: string; value: ReactNode }> = [
+      { label: t("订单标题"), value: o.title || "—" },
+      { label: t("商家账号"), value: o.client_username || "—" },
+      { label: t("商家名称"), value: shopName || "—" },
+      { label: t("订单创建日期"), value: formatDateTime(o.created_at) },
+      { label: t("订单状态"), value: o._list_kind === "open" ? t("待接单") : offlinePhaseText[o.phase] || o.phase || "—" },
+      { label: t("付款状态"), value: o.payment_status === "paid" ? t("已付款") : t("未付款") },
+      {
+        label: t("视频数量/积分金额"),
+        value:
+          o.type_id === "monthly_package"
+            ? `${t("金额")}：${Number(o.amount_thb || 0).toFixed(2)} ฿ ｜ ${t("合作周期")}：${monthlyPlanSummary}`
+            : o.type_id === "creator_review_video"
+              ? `${t("视频数量")}：${Number(req.task_count || 0) || "-"} ${t("条")} ｜ ${t("金额")}：${Number(o.amount_thb || 0).toFixed(2)} ฿`
+              : `${t("金额")}：${Number(o.amount_thb || 0).toFixed(2)} ฿`,
+      },
+      { label: t("发布方式"), value: offlinePublishMode },
+      { label: t("备注"), value: String(o.review_note || "").trim() || "—" },
+      { label: t("制作标准"), value: requirementText || "—" },
+      { label: t("包含配音要求"), value: String(req.voice_note || "").trim() || "—" },
+      { label: t("指定达人"), value: selectedTalent || "—" },
+      { label: t("对接群聊"), value: groupChat || "—" },
+    ];
+
     return (
-      <div key={`${o._source}-${o._list_kind}-${o.id}`} style={{ padding: 14, background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-          <div>
+      <div key={`${o._source}-${o._list_kind}-${o.id}`} style={{ padding: 12, background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
+          <div style={{ flex: "1 1 520px", minWidth: 280 }}>
             <div style={{ fontWeight: 800, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <span>VO-{o.id}</span>
               {o.type_id === "high_quality_custom_video" && <span style={typeBadgeStyle("hq")}>{offlineTypeText[o.type_id]}</span>}
@@ -1202,37 +1254,45 @@ export default function ClientOrdersHallPage() {
                 {formatDateTime(o.created_at)}
               </span>
             </div>
-            <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>{o.title}</div>
-            <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
-              {t("商家")}: {o.client_username} · {t("金额")}: {Number(o.amount_thb || 0).toFixed(2)} ฿ · {t("状态")}: {o._list_kind === "open" ? t("待接单") : offlinePhaseText[o.phase]}
-            </div>
+
+            {renderDetailRows(offlineDetails)}
 
             {offlineActionError[o.id] && <div style={{ marginTop: 8, color: "#b91c1c", fontSize: 13, fontWeight: 700 }}>{offlineActionError[o.id]}</div>}
             {offlineActionOk[o.id] && <div style={{ marginTop: 8, color: "#166534", fontSize: 13, fontWeight: 700 }}>{offlineActionOk[o.id]}</div>}
 
-            {Array.isArray(o.proof_links) && o.proof_links.length > 0 && (
+            {proofLinks.length > 0 && (
               <div style={{ marginTop: 10, fontSize: 13, color: "#334155" }}>
-                <div style={{ fontWeight: 800, marginBottom: 6 }}>{t("交付链接")}</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {o.proof_links.slice(0, 20).map((x: any, idx: number) => {
-                    const url = String((typeof x === "string" ? x : x?.url) || "").trim();
-                    if (!url) return null;
-                    return (
-                      <a key={`${o.id}-proof-${idx}`} href={url} target="_blank" rel="noreferrer" style={{ color: "var(--xt-accent)", wordBreak: "break-all" }}>
-                        {url}
-                      </a>
-                    );
-                  })}
+                <div style={{ fontWeight: 800, marginBottom: 4 }}>{t("交付链接")}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {proofLinks.slice(0, 20).map((url: string, idx: number) => (
+                    <a key={`${o.id}-proof-${idx}`} href={url} target="_blank" rel="noreferrer" style={{ color: "var(--xt-accent)", wordBreak: "break-all" }}>
+                      {url}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {publishLinks.length > 0 && (
+              <div style={{ marginTop: 10, fontSize: 13, color: "#334155" }}>
+                <div style={{ fontWeight: 800, marginBottom: 4 }}>{t("发布链接")}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  {publishLinks.slice(0, 20).map((url: string, idx: number) => (
+                    <a key={`${o.id}-publish-${idx}`} href={url} target="_blank" rel="noreferrer" style={{ color: "var(--xt-accent)", wordBreak: "break-all" }}>
+                      {url}
+                    </a>
+                  ))}
                 </div>
               </div>
             )}
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+
+          <div style={{ flex: "0 1 320px", minWidth: 280, display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
             {o._list_kind === "open" ? (
               <button
                 type="button"
                 onClick={() => void handleOfflineClaim(o.id)}
-                style={{ padding: "6px 12px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+                style={{ alignSelf: "flex-end", padding: "6px 12px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
               >
                 {t("接单")}
               </button>
@@ -1244,6 +1304,7 @@ export default function ClientOrdersHallPage() {
                     disabled={!!offlineActionLoading[`${o.id}:mark-paid`]}
                     onClick={() => void handleOfflineMarkPaid(o.id)}
                     style={{
+                      alignSelf: "flex-end",
                       padding: "6px 10px",
                       borderRadius: 8,
                       border: "1px solid #f59e0b",
@@ -1258,86 +1319,105 @@ export default function ClientOrdersHallPage() {
                 )}
 
                 {o.type_id === "monthly_package" ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
-                    {Array.isArray(o.batch_payload) && o.batch_payload.length > 0 && (
-                      <div style={{ width: 320, maxWidth: "80vw", padding: 10, borderRadius: 10, border: "1px solid #e2e8f0", background: "#f8fafc" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      <div style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff" }}>
+                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 2 }}>{t("已交付批次：")}</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>{deliveredBatchCount}</div>
+                      </div>
+                      <div style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff" }}>
+                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 2 }}>{t("待交付批次：")}</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>{pendingBatchCount}</div>
+                      </div>
+                    </div>
+
+                    {batchList.length > 0 && (
+                      <div style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #e2e8f0", background: "#f8fafc" }}>
                         <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8 }}>{t("批次记录")}</div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                          {o.batch_payload
-                            .slice()
-                            .sort((a: any, b: any) => Number(a?.batch_no || 0) - Number(b?.batch_no || 0))
-                            .slice(-10)
-                            .map((x: any, idx: number) => {
-                              const bn = Number(x?.batch_no || 0);
-                              const vc = Number(x?.video_count || 0);
-                              const st = String(x?.status || "");
-                              const submittedAt = String(x?.submitted_at || "").trim();
-                              const links = Array.isArray(x?.proof_links) ? x.proof_links : [];
-                              const batchStatusText =
-                                st === "pending_acceptance" ? t("待验收") : st === "accepted" ? t("已验收") : st === "settled" ? t("已结算") : st || t("未知");
-                              return (
-                                <div key={`${o.id}-batch-${bn}-${idx}`} style={{ fontSize: 12, color: "#334155" }}>
-                                  <div style={{ fontWeight: 700 }}>
-                                    {t("批次")} {bn || "-"} · {batchStatusText} · {t("数量")}: {Number.isFinite(vc) && vc > 0 ? vc : "-"}
-                                    {submittedAt ? <span style={{ color: "#64748b", fontWeight: 500 }}> · {submittedAt}</span> : null}
-                                  </div>
-                                  {links.length > 0 && (
-                                    <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 4 }}>
-                                      {links.slice(0, 5).map((u: any, i: number) => {
-                                        const url = String(u || "").trim();
-                                        if (!url) return null;
-                                        return (
-                                          <a key={`${o.id}-batch-${bn}-link-${i}`} href={url} target="_blank" rel="noreferrer" style={{ color: "var(--xt-accent)", wordBreak: "break-all" }}>
-                                            {url}
-                                          </a>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
+                          {batchList.slice(-10).map((x: any, idx: number) => {
+                            const bn = Number(x?.batch_no || 0);
+                            const vc = Number(x?.video_count || 0);
+                            const st = String(x?.status || "");
+                            const submittedAt = String(x?.submitted_at || "").trim();
+                            const links = Array.isArray(x?.proof_links) ? x.proof_links : [];
+                            const batchStatusText =
+                              st === "pending_acceptance" ? t("待验收") : st === "accepted" ? t("已验收") : st === "settled" ? t("已结算") : st || t("未知");
+                            return (
+                              <div key={`${o.id}-batch-${bn}-${idx}`} style={{ fontSize: 12, color: "#334155" }}>
+                                <div style={{ fontWeight: 700, lineHeight: 1.5 }}>
+                                  {t("批次")} {bn || "-"}{t("：")} {batchStatusText} ｜ {t("数量")}：{Number.isFinite(vc) && vc > 0 ? vc : "-"}
+                                  {submittedAt ? <span style={{ color: "#64748b", fontWeight: 500 }}> ｜ {submittedAt}</span> : null}
                                 </div>
-                              );
-                            })}
+                                {links.length > 0 && (
+                                  <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 4 }}>
+                                    {links.slice(0, 5).map((u: any, i: number) => {
+                                      const url = String(u || "").trim();
+                                      if (!url) return null;
+                                      return (
+                                        <a key={`${o.id}-batch-${bn}-link-${i}`} href={url} target="_blank" rel="noreferrer" style={{ color: "var(--xt-accent)", wordBreak: "break-all" }}>
+                                          {url}
+                                        </a>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                      <input
-                        type="number"
-                        value={((offlineMonthlyDraft[o.id]?.batchNo ??
-                          String(
-                            Math.max(
-                              0,
-                              ...((Array.isArray(o.batch_payload) ? o.batch_payload : [])
-                                .map((x: any) => Number(x?.batch_no || 0))
-                                .filter((n: number) => Number.isFinite(n) && n > 0)),
-                            ) + 1,
-                          )) as any)}
-                        onChange={(e) => setOfflineMonthlyDraft((p) => ({ ...p, [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), batchNo: e.target.value } }))}
-                        style={{ width: 96, padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea" }}
-                        placeholder={t("批次号")}
-                        min={1}
-                      />
-                      <input
-                        type="number"
-                        value={(offlineMonthlyDraft[o.id]?.videoCount ?? "1") as any}
-                        onChange={(e) => setOfflineMonthlyDraft((p) => ({ ...p, [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), videoCount: e.target.value } }))}
-                        style={{ width: 110, padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea" }}
-                        placeholder={t("数量")}
-                        min={1}
-                      />
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                      <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b" }}>
+                        <span>{t("批次号")}</span>
+                        <input
+                          type="number"
+                          value={((offlineMonthlyDraft[o.id]?.batchNo ??
+                            String(
+                              Math.max(
+                                0,
+                                ...((Array.isArray(o.batch_payload) ? o.batch_payload : [])
+                                  .map((x: any) => Number(x?.batch_no || 0))
+                                  .filter((n: number) => Number.isFinite(n) && n > 0)),
+                              ) + 1,
+                            )) as any)}
+                          onChange={(e) => setOfflineMonthlyDraft((p) => ({ ...p, [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), batchNo: e.target.value } }))}
+                          style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                          placeholder={t("批次号")}
+                          min={1}
+                        />
+                      </label>
+                      <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b" }}>
+                        <span>{t("本次交付数量")}</span>
+                        <input
+                          type="number"
+                          value={(offlineMonthlyDraft[o.id]?.videoCount ?? "1") as any}
+                          onChange={(e) => setOfflineMonthlyDraft((p) => ({ ...p, [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), videoCount: e.target.value } }))}
+                          style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                          placeholder={t("数量")}
+                          min={1}
+                        />
+                      </label>
                     </div>
-                    <textarea
-                      value={offlineMonthlyDraft[o.id]?.urls ?? ""}
-                      onChange={(e) => setOfflineMonthlyDraft((p) => ({ ...p, [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), urls: e.target.value } }))}
-                      placeholder={t("交付链接（多条用换行分隔）")}
-                      rows={3}
-                      style={{ width: 320, maxWidth: "80vw", padding: "8px 10px", borderRadius: 10, border: "1px solid #dbe1ea", resize: "vertical" }}
-                    />
+
+                    <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b" }}>
+                      <span>{t("交付链接（多条用换行分隔）")}</span>
+                      <textarea
+                        value={offlineMonthlyDraft[o.id]?.urls ?? ""}
+                        onChange={(e) => setOfflineMonthlyDraft((p) => ({ ...p, [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), urls: e.target.value } }))}
+                        placeholder={t("交付链接（多条用换行分隔）")}
+                        rows={3}
+                        style={{ width: "100%", padding: "8px 10px", borderRadius: 10, border: "1px solid #dbe1ea", resize: "vertical", boxSizing: "border-box" }}
+                      />
+                    </label>
                     <button
                       type="button"
                       disabled={o.payment_status !== "paid" || !!offlineActionLoading[`${o.id}:monthly-submit`]}
                       onClick={() => void handleMonthlySubmitBatch(o.id)}
                       style={{
+                        alignSelf: "flex-end",
                         padding: "6px 10px",
                         borderRadius: 8,
                         border: "1px solid #dbe1ea",
@@ -1350,21 +1430,25 @@ export default function ClientOrdersHallPage() {
                     </button>
                   </div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
                     {(o.phase === "assigned" || o.phase === "in_progress" || o.phase === "review_rejected") && (
-                      <textarea
-                        value={offlineDraftUrls[o.id] ?? ""}
-                        onChange={(e) => setOfflineDraftUrls((p) => ({ ...p, [o.id]: e.target.value }))}
-                        placeholder={t("交付链接（多条用换行分隔）")}
-                        rows={3}
-                        style={{ width: 320, maxWidth: "80vw", padding: "8px 10px", borderRadius: 10, border: "1px solid #dbe1ea", resize: "vertical" }}
-                      />
+                      <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b" }}>
+                        <span>{t("交付链接（多条用换行分隔）")}</span>
+                        <textarea
+                          value={offlineDraftUrls[o.id] ?? ""}
+                          onChange={(e) => setOfflineDraftUrls((p) => ({ ...p, [o.id]: e.target.value }))}
+                          placeholder={t("交付链接（多条用换行分隔）")}
+                          rows={3}
+                          style={{ width: "100%", padding: "8px 10px", borderRadius: 10, border: "1px solid #dbe1ea", resize: "vertical", boxSizing: "border-box" }}
+                        />
+                      </label>
                     )}
                     <button
                       type="button"
                       disabled={!["assigned", "in_progress", "review_rejected"].includes(o.phase) || !!offlineActionLoading[`${o.id}:submit-proof`]}
                       onClick={() => void handleOfflineSubmitProof(o.id)}
                       style={{
+                        alignSelf: "flex-end",
                         padding: "6px 10px",
                         borderRadius: 8,
                         border: "1px solid #dbe1ea",
@@ -1379,19 +1463,20 @@ export default function ClientOrdersHallPage() {
                 )}
 
                 {o.type_id === "creator_review_video" && o.phase === "approved_to_publish" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
                     <input
                       type="text"
                       value={offlinePublishDraft[o.id] ?? ""}
                       onChange={(e) => setOfflinePublishDraft((p) => ({ ...p, [o.id]: e.target.value }))}
                       placeholder={t("发布链接")}
-                      style={{ width: 320, maxWidth: "80vw", padding: "6px 10px", borderRadius: 10, border: "1px solid #dbe1ea" }}
+                      style={{ width: "100%", padding: "6px 10px", borderRadius: 10, border: "1px solid #dbe1ea", boxSizing: "border-box" }}
                     />
                     <button
                       type="button"
                       disabled={!!offlineActionLoading[`${o.id}:publish`]}
                       onClick={() => void handleOfflinePublish(o.id)}
                       style={{
+                        alignSelf: "flex-end",
                         padding: "6px 10px",
                         borderRadius: 8,
                         border: "1px solid #dbe1ea",
