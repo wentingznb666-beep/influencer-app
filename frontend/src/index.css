@@ -183,39 +183,6 @@ body {
   max-width: 560px;
 }
 
-.xt-login-home__brand-extra {
-  margin-top: 12px;
-  max-width: 560px;
-}
-
-.xt-login-home__mini-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.xt-login-home__mini {
-  padding: 12px 12px;
-  border-radius: 14px;
-  border: 1px solid var(--xt-border);
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 10px 34px rgba(21, 42, 69, 0.08);
-}
-
-.xt-login-home__mini-k {
-  color: var(--xt-primary);
-  font-weight: 900;
-  font-size: 12px;
-  letter-spacing: 0.02em;
-}
-
-.xt-login-home__mini-v {
-  margin-top: 6px;
-  color: var(--xt-text-muted);
-  font-size: 13px;
-  line-height: 1.35;
-}
-
 .xt-login-home__point {
   display: grid;
   grid-template-columns: 64px 1fr;
@@ -320,6 +287,80 @@ body {
   padding: 6px 0 24px;
 }
 
+.xt-login-home__team {
+  padding: 24px 0 28px;
+  background: #0b0f16;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.xt-login-home__team-title {
+  margin-bottom: 16px;
+}
+
+.xt-login-home__team-kicker {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.xt-login-home__team-h {
+  color: #ffffff;
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+}
+
+.xt-login-home__team-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.xt-login-home__team-card {
+  border-radius: 0;
+  overflow: hidden;
+  background: #111826;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.xt-login-home__team-photo {
+  height: 220px;
+  background: radial-gradient(260px 160px at 30% 20%, rgba(255, 255, 255, 0.14), transparent 55%),
+    linear-gradient(135deg, rgba(21, 42, 69, 0.65), rgba(11, 15, 22, 0.95));
+}
+
+.xt-login-home__team-photo--ceo {
+  background: radial-gradient(260px 160px at 20% 20%, rgba(255, 255, 255, 0.16), transparent 55%),
+    linear-gradient(135deg, rgba(224, 112, 32, 0.22), rgba(11, 15, 22, 0.95));
+}
+
+.xt-login-home__team-photo--marketing {
+  background: radial-gradient(260px 160px at 20% 20%, rgba(255, 255, 255, 0.16), transparent 55%),
+    linear-gradient(135deg, rgba(21, 42, 69, 0.5), rgba(11, 15, 22, 0.95));
+}
+
+.xt-login-home__team-photo--live {
+  background: radial-gradient(260px 160px at 20% 20%, rgba(255, 255, 255, 0.16), transparent 55%),
+    linear-gradient(135deg, rgba(21, 42, 69, 0.35), rgba(11, 15, 22, 0.95));
+}
+
+.xt-login-home__team-photo--edit {
+  background: radial-gradient(260px 160px at 20% 20%, rgba(255, 255, 255, 0.16), transparent 55%),
+    linear-gradient(135deg, rgba(224, 112, 32, 0.16), rgba(11, 15, 22, 0.95));
+}
+
+.xt-login-home__team-label {
+  background: #f3ff00;
+  color: #0b0f16;
+  font-weight: 900;
+  font-size: 18px;
+  padding: 12px 14px;
+  text-align: center;
+}
+
 .xt-login-home__section-title {
   margin: 8px 0 14px;
 }
@@ -401,7 +442,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 160px;
+  height: 180px;
   background: rgba(255, 255, 255, 0.92);
   border-top: 1px solid var(--xt-border);
   backdrop-filter: blur(12px);
@@ -433,7 +474,7 @@ body {
 .xt-login-home__footer-text {
   color: var(--xt-text-muted);
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.4;
   margin-top: 4px;
   word-break: break-word;
 }
@@ -472,6 +513,10 @@ body {
   .xt-login-home__footer-inner {
     grid-template-columns: 1fr 1fr;
   }
+
+  .xt-login-home__team-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
@@ -492,6 +537,14 @@ body {
   }
 
   .xt-login-home__footer-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .xt-login-home__team-h {
+    font-size: 44px;
+  }
+
+  .xt-login-home__team-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -248,27 +248,6 @@ export default function Login() {
                   <div className="xt-login-home__point-v">营销方案 · 媒体制作 · 分析咨询 · 代运营</div>
                 </div>
               </div>
-
-              <div className="xt-login-home__brand-extra">
-                <div className="xt-login-home__mini-grid">
-                  <div className="xt-login-home__mini">
-                    <div className="xt-login-home__mini-k">Projects</div>
-                    <div className="xt-login-home__mini-v">月销超 100 万泰铢</div>
-                  </div>
-                  <div className="xt-login-home__mini">
-                    <div className="xt-login-home__mini-k">Team</div>
-                    <div className="xt-login-home__mini-v">10+ 主播 · 100+ 后端</div>
-                  </div>
-                  <div className="xt-login-home__mini">
-                    <div className="xt-login-home__mini-k">Capability</div>
-                    <div className="xt-login-home__mini-v">专业短视频 · 爆款直播</div>
-                  </div>
-                  <div className="xt-login-home__mini">
-                    <div className="xt-login-home__mini-k">PDPA</div>
-                    <div className="xt-login-home__mini-v">严格保护信息与作品</div>
-                  </div>
-                </div>
-              </div>
             </div>
 
             <div className="xt-login-card xt-login-home__card">
@@ -392,6 +371,34 @@ export default function Login() {
             </div>
           </div>
         </section>
+
+        <section className="xt-login-home__team" aria-label="Team Showcase">
+          <div className="xt-login-home__container">
+            <div className="xt-login-home__team-title">
+              <div className="xt-login-home__team-kicker">Meet</div>
+              <div className="xt-login-home__team-h">Our Team</div>
+            </div>
+
+            <div className="xt-login-home__team-grid">
+              <div className="xt-login-home__team-card">
+                <div className="xt-login-home__team-photo xt-login-home__team-photo--ceo" aria-hidden="true" />
+                <div className="xt-login-home__team-label">CEO</div>
+              </div>
+              <div className="xt-login-home__team-card">
+                <div className="xt-login-home__team-photo xt-login-home__team-photo--marketing" aria-hidden="true" />
+                <div className="xt-login-home__team-label">Marketing team</div>
+              </div>
+              <div className="xt-login-home__team-card">
+                <div className="xt-login-home__team-photo xt-login-home__team-photo--live" aria-hidden="true" />
+                <div className="xt-login-home__team-label">Live team</div>
+              </div>
+              <div className="xt-login-home__team-card">
+                <div className="xt-login-home__team-photo xt-login-home__team-photo--edit" aria-hidden="true" />
+                <div className="xt-login-home__team-label">Edit team</div>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
       <footer className="xt-login-home__footer" id="contact">
@@ -412,7 +419,7 @@ export default function Login() {
               เลขทะเบียน:0505564017671 | ประกอบธุรกิจ:โฆษณา | วันที่จดทะเบียน:8 พฤศจิกายน 2564
             </div>
             <div className="xt-login-home__footer-text">
-              注册号：0505564017671 | 业务：广告代理 | 成立：2021-11-08 | 地址：清迈
+              注册号：0505564017671 | 业务：广告代理 | 成立：2021-11-08
             </div>
             <div className="xt-login-home__footer-text">
               ที่ตั้งแผนที่: 44/34 หมู่ที่ 5 ตำบลหนองป่าครั่ง อำเภอเมืองเชียงใหม่ จ.เชียงใหม่ 50000
