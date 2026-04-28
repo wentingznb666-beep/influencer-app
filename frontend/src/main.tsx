@@ -136,8 +136,8 @@ createRoot(document.getElementById("root")!).render(
           </Route>
           <Route path="/translate" element={<App />} />
           <Route path="/about" element={<AboutUsPage />} />
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="/" element={<AboutUsPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </LanguageProvider>
         </I18nextProvider>

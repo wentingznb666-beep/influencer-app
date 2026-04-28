@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { BrandLogo } from "./BrandLogo";
 import { xtOutlineBtn, xtPrimaryBtn } from "./brandTheme";
 
@@ -163,7 +163,20 @@ export default function AboutUsPage() {
   const jumpTo = useCallback((id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
+    window.history.replaceState(null, "", `#${id}`);
     el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+    const id = hash.replace(/^#/, "");
+    if (!id) return;
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   }, []);
 
   const stats: StatItem[] = [
@@ -218,6 +231,9 @@ export default function AboutUsPage() {
               >
                 View compliance info
               </button>
+              <a className="xt-about-btn xt-about-btn--ghost" href="/login">
+                Enter system
+              </a>
             </div>
             <div className="xt-about-hero__trust">
               <div className="xt-about-pill">
