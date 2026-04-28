@@ -3,28 +3,63 @@
     <div class="header-row">
       <div class="title">{{ t("员工端订单处理") }} / {{ t("หน้าจอพนักงานจัดการคำสั่งงาน") }}</div>
       <div class="filters">
-        <el-select v-model="typeFilter" clearable style="width: 280px" :placeholder="t('订单类型')" @change="persistUi">
+        <el-select v-model="typeFilter" size="small" clearable style="width: 280px" :placeholder="t('订单类型')" @change="persistUi">
           <el-option :label="typeLabel('graded_video')" value="graded_video" />
           <el-option :label="typeLabel('high_quality_custom_video')" value="high_quality_custom_video" />
           <el-option :label="typeLabel('monthly_package')" value="monthly_package" />
           <el-option :label="typeLabel('creator_review_video')" value="creator_review_video" />
         </el-select>
-        <el-input v-model="q" style="width: 260px" :placeholder="t('搜索订单号/标题/商家')" @keyup.enter="reloadAll" @blur="persistUi" />
-        <el-button @click="reloadAll" :loading="loading">{{ t("รีเฟรช") }}</el-button>
-        <el-switch v-model="autoRefreshEnabled" :active-text="t('自动刷新')" :inactive-text="t('手动刷新')" />
-        <el-input-number v-model="autoRefreshSec" :min="10" :max="120" :step="5" :disabled="!autoRefreshEnabled" />
+        <el-select v-model="statusFilter" size="small" clearable style="width: 180px" :placeholder="t('状态筛选')">
+          <el-option :label="t('待领取')" value="open" />
+          <el-option :label="t('已接单')" value="claimed" />
+          <el-option :label="t('进行中')" value="in_progress" />
+          <el-option :label="t('已完成')" value="completed" />
+          <el-option :label="t('已取消')" value="cancelled" />
+        </el-select>
+        <el-date-picker
+          v-model="dateRange"
+          size="small"
+          type="daterange"
+          unlink-panels
+          value-format="YYYY-MM-DD"
+          range-separator="-"
+          :start-placeholder="t('开始日期')"
+          :end-placeholder="t('结束日期')"
+          style="width: 280px"
+        />
+        <el-input v-model="q" size="small" style="width: 260px" :placeholder="t('搜索订单号/标题/商家')" @keyup.enter="reloadAll" @blur="persistUi" />
+        <el-select v-model="sortMode" size="small" style="width: 190px">
+          <el-option :label="t('创建时间：新到旧')" value="created_desc" />
+          <el-option :label="t('创建时间：旧到新')" value="created_asc" />
+          <el-option :label="t('金额/积分：高到低')" value="amount_desc" />
+          <el-option :label="t('金额/积分：低到高')" value="amount_asc" />
+          <el-option :label="t('状态：待领取到已完成')" value="status_asc" />
+          <el-option :label="t('状态：已完成到待领取')" value="status_desc" />
+        </el-select>
+        <el-button size="small" @click="reloadAll" :loading="loading">{{ t("รีเฟรช") }}</el-button>
+        <div class="auto-refresh">
+          <el-switch v-model="autoRefreshEnabled" size="small" :active-text="t('自动刷新')" :inactive-text="t('手动刷新')" />
+          <el-input-number v-model="autoRefreshSec" size="small" :min="10" :max="120" :step="5" :disabled="!autoRefreshEnabled" />
+        </div>
       </div>
     </div>
 
-    <el-table :data="filtered" row-key="row_key" stripe>
+    <div class="list-toolbar">
+      <div class="list-title">{{ t("统一订单列表") }}</div>
+      <div class="list-summary">{{ t("共") }} {{ filteredRows.length }} {{ t("条") }}</div>
+    </div>
+
+    <el-table v-if="filteredRows.length" :data="filteredRows" row-key="row_key" stripe v-loading="loading" size="small">
       <el-table-column prop="order_no" :label="t('订单号')" width="180" />
       <el-table-column :label="t('类型')" width="220"><template #default="{ row }"><el-tag :class="getOrderTypeTagClass(row.type_id)">{{ typeLabel(row.type_id) }}</el-tag></template></el-table-column>
       <el-table-column prop="client_text" :label="t('商家')" width="160" />
-      <el-table-column prop="payment_text" :label="t('付款')" width="120" />
-      <el-table-column :label="t('状态')" width="190">
+      <el-table-column prop="amount_text" :label="t('金额/积分')" width="140" />
+      <el-table-column prop="created_at_text" :label="t('创建时间')" width="170" />
+      <el-table-column :label="t('状态')" width="220">
         <template #default="{ row }">
           <div class="status-cell">
-            <el-tag :type="phaseTagType(row.phase_text)">{{ row.phase_text }}</el-tag>
+            <el-tag :class="statusTagClass(row.unified_status)" effect="plain">{{ row.unified_status_text }}</el-tag>
+            <el-tag v-if="row.kind === 'offline'" :type="phaseTagType(row.phase_code)" effect="plain">{{ row.phase_text }}</el-tag>
             <el-tag v-if="row.kind === 'offline' && orderResubmittedMessage(row.raw)" type="info" effect="plain">{{ t("已重新提交") }}</el-tag>
             <el-tag v-else-if="row.kind === 'offline' && resubmittedBatches(row.raw).length" type="info" effect="plain">{{ t("含重提批次") }}</el-tag>
           </div>
@@ -65,7 +100,7 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column :label="t('操作')" min-width="620" fixed="right">
+      <el-table-column :label="t('操作')" :min-width="isNarrow ? 420 : 620" :fixed="isNarrow ? undefined : 'right'">
         <template #default="{ row }">
           <template v-if="row.kind === 'market'">
             <el-button v-if="row.raw.status === 'open'" size="small" type="primary" :loading="acting[row.raw.id]" @click="onClaimMarket(row.raw.id)">{{ t("接单") }}</el-button>
@@ -90,6 +125,12 @@
         </template>
       </el-table-column>
     </el-table>
+
+    <div v-else class="empty-wrap" v-loading="loading">
+      <el-empty :description="t('暂无匹配订单，可调整筛选条件或刷新列表')">
+        <el-button type="primary" @click="reloadAll" :loading="loading">{{ t("刷新列表") }}</el-button>
+      </el-empty>
+    </div>
 
     <el-dialog v-model="dialogOfflineSubmit.open" :title="t('提交交付/初稿链接')" width="520px" :lock-scroll="false">
       <el-alert
@@ -159,8 +200,8 @@ import {
 import { useAuthStore } from "@/stores/auth";
 import { useVideoOrdersStore } from "@/stores/videoOrders";
 import { readLocale, tr, type Locale } from "@/utils/i18n";
-import { getOrderTypeTagClass, getOrderTypeTh, getOrderTypeZh, requiresEmployeeManualPayment } from "@/utils/videoOrderRules";
-import type { UnifiedOrderType } from "@/types/videoOrderExt";
+import { calcGradedPoints, getOrderTypeTagClass, getOrderTypeTh, getOrderTypeZh, requiresEmployeeManualPayment } from "@/utils/videoOrderRules";
+import type { GradedTier, UnifiedOrderType } from "@/types/videoOrderExt";
 
 const auth = useAuthStore();
 const store = useVideoOrdersStore();
@@ -169,6 +210,9 @@ const isAdmin = computed(() => auth.role === "admin");
 
 const q = ref(store.orderKeyword || "");
 const typeFilter = ref<UnifiedOrderType | "">(store.employeeTypeFilter || "");
+const statusFilter = ref<UnifiedStatus | "">("");
+const dateRange = ref<string[]>([]);
+const sortMode = ref<SortMode>("created_desc");
 const marketOrders = ref<AdminMarketOrder[]>([]);
 const offlineOrders = ref<VideoOrder[]>([]);
 const loading = ref(false);
@@ -181,6 +225,41 @@ const monthlyBatchDialog = reactive({ open: false, orderId: 0, batchNo: 1, video
 const autoRefreshEnabled = ref(true);
 const autoRefreshSec = ref(20);
 const autoRefreshTimer = ref<number | null>(null);
+const isNarrow = ref(false);
+
+type UnifiedStatus = "open" | "claimed" | "in_progress" | "completed" | "cancelled";
+type SortMode = "created_desc" | "created_asc" | "amount_desc" | "amount_asc" | "status_asc" | "status_desc";
+
+type BaseUnifiedOrderRow = {
+  row_key: string;
+  type_id: UnifiedOrderType;
+  order_no: string;
+  title: string;
+  client_text: string;
+  payment_text: string;
+  phase_code: string;
+  phase_text: string;
+  unified_status: UnifiedStatus;
+  unified_status_text: string;
+  amount_value: number;
+  amount_text: string;
+  created_at: string;
+  created_at_text: string;
+};
+
+type MarketUnifiedOrderRow = BaseUnifiedOrderRow & {
+  kind: "market";
+  type_id: "graded_video";
+  raw: AdminMarketOrder;
+};
+
+type OfflineUnifiedOrderRow = BaseUnifiedOrderRow & {
+  kind: "offline";
+  type_id: OfflineVideoOrderTypeId;
+  raw: VideoOrder;
+};
+
+type UnifiedOrderRow = MarketUnifiedOrderRow | OfflineUnifiedOrderRow;
 
 /** 翻译工具。 */
 function t(text: string): string {
@@ -261,19 +340,168 @@ function phaseTagType(phase: string): "success" | "warning" | "danger" | "info" 
   return "info";
 }
 
+function statusTagClass(status: UnifiedStatus): string {
+  if (status === "open") return "tag-status-open";
+  if (status === "claimed") return "tag-status-claimed";
+  if (status === "in_progress") return "tag-status-progress";
+  if (status === "completed") return "tag-status-completed";
+  return "tag-status-cancelled";
+}
+
+function unifiedStatusText(status: UnifiedStatus): string {
+  if (status === "open") return t("待领取");
+  if (status === "claimed") return t("已接单");
+  if (status === "in_progress") return t("进行中");
+  if (status === "completed") return t("已完成");
+  return t("已取消");
+}
+
+function unifiedStatusRank(status: UnifiedStatus): number {
+  if (status === "open") return 1;
+  if (status === "claimed") return 2;
+  if (status === "in_progress") return 3;
+  if (status === "completed") return 4;
+  return 5;
+}
+
+function formatDateTime(value?: string | null): string {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+function marketPhaseText(status: string): string {
+  if (status === "open") return t("待领取");
+  if (status === "claimed") return t("已接单");
+  if (status === "completed") return t("已完成");
+  if (status === "cancelled") return t("已取消");
+  return status || "-";
+}
+
+function offlinePhaseText(order: VideoOrder): string {
+  if (!order.assigned_employee_id) return t("待领取");
+  const phase = String(order.phase || "");
+  if (phase === "assigned") return t("已接单");
+  if (phase === "in_progress") return t("进行中");
+  if (phase === "submitted") return t("已提交");
+  if (phase === "review_pending") return t("待审核");
+  if (phase === "review_rejected") return t("退回修改");
+  if (phase === "approved_to_publish") return t("待发布");
+  if (phase === "published") return t("已发布");
+  if (phase === "delivered") return t("已交付");
+  if (phase === "pending_acceptance") return t("待验收");
+  if (phase === "accepted") return t("已验收");
+  if (phase === "settled") return t("已结算");
+  if (phase === "rejected") return t("已取消");
+  return phase || "-";
+}
+
+function marketUnifiedStatus(order: AdminMarketOrder): UnifiedStatus {
+  const status = String(order.status || "");
+  if (status === "open") return "open";
+  if (status === "claimed") return "claimed";
+  if (status === "completed") return "completed";
+  if (status === "cancelled") return "cancelled";
+  return "in_progress";
+}
+
+function offlineUnifiedStatus(order: VideoOrder): UnifiedStatus {
+  if (!order.assigned_employee_id) return "open";
+  const phase = String(order.phase || "");
+  if (phase === "assigned") return "claimed";
+  if (["accepted", "completed", "settled"].includes(phase)) return "completed";
+  if (["rejected", "cancelled"].includes(phase)) return "cancelled";
+  return "in_progress";
+}
+
+function marketAmountValue(order: AdminMarketOrder): number {
+  const tier = ["A", "B", "C"].includes(String(order.tier || "")) ? (order.tier as GradedTier) : "C";
+  return calcGradedPoints(tier, Number(order.task_count || 0) || 1);
+}
+
+function inDateRange(value: string): boolean {
+  if (dateRange.value.length !== 2) return true;
+  const [start, end] = dateRange.value;
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return false;
+  const startTime = start ? new Date(`${start}T00:00:00`).getTime() : Number.NEGATIVE_INFINITY;
+  const endTime = end ? new Date(`${end}T23:59:59`).getTime() : Number.POSITIVE_INFINITY;
+  return time >= startTime && time <= endTime;
+}
+
 const currentOfflineDialogOrder = computed(() => offlineOrders.value.find((item) => Number(item.id) === Number(dialogOfflineSubmit.orderId)) || null);
 const currentMonthlyDialogOrder = computed(() => offlineOrders.value.find((item) => Number(item.id) === Number(monthlyBatchDialog.orderId)) || null);
 const dialogOfflineRejectedNote = computed(() => (currentOfflineDialogOrder.value ? orderRejectedMessage(currentOfflineDialogOrder.value) : ""));
 const dialogMonthlyRejectedBatchText = computed(() => (currentMonthlyDialogOrder.value ? rejectedBatchSummaries(currentMonthlyDialogOrder.value).join("\n") : ""));
 
-const unified = computed(() => {
-  const rows: Array<any> = [];
-  for (const mo of marketOrders.value) rows.push({ row_key: `m_${mo.id}`, kind: "market", type_id: "graded_video", order_no: mo.order_no, title: mo.title, client_text: mo.client_shop_name || mo.client_display_name || mo.client_username, payment_text: t("积分单"), phase_text: mo.status, raw: mo });
-  for (const o of offlineOrders.value) rows.push({ row_key: `o_${o.id}`, kind: "offline", type_id: o.type_id as OfflineVideoOrderTypeId, order_no: `#${o.id}`, title: o.title, client_text: o.client_username || "-", payment_text: o.payment_status, phase_text: o.phase, raw: o });
+const unified = computed<UnifiedOrderRow[]>(() => {
+  const rows: UnifiedOrderRow[] = [];
+  for (const mo of marketOrders.value) {
+    const status = marketUnifiedStatus(mo);
+    const amount = marketAmountValue(mo);
+    rows.push({
+      row_key: `m_${mo.id}`,
+      kind: "market",
+      type_id: "graded_video",
+      order_no: mo.order_no,
+      title: mo.title,
+      client_text: mo.client_shop_name || mo.client_display_name || mo.client_username || "-",
+      payment_text: t("积分单"),
+      phase_code: String(mo.status || ""),
+      phase_text: marketPhaseText(String(mo.status || "")),
+      unified_status: status,
+      unified_status_text: unifiedStatusText(status),
+      amount_value: amount,
+      amount_text: `${amount} ${t("积分")}`,
+      created_at: mo.created_at,
+      created_at_text: formatDateTime(mo.created_at),
+      raw: mo,
+    });
+  }
+  for (const o of offlineOrders.value) {
+    const status = offlineUnifiedStatus(o);
+    const amount = Number(o.amount_thb || 0);
+    rows.push({
+      row_key: `o_${o.id}`,
+      kind: "offline",
+      type_id: o.type_id as OfflineVideoOrderTypeId,
+      order_no: `#${o.id}`,
+      title: o.title,
+      client_text: o.client_username || "-",
+      payment_text: o.payment_status === "paid" ? t("已付款") : t("待付款"),
+      phase_code: String(o.phase || ""),
+      phase_text: offlinePhaseText(o),
+      unified_status: status,
+      unified_status_text: unifiedStatusText(status),
+      amount_value: amount,
+      amount_text: `${amount.toFixed(2)} THB`,
+      created_at: o.created_at,
+      created_at_text: formatDateTime(o.created_at),
+      raw: o,
+    });
+  }
   return rows;
 });
 
-const filtered = computed(() => unified.value.filter((x) => (!typeFilter.value || x.type_id === typeFilter.value) && (!q.value.trim() || `${x.order_no} ${x.title} ${x.client_text}`.toLowerCase().includes(q.value.trim().toLowerCase()))));
+const filteredRows = computed<UnifiedOrderRow[]>(() => {
+  const keyword = q.value.trim().toLowerCase();
+  const rows = unified.value.filter((row) => {
+    if (typeFilter.value && row.type_id !== typeFilter.value) return false;
+    if (statusFilter.value && row.unified_status !== statusFilter.value) return false;
+    if (!inDateRange(row.created_at)) return false;
+    if (!keyword) return true;
+    return `${row.order_no} ${row.title} ${row.client_text} ${row.phase_text} ${row.amount_text}`.toLowerCase().includes(keyword);
+  });
+  const sorted = [...rows];
+  if (sortMode.value === "created_desc") sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  if (sortMode.value === "created_asc") sorted.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  if (sortMode.value === "amount_desc") sorted.sort((a, b) => b.amount_value - a.amount_value);
+  if (sortMode.value === "amount_asc") sorted.sort((a, b) => a.amount_value - b.amount_value);
+  if (sortMode.value === "status_asc") sorted.sort((a, b) => unifiedStatusRank(a.unified_status) - unifiedStatusRank(b.unified_status) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  if (sortMode.value === "status_desc") sorted.sort((a, b) => unifiedStatusRank(b.unified_status) - unifiedStatusRank(a.unified_status) || new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  return sorted;
+});
 
 /** 加载全部订单。 */
 async function reloadAll(): Promise<void> {
@@ -514,13 +742,20 @@ watch([autoRefreshEnabled, autoRefreshSec], () => {
   setupAutoRefreshTimer();
 });
 
+function refreshLayoutState(): void {
+  isNarrow.value = typeof window !== "undefined" && window.innerWidth < 1280;
+}
+
 onMounted(() => {
   void reloadAll();
   setupAutoRefreshTimer();
+  refreshLayoutState();
+  window.addEventListener("resize", refreshLayoutState);
 });
 
 onBeforeUnmount(() => {
   clearAutoRefreshTimer();
+  window.removeEventListener("resize", refreshLayoutState);
 });
 </script>
 
@@ -528,8 +763,12 @@ onBeforeUnmount(() => {
 .page-wrap { padding: 14px 10px; }
 .header-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 12px; }
 .filters { display: flex; gap: 10px; flex-wrap: wrap; }
+.auto-refresh { display: flex; gap: 10px; align-items: center; }
 .title { font-size: 21px; font-weight: 800; color: #3d2a00; }
 .hc-thai { line-height: 1.9; }
+.list-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.list-title { font-size: 18px; font-weight: 800; color: #3d2a00; }
+.list-summary { font-size: 13px; color: #64748b; font-weight: 700; }
 .status-cell { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .title-cell { display: flex; flex-direction: column; gap: 8px; }
 .rejection-alert { margin-top: 4px; }
@@ -541,8 +780,23 @@ onBeforeUnmount(() => {
 .resubmitted-batch-title { font-weight: 800; margin-bottom: 4px; }
 .resubmitted-batch-item { line-height: 1.6; }
 .dialog-alert { margin-bottom: 12px; white-space: pre-line; }
+.empty-wrap { padding: 32px 0 20px; background: #fff; border-radius: 12px; border: 1px solid #eef2f7; }
 :deep(.tag-gold){ background:#ffe082;color:#5d3a00;border-color:#ffb300;font-weight:700; }
 :deep(.tag-yellow){ background:#fff59d;color:#5d4a00;border-color:#fbc02d;font-weight:700; }
 :deep(.tag-purple){ background:#e1bee7;color:#4a148c;border-color:#ab47bc;font-weight:700; }
 :deep(.tag-red){ background:#ffcdd2;color:#b71c1c;border-color:#ef5350;font-weight:700; }
+:deep(.tag-status-open){ background:rgba(59,130,246,0.10); color:#1d4ed8; border-color:rgba(59,130,246,0.30); font-weight:700; }
+:deep(.tag-status-claimed){ background:rgba(15,118,110,0.10); color:#0f766e; border-color:rgba(15,118,110,0.30); font-weight:700; }
+:deep(.tag-status-progress){ background:rgba(245,158,11,0.12); color:#b45309; border-color:rgba(245,158,11,0.35); font-weight:700; }
+:deep(.tag-status-completed){ background:rgba(234,88,12,0.10); color:#ea580c; border-color:rgba(234,88,12,0.30); font-weight:700; }
+:deep(.tag-status-cancelled){ background:rgba(239,68,68,0.10); color:#b91c1c; border-color:rgba(239,68,68,0.30); font-weight:700; }
+
+@media (max-width: 980px) {
+  .filters { width: 100%; }
+  .auto-refresh { width: 100%; justify-content: flex-start; }
+  .filters > :deep(.el-input),
+  .filters > :deep(.el-select),
+  .filters > :deep(.el-date-editor),
+  .filters > :deep(.el-button) { width: 100% !important; }
+}
 </style>
