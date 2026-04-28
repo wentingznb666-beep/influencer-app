@@ -233,8 +233,6 @@ export default function Login() {
               </div>
               <div className="xt-login-home__brand-text">
                 <div className="xt-login-home__brand-kicker">Xiang Tai Shopping Co.,Ltd.</div>
-                <h1 className="xt-login-home__brand-title">员工端登录首页</h1>
-                <div className="xt-login-home__brand-sub">Blue + Orange Business Theme · Responsive · Smooth Motion</div>
               </div>
               <div className="xt-login-home__brand-points">
                 <div className="xt-login-home__point">
@@ -377,19 +375,6 @@ export default function Login() {
 
       <footer className="xt-login-home__footer" id="contact">
         <div className="xt-login-home__container xt-login-home__footer-inner">
-          <div className="xt-login-home__footer-col">
-            <div className="xt-login-home__footer-title">导航</div>
-            <button className="xt-login-home__footer-link" type="button" onClick={() => scrollToSection("about")}>
-              About Us
-            </button>
-            <button className="xt-login-home__footer-link" type="button" onClick={() => scrollToSection("pdpa")}>
-              PDPA隐私政策
-            </button>
-            <button className="xt-login-home__footer-link" type="button" onClick={() => scrollToSection("contact")}>
-              Contact Us
-            </button>
-          </div>
-
           <div className="xt-login-home__footer-col">
             <div className="xt-login-home__footer-title">客户支持</div>
             <div className="xt-login-home__footer-text">
