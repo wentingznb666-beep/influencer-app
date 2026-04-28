@@ -46,6 +46,7 @@ import CooperationTypesPage from "./admin/CooperationTypesPage";
 import CooperationOrdersPage from "./admin/CooperationOrdersPage";
 import ProtectedRoute from "./ProtectedRoute";
 import App from "./App";
+import AboutUsPage from "./AboutUsPage";
 import { I18nextProvider } from "react-i18next";
 import { appI18n } from "./i18n/i18nApp";
 import { LanguageProvider } from "./i18n";
@@ -134,6 +135,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="merchant-members" element={<MerchantMembersPage />} />
           </Route>
           <Route path="/translate" element={<App />} />
+          <Route path="/about" element={<AboutUsPage />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
