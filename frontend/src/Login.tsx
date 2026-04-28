@@ -248,6 +248,27 @@ export default function Login() {
                   <div className="xt-login-home__point-v">营销方案 · 媒体制作 · 分析咨询 · 代运营</div>
                 </div>
               </div>
+
+              <div className="xt-login-home__brand-extra">
+                <div className="xt-login-home__mini-grid">
+                  <div className="xt-login-home__mini">
+                    <div className="xt-login-home__mini-k">Projects</div>
+                    <div className="xt-login-home__mini-v">月销超 100 万泰铢</div>
+                  </div>
+                  <div className="xt-login-home__mini">
+                    <div className="xt-login-home__mini-k">Team</div>
+                    <div className="xt-login-home__mini-v">10+ 主播 · 100+ 后端</div>
+                  </div>
+                  <div className="xt-login-home__mini">
+                    <div className="xt-login-home__mini-k">Capability</div>
+                    <div className="xt-login-home__mini-v">专业短视频 · 爆款直播</div>
+                  </div>
+                  <div className="xt-login-home__mini">
+                    <div className="xt-login-home__mini-k">PDPA</div>
+                    <div className="xt-login-home__mini-v">严格保护信息与作品</div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="xt-login-card xt-login-home__card">
