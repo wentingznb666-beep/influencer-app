@@ -1235,6 +1235,22 @@ export default function ClientOrdersHallPage() {
         : o.type_id === "monthly_package"
           ? t("按批次交付")
           : t("商家自行发布");
+    const offlineTypeSummary = (() => {
+      if (o.type_id === "high_quality_custom_video") {
+        const price = Number(o.amount_thb || 0);
+        const display = Number.isFinite(price) && price > 0 ? String(price) : "—";
+        return `${t("高质量视频")} | ${t("单价")}${display} ${t("THB/条")} | ${t("可修改1-2次")}`;
+      }
+      if (o.type_id === "monthly_package") {
+        const months = Math.max(1, Math.floor(Number(req.contract_months || 0) || 1));
+        const perMonth = Math.max(20, Math.floor(Number(req.min_videos_per_month || 0) || 20));
+        const weekly = req.weekly_batch_enabled === false ? t("非按周结算") : t("按周结算");
+        return `${t("包月合作")} | ${t("周期")}${months}${t("月")}/${t("每月")}${perMonth}${t("条")} | ${weekly}`;
+      }
+      const task = Math.max(0, Math.floor(Number(req.task_count || 0) || 0));
+      const taskText = task > 0 ? String(task) : "—";
+      return `${t("带货测评")} | ${t("任务")}${taskText}${t("条")} | ${t("需挂车能力")}`;
+    })();
 
     const offlineDetails: Array<{ label: string; value: ReactNode }> = [
       { label: t("订单标题"), value: o.title || "—" },
@@ -1278,6 +1294,7 @@ export default function ClientOrdersHallPage() {
                 {formatDateTime(o.created_at)}
               </span>
             </div>
+            <div style={{ marginTop: 6, fontSize: 12, color: "#64748b", lineHeight: 1.5, wordBreak: "break-word", whiteSpace: "pre-wrap" }}>{offlineTypeSummary}</div>
 
             {renderDetailRows(offlineDetails)}
 

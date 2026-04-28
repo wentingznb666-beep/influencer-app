@@ -507,12 +507,17 @@ export default function ClientMarketOrdersPage() {
 
   const canSubmitClientInfo = clientShopName.trim().length > 0 && clientGroupChat.trim().length > 0 && publishMethod.trim().length > 0;
 
+  const monthlyEffectiveMonths = Math.max(1, Math.floor(contractMonths || 1));
+  const monthlyEffectiveVideos = Math.max(20, Math.floor(monthlyMinVideos || 20));
+  const monthlyEstimatedAmount = 650 * monthlyEffectiveVideos * monthlyEffectiveMonths;
+
   const canSubmit = useMemo(() => {
     if (orderTypeId === "graded_video") return canAfford && canSubmitClientInfo;
-    if (orderTypeId === "high_quality_custom_video") return !!title.trim() && offlineAmount >= 4000 && offlineAmount <= 5000 && !!offlineTalent.trim();
-    if (orderTypeId === "monthly_package") return !!title.trim() && monthlyMinVideos >= 20;
-    return !!title.trim() && creatorTaskCount >= 8 && creatorTaskCount <= 10;
-  }, [orderTypeId, canAfford, canSubmitClientInfo, title, offlineAmount, offlineTalent, monthlyMinVideos, creatorTaskCount]);
+    const hasBase = !!title.trim() && !!clientShopName.trim() && !!clientGroupChat.trim();
+    if (orderTypeId === "high_quality_custom_video") return hasBase && offlineAmount >= 4000 && offlineAmount <= 5000 && !!offlineTalent.trim();
+    if (orderTypeId === "monthly_package") return hasBase && monthlyEffectiveMonths >= 1 && monthlyEffectiveVideos >= 20;
+    return hasBase && creatorTaskCount >= 8 && creatorTaskCount <= 10 && !!offlineTalent.trim();
+  }, [orderTypeId, canAfford, canSubmitClientInfo, title, clientShopName, clientGroupChat, offlineAmount, offlineTalent, creatorTaskCount, monthlyEffectiveMonths, monthlyEffectiveVideos]);
 
 
 
@@ -563,7 +568,7 @@ export default function ClientMarketOrdersPage() {
           client_group_chat: clientGroupChat.trim(),
           tier,
           voice_link: tier === "A" ? (voiceLink.trim() || undefined) : undefined,
-          voice_note: tier === "A" ? (voiceNote.trim() || undefined) : undefined,
+          voice_note: voiceNote.trim() || undefined,
           publish_method: publishMethod,
           is_public_apply: isPublicApply,
           tiktok_link: tiktokLink.trim() || undefined,
@@ -574,6 +579,14 @@ export default function ClientMarketOrdersPage() {
           task_count: taskCount,
         });
       } else {
+        if (!clientShopName.trim()) {
+          setError("请输入商家店铺名称");
+          return;
+        }
+        if (!clientGroupChat.trim()) {
+          setError("请输入商家对接群聊（群号/链接）");
+          return;
+        }
         const req: Record<string, unknown> = {
           requirement: offlineRequirement.trim() || null,
           selected_talent: offlineTalent.trim() || null,
@@ -594,12 +607,16 @@ export default function ClientMarketOrdersPage() {
         }
 
         if (orderTypeId === "monthly_package") {
-          if (monthlyMinVideos < 20) {
+          if (!Number.isFinite(monthlyEffectiveMonths) || monthlyEffectiveMonths < 1) {
+            setError("合作周期（月）至少为 1");
+            return;
+          }
+          if (monthlyEffectiveVideos < 20) {
             setError("包月合作每月不少于 20 条");
             return;
           }
-          req.contract_months = Math.max(1, Math.floor(contractMonths || 1));
-          req.min_videos_per_month = Math.max(20, Math.floor(monthlyMinVideos || 20));
+          req.contract_months = monthlyEffectiveMonths;
+          req.min_videos_per_month = monthlyEffectiveVideos;
           req.weekly_batch_enabled = !!weeklyBatchEnabled;
           req.unit_price = 650;
         }
@@ -607,6 +624,10 @@ export default function ClientMarketOrdersPage() {
         if (orderTypeId === "creator_review_video") {
           if (creatorTaskCount < 8 || creatorTaskCount > 10) {
             setError("测评视频任务条数需为 8-10 条");
+            return;
+          }
+          if (!offlineTalent.trim()) {
+            setError("请填写或选择 Creator 账号");
             return;
           }
           req.task_count = Math.floor(creatorTaskCount);
@@ -960,11 +981,30 @@ export default function ClientMarketOrdersPage() {
             <option value="creator_review_video">④ Creator带货测评（8-10条/次，单价待配置）</option>
           </select>
 
-          <div style={{ margin: "-4px 0 12px", padding: "10px 12px", background: "#f8fafc", border: "1px solid #e2e8f0", borderRadius: 8, color: "#334155", fontSize: 13, lineHeight: 1.7 }}>
+          <div
+            style={{
+              margin: "-4px 0 12px",
+              padding: "10px 12px",
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 8,
+              color: "#334155",
+              fontSize: 13,
+              lineHeight: 1.7,
+              width: "100%",
+              maxWidth: 560,
+              boxSizing: "border-box",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
             {orderTypeId === "graded_video" && "分级视频：A/B/C 分别扣 60/40/20 积分/条（1积分=1THB）；兼职拍摄剪辑线下完成，可选商家自发或Creator发布挂车。"}
-            {orderTypeId === "high_quality_custom_video" && "高质量视频：不扣积分，商家选择优质Influencer，单价4000-5000฿/条；可提供脚本/参考，支持1-2次合理修改，Influencer账号发布。"}
-            {orderTypeId === "monthly_package" && "包月合作：不扣积分，650฿/条，按周分批提交与验收结算，要求≥20条/月；前1-4条可修改，交付成品+Footage，商家自行发布。"}
-            {orderTypeId === "creator_review_video" && "Creator测评：不扣积分，8-10条/次，Creator需具备TAP挂车能力；所有视频需先提交我方审核，通过后发布；单价由老板后续配置。"}
+            {orderTypeId === "high_quality_custom_video" &&
+              "高质量视频：不扣积分，商家从平台选择优质Influencer拍摄；视频完成后可提供1-2次合理修改服务；单价4000-5000泰铢/条"}
+            {orderTypeId === "monthly_package" &&
+              "包月合作：不扣积分，商家从平台选择Creator按月签约；可对前1-4条视频修改以确定风格，后续按统一标准执行；单价650泰铢/条，要求≥20条/月"}
+            {orderTypeId === "creator_review_video" &&
+              "Creator带货测评：不扣积分，8-10条/次；Creator需具备TAP挂车能力；所有视频需先提交我方审核，通过后发布；单价待平台配置"}
           </div>
 
           <label htmlFor="clientShopName">商家店铺名称（必填）</label>
@@ -1047,18 +1087,18 @@ export default function ClientMarketOrdersPage() {
                     placeholder="https://..."
                     style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
                   />
-
-                  <label htmlFor="voiceNote">配音要求备注（可选）</label>
-                  <textarea
-                    id="voiceNote"
-                    value={voiceNote}
-                    onChange={(e) => setVoiceNote(e.target.value)}
-                    placeholder="如：语速/情绪/关键词/禁用词等"
-                    rows={3}
-                    style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
-                  />
                 </>
               )}
+
+              <label htmlFor="voiceNote">需求说明（可选）</label>
+              <textarea
+                id="voiceNote"
+                value={voiceNote}
+                onChange={(e) => setVoiceNote(e.target.value)}
+                placeholder="可填写脚本/参考视频/配音要求/审核要求/修改说明等"
+                rows={3}
+                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+              />
 
               <label htmlFor="taskCount">购买数量（同一 SKU 多数量合并为一条订单）</label>
               <input
@@ -1128,7 +1168,7 @@ export default function ClientMarketOrdersPage() {
 
               {orderTypeId === "monthly_package" && (
                 <>
-                  <label htmlFor="contractMonths">合作周期（月）</label>
+                  <label htmlFor="contractMonths">合作周期（月，必填）</label>
                   <input
                     id="contractMonths"
                     type="number"
@@ -1139,7 +1179,7 @@ export default function ClientMarketOrdersPage() {
                     style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
                   />
 
-                  <label htmlFor="monthlyMinVideos">每月条数（≥20）</label>
+                  <label htmlFor="monthlyMinVideos">每月条数（≥20，必填）</label>
                   <input
                     id="monthlyMinVideos"
                     type="number"
@@ -1150,7 +1190,7 @@ export default function ClientMarketOrdersPage() {
                     style={{ display: "block", marginTop: 8, marginBottom: 6, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
                   />
                   <div style={{ marginBottom: 12, color: "#64748b", fontSize: 13 }}>
-                    预计金额：{Math.max(20, monthlyMinVideos) * 650} ฿（650 × {Math.max(20, monthlyMinVideos)}）
+                    预计金额：{monthlyEstimatedAmount} ฿（650 × {monthlyEffectiveVideos} × {monthlyEffectiveMonths}）
                   </div>
 
                   <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
@@ -1173,18 +1213,26 @@ export default function ClientMarketOrdersPage() {
                     style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
                   />
                   <div style={{ marginBottom: 12, color: "#64748b", fontSize: 13 }}>
-                    单价待老板配置；创建后如金额为 0，将无法标记已付款。
+                    本单单价由平台统一配置。
                   </div>
                 </>
               )}
 
-              <label htmlFor="offlineTalent">Influencer/Creator（类型2必填，其余可选）</label>
+              <label htmlFor="offlineTalent">
+                {orderTypeId === "high_quality_custom_video"
+                  ? "Influencer/Creator账号（必填，商家需从平台选择）"
+                  : orderTypeId === "monthly_package"
+                    ? "Creator账号（可选，可由我方匹配）"
+                    : "Creator账号（必填，商家需从平台选择）"}
+              </label>
               <input
                 id="offlineTalent"
                 type="text"
                 value={offlineTalent}
                 onChange={(e) => setOfflineTalent(e.target.value)}
-                placeholder="输入平台内已选账号/昵称，或留空由我方匹配（按类型规则）"
+                placeholder={
+                  orderTypeId === "monthly_package" ? "可留空，由我方匹配" : "请输入平台内已选账号/昵称"
+                }
                 style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
               />
 
@@ -1242,8 +1290,8 @@ export default function ClientMarketOrdersPage() {
             ) : (
               <span style={{ fontSize: 13, color: "#64748b" }}>
                 {orderTypeId === "high_quality_custom_video" && `金额：${offlineAmount} ฿/条`}
-                {orderTypeId === "monthly_package" && `金额：${Math.max(20, monthlyMinVideos) * 650} ฿（按月目标估算）`}
-                {orderTypeId === "creator_review_video" && "金额：待配置（创建后可能为0，需配置后才能标记已付款）"}
+                {orderTypeId === "monthly_package" && `金额：${monthlyEstimatedAmount} ฿（650 × ${monthlyEffectiveVideos} × ${monthlyEffectiveMonths}）`}
+                {orderTypeId === "creator_review_video" && "金额：本单单价由平台统一配置"}
               </span>
             )}
 
