@@ -297,7 +297,7 @@ export async function acceptClientOrderBatch(orderId: number, batchId: string | 
   return normalizeBatchRecord(source);
 }
 
-export async function acceptClientMonthlyBatch(orderId: number, batchNo: number, body: {
+export async function acceptClientMonthlyBatch(orderId: number, batchNo: string | number, body: {
   accepted_count: number;
   note?: string;
 }): Promise<void> {
@@ -309,7 +309,7 @@ export async function acceptClientMonthlyBatch(orderId: number, batchNo: number,
   if (!res.ok) throw new Error(await readErrorMessage(res, "验收失败"));
 }
 
-export async function rejectClientMonthlyBatch(orderId: number, batchNo: number, body?: {
+export async function rejectClientMonthlyBatch(orderId: number, batchNo: string | number, body?: {
   remark?: string;
   note?: string;
 }): Promise<OrderBatchRecord | null> {
@@ -328,7 +328,7 @@ export async function rejectClientMonthlyBatch(orderId: number, batchNo: number,
   return normalizeBatchRecord(source);
 }
 
-export async function settleClientMonthlyBatch(orderId: number, batchNo: number, body: {
+export async function settleClientMonthlyBatch(orderId: number, batchNo: string | number, body: {
   settled_amount: number;
 }): Promise<OrderBatchRecord | null> {
   const res = await fetchWithAuth(`/api/client/video-orders/${orderId}/monthly-batches/${batchNo}/settle`, {

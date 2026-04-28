@@ -304,7 +304,7 @@ router.get("/video-orders", async (req: AuthRequest, res: Response) => {
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("client list video orders error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: `服务器内部错误：${formatErrorMessage(e)}` });
   }
 });
 
@@ -367,7 +367,7 @@ router.post("/video-orders/:id/accept", async (_req: AuthRequest, res: Response)
     return res.json({ ok: true });
   } catch (e) {
     console.error("client accept video order error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: `服务器内部错误：${formatErrorMessage(e)}` });
   }
 });
 
@@ -402,7 +402,7 @@ router.post("/video-orders/:id/reject", async (_req: AuthRequest, res: Response)
     return res.json({ ok: true });
   } catch (e) {
     console.error("client reject video order error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: `服务器内部错误：${formatErrorMessage(e)}` });
   }
 });
 
@@ -420,7 +420,7 @@ router.get("/video-orders/:id/batches", async (req: AuthRequest, res: Response) 
     return res.json({ list });
   } catch (e) {
     console.error("client list monthly batches error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: `服务器内部错误：${formatErrorMessage(e)}` });
   }
 });
 

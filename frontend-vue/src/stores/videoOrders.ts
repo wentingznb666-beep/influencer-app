@@ -181,7 +181,10 @@ export const useVideoOrdersStore = defineStore("videoOrders", () => {
     };
     try {
       await acceptClientOfflineVideoOrder(orderId);
-      await fetchClientOrders();
+      try {
+        await fetchClientOrders();
+      } catch {
+      }
     } finally {
       clientOrderActionLoadingMap.value = {
         ...clientOrderActionLoadingMap.value,
@@ -198,7 +201,10 @@ export const useVideoOrdersStore = defineStore("videoOrders", () => {
     };
     try {
       await rejectClientOfflineVideoOrder(orderId, note || "");
-      await fetchClientOrders();
+      try {
+        await fetchClientOrders();
+      } catch {
+      }
     } finally {
       clientOrderActionLoadingMap.value = {
         ...clientOrderActionLoadingMap.value,
@@ -227,8 +233,14 @@ export const useVideoOrdersStore = defineStore("videoOrders", () => {
         const next = getClientBatches(orderId).map((item) => (String(item.batch_id) === String(batch.batch_id) ? updatedBatch : item));
         setClientOrderBatches(orderId, next);
       }
-      await fetchClientOrderBatches(orderId, true);
-      await fetchClientOrders();
+      try {
+        await fetchClientOrderBatches(orderId, true);
+      } catch {
+      }
+      try {
+        await fetchClientOrders();
+      } catch {
+      }
     } finally {
       clientBatchActionLoadingMap.value = {
         ...clientBatchActionLoadingMap.value,
@@ -246,15 +258,22 @@ export const useVideoOrdersStore = defineStore("videoOrders", () => {
     };
     try {
       const amount = Number(batch.settled_amount ?? settledAmount ?? 0) || Number(settledAmount ?? 0) || 0;
-      const updatedBatch = await settleClientMonthlyBatch(orderId, Number(batch.batch_no || batch.batch_id), {
+      const batchToken = String(batch.batch_id ?? batch.batch_no ?? "");
+      const updatedBatch = await settleClientMonthlyBatch(orderId, batchToken, {
         settled_amount: amount,
       });
       if (updatedBatch) {
         const next = getClientBatches(orderId).map((item) => (String(item.batch_id) === String(batch.batch_id) ? updatedBatch : item));
         setClientOrderBatches(orderId, next);
       }
-      await fetchClientOrderBatches(orderId, true);
-      await fetchClientOrders();
+      try {
+        await fetchClientOrderBatches(orderId, true);
+      } catch {
+      }
+      try {
+        await fetchClientOrders();
+      } catch {
+      }
     } finally {
       clientBatchActionLoadingMap.value = {
         ...clientBatchActionLoadingMap.value,
@@ -271,15 +290,22 @@ export const useVideoOrdersStore = defineStore("videoOrders", () => {
       [actionKey]: true,
     };
     try {
-      const updatedBatch = await rejectClientMonthlyBatch(orderId, Number(batch.batch_no || batch.batch_id), {
+      const batchToken = String(batch.batch_id ?? batch.batch_no ?? "");
+      const updatedBatch = await rejectClientMonthlyBatch(orderId, batchToken, {
         remark: remark || "",
       });
       if (updatedBatch) {
         const next = getClientBatches(orderId).map((item) => (String(item.batch_id) === String(batch.batch_id) ? updatedBatch : item));
         setClientOrderBatches(orderId, next);
       }
-      await fetchClientOrderBatches(orderId, true);
-      await fetchClientOrders();
+      try {
+        await fetchClientOrderBatches(orderId, true);
+      } catch {
+      }
+      try {
+        await fetchClientOrders();
+      } catch {
+      }
     } finally {
       clientBatchActionLoadingMap.value = {
         ...clientBatchActionLoadingMap.value,
