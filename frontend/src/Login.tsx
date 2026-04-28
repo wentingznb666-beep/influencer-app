@@ -4,6 +4,7 @@ import { login, registerAccount, type PublicRegisterRole } from "./authApi";
 import LanguageSwitch from "./LanguageSwitch";
 import { BrandLogo } from "./BrandLogo";
 import { xtPrimaryBtn } from "./brandTheme";
+import { useLanguage } from "./i18n";
 
 type IconInputProps = {
   /** 左侧展示的小图标（如账号、密码） */
@@ -53,6 +54,7 @@ function LoginInputWithIcon({ icon, style, className, ...rest }: IconInputProps)
  * 达人分发 APP 登录页：用户名密码登录，成功后按角色跳转。
  */
 export default function Login() {
+  const { lang } = useLanguage();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -68,6 +70,12 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   const from = searchParams.get("from") || "/";
 
+  const noHiddenFeesTitle = lang === "th" ? "No Hidden Fees" : "无隐藏费用";
+  const noHiddenFeesText =
+    lang === "th"
+      ? "ไม่มีค่าสมัคร ไม่หักเปอร์เซ็นต์งาน ไม่มีการเก็บเงินย้อนหลัง 100%"
+      : "免注册费、不抽取佣金、100% 无后期追收费。";
+
   /**
    * 根据登录用户角色决定默认跳转页面。
    */
@@ -195,6 +203,20 @@ export default function Login() {
           {activeTab === "login" ? (
             <>
               <p style={{ color: "var(--xt-text-muted)", marginBottom: 24 }}>请登录后使用</p>
+              <div
+                data-no-auto-translate
+                style={{
+                  marginBottom: 16,
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(34, 197, 94, 0.35)",
+                  background: "rgba(34, 197, 94, 0.08)",
+                  color: "var(--xt-text)",
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>{noHiddenFeesTitle}</div>
+                <div style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>{noHiddenFeesText}</div>
+              </div>
               <form onSubmit={handleSubmit}>
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>用户名</label>
@@ -240,6 +262,20 @@ export default function Login() {
               <p style={{ color: "var(--xt-text-muted)", marginTop: 0, marginBottom: 16, fontSize: 13 }}>
                 可注册为达人或商家；员工/管理员账号需由管理员开通。
               </p>
+              <div
+                data-no-auto-translate
+                style={{
+                  marginBottom: 16,
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  border: "1px solid rgba(245, 158, 11, 0.35)",
+                  background: "rgba(245, 158, 11, 0.10)",
+                  color: "var(--xt-text)",
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>{noHiddenFeesTitle}</div>
+                <div style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>{noHiddenFeesText}</div>
+              </div>
               <form onSubmit={handleRegister}>
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>注册用户名</label>
