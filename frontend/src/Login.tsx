@@ -1,343 +1,424 @@
-import { useState, type FormEvent, type InputHTMLAttributes } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { login, registerAccount, type PublicRegisterRole } from "./authApi";
-import LanguageSwitch from "./LanguageSwitch";
-import { BrandLogo } from "./BrandLogo";
-import { xtPrimaryBtn } from "./brandTheme";
-import { useLanguage } from "./i18n";
-
-type IconInputProps = {
-  /** 左侧展示的小图标（如账号、密码） */
-  icon: string;
-} & InputHTMLAttributes<HTMLInputElement>;
-
-/**
- * 带左侧图标的输入框，用于登录/注册中的账号与密码行。
- */
-function LoginInputWithIcon({ icon, style, className, ...rest }: IconInputProps) {
-  return (
-    <div style={{ position: "relative", width: "100%" }}>
-      <span
-        aria-hidden
-        style={{
-          position: "absolute",
-          left: 12,
-          top: "50%",
-          transform: "translateY(-50%)",
-          fontSize: 16,
-          lineHeight: 1,
-          pointerEvents: "none",
-          userSelect: "none",
-        }}
-      >
-        {icon}
-      </span>
-      <input
-        {...rest}
-        className={className}
-        style={{
-          width: "100%",
-          padding: "10px 12px 10px 40px",
-          boxSizing: "border-box",
-          borderRadius: 8,
-          border: "1px solid var(--xt-border)",
-          background: "var(--xt-surface)",
-          fontSize: 15,
-          ...style,
-        }}
-      />
-    </div>
-  );
-}
-
-/**
- * 达人分发 APP 登录页：用户名密码登录，成功后按角色跳转。
- */
-export default function Login() {
-  const { lang } = useLanguage();
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loadingLogin, setLoadingLogin] = useState(false);
-  const [registerUsername, setRegisterUsername] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
-  const [registerRole, setRegisterRole] = useState<PublicRegisterRole>("client");
-  const [registerError, setRegisterError] = useState<string | null>(null);
-  const [registerSuccess, setRegisterSuccess] = useState<string | null>(null);
-  const [loadingRegister, setLoadingRegister] = useState(false);
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const from = searchParams.get("from") || "/";
-
-  const noHiddenFeesTitle = lang === "th" ? "No Hidden Fees" : "无隐藏费用";
-  const noHiddenFeesText =
-    lang === "th"
-      ? "ไม่มีค่าสมัคร ไม่หักเปอร์เซ็นต์งาน ไม่มีการเก็บเงินย้อนหลัง 100%"
-      : "免注册费、不抽取佣金、100% 无后期追收费。";
+import { useEffect, useState, type FormEvent, type InputHTMLAttributes } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
-  /**
-   * 根据登录用户角色决定默认跳转页面。
-   */
-  function resolveRolePath(role: string): string {
-    if (role === "admin") return "/admin";
-    if (role === "employee") return "/employee";
-    if (role === "influencer") return "/influencer";
-    return "/client";
-  }
-
-  /**
-   * 处理登录提交：校验身份后跳转至对应门户页。
-   */
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setLoadingLogin(true);
-    try {
-      const user = await login(username.trim(), password);
-      const rolePath = resolveRolePath(user.role);
-      navigate(
-        from.startsWith("/admin") || from.startsWith("/employee") || from.startsWith("/client") || from.startsWith("/influencer")
-          ? from
-          : rolePath,
-        { replace: true }
-      );
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "登录失败");
-    } finally {
-      setLoadingLogin(false);
-    }
-  };
-
-  /**
-   * 处理公开注册：仅支持注册商家端或达人账号。
-   */
-  const handleRegister = async (e: FormEvent) => {
-    e.preventDefault();
-    setRegisterError(null);
-    setRegisterSuccess(null);
-    setLoadingRegister(true);
-    try {
-      const result = await registerAccount(registerUsername.trim(), registerPassword, registerRole);
-      setRegisterSuccess(result.message);
-      setUsername(registerUsername.trim());
-      setPassword(registerPassword);
-      setRegisterUsername("");
-      setRegisterPassword("");
-      setRegisterRole("client");
-    } catch (err: unknown) {
-      setRegisterError(err instanceof Error ? err.message : "注册失败");
-    } finally {
-      setLoadingRegister(false);
-    }
-  };
-
-  return (
-    <div className="xt-login-shell">
-      <div
-        style={{
-          maxWidth: 440,
-          margin: "0 auto",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 24,
-        }}
-      >
-        <div style={{ textAlign: "center" }}>
-          <BrandLogo height={80} style={{ margin: "0 auto" }} />
-        </div>
-        <div className="xt-login-card">
-          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-            <LanguageSwitch />
-          </div>
-          <h1
-            style={{
-              marginTop: 0,
-              marginBottom: 24,
-              fontSize: 22,
-              textAlign: "center",
-              color: "var(--xt-primary)",
-              fontWeight: 700,
-            }}
-          >
-            达人分发 APP
-          </h1>
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            <button
-              type="button"
-              onClick={() => setActiveTab("login")}
-              style={{
-                flex: 1,
-                padding: "10px 12px",
-                borderRadius: 8,
-                border: "1px solid var(--xt-border)",
-                background: activeTab === "login" ? "var(--xt-nav-active-bg)" : "var(--xt-surface)",
-                color: activeTab === "login" ? "var(--xt-primary)" : "var(--xt-text)",
-                cursor: "pointer",
-                fontWeight: 600,
-                boxShadow: activeTab === "login" ? "inset 0 -2px 0 var(--xt-accent)" : "none",
-              }}
-            >
-              登录
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("register")}
-              style={{
-                flex: 1,
-                padding: "10px 12px",
-                borderRadius: 8,
-                border: "1px solid var(--xt-border)",
-                background: activeTab === "register" ? "var(--xt-nav-active-bg)" : "var(--xt-surface)",
-                color: activeTab === "register" ? "var(--xt-primary)" : "var(--xt-text)",
-                cursor: "pointer",
-                fontWeight: 600,
-                boxShadow: activeTab === "register" ? "inset 0 -2px 0 var(--xt-accent)" : "none",
-              }}
-            >
-              注册
-            </button>
-          </div>
-
-          {activeTab === "login" ? (
-            <>
-              <p style={{ color: "var(--xt-text-muted)", marginBottom: 24 }}>请登录后使用</p>
-              <div
-                data-no-auto-translate
-                style={{
-                  marginBottom: 16,
-                  padding: "10px 12px",
-                  borderRadius: 10,
-                  border: "1px solid rgba(34, 197, 94, 0.35)",
-                  background: "rgba(34, 197, 94, 0.08)",
-                  color: "var(--xt-text)",
-                }}
-              >
-                <div style={{ fontWeight: 700, marginBottom: 4 }}>{noHiddenFeesTitle}</div>
-                <div style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>{noHiddenFeesText}</div>
+import { login } from "./authApi";
+import LanguageSwitch from "./LanguageSwitch";
+
+import { BrandLogo } from "./BrandLogo";
+
+import { xtPrimaryBtn } from "./brandTheme";
+
+
+
+type IconInputProps = {
+
+  /** 左侧展示的小图标（如账号、密码） */
+
+  icon: string;
+
+} & InputHTMLAttributes<HTMLInputElement>;
+
+
+
+/**
+
+ * 带左侧图标的输入框，用于登录/注册中的账号与密码行。
+
+ */
+
+function LoginInputWithIcon({ icon, style, className, ...rest }: IconInputProps) {
+
+  return (
+
+    <div style={{ position: "relative", width: "100%" }}>
+
+      <span
+
+        aria-hidden
+
+        style={{
+
+          position: "absolute",
+
+          left: 12,
+
+          top: "50%",
+
+          transform: "translateY(-50%)",
+
+          fontSize: 16,
+
+          lineHeight: 1,
+
+          pointerEvents: "none",
+
+          userSelect: "none",
+
+        }}
+
+      >
+
+        {icon}
+
+      </span>
+
+      <input
+
+        {...rest}
+
+        className={className}
+
+        style={{
+
+          width: "100%",
+
+          padding: "10px 12px 10px 40px",
+
+          boxSizing: "border-box",
+
+          borderRadius: 8,
+
+          border: "1px solid var(--xt-border)",
+
+          background: "var(--xt-surface)",
+
+          fontSize: 15,
+
+          ...style,
+
+        }}
+
+      />
+
+    </div>
+
+  );
+
+}
+
+
+
+/**
+
+ * 达人分发 APP 登录页：用户名密码登录，成功后按角色跳转。
+
+ */
+
+export default function Login() {
+
+  const STORAGE_KEY = "xt_login_remember_v1";
+  const [username, setUsername] = useState("");
+
+  const [password, setPassword] = useState("");
+
+  const [rememberMe, setRememberMe] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const [loadingLogin, setLoadingLogin] = useState(false);
+
+  const navigate = useNavigate();
+
+  const [searchParams] = useSearchParams();
+
+  const from = searchParams.get("from") || "/";
+
+
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { username?: string; remember?: boolean };
+        if (typeof parsed.username === "string") setUsername(parsed.username);
+        if (typeof parsed.remember === "boolean") setRememberMe(parsed.remember);
+      }
+    } catch {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+
+    requestAnimationFrame(() => setReady(true));
+  }, []);
+
+  function persistRemember(nextUsername: string) {
+    if (!rememberMe) {
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ username: nextUsername, remember: true }));
+  }
+
+  function scrollToSection(id: string) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  /**
+
+   * 根据登录用户角色决定默认跳转页面。
+
+   */
+
+  function resolveRolePath(role: string): string {
+
+    if (role === "admin") return "/admin";
+
+    if (role === "employee") return "/employee";
+
+    if (role === "influencer") return "/influencer";
+
+    return "/client";
+
+  }
+
+
+
+  /**
+
+   * 处理登录提交：校验身份后跳转至对应门户页。
+
+   */
+
+  const handleSubmit = async (e: FormEvent) => {
+
+    e.preventDefault();
+
+    setError(null);
+
+    setLoadingLogin(true);
+
+    try {
+
+      const nextUsername = username.trim();
+      persistRemember(nextUsername);
+      const user = await login(nextUsername, password);
+      const rolePath = resolveRolePath(user.role);
+
+      navigate(
+
+        from.startsWith("/admin") || from.startsWith("/employee") || from.startsWith("/client") || from.startsWith("/influencer")
+
+          ? from
+
+          : rolePath,
+
+        { replace: true }
+
+      );
+
+    } catch (err: unknown) {
+
+      setError(err instanceof Error ? err.message : "登录失败");
+
+    } finally {
+
+      setLoadingLogin(false);
+
+    }
+
+  };
+
+
+
+  return (
+
+    <div className={`xt-login-home ${ready ? "is-ready" : ""}`}>
+      <main className="xt-login-home__content">
+        <section className="xt-login-home__hero">
+          <div className="xt-login-home__container xt-login-home__hero-inner">
+            <div className="xt-login-home__brand">
+              <div className="xt-login-home__logo">
+                <BrandLogo height={70} />
               </div>
-              <form onSubmit={handleSubmit}>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>用户名</label>
-                  <LoginInputWithIcon
-                    icon="👤"
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    autoComplete="username"
-                    required
-                  />
-                </div>
-                <div style={{ marginBottom: 20 }}>
-                  <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>密码</label>
-                  <LoginInputWithIcon
-                    icon="🔒"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    autoComplete="current-password"
-                    required
-                  />
-                </div>
-                {error && <p style={{ color: "#c00", marginBottom: 12, fontSize: 14 }}>{error}</p>}
-                <button
-                  type="submit"
-                  disabled={loadingLogin}
-                  style={{
-                    ...xtPrimaryBtn,
-                    width: "100%",
-                    padding: "12px 16px",
-                    opacity: loadingLogin ? 0.75 : 1,
-                    cursor: loadingLogin ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {loadingLogin ? "登录中…" : "登录"}
-                </button>
-              </form>
-            </>
-          ) : (
-            <>
-              <h2 style={{ marginTop: 0, marginBottom: 12, fontSize: 18, color: "var(--xt-primary)" }}>注册账号</h2>
-              <p style={{ color: "var(--xt-text-muted)", marginTop: 0, marginBottom: 16, fontSize: 13 }}>
-                可注册为达人或商家；员工/管理员账号需由管理员开通。
-              </p>
-              <div
-                data-no-auto-translate
-                style={{
-                  marginBottom: 16,
-                  padding: "10px 12px",
-                  borderRadius: 10,
-                  border: "1px solid rgba(245, 158, 11, 0.35)",
-                  background: "rgba(245, 158, 11, 0.10)",
-                  color: "var(--xt-text)",
-                }}
-              >
-                <div style={{ fontWeight: 700, marginBottom: 4 }}>{noHiddenFeesTitle}</div>
-                <div style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>{noHiddenFeesText}</div>
+              <div className="xt-login-home__brand-text">
+                <div className="xt-login-home__brand-kicker">Xiang Tai Shopping Co.,Ltd.</div>
+                <h1 className="xt-login-home__brand-title">员工端登录首页</h1>
+                <div className="xt-login-home__brand-sub">Blue + Orange Business Theme · Responsive · Smooth Motion</div>
               </div>
-              <form onSubmit={handleRegister}>
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>注册用户名</label>
-                  <LoginInputWithIcon
-                    icon="👤"
-                    type="text"
-                    value={registerUsername}
-                    onChange={(e) => setRegisterUsername(e.target.value)}
-                    autoComplete="username"
-                    required
-                  />
-                </div>
-                <div style={{ marginBottom: 12 }}>
-                  <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>注册密码</label>
-                  <LoginInputWithIcon
-                    icon="🔒"
-                    type="password"
-                    value={registerPassword}
-                    onChange={(e) => setRegisterPassword(e.target.value)}
-                    autoComplete="new-password"
-                    required
-                  />
-                </div>
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", marginBottom: 6, fontWeight: 500 }}>注册角色</label>
-                  <select
-                    value={registerRole}
-                    onChange={(e) => setRegisterRole(e.target.value as PublicRegisterRole)}
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      boxSizing: "border-box",
-                      borderRadius: 8,
-                      border: "1px solid var(--xt-border)",
-                      background: "var(--xt-surface)",
-                      color: "var(--xt-text)",
-                    }}
-                  >
-                    <option value="client">商家</option>
-                    <option value="influencer">达人</option>
-                  </select>
-                </div>
-                {registerError && <p style={{ color: "#c00", marginBottom: 12, fontSize: 14 }}>{registerError}</p>}
-                {registerSuccess && <p style={{ color: "#0a7a2a", marginBottom: 12, fontSize: 14 }}>{registerSuccess}</p>}
-                <button
-                  type="submit"
-                  disabled={loadingRegister}
-                  style={{
-                    ...xtPrimaryBtn,
-                    width: "100%",
-                    padding: "12px 16px",
-                    opacity: loadingRegister ? 0.75 : 1,
-                    cursor: loadingRegister ? "not-allowed" : "pointer",
-                  }}
-                >
-                  {loadingRegister ? "注册中…" : "注册"}
-                </button>
-              </form>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+              <div className="xt-login-home__brand-points">
+                <div className="xt-login-home__point">
+                  <div className="xt-login-home__point-k">定位</div>
+                  <div className="xt-login-home__point-v">TikTok 泰国头部先锋卖家 · 5 年电商经验</div>
+                </div>
+                <div className="xt-login-home__point">
+                  <div className="xt-login-home__point-k">能力</div>
+                  <div className="xt-login-home__point-v">直播 / 广告 / 短视频 / TikTok 运营</div>
+                </div>
+                <div className="xt-login-home__point">
+                  <div className="xt-login-home__point-k">服务</div>
+                  <div className="xt-login-home__point-v">营销方案 · 媒体制作 · 分析咨询 · 代运营</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="xt-login-card xt-login-home__card">
+              <div className="xt-login-home__card-top">
+                <div className="xt-login-home__card-title">登录</div>
+                <LanguageSwitch />
+              </div>
+              <div className="xt-login-home__card-desc">欢迎回来，请使用账号密码登录系统</div>
+
+              <form onSubmit={handleSubmit}>
+                <div style={{ marginTop: 16, marginBottom: 14 }}>
+                  <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>账号</label>
+                  <LoginInputWithIcon
+                    icon="👤"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    autoComplete="username"
+                    required
+                  />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>密码</label>
+                  <LoginInputWithIcon
+                    icon="🔒"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                    required
+                  />
+                </div>
+
+                <div className="xt-login-home__actions">
+                  <label className="xt-login-home__remember">
+                    <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />
+                    <span>记住我</span>
+                  </label>
+                  <button className="xt-login-home__ghost" type="button" onClick={() => scrollToSection("pdpa")}>
+                    PDPA 隐私政策
+                  </button>
+                </div>
+
+                {error && <p style={{ color: "#c00", marginTop: 10, marginBottom: 10, fontSize: 14 }}>{error}</p>}
+
+                <button
+                  type="submit"
+                  disabled={loadingLogin}
+                  className="xt-login-home__submit"
+                  style={{
+                    ...xtPrimaryBtn,
+                    width: "100%",
+                    padding: "12px 16px",
+                    opacity: loadingLogin ? 0.75 : 1,
+                    cursor: loadingLogin ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {loadingLogin ? "登录中…" : "登录"}
+                </button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <section className="xt-login-home__company" aria-label="Company Showcase" id="about">
+          <div className="xt-login-home__container">
+            <div className="xt-login-home__section-title">
+              <div className="xt-login-home__kicker">Company</div>
+              <h2 className="xt-login-home__h2">公司展示</h2>
+              <div className="xt-login-home__desc">从公司介绍到团队与项目数据，一页了解我们的能力与价值。</div>
+            </div>
+
+            <div className="xt-login-home__grid">
+              <div className="xt-login-home__info-card">
+                <div className="xt-login-home__card-h">About Company</div>
+                <div className="xt-login-home__card-p">公司介绍、TikTok 泰国头部先锋卖家、5 年电商经验。</div>
+              </div>
+              <div className="xt-login-home__info-card">
+                <div className="xt-login-home__card-h">CEO</div>
+                <div className="xt-login-home__card-p">
+                  Xiong Liu，5 年线上业务、直播、广告、短视频、TikTok 运营。
+                </div>
+              </div>
+              <div className="xt-login-home__info-card">
+                <div className="xt-login-home__card-h">Vision</div>
+                <div className="xt-login-home__card-p">引领数字营销，新一代网络营销领军企业。</div>
+              </div>
+              <div className="xt-login-home__info-card">
+                <div className="xt-login-home__card-h">Mission</div>
+                <div className="xt-login-home__card-p">赋能新一代营销人，打造专业营销社区。</div>
+              </div>
+              <div className="xt-login-home__info-card">
+                <div className="xt-login-home__card-h">Services</div>
+                <div className="xt-login-home__card-p">营销方案、媒体制作、分析咨询、代运营。</div>
+              </div>
+              <div className="xt-login-home__info-card">
+                <div className="xt-login-home__card-h">Team</div>
+                <div className="xt-login-home__card-p">CEO、营销组、直播组、剪辑组。</div>
+              </div>
+              <div className="xt-login-home__info-card xt-login-home__info-card--wide">
+                <div className="xt-login-home__card-h">Projects</div>
+                <div className="xt-login-home__card-p">
+                  月销超 100 万泰铢、10+ 主播、100+ 后端、中国商品直播、网红打造、专业短视频、爆款直播。
+                </div>
+              </div>
+              <div className="xt-login-home__info-card">
+                <div className="xt-login-home__card-h">SWOT</div>
+                <div className="xt-login-home__card-p">
+                  优势 TikTok 领先、机会多平台拓展、劣势物流线下经验不足、威胁平台规则变化。
+                </div>
+              </div>
+              <div className="xt-login-home__info-card">
+                <div className="xt-login-home__card-h">数据</div>
+                <div className="xt-login-home__card-p">服务 2000+ 企业、多平台代运营。</div>
+              </div>
+            </div>
+
+            <div className="xt-login-home__pdpa" id="pdpa">
+              <div className="xt-login-home__card-h">PDPA 条款</div>
+              <div className="xt-login-home__card-p">严格保护创作者信息与作品，绝不泄露转售第三方。</div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="xt-login-home__footer" id="contact">
+        <div className="xt-login-home__container xt-login-home__footer-inner">
+          <div className="xt-login-home__footer-col">
+            <div className="xt-login-home__footer-title">导航</div>
+            <button className="xt-login-home__footer-link" type="button" onClick={() => scrollToSection("about")}>
+              About Us
+            </button>
+            <button className="xt-login-home__footer-link" type="button" onClick={() => scrollToSection("pdpa")}>
+              PDPA隐私政策
+            </button>
+            <button className="xt-login-home__footer-link" type="button" onClick={() => scrollToSection("contact")}>
+              Contact Us
+            </button>
+          </div>
+
+          <div className="xt-login-home__footer-col">
+            <div className="xt-login-home__footer-title">客户支持</div>
+            <div className="xt-login-home__footer-text">
+              Line OA：{" "}
+              <a className="xt-login-home__footer-a" href="https://lin.ee/TbYmfgi" target="_blank" rel="noreferrer">
+                https://lin.ee/TbYmfgi
+              </a>
+            </div>
+          </div>
+
+          <div className="xt-login-home__footer-col xt-login-home__footer-col--wide">
+            <div className="xt-login-home__footer-title">合规信息</div>
+            <div className="xt-login-home__footer-text">
+              เลขทะเบียน:0505564017671 | ประกอบธุรกิจ:โฆษณา | วันที่จดทะเบียน:8 พฤศจิกายน 2564
+            </div>
+            <div className="xt-login-home__footer-text">
+              注册号：0505564017671 | 业务：广告代理 | 成立：2021-11-08 | 地址：清迈
+            </div>
+          </div>
+
+          <div className="xt-login-home__footer-col">
+            <div className="xt-login-home__footer-title">联系方式</div>
+            <div className="xt-login-home__footer-text">电话 0653085541 / 0652468116</div>
+            <div className="xt-login-home__footer-text">邮箱 Xt.tiktok7@gmail.com</div>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+  );
+
+}
