@@ -155,6 +155,42 @@ function resolvePublishLink(order: MarketOrder): string {
   return link;
 }
 
+function extractUrlList(val: unknown): string[] {
+  if (val == null) return [];
+  if (Array.isArray(val)) {
+    return val
+      .flatMap((x) => {
+        if (typeof x === "string") return [x];
+        if (x && typeof x === "object") {
+          const o = x as Record<string, unknown>;
+          const url = String(o.url || o.link || o.href || "").trim();
+          return url ? [url] : [];
+        }
+        return [];
+      })
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  if (typeof val === "string") {
+    return val
+      .split(/\r?\n|,/g)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function extractBatchLinks(batch: unknown): string[] {
+  if (!batch || typeof batch !== "object") return [];
+  const b = batch as Record<string, unknown>;
+  const candidates = [b.delivery_links, b.proof_links, b.video_urls, b.links];
+  for (const v of candidates) {
+    const list = extractUrlList(v);
+    if (list.length) return list;
+  }
+  return [];
+}
+
 
 
 /**
@@ -162,13 +198,9 @@ function resolvePublishLink(order: MarketOrder): string {
  * Resolve publish method display text.
 
  */
-
 function resolvePublishMethodText(method?: string | null): string {
-
   if (String(method || "").trim() === "influencer_publish_with_cart") return "达人在TikTok账号发布视频和挂在购物车";
-
   return "视频拍完后自己发布";
-
 }
 
 
@@ -1426,6 +1458,7 @@ export default function ClientMarketOrdersPage() {
                             <tr>
                               <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>批次</th>
                               <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>提交</th>
+                              <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>交付链接</th>
                               <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>验收</th>
                               <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>状态</th>
                               <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>结算(฿)</th>
@@ -1438,10 +1471,27 @@ export default function ClientMarketOrdersPage() {
                               const status = String(b?.status || "");
                               const canBatchAccept = o.payment_status === "paid" && status === "pending_acceptance";
                               const canBatchSettle = o.payment_status === "paid" && status === "accepted";
+                              const links = extractBatchLinks(b);
                               return (
                                 <tr key={`batch-${o.id}-${bn}`}>
                                   <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{bn || "-"}</td>
                                   <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{Number(b?.video_count || 0) || 0}</td>
+                                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>
+                                    {links.length > 0 ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setLinksModalLinks(links);
+                                          setLinksModalOpen(true);
+                                        }}
+                                        style={{ padding: "4px 8px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                                      >
+                                        查看（{links.length}）
+                                      </button>
+                                    ) : (
+                                      <span style={{ color: "#94a3b8" }}>暂无</span>
+                                    )}
+                                  </td>
                                   <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{Number(b?.accepted_count || 0) || 0}</td>
                                   <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{status || "-"}</td>
                                   <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{Number(b?.settled_amount || 0).toFixed(2)}</td>

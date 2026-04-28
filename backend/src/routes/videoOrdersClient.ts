@@ -79,6 +79,42 @@ function toStringList(input: unknown): string[] {
   return [];
 }
 
+function formatErrorMessage(err: unknown): string {
+  if (!err) return "";
+  if (err instanceof Error) {
+    const anyErr = err as any;
+    const code = typeof anyErr.code === "string" ? anyErr.code : "";
+    const detail = typeof anyErr.detail === "string" ? anyErr.detail : "";
+    const constraint = typeof anyErr.constraint === "string" ? anyErr.constraint : "";
+    const where = typeof anyErr.where === "string" ? anyErr.where : "";
+    const parts = [err.message, code ? `code=${code}` : "", constraint ? `constraint=${constraint}` : "", detail ? `detail=${detail}` : "", where ? `where=${where}` : ""].filter(Boolean);
+    return parts.join(" | ");
+  }
+  return String(err);
+}
+
+async function updateMonthlyStateWithFallback(
+  client: { query: typeof query },
+  orderId: number,
+  desiredPhase: string,
+  batchPayload: any[]
+): Promise<void> {
+  try {
+    await client.query(`UPDATE video_order_states SET phase=$2, batch_payload=$3::jsonb, updated_at=now() WHERE order_id=$1`, [
+      orderId,
+      desiredPhase,
+      JSON.stringify(batchPayload),
+    ]);
+  } catch (e: any) {
+    const code = typeof e?.code === "string" ? e.code : "";
+    if (code !== "23514") throw e;
+    await client.query(`UPDATE video_order_states SET phase='delivered', batch_payload=$2::jsonb, updated_at=now() WHERE order_id=$1`, [
+      orderId,
+      JSON.stringify(batchPayload),
+    ]);
+  }
+}
+
 function normalizeMoney(input: unknown, fallback = 0): number {
   const n = Number(input);
   if (!Number.isFinite(n) || n < 0) return fallback;
@@ -136,9 +172,14 @@ function findBatchIndex(list: any[], batchToken: string): number {
 function computeBatchSettledAmount(order: { unit_price_thb?: unknown; amount_thb?: unknown }, acceptedCount: number, batch: any): number {
   const unitPrice = normalizeMoney(order.unit_price_thb, 0);
   if (unitPrice > 0 && acceptedCount > 0) return Math.round(unitPrice * acceptedCount * 100) / 100;
+  const unitCount = clampInt(Number((order as any)?.unit_count), 0, 999999);
+  const orderAmount = normalizeMoney(order.amount_thb, 0);
+  if (orderAmount > 0 && unitCount > 0 && acceptedCount > 0) {
+    const perUnit = orderAmount / unitCount;
+    if (Number.isFinite(perUnit) && perUnit > 0) return Math.round(perUnit * acceptedCount * 100) / 100;
+  }
   const existing = normalizeMoney(batch?.settled_amount ?? batch?.settlement_amount, 0);
   if (existing > 0) return existing;
-  const orderAmount = normalizeMoney(order.amount_thb, 0);
   return orderAmount > 0 ? orderAmount : 0;
 }
 
@@ -419,11 +460,7 @@ router.post("/video-orders/:id/monthly-batches/:batchNo/accept", async (req: Aut
         submitter_name: current.submitter_name || row.employee_username || null,
       };
       list[idx] = nextBatch;
-      await client.query(`UPDATE video_order_states SET phase=$2, batch_payload=$3::jsonb, updated_at=now() WHERE order_id=$1`, [
-        id,
-        computeOrderPhaseFromBatches(list),
-        JSON.stringify(list),
-      ]);
+      await updateMonthlyStateWithFallback(client, id, computeOrderPhaseFromBatches(list), list);
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
       return { kind: "ok" as const, batch: nextBatch };
     });
@@ -436,7 +473,10 @@ router.post("/video-orders/:id/monthly-batches/:batchNo/accept", async (req: Aut
     return res.json({ ok: true, batch: ret.batch });
   } catch (e) {
     console.error("client accept monthly batch error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({
+      error: "INTERNAL_SERVER_ERROR",
+      message: `服务器内部错误：${formatErrorMessage(e)}`,
+    });
   }
 });
 
@@ -474,11 +514,7 @@ router.post("/video-orders/:id/monthly-batches/:batchNo/reject", async (req: Aut
         submitter_name: current.submitter_name || row.employee_username || null,
       };
       list[idx] = nextBatch;
-      await client.query(`UPDATE video_order_states SET phase=$2, batch_payload=$3::jsonb, updated_at=now() WHERE order_id=$1`, [
-        id,
-        computeOrderPhaseFromBatches(list),
-        JSON.stringify(list),
-      ]);
+      await updateMonthlyStateWithFallback(client, id, computeOrderPhaseFromBatches(list), list);
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
       return { kind: "ok" as const, batch: nextBatch };
     });
@@ -536,11 +572,7 @@ router.post("/video-orders/:id/monthly-batches/:batchNo/settle", async (req: Aut
          DO UPDATE SET week_start=EXCLUDED.week_start, amount_thb=EXCLUDED.amount_thb, updated_at=now()`,
         [id, Number(current.batch_no || 0), weekStart, settledAmount]
       );
-      await client.query(`UPDATE video_order_states SET phase=$2, batch_payload=$3::jsonb, updated_at=now() WHERE order_id=$1`, [
-        id,
-        computeOrderPhaseFromBatches(list),
-        JSON.stringify(list),
-      ]);
+      await updateMonthlyStateWithFallback(client, id, computeOrderPhaseFromBatches(list), list);
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
       return { kind: "ok" as const, batch: nextBatch };
     });
