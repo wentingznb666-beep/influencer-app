@@ -379,17 +379,16 @@ export default function ClientOrdersHallPage() {
 
   const [savingInfluencerLinks, setSavingInfluencerLinks] = useState(false);
 
-  const [searchOpen, setSearchOpen] = useState("");
-
-  const [searchMy, setSearchMy] = useState("");
+  const [gradedSearch, setGradedSearch] = useState("");
+  const [gradedStatusFilter, setGradedStatusFilter] = useState<"" | "open" | "claimed" | "completed" | "cancelled">("");
+  const [gradedDateFilter, setGradedDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
+  const [gradedSortMode, setGradedSortMode] = useState<
+    "created_desc" | "created_asc" | "amount_desc" | "amount_asc" | "status_asc" | "status_desc"
+  >("created_desc");
 
   const [publishDraft, setPublishDraft] = useState<Record<number, string>>({});
 
   const [publishing, setPublishing] = useState<Record<number, boolean>>({});
-
-  const [openDateFilter, setOpenDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
-
-  const [myDateFilter, setMyDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
 
   const hasInitLoadedRef = useRef(false);
 
@@ -466,7 +465,13 @@ export default function ClientOrdersHallPage() {
 
    */
 
-  const load = async (qOpen?: string, qMy?: string, nextOpenDateFilter?: DateFilterState, nextMyDateFilter?: DateFilterState) => {
+  const load = async (params?: {
+    typeFilter?: "all" | "graded_video" | OfflineTypeId;
+    gradedQ?: string;
+    gradedDateFilter?: DateFilterState;
+    offlineSearch?: string;
+    offlinePhaseFilter?: "" | OfflinePhase;
+  }) => {
 
     setLoading(true);
 
@@ -474,36 +479,32 @@ export default function ClientOrdersHallPage() {
 
     try {
 
-      const oq = qOpen !== undefined ? qOpen : searchOpen;
-
-      const mq = qMy !== undefined ? qMy : searchMy;
-
-      const openDate = nextOpenDateFilter ?? openDateFilter;
-
-      const myDate = nextMyDateFilter ?? myDateFilter;
+      const nextType = params?.typeFilter ?? typeFilter;
+      const q = params?.gradedQ !== undefined ? params.gradedQ : gradedSearch;
+      const dateFilter = params?.gradedDateFilter ?? gradedDateFilter;
+      const nextOfflineSearch = params?.offlineSearch !== undefined ? params.offlineSearch : offlineSearch;
+      const nextOfflinePhase = params?.offlinePhaseFilter !== undefined ? params.offlinePhaseFilter : offlinePhaseFilter;
 
       const [openRes, myRes, offlineRes] = await Promise.all([
 
         api.getMarketOrders({
 
-          ...(oq.trim() ? { q: oq.trim() } : {}),
-
-          ...resolveDateQuery(openDate),
+          ...(q.trim() ? { q: q.trim() } : {}),
+          ...resolveDateQuery(dateFilter),
 
         }),
 
         api.getMyMarketOrders({
 
-          ...(mq.trim() ? { q: mq.trim() } : {}),
-
-          ...resolveDateQuery(myDate),
+          ...(q.trim() ? { q: q.trim() } : {}),
+          ...resolveDateQuery(dateFilter),
 
         }),
 
         employeeApi.getEmployeeVideoOrders({
-          ...(offlinePhaseFilter ? { phase: offlinePhaseFilter } : {}),
-          ...(offlineSearch.trim() ? { q: offlineSearch.trim() } : {}),
-          ...(typeFilter !== "all" && typeFilter !== "graded_video" ? { type: typeFilter } : {}),
+          ...(nextOfflinePhase ? { phase: nextOfflinePhase } : {}),
+          ...(nextOfflineSearch.trim() ? { q: nextOfflineSearch.trim() } : {}),
+          ...(nextType !== "all" && nextType !== "graded_video" ? { type: nextType } : {}),
           limit: 200,
         }),
 
@@ -675,7 +676,7 @@ export default function ClientOrdersHallPage() {
   const statusText = useMemo(
     (): Record<string, string> => ({
       open: t("待领取"),
-      claimed: t("进行中"),
+      claimed: t("已接单/进行中"),
       completed: t("已完成"),
       cancelled: t("已取消"),
     }),
@@ -833,6 +834,75 @@ export default function ClientOrdersHallPage() {
   const offlineOpen = useMemo(() => offlineList.filter((o) => !o.assigned_employee_id), [offlineList]);
   const offlineMine = useMemo(() => offlineList.filter((o) => !!o.assigned_employee_id), [offlineList]);
 
+  type GradedUnifiedOrder = (OpenOrder & { _list_kind: "open" }) | (MyOrder & { _list_kind: "mine" });
+
+  const gradedUnified = useMemo((): GradedUnifiedOrder[] => {
+    const open = openList.map((o) => ({ ...o, _list_kind: "open" as const }));
+    const mine = myList.map((o) => ({ ...o, _list_kind: "mine" as const }));
+    return [...open, ...mine];
+  }, [openList, myList]);
+
+  function statusBadgeStyle(status: string): CSSProperties {
+    const base: CSSProperties = {
+      padding: "2px 8px",
+      borderRadius: 999,
+      fontSize: 12,
+      fontWeight: 800,
+      border: "1px solid #dbe1ea",
+      background: "#f8fafc",
+      color: "#334155",
+      whiteSpace: "nowrap",
+    };
+    if (status === "open") return { ...base, background: "rgba(59,130,246,0.10)", borderColor: "rgba(59,130,246,0.30)", color: "#1d4ed8" };
+    if (status === "claimed") return { ...base, background: "rgba(15,118,110,0.10)", borderColor: "rgba(15,118,110,0.30)", color: "#0f766e" };
+    if (status === "completed") return { ...base, background: "rgba(234,88,12,0.10)", borderColor: "rgba(234,88,12,0.30)", color: "var(--xt-accent)" };
+    if (status === "cancelled") return { ...base, background: "rgba(239,68,68,0.10)", borderColor: "rgba(239,68,68,0.30)", color: "#b91c1c" };
+    return base;
+  }
+
+  const gradedFilteredSorted = useMemo((): GradedUnifiedOrder[] => {
+    const q = gradedSearch.trim();
+    const filtered = gradedUnified.filter((o) => {
+      if (gradedStatusFilter && String(o.status || "") !== gradedStatusFilter) return false;
+      if (!q) return true;
+      const hay = `${o.order_no || ""} ${o.title || ""} ${o.client_username || ""} ${o.client_display_name || ""}`.toLowerCase();
+      return hay.includes(q.toLowerCase());
+    });
+
+    const statusRank = (s: string) => {
+      if (s === "open") return 1;
+      if (s === "claimed") return 2;
+      if (s === "completed") return 3;
+      if (s === "cancelled") return 4;
+      return 9;
+    };
+
+    const byCreated = (a: GradedUnifiedOrder, b: GradedUnifiedOrder) => {
+      const ta = new Date(a.created_at || "").getTime();
+      const tb = new Date(b.created_at || "").getTime();
+      const na = Number.isFinite(ta) ? ta : 0;
+      const nb = Number.isFinite(tb) ? tb : 0;
+      return na - nb;
+    };
+
+    const byAmount = (a: GradedUnifiedOrder, b: GradedUnifiedOrder) => {
+      const pa = hallMarketOrderTotalPoints(a);
+      const pb = hallMarketOrderTotalPoints(b);
+      return pa - pb;
+    };
+
+    const byStatus = (a: GradedUnifiedOrder, b: GradedUnifiedOrder) => statusRank(String(a.status || "")) - statusRank(String(b.status || ""));
+
+    const sorted = [...filtered];
+    if (gradedSortMode === "created_desc") sorted.sort((a, b) => byCreated(b, a));
+    if (gradedSortMode === "created_asc") sorted.sort((a, b) => byCreated(a, b));
+    if (gradedSortMode === "amount_desc") sorted.sort((a, b) => byAmount(b, a));
+    if (gradedSortMode === "amount_asc") sorted.sort((a, b) => byAmount(a, b));
+    if (gradedSortMode === "status_asc") sorted.sort((a, b) => byStatus(a, b) || byCreated(b, a));
+    if (gradedSortMode === "status_desc") sorted.sort((a, b) => byStatus(b, a) || byCreated(b, a));
+    return sorted;
+  }, [gradedUnified, gradedSearch, gradedStatusFilter, gradedSortMode]);
+
 
 
 
@@ -851,19 +921,14 @@ export default function ClientOrdersHallPage() {
 
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
-      <button type="button" onClick={() => load()} style={{ marginBottom: 16, padding: "6px 12px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
-
-        {t("刷新全部")}
-
-      </button>
-
       <div style={{ marginBottom: 14, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         <div style={{ fontSize: 13, color: "#475569", fontWeight: 700 }}>{t("订单类型")}</div>
         <select
           value={typeFilter}
           onChange={(e) => {
-            setTypeFilter(e.target.value as any);
-            load();
+            const next = e.target.value as any;
+            setTypeFilter(next);
+            load({ typeFilter: next });
           }}
           style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
         >
@@ -876,581 +941,345 @@ export default function ClientOrdersHallPage() {
       </div>
 
       {(typeFilter === "all" || typeFilter === "graded_video") && (
-        <>
-          <h3 style={{ fontSize: 16 }}>{t("待领取")}</h3>
-      <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ marginBottom: 16 }}>
+          <h3 style={{ fontSize: 16, marginTop: 0 }}>{t("统一订单列表")}</h3>
+          <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <input
+              type="text"
+              value={gradedSearch}
+              onChange={(e) => setGradedSearch(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                void load({ gradedQ: gradedSearch, gradedDateFilter });
+              }}
+              placeholder={t("关键词：订单号/标题/商家（模糊）")}
+              style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 240 }}
+            />
+            <select
+              value={gradedStatusFilter}
+              onChange={(e) => {
+                const next = (e.target.value as any) || "";
+                setGradedStatusFilter(next);
+              }}
+              style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
+            >
+              <option value="">{t("全部状态")}</option>
+              <option value="open">{t("待领取")}</option>
+              <option value="claimed">{t("已接单/进行中")}</option>
+              <option value="completed">{t("已完成")}</option>
+              <option value="cancelled">{t("已取消")}</option>
+            </select>
+            <OrderDateFilter
+              value={gradedDateFilter}
+              onChange={(next) => {
+                setGradedDateFilter(next);
+                void load({ gradedDateFilter: next });
+              }}
+            />
+            <select
+              value={gradedSortMode}
+              onChange={(e) => setGradedSortMode(e.target.value as any)}
+              style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
+            >
+              <option value="created_desc">{t("创建时间：新→旧")}</option>
+              <option value="created_asc">{t("创建时间：旧→新")}</option>
+              <option value="amount_desc">{t("金额/积分：高→低")}</option>
+              <option value="amount_asc">{t("金额/积分：低→高")}</option>
+              <option value="status_asc">{t("状态：待领取→已完成")}</option>
+              <option value="status_desc">{t("状态：已完成→待领取")}</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => load()}
+              style={{ padding: "6px 14px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+            >
+              {t("刷新")}
+            </button>
+          </div>
 
-
-        <input
-
-          type="text"
-
-          value={searchOpen}
-
-          onChange={(e) => setSearchOpen(e.target.value)}
-
-          placeholder={t("搜索订单号或标题（精准）")}
-
-          style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 240 }}
-
-        />
-
-        <button type="button" onClick={() => load(searchOpen, undefined, openDateFilter, undefined)} style={{ padding: "6px 14px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
-
-          {t("搜索")}
-
-        </button>
-
-        <button
-
-          type="button"
-
-          onClick={() => {
-
-            setSearchOpen("");
-
-            const emptyFilter: DateFilterState = { mode: "all", day: "", startDate: "", endDate: "" };
-
-            setOpenDateFilter(emptyFilter);
-
-            load("", undefined, emptyFilter, undefined);
-
-          }}
-
-          style={{ padding: "6px 14px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}
-
-        >
-
-          {t("清空")}
-
-        </button>
-
-        <OrderDateFilter value={openDateFilter} onChange={setOpenDateFilter} />
-
-      </div>
-
-      {loading ? (
-
-        <p>{t("加载中…")}</p>
-
-      ) : (
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 28 }}>
-
-          {openList.map((o) => (
-
-            <div key={o.id} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-
-              <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 8, background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: 13 }}>
-
-                {t("订单日期：")}{formatDateTime(o.created_at)}
-
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
-
-                <div>
-
-                  <div style={{ fontWeight: 600 }}>{t("订单号：")}{o.order_no || `#${o.id}`}</div>
-
-                  {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>{t("标题：")}{o.title}</div>}
-
-                  <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
-
-                    {t("下单商家账号：")}{o.client_username} ｜ {t("商家名称：")}{o.client_display_name}
-
-                  </div>
-
-                  <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>{t("订单创建日期：")}{formatDateTime(o.created_at)}</div>
-
-                </div>
-
-                <span style={{ color: "#166534", fontWeight: 600 }}>+{hallMarketOrderTotalPoints(o)} {t("积分")}</span>
-
-              </div>
-
-              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "130px 1fr", gap: 8, alignItems: "start" }}>
-
-                <div style={{ color: "#64748b", fontSize: 13 }}>{t("状态")}</div>
-
-                <div style={{ fontSize: 14 }}>{statusText[o.status] ?? o.status}</div>
-
-                <div style={{ color: "#64748b", fontSize: 13 }}>{t("视频数量/积分")}</div>
-                <div style={{ fontSize: 14 }}>
-                  <div style={{ marginBottom: 4 }}>
-                    {t("视频数量：")}{o.task_count || "-"} {t("条")}
-                  </div>
-                  <div>
-                    {t("金额：")}
-                    <span style={{ fontWeight: 600, color: "var(--xt-accent)" }}>
-                      {hallMarketOrderTotalPoints(o)} {t("积分")}
-                    </span>
-                    <span style={{ color: "#64748b", marginLeft: 4 }}>
-                      （{t("单套")} {o.reward_points} {t("积分")} × {t("视频数量：")} {hallMarketOrderTaskCount(o)}）
+          {loading ? (
+            <p>{t("加载中…")}</p>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {gradedFilteredSorted.map((o) => (
+                <div key={`${o._list_kind}-${o.id}`} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 10 }}>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <span style={statusBadgeStyle(String(o.status || ""))}>{statusText[String(o.status || "")] ?? String(o.status || "")}</span>
+                      <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 12, fontWeight: 800, border: "1px solid #dbe1ea", background: "#f1f5f9", color: "#0f172a" }}>
+                        {t("订单日期：")}
+                        {formatDateTime(o.created_at)}
+                      </span>
+                    </div>
+                    <span style={{ color: "#166534", fontWeight: 700 }}>
+                      +{hallMarketOrderTotalPoints(o)} {t("积分")}
                     </span>
                   </div>
-                </div>
 
-                <div style={{ color: "#64748b", fontSize: 13 }}>{t("发布方式")}</div>
-
-                <div style={{ fontSize: 14 }}>{publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}</div>
-
-                <div style={{ color: "#64748b", fontSize: 13 }}>{t("备注")}</div>
-
-                <div style={{ fontSize: 14 }}>{o.voice_note?.trim() ? o.voice_note : "—"}</div>
-
-              </div>
-
-              {renderSkuInfo(o, t)}
-
-              {renderTierStandards(String(o.tier || ""), t)}
-
-              {renderVoiceEntry(o, t)}
-
-              <button type="button" onClick={() => handleClaim(o.id)} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
-
-                {t("领取")}
-
-              </button>
-
-            </div>
-
-          ))}
-
-          {openList.length === 0 && (
-            <div className="xt-inf-empty xt-inf-card" style={{ marginTop: 8 }}>
-              <div className="xt-inf-empty-icon" aria-hidden>
-                📋
-              </div>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>{t("暂无待领取订单")}</div>
-              <div style={{ fontSize: 14, marginBottom: 12 }}>{t("可调整搜索条件或稍后再试。")}</div>
-              <button type="button" className="xt-accent-btn" onClick={() => load()}>
-                {t("刷新列表")}
-              </button>
-            </div>
-          )}
-
-        </div>
-
-      )}
-
-          <h3 style={{ fontSize: 16 }}>{t("我的领单")}</h3>
-
-      <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-
-        <input
-
-          type="text"
-
-          value={searchMy}
-
-          onChange={(e) => setSearchMy(e.target.value)}
-
-          placeholder={t("搜索订单号或标题（精准）")}
-
-          style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 240 }}
-
-        />
-
-        <button type="button" onClick={() => load(undefined, searchMy, undefined, myDateFilter)} style={{ padding: "6px 14px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
-
-          {t("搜索")}
-
-        </button>
-
-        <button
-
-          type="button"
-
-          onClick={() => {
-
-            setSearchMy("");
-
-            const emptyFilter: DateFilterState = { mode: "all", day: "", startDate: "", endDate: "" };
-
-            setMyDateFilter(emptyFilter);
-
-            load(undefined, "", undefined, emptyFilter);
-
-          }}
-
-          style={{ padding: "6px 14px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}
-
-        >
-
-          {t("清空")}
-
-        </button>
-
-        <OrderDateFilter value={myDateFilter} onChange={setMyDateFilter} />
-
-      </div>
-
-      {!loading && (
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-
-          {myList.map((o) => (
-
-            <div key={o.id} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-
-              <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 8, background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: 13 }}>
-
-                {t("订单日期：")}{formatDateTime(o.created_at)}
-
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
-
-                <div>
-
-                  <div style={{ fontWeight: 600 }}>{t("订单号：")}{o.order_no || `#${o.id}`}</div>
-
-                  {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>{t("标题：")}{o.title}</div>}
-
-                  <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
-
-                    {t("下单商家账号：")}{o.client_username} ｜ {t("商家名称：")}{o.client_display_name}
-
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+                    <div>
+                      <div style={{ fontWeight: 700 }}>
+                        {t("订单号：")}
+                        {o.order_no || `#${o.id}`}
+                      </div>
+                      {o.title && (
+                        <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>
+                          {t("标题：")}
+                          {o.title}
+                        </div>
+                      )}
+                      <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
+                        {t("下单商家账号：")}
+                        {o.client_username} ｜ {t("商家名称：")}
+                        {o.client_display_name}
+                      </div>
+                      <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>
+                        {t("订单创建日期：")}
+                        {formatDateTime(o.created_at)}
+                      </div>
+                    </div>
                   </div>
 
-                  <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>{t("订单创建日期：")}{formatDateTime(o.created_at)}</div>
+                  <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "130px 1fr", gap: 8, alignItems: "start" }}>
+                    <div style={{ color: "#64748b", fontSize: 13 }}>{t("状态")}</div>
+                    <div style={{ fontSize: 14 }}>{statusText[String(o.status || "")] ?? String(o.status || "")}</div>
 
-                </div>
-
-                <span style={{ color: "#666" }}>{statusText[o.status] ?? o.status}</span>
-
-              </div>
-
-              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "130px 1fr", gap: 8, alignItems: "start" }}>
-
-                <div style={{ color: "#64748b", fontSize: 13 }}>{t("状态")}</div>
-
-                <div style={{ fontSize: 14 }}>{statusText[o.status] ?? o.status}</div>
-
-                <div style={{ color: "#64748b", fontSize: 13 }}>{t("视频数量/积分")}</div>
-                <div style={{ fontSize: 14 }}>
-                  <div style={{ marginBottom: 4 }}>
-                    {t("视频数量：")}{o.task_count || "-"} {t("条")}
-                  </div>
-                  <div>
-                    {t("金额：")}
-                    <span style={{ fontWeight: 600, color: "var(--xt-accent)" }}>
-                      {hallMarketOrderTotalPoints(o)} {t("积分")}
-                    </span>
-                    <span style={{ color: "#64748b", marginLeft: 4 }}>
-                      （{t("单套")} {o.reward_points} {t("积分")} × {t("视频数量：")} {hallMarketOrderTaskCount(o)}）
-                    </span>
-                  </div>
-                </div>
-
-                <div style={{ color: "#64748b", fontSize: 13 }}>{t("发布方式")}</div>
-
-                <div style={{ fontSize: 14 }}>{publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}</div>
-
-                <div style={{ color: "#64748b", fontSize: 13 }}>{t("备注")}</div>
-
-                <div style={{ fontSize: 14 }}>{o.voice_note?.trim() ? o.voice_note : "—"}</div>
-
-              </div>
-
-              {renderSkuInfo(o, t)}
-
-              {renderTierStandards(String(o.tier || ""), t)}
-
-              {renderVoiceEntry(o, t)}
-
-              <p style={{ marginTop: 8, fontSize: 14 }}>
-
-                <button
-
-                  type="button"
-
-                  onClick={() => {
-
-                    setLinksModalLinks(o.work_links);
-
-                    setLinksModalOpen(true);
-
-                  }}
-
-                  style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
-
-                >
-
-                  {t("查看链接")}
-
-                </button>
-
-              </p>
-
-              {String(o.publish_link || "").trim() ? (
-                <p style={{ marginTop: 6, fontSize: 14 }}>
-                  {t("发布链接：")}
-                  <a href={String(o.publish_link)} target="_blank" rel="noreferrer" style={{ marginLeft: 6 }}>
-                    {t("查看")}
-                  </a>
-                </p>
-              ) : null}
-
-              {String(o.publish_method || "") === "influencer_publish_with_cart" && o.status === "completed" && !String(o.publish_link || "").trim() ? (
-                <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <input
-                    type="url"
-                    value={publishDraft[o.id] || ""}
-                    onChange={(e) => setPublishDraft((p) => ({ ...p, [o.id]: e.target.value }))}
-                    placeholder={t("发布链接（TikTok/TAP）")}
-                    style={{ flex: 1, minWidth: 220, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
-                  />
-                  <button
-                    type="button"
-                    disabled={!!publishing[o.id]}
-                    onClick={() => void submitPublishLink(o.id)}
-                    style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: publishing[o.id] ? "not-allowed" : "pointer" }}
-                  >
-                    {publishing[o.id] ? t("提交中...") : t("提交发布链接")}
-                  </button>
-                </div>
-              ) : null}
-
-              {o.status === "completed" && influencerEditId === o.id && (
-
-                <div style={{ marginTop: 10 }}>
-
-                  {influencerEditDraft.map((line, idx) => (
-
-                    <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
-
-                      <input
-
-                        value={line}
-
-                        onChange={(e) => {
-
-                          const v = e.target.value;
-
-                          setInfluencerEditDraft((prev) => prev.map((p, i) => (i === idx ? v : p)));
-
-                        }}
-
-                        placeholder="https://..."
-
-                        style={{ flex: 1, minWidth: 200, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }}
-
-                      />
-
-                      <button
-
-                        type="button"
-
-                        onClick={() => setInfluencerEditDraft((prev) => prev.filter((_, i) => i !== idx))}
-
-                        style={{ padding: "4px 8px", border: "1px solid #fecaca", borderRadius: 8, background: "#fff", cursor: "pointer", color: "#b91c1c" }}
-
-                      >
-
-                        ×
-
-                      </button>
-
+                    <div style={{ color: "#64748b", fontSize: 13 }}>{t("视频数量/积分")}</div>
+                    <div style={{ fontSize: 14 }}>
+                      <div style={{ marginBottom: 4 }}>
+                        {t("视频数量：")}
+                        {o.task_count || "-"} {t("条")}
+                      </div>
+                      <div>
+                        {t("金额：")}
+                        <span style={{ fontWeight: 700, color: "var(--xt-accent)" }}>
+                          {hallMarketOrderTotalPoints(o)} {t("积分")}
+                        </span>
+                        <span style={{ color: "#64748b", marginLeft: 4 }}>
+                          （{t("单套")} {o.reward_points} {t("积分")} × {t("视频数量：")} {hallMarketOrderTaskCount(o)}）
+                        </span>
+                      </div>
                     </div>
 
-                  ))}
+                    <div style={{ color: "#64748b", fontSize: 13 }}>{t("发布方式")}</div>
+                    <div style={{ fontSize: 14 }}>
+                      {publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}
+                    </div>
 
-                  <button type="button" onClick={() => setInfluencerEditDraft((prev) => [...prev, ""])} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#f8fafc", cursor: "pointer" }}>
-
-                    {t("+ 新增链接")}
-
-                  </button>
-
-                  <div style={{ marginTop: 8 }}>
-
-                    <button
-
-                      type="button"
-
-                      onClick={() => saveInfluencerWorkLinks(o.id)}
-
-                      disabled={savingInfluencerLinks}
-
-                      style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: savingInfluencerLinks ? "not-allowed" : "pointer", marginRight: 8 }}
-
-                    >
-
-                      {savingInfluencerLinks ? t("保存中...") : t("保存链接")}
-
-                    </button>
-
-                    <button type="button" onClick={() => setInfluencerEditId(null)} style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
-
-                      {t("取消")}
-
-                    </button>
-
+                    <div style={{ color: "#64748b", fontSize: 13 }}>{t("备注")}</div>
+                    <div style={{ fontSize: 14 }}>{o.voice_note?.trim() ? o.voice_note : "—"}</div>
                   </div>
 
-                </div>
+                  {renderSkuInfo(o, t)}
+                  {renderTierStandards(String(o.tier || ""), t)}
+                  {renderVoiceEntry(o, t)}
 
-              )}
+                  {o._list_kind === "open" ? (
+                    <button
+                      type="button"
+                      onClick={() => handleClaim(o.id)}
+                      style={{ marginTop: 10, padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+                    >
+                      {t("领取")}
+                    </button>
+                  ) : (
+                    <>
+                      <p style={{ marginTop: 8, fontSize: 14 }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLinksModalLinks(o.work_links);
+                            setLinksModalOpen(true);
+                          }}
+                          style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                        >
+                          {t("查看链接")}
+                        </button>
+                      </p>
 
-              {o.status === "completed" && influencerEditId !== o.id && completeId !== o.id && (
+                      {String(o.publish_link || "").trim() ? (
+                        <p style={{ marginTop: 6, fontSize: 14 }}>
+                          {t("发布链接：")}
+                          <a href={String(o.publish_link)} target="_blank" rel="noreferrer" style={{ marginLeft: 6 }}>
+                            {t("查看")}
+                          </a>
+                        </p>
+                      ) : null}
 
-                <button
-
-                  type="button"
-
-                  onClick={() => {
-
-                    setInfluencerEditId(o.id);
-
-                    const base = o.work_links.length ? [...o.work_links] : [""];
-
-                    setInfluencerEditDraft(base.length ? base : [""]);
-
-                  }}
-
-                  style={{ marginTop: 8, padding: "6px 12px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
-
-                >
-
-                  {t("编辑交付链接")}
-
-                </button>
-
-              )}
-
-              {o.status === "claimed" && (
-
-                <div style={{ marginTop: 12 }}>
-
-                  {completeId === o.id ? (
-
-                    <div>
-
-                      {workLinkRows.map((line, idx) => (
-
-                        <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
-
+                      {String(o.publish_method || "") === "influencer_publish_with_cart" && o.status === "completed" && !String(o.publish_link || "").trim() ? (
+                        <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                           <input
-
                             type="url"
-
-                            value={line}
-
-                            onChange={(e) => {
-
-                              const v = e.target.value;
-
-                              setWorkLinkRows((prev) => prev.map((p, i) => (i === idx ? v : p)));
-
-                            }}
-
-                            placeholder="https://..."
-
-                            style={{ flex: 1, minWidth: 200, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
-
+                            value={publishDraft[o.id] || ""}
+                            onChange={(e) => setPublishDraft((p) => ({ ...p, [o.id]: e.target.value }))}
+                            placeholder={t("发布链接（TikTok/TAP）")}
+                            style={{ flex: 1, minWidth: 220, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
                           />
+                          <button
+                            type="button"
+                            disabled={!!publishing[o.id]}
+                            onClick={() => void submitPublishLink(o.id)}
+                            style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: publishing[o.id] ? "not-allowed" : "pointer" }}
+                          >
+                            {publishing[o.id] ? t("提交中...") : t("提交发布链接")}
+                          </button>
+                        </div>
+                      ) : null}
+
+                      {o.status === "completed" && influencerEditId === o.id && (
+                        <div style={{ marginTop: 10 }}>
+                          {influencerEditDraft.map((line, idx) => (
+                            <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
+                              <input
+                                value={line}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setInfluencerEditDraft((prev) => prev.map((p, i) => (i === idx ? v : p)));
+                                }}
+                                placeholder="https://..."
+                                style={{ flex: 1, minWidth: 200, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setInfluencerEditDraft((prev) => prev.filter((_, i) => i !== idx))}
+                                style={{ padding: "4px 8px", border: "1px solid #fecaca", borderRadius: 8, background: "#fff", cursor: "pointer", color: "#b91c1c" }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
 
                           <button
-
                             type="button"
-
-                            onClick={() => setWorkLinkRows((prev) => prev.filter((_, i) => i !== idx))}
-
-                            style={{ padding: "4px 8px", border: "1px solid #fecaca", borderRadius: 8, background: "#fff", cursor: "pointer", color: "#b91c1c" }}
-
+                            onClick={() => setInfluencerEditDraft((prev) => [...prev, ""])}
+                            style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#f8fafc", cursor: "pointer" }}
                           >
-
-                            ×
-
+                            {t("+ 新增链接")}
                           </button>
 
+                          <div style={{ marginTop: 8 }}>
+                            <button
+                              type="button"
+                              onClick={() => saveInfluencerWorkLinks(o.id)}
+                              disabled={savingInfluencerLinks}
+                              style={{
+                                padding: "8px 16px",
+                                background: "var(--xt-accent)",
+                                color: "#fff",
+                                border: "none",
+                                borderRadius: 8,
+                                cursor: savingInfluencerLinks ? "not-allowed" : "pointer",
+                                marginRight: 8,
+                              }}
+                            >
+                              {savingInfluencerLinks ? t("保存中...") : t("保存链接")}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setInfluencerEditId(null)}
+                              style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+                            >
+                              {t("取消")}
+                            </button>
+                          </div>
                         </div>
+                      )}
 
-                      ))}
+                      {o.status === "completed" && influencerEditId !== o.id && completeId !== o.id && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInfluencerEditId(o.id);
+                            const base = o.work_links.length ? [...o.work_links] : [""];
+                            setInfluencerEditDraft(base.length ? base : [""]);
+                          }}
+                          style={{ marginTop: 8, padding: "6px 12px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                        >
+                          {t("编辑交付链接")}
+                        </button>
+                      )}
 
-                      <button type="button" onClick={() => setWorkLinkRows((prev) => [...prev, ""])} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#f8fafc", cursor: "pointer", marginBottom: 8 }}>
-
-                        {t("+ 新增链接")}
-
-                      </button>
-
-                      <button type="button" onClick={handleComplete} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", marginTop: 8 }}>
-
-                        {t("确认提交")}
-
-                      </button>
-
-                      <button
-
-                        type="button"
-
-                        onClick={() => {
-
-                          setCompleteId(null);
-
-                          setWorkLinkRows([""]);
-
-                        }}
-
-                        style={{ marginLeft: 8, padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer", marginTop: 8 }}
-
-                      >
-
-                        {t("取消")}
-
-                      </button>
-
-                    </div>
-
-                  ) : (
-
-                    <button
-
-                      type="button"
-
-                      onClick={() => {
-
-                        setCompleteId(o.id);
-
-                        setWorkLinkRows([""]);
-
-                        setInfluencerEditId(null);
-
-                      }}
-
-                      style={{ padding: "8px 16px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
-
-                    >
-
-                      {t("完成并上传链接")}
-
-                    </button>
-
+                      {o.status === "claimed" && (
+                        <div style={{ marginTop: 12 }}>
+                          {completeId === o.id ? (
+                            <div>
+                              {workLinkRows.map((line, idx) => (
+                                <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
+                                  <input
+                                    type="url"
+                                    value={line}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setWorkLinkRows((prev) => prev.map((p, i) => (i === idx ? v : p)));
+                                    }}
+                                    placeholder="https://..."
+                                    style={{ flex: 1, minWidth: 200, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setWorkLinkRows((prev) => prev.filter((_, i) => i !== idx))}
+                                    style={{ padding: "4px 8px", border: "1px solid #fecaca", borderRadius: 8, background: "#fff", cursor: "pointer", color: "#b91c1c" }}
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => setWorkLinkRows((prev) => [...prev, ""])}
+                                style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#f8fafc", cursor: "pointer", marginBottom: 8 }}
+                              >
+                                {t("+ 新增链接")}
+                              </button>
+                              <button type="button" onClick={handleComplete} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", marginTop: 8 }}>
+                                {t("确认提交")}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setCompleteId(null);
+                                  setWorkLinkRows([""]);
+                                }}
+                                style={{ marginLeft: 8, padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer", marginTop: 8 }}
+                              >
+                                {t("取消")}
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCompleteId(o.id);
+                                setWorkLinkRows([""]);
+                                setInfluencerEditId(null);
+                              }}
+                              style={{ padding: "8px 16px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+                            >
+                              {t("完成并上传链接")}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </>
                   )}
-
                 </div>
+              ))}
 
+              {gradedFilteredSorted.length === 0 && (
+                <div className="xt-inf-empty xt-inf-card" style={{ marginTop: 8 }}>
+                  <div className="xt-inf-empty-icon" aria-hidden>
+                    📋
+                  </div>
+                  <div style={{ fontWeight: 700, marginBottom: 8 }}>{t("暂无匹配订单，可调整筛选条件或刷新列表")}</div>
+                  <button type="button" className="xt-accent-btn" onClick={() => load()}>
+                    {t("刷新列表")}
+                  </button>
+                </div>
               )}
-
-            </div>
-
-          ))}
-
-          {myList.length === 0 && (
-            <div className="xt-inf-empty xt-inf-card">
-              <div className="xt-inf-empty-icon" aria-hidden>
-                🗂️
-              </div>
-              <div>{t("暂无我的领单记录")}</div>
             </div>
           )}
 
         </div>
-
-      )}
-
-        </>
       )}
 
       {(typeFilter === "all" || typeFilter !== "graded_video") && (
