@@ -8,6 +8,8 @@ import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFi
 
 import WorkLinksModal from "../components/WorkLinksModal";
 
+import { showToast } from "../utils/showToast";
+
 import { normalizeWorkLinks } from "../utils/workLinks";
 
 
@@ -348,15 +350,26 @@ export default function ClientMarketOrdersPage() {
 
       };
 
-      const [marketData, offlineData] = await Promise.all([
+      const [marketRes, offlineRes] = await Promise.allSettled([
         api.getMarketOrders(Object.keys(query).length > 0 ? query : undefined),
         api.getClientVideoOrders(),
       ]);
 
-      const rows = (marketData.list || []) as MarketOrder[];
-      setMarketOrders(rows.map((r) => ({ ...r, work_links: normalizeWorkLinks(r.work_links) })));
+      const errors: string[] = [];
+      if (marketRes.status === "fulfilled") {
+        const rows = (marketRes.value.list || []) as MarketOrder[];
+        setMarketOrders(rows.map((r) => ({ ...r, work_links: normalizeWorkLinks(r.work_links) })));
+      } else {
+        errors.push(marketRes.reason instanceof Error ? marketRes.reason.message : "分级订单加载失败");
+      }
 
-      setOfflineOrders((offlineData.list || []) as OfflineVideoOrder[]);
+      if (offlineRes.status === "fulfilled") {
+        setOfflineOrders((offlineRes.value.list || []) as OfflineVideoOrder[]);
+      } else {
+        errors.push(offlineRes.reason instanceof Error ? offlineRes.reason.message : "视频订单加载失败");
+      }
+
+      if (errors.length) setError(errors.join("；"));
 
     } catch (e) {
 
@@ -780,13 +793,25 @@ export default function ClientMarketOrdersPage() {
   };
 
   const handleMonthlyBatchAccept = async (orderId: number, batchNo: number) => {
-    const raw = window.prompt("请输入验收数量（accepted_count）", "0") || "0";
-    const accepted = Math.max(0, Math.floor(Number(raw) || 0));
+    const raw = window.prompt("请输入验收数量（accepted_count）", "1") || "1";
+    const accepted = Math.max(1, Math.floor(Number(raw) || 0));
     const note = window.prompt("验收备注（可留空）", "") || "";
     setError(null);
     try {
-      await api.acceptClientMonthlyBatch(orderId, batchNo, { accepted_count: accepted, note });
-      load(searchQ, dateFilter);
+      const ret = await api.acceptClientMonthlyBatch(orderId, batchNo, { accepted_count: accepted, note });
+      const updatedBatch = (ret as any)?.batch ?? null;
+      if (updatedBatch && typeof updatedBatch === "object") {
+        setOfflineOrders((prev) =>
+          prev.map((order) => {
+            if (order.id !== orderId) return order;
+            const list = Array.isArray(order.batch_payload) ? (order.batch_payload as any[]) : [];
+            const next = list.map((b) => (Number(b?.batch_no || 0) === batchNo ? { ...b, ...updatedBatch } : b));
+            return { ...order, batch_payload: next };
+          }),
+        );
+      }
+      showToast("验收成功");
+      void load(searchQ, dateFilter);
     } catch (e) {
       setError(e instanceof Error ? e.message : "操作失败");
     }
