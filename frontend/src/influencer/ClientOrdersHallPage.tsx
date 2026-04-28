@@ -973,7 +973,10 @@ export default function ClientOrdersHallPage() {
       ];
 
       return (
-        <div key={`${o._source}-${o._list_kind}-${o.id}`} style={{ padding: 12, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <div
+          key={`${o._source}-${o._list_kind}-${o.id}`}
+          style={{ padding: 12, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", width: "100%", boxSizing: "border-box", overflow: "hidden" }}
+        >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
             <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <span style={{ fontWeight: 800, color: "#0f172a" }}>
@@ -1037,7 +1040,7 @@ export default function ClientOrdersHallPage() {
                     value={publishDraft[o.id] || ""}
                     onChange={(e) => setPublishDraft((p) => ({ ...p, [o.id]: e.target.value }))}
                     placeholder={t("发布链接（TikTok/TAP）")}
-                    style={{ flex: 1, minWidth: 220, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+                    style={{ flex: 1, minWidth: 0, maxWidth: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
                   />
                   <button
                     type="button"
@@ -1061,7 +1064,7 @@ export default function ClientOrdersHallPage() {
                           setInfluencerEditDraft((prev) => prev.map((p, i) => (i === idx ? v : p)));
                         }}
                         placeholder="https://..."
-                        style={{ flex: 1, minWidth: 200, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                        style={{ flex: 1, minWidth: 0, maxWidth: "100%", padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }}
                       />
                       <button
                         type="button"
@@ -1137,7 +1140,7 @@ export default function ClientOrdersHallPage() {
                               setWorkLinkRows((prev) => prev.map((p, i) => (i === idx ? v : p)));
                             }}
                             placeholder="https://..."
-                            style={{ flex: 1, minWidth: 200, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+                            style={{ flex: 1, minWidth: 0, maxWidth: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
                           />
                           <button
                             type="button"
@@ -1201,9 +1204,27 @@ export default function ClientOrdersHallPage() {
     const publishLinks = (Array.isArray(o.publish_links) ? o.publish_links : [])
       .map((x: any) => String((typeof x === "string" ? x : x?.url || x?.link || "") || "").trim())
       .filter(Boolean);
-    const batchList = Array.isArray(o.batch_payload) ? o.batch_payload.slice().sort((a: any, b: any) => Number(a?.batch_no || 0) - Number(b?.batch_no || 0)) : [];
-    const deliveredBatchCount = batchList.filter((x: any) => Array.isArray(x?.proof_links) && x.proof_links.some((u: unknown) => String(u || "").trim())).length;
-    const pendingBatchCount = batchList.filter((x: any) => String(x?.status || "") === "pending_acceptance").length;
+    const toBatchTime = (v: unknown) => {
+      if (typeof v === "number") {
+        if (!Number.isFinite(v)) return 0;
+        return v > 1e12 ? v : v * 1000;
+      }
+      const s = String(v || "").trim();
+      if (!s) return 0;
+      const ms = Date.parse(s);
+      return Number.isFinite(ms) ? ms : 0;
+    };
+    const batchListChrono = Array.isArray(o.batch_payload)
+      ? o.batch_payload.slice().sort((a: any, b: any) => {
+          const ta = toBatchTime(a?.submitted_at ?? a?.created_at ?? a?.updated_at);
+          const tb = toBatchTime(b?.submitted_at ?? b?.created_at ?? b?.updated_at);
+          if (ta !== tb) return ta - tb;
+          return Number(a?.batch_no || 0) - Number(b?.batch_no || 0);
+        })
+      : [];
+    const deliveredBatchCount = batchListChrono.filter((x: any) => Array.isArray(x?.proof_links) && x.proof_links.some((u: unknown) => String(u || "").trim())).length;
+    const pendingBatchCount = batchListChrono.filter((x: any) => String(x?.status || "") === "pending_acceptance").length;
+    const nextBatchNo = batchListChrono.length + 1;
     const monthlyPlanSummary =
       o.type_id === "monthly_package"
         ? `${Number(req.contract_months || 0) || 1}${t("个月")} / ${Number(req.min_videos_per_month || 0) || 20}${t("条/月")}`
@@ -1240,9 +1261,12 @@ export default function ClientOrdersHallPage() {
     ];
 
     return (
-      <div key={`${o._source}-${o._list_kind}-${o.id}`} style={{ padding: 12, background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+      <div
+        key={`${o._source}-${o._list_kind}-${o.id}`}
+        style={{ padding: 12, background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", width: "100%", boxSizing: "border-box", overflow: "hidden" }}
+      >
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
-          <div style={{ flex: "1 1 520px", minWidth: 280 }}>
+          <div style={{ flex: "1 1 520px", minWidth: 0, maxWidth: "100%" }}>
             <div style={{ fontWeight: 800, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               <span>VO-{o.id}</span>
               {o.type_id === "high_quality_custom_video" && <span style={typeBadgeStyle("hq")}>{offlineTypeText[o.type_id]}</span>}
@@ -1287,7 +1311,7 @@ export default function ClientOrdersHallPage() {
             )}
           </div>
 
-          <div style={{ flex: "0 1 320px", minWidth: 280, display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
+          <div style={{ flex: "1 1 320px", minWidth: 0, maxWidth: "100%", display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
             {o._list_kind === "open" ? (
               <button
                 type="button"
@@ -1331,12 +1355,12 @@ export default function ClientOrdersHallPage() {
                       </div>
                     </div>
 
-                    {batchList.length > 0 && (
+                    {batchListChrono.length > 0 && (
                       <div style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #e2e8f0", background: "#f8fafc" }}>
                         <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8 }}>{t("批次记录")}</div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                          {batchList.slice(-10).map((x: any, idx: number) => {
-                            const bn = Number(x?.batch_no || 0);
+                        <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 220, overflowY: "auto" }}>
+                          {batchListChrono.map((x: any, idx: number) => {
+                            const displayNo = idx + 1;
                             const vc = Number(x?.video_count || 0);
                             const st = String(x?.status || "");
                             const submittedAt = String(x?.submitted_at || "").trim();
@@ -1344,9 +1368,10 @@ export default function ClientOrdersHallPage() {
                             const batchStatusText =
                               st === "pending_acceptance" ? t("待验收") : st === "accepted" ? t("已验收") : st === "settled" ? t("已结算") : st || t("未知");
                             return (
-                              <div key={`${o.id}-batch-${bn}-${idx}`} style={{ fontSize: 12, color: "#334155" }}>
+                              <div key={`${o.id}-batch-${displayNo}`} style={{ fontSize: 12, color: "#334155" }}>
                                 <div style={{ fontWeight: 700, lineHeight: 1.5 }}>
-                                  {t("批次")} {bn || "-"}{t("：")} {batchStatusText} ｜ {t("数量")}：{Number.isFinite(vc) && vc > 0 ? vc : "-"}
+                                  {t("批次")} {displayNo}
+                                  {t("：")} {batchStatusText} ｜ {t("数量")}：{Number.isFinite(vc) && vc > 0 ? vc : "-"}
                                   {submittedAt ? <span style={{ color: "#64748b", fontWeight: 500 }}> ｜ {submittedAt}</span> : null}
                                 </div>
                                 {links.length > 0 && (
@@ -1355,7 +1380,13 @@ export default function ClientOrdersHallPage() {
                                       const url = String(u || "").trim();
                                       if (!url) return null;
                                       return (
-                                        <a key={`${o.id}-batch-${bn}-link-${i}`} href={url} target="_blank" rel="noreferrer" style={{ color: "var(--xt-accent)", wordBreak: "break-all" }}>
+                                        <a
+                                          key={`${o.id}-batch-${displayNo}-link-${i}`}
+                                          href={url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          style={{ color: "var(--xt-accent)", wordBreak: "break-all" }}
+                                        >
                                           {url}
                                         </a>
                                       );
@@ -1374,15 +1405,7 @@ export default function ClientOrdersHallPage() {
                         <span>{t("批次号")}</span>
                         <input
                           type="number"
-                          value={((offlineMonthlyDraft[o.id]?.batchNo ??
-                            String(
-                              Math.max(
-                                0,
-                                ...((Array.isArray(o.batch_payload) ? o.batch_payload : [])
-                                  .map((x: any) => Number(x?.batch_no || 0))
-                                  .filter((n: number) => Number.isFinite(n) && n > 0)),
-                              ) + 1,
-                            )) as any)}
+                          value={(offlineMonthlyDraft[o.id]?.batchNo ?? String(nextBatchNo)) as any}
                           onChange={(e) => setOfflineMonthlyDraft((p) => ({ ...p, [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), batchNo: e.target.value } }))}
                           style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea" }}
                           placeholder={t("批次号")}
