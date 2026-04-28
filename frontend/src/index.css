@@ -432,7 +432,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 180px;
+  height: 192px;
   background: rgba(255, 255, 255, 0.92);
   border-top: 1px solid var(--xt-border);
   backdrop-filter: blur(12px);
@@ -440,14 +440,19 @@ body {
 
 .xt-login-home__footer-inner {
   height: 100%;
-  padding: 12px 0;
+  padding: 16px 0;
   display: grid;
-  grid-template-columns: 1fr 1.8fr 1fr;
-  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  align-items: start;
+  justify-items: stretch;
 }
 
 .xt-login-home__footer-col {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .xt-login-home__footer-col--wide {
@@ -457,16 +462,22 @@ body {
 .xt-login-home__footer-title {
   color: var(--xt-primary);
   font-weight: 900;
-  font-size: 13px;
-  margin-bottom: 8px;
+  font-size: 15px;
+  line-height: 1.3;
+  margin-bottom: 10px;
 }
 
 .xt-login-home__footer-text {
   color: var(--xt-text-muted);
   font-size: 12px;
-  line-height: 1.4;
-  margin-top: 4px;
+  line-height: 1.6;
+  margin-top: 0;
+  margin-bottom: 6px;
   word-break: break-word;
+}
+
+.xt-login-home__footer-text:last-child {
+  margin-bottom: 0;
 }
 
 .xt-login-home__footer-a {
@@ -481,11 +492,11 @@ body {
 
 @media (max-width: 980px) {
   .xt-login-home__content {
-    padding-bottom: 220px;
+    padding-bottom: 208px;
   }
 
   .xt-login-home__footer {
-    height: 220px;
+    height: 208px;
   }
 
   .xt-login-home__hero-inner {
@@ -500,10 +511,6 @@ body {
     grid-column: span 2;
   }
 
-  .xt-login-home__footer-inner {
-    grid-template-columns: 1fr 1fr;
-  }
-
   .xt-login-home__team-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -511,11 +518,11 @@ body {
 
 @media (max-width: 640px) {
   .xt-login-home__content {
-    padding-bottom: 260px;
+    padding-bottom: 316px;
   }
 
   .xt-login-home__footer {
-    height: 260px;
+    height: 316px;
   }
 
   .xt-login-home__grid {
@@ -528,6 +535,7 @@ body {
 
   .xt-login-home__footer-inner {
     grid-template-columns: 1fr;
+    gap: 14px;
   }
 
   .xt-login-home__team-h {

@@ -578,7 +578,7 @@ export default function Login() {
       <footer className="xt-login-home__footer" id="contact">
         <div className="xt-login-home__container xt-login-home__footer-inner">
           <div className="xt-login-home__footer-col">
-            <div className="xt-login-home__footer-title">客户支持</div>
+            <div className="xt-login-home__footer-title">客服支持</div>
             <div className="xt-login-home__footer-text">
               Line OA：{" "}
               <a className="xt-login-home__footer-a" href="https://lin.ee/TbYmfgi" target="_blank" rel="noreferrer">
