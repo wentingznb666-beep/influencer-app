@@ -48,6 +48,20 @@ function decodeLooseUnicodeEscapes(input: string): string {
   return value;
 }
 
+function stripControlChars(input: string): string {
+  let out = "";
+  for (const ch of input) {
+    const code = ch.charCodeAt(0);
+    if (code === 0x09 || code === 0x0a || code === 0x0d) {
+      out += ch;
+      continue;
+    }
+    if (code < 0x20 || code === 0x7f) continue;
+    out += ch;
+  }
+  return out;
+}
+
 /**
  * 统一标准化账号/昵称文本，尽量保证三端展示稳定可读。
  */
@@ -59,7 +73,7 @@ export function normalizeAccountText(input: unknown): string {
   let value = decodeLooseUnicodeEscapes(raw);
 
   // 2) 清理控制字符与替换字符
-  value = value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").replace(/\uFFFD+/g, "").trim();
+  value = stripControlChars(value).replace(/\uFFFD+/g, "").trim();
 
   // 3) 尝试修复 mojibake，并保留更可读版本
   const repaired = tryRepairUtf8Mojibake(value).trim();

@@ -23,13 +23,26 @@ export type DashboardNavItem = {
 /** 标准化用户名，避免头部显示 unicode 转义残留或乱码。 */
 function normalizeUsername(text: string | null | undefined): string {
   if (!text) return "";
+  const stripControlChars = (input: string): string => {
+    let out = "";
+    for (const ch of input) {
+      const code = ch.charCodeAt(0);
+      if (code === 0x09 || code === 0x0a || code === 0x0d) {
+        out += ch;
+        continue;
+      }
+      if (code < 0x20 || code === 0x7f) continue;
+      out += ch;
+    }
+    return out;
+  };
   let value = text;
   for (let i = 0; i < 2; i += 1) {
     const decoded = value.replace(/\\u([0-9a-fA-F]{4})/g, (_m, hex: string) => String.fromCharCode(parseInt(hex, 16)));
     if (decoded === value) break;
     value = decoded;
   }
-  value = value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+  value = stripControlChars(value).trim();
 
   const parts = value.split(/\s+/).filter(Boolean);
   if (parts.length > 1 && /^[A-Za-z0-9_.@-]{2,}$/.test(parts[0])) return parts[0];
@@ -604,4 +617,3 @@ export default function DashboardShell({
     </div>
   );
 }
-

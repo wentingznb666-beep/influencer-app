@@ -1,8 +1,22 @@
-﻿import { normalizeAccountText } from "./accountText";
+import { normalizeAccountText } from "./accountText";
 
 const STORAGE_USER = "influencer_app_user";
 const STORAGE_TH_CACHE = "influencer_app_i18n_th_cache_v2";
 const STORAGE_MIGRATION_FLAG = "influencer_app_storage_migration_v2";
+
+function stripControlChars(input: string): string {
+  let out = "";
+  for (const ch of input) {
+    const code = ch.charCodeAt(0);
+    if (code === 0x09 || code === 0x0a || code === 0x0d) {
+      out += ch;
+      continue;
+    }
+    if (code < 0x20 || code === 0x7f) continue;
+    out += ch;
+  }
+  return out;
+}
 
 /**
  * 浠呭仛瀹夊叏鏂囨湰娓呯悊锛氳В鐮?unicode 杞箟骞剁Щ闄ゆ帶鍒跺瓧绗︼紝涓嶆敼鍙樹笟鍔¤涔夈€?
@@ -20,7 +34,7 @@ function normalizeCacheText(value: unknown): string {
     next = decoded;
   }
 
-  return next.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
+  return stripControlChars(next).trim();
 }
 
 /**
@@ -74,5 +88,6 @@ export function runStorageSelfHealMigration(): void {
   } catch {
     // ignore
   }
-}
+}
+
 

@@ -587,7 +587,7 @@ export default function Login() {
             </div>
           </div>
 
-          <div className="xt-login-home__footer-col xt-login-home__footer-col--wide">
+          <div className="xt-login-home__footer-col">
             <div className="xt-login-home__footer-title">合规信息</div>
             <div className="xt-login-home__footer-text">
               เลขทะเบียน:0505564017671 | ประกอบธุรกิจ:โฆษณา | วันที่จดทะเบียน:8 พฤศจิกายน 2564

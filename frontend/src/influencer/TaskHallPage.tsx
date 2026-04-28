@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { applyMatchingOrder, getInfluencerMatchingTaskHall, getMyMatchingApplies, publishMatchingOrder, submitMatchingProof } from "../influencerApi";
@@ -15,6 +15,9 @@ type TaskItem = {
   apply_status?: string;
   order_status?: string;
   work_links?: string[];
+  cooperation_type_id?: unknown;
+  coop_phase?: unknown;
+  coop_publish_links?: unknown;
 };
 
 /** 统一报名状态文案（中文键，供 t() 映射）。 */
@@ -56,7 +59,7 @@ export default function TaskHallPage() {
   const [msg, setMsg] = useState<string>("");
 
   /** 拉取任务大厅与我的报名。 */
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -68,11 +71,11 @@ export default function TaskHallPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   /** 报名商家任务。 */
   const apply = async (id: number) => {
@@ -224,9 +227,9 @@ export default function TaskHallPage() {
             {appliedList.map((it) => {
               const oid = Number(it.order_id || 0);
               const canSubmitProof = it.apply_status === "selected" && it.order_status === "claimed" && oid > 0;
-              const coopType = String((it as any).cooperation_type_id || "").trim();
-              const coopPhase = String((it as any).coop_phase || "").trim();
-              const publishLinks = Array.isArray((it as any).coop_publish_links) ? ((it as any).coop_publish_links as unknown[]) : [];
+              const coopType = String(it.cooperation_type_id || "").trim();
+              const coopPhase = String(it.coop_phase || "").trim();
+              const publishLinks = Array.isArray(it.coop_publish_links) ? (it.coop_publish_links as unknown[]) : [];
               const lastPublish = publishLinks.map((x) => String(x || "").trim()).filter(Boolean).slice(-1)[0] || "";
               const canSubmitPublish = it.apply_status === "selected" && it.order_status === "completed" && oid > 0 && coopType === "creator_review_video" && coopPhase === "approved_to_publish";
               const orderLabel = formatOrderStatus(it.order_status);

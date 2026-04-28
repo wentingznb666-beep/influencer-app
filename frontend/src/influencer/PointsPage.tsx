@@ -26,17 +26,31 @@ export default function PointsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
-    api
-      .getPoints()
+    let alive = true;
+    Promise.resolve()
+      .then(() => {
+        if (!alive) return null;
+        setLoading(true);
+        setError(null);
+        return api.getPoints();
+      })
       .then((data) => {
+        if (!alive || !data) return;
         setBalance(data.balance ?? 0);
         setWeekPending(data.weekPending ?? 0);
         setLedger(data.ledger ?? []);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : t("加载失败")))
-      .finally(() => setLoading(false));
+      .catch((e) => {
+        if (!alive) return;
+        setError(e instanceof Error ? e.message : t("加载失败"));
+      })
+      .finally(() => {
+        if (!alive) return;
+        setLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
   }, [t]);
 
   return (

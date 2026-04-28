@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
 import * as api from "../influencerApi";
@@ -48,7 +48,7 @@ export default function WithdrawPage() {
   /**
    * 加载余额与提现记录。
    */
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -60,11 +60,11 @@ export default function WithdrawPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     void load();
-  }, []);
+  }, [load]);
 
   /**
    * 提交提现申请。
