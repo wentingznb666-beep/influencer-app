@@ -10,7 +10,14 @@ import { xtPrimaryBtn } from "./brandTheme";
 
 const svgDataUri = (svg: string) => `data:image/svg+xml,${encodeURIComponent(svg)}`;
 
-const TEAM_IMAGES = {
+const TEAM_PHOTO_SRC = {
+  ceo: "/team/ceo.png",
+  marketing: "/team/marketing.png",
+  live: "/team/live.png",
+  edit: "/team/edit.png",
+} as const;
+
+const TEAM_PHOTO_FALLBACK = {
   ceo: svgDataUri(`
     <svg xmlns="http://www.w3.org/2000/svg" width="720" height="480" viewBox="0 0 720 480">
       <defs>
@@ -148,6 +155,30 @@ const TEAM_IMAGES = {
     </svg>
   `),
 } as const;
+
+type TeamKey = keyof typeof TEAM_PHOTO_SRC;
+
+function TeamPhoto({ team, alt }: { team: TeamKey; alt: string }) {
+  const src = TEAM_PHOTO_SRC[team];
+  const fallback = TEAM_PHOTO_FALLBACK[team];
+  const [currentSrc, setCurrentSrc] = useState<string>(src);
+
+  useEffect(() => {
+    setCurrentSrc(src);
+  }, [src]);
+
+  return (
+    <img
+      className="xt-login-home__team-img"
+      src={currentSrc}
+      alt={alt}
+      loading="lazy"
+      onError={() => {
+        if (currentSrc !== fallback) setCurrentSrc(fallback);
+      }}
+    />
+  );
+}
 
 
 
@@ -522,19 +553,19 @@ export default function Login() {
 
             <div className="xt-login-home__team-grid">
               <div className="xt-login-home__team-card">
-                <img className="xt-login-home__team-img" src={TEAM_IMAGES.ceo} alt="CEO" loading="lazy" />
+                <TeamPhoto team="ceo" alt="CEO" />
                 <div className="xt-login-home__team-label">CEO</div>
               </div>
               <div className="xt-login-home__team-card">
-                <img className="xt-login-home__team-img" src={TEAM_IMAGES.marketing} alt="Marketing team" loading="lazy" />
+                <TeamPhoto team="marketing" alt="Marketing team" />
                 <div className="xt-login-home__team-label">Marketing team</div>
               </div>
               <div className="xt-login-home__team-card">
-                <img className="xt-login-home__team-img" src={TEAM_IMAGES.live} alt="Live team" loading="lazy" />
+                <TeamPhoto team="live" alt="Live team" />
                 <div className="xt-login-home__team-label">Live team</div>
               </div>
               <div className="xt-login-home__team-card">
-                <img className="xt-login-home__team-img" src={TEAM_IMAGES.edit} alt="Edit team" loading="lazy" />
+                <TeamPhoto team="edit" alt="Edit team" />
                 <div className="xt-login-home__team-label">Edit team</div>
               </div>
             </div>
