@@ -1337,6 +1337,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_name TEXT`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_branch TEXT`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_card TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS line_contact TEXT`);
   await query(`ALTER TABLE users DROP COLUMN IF EXISTS contact_info`);
   await query(`CREATE TABLE IF NOT EXISTS influencer_profiles (
     user_id INTEGER PRIMARY KEY REFERENCES users(id),

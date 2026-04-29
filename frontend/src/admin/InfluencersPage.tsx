@@ -1,14 +1,22 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import * as api from "../adminApi";
 
 type Influencer = { id: number; username: string; display_name: string | null; created_at: string; show_face: number; tags: string | null; platforms: string | null; blacklisted: number; level: number };
 
 export default function InfluencersPage() {
+  const nav = useNavigate();
+  const location = useLocation();
   const [list, setList] = useState<Influencer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<number | null>(null);
   const [form, setForm] = useState({ show_face: 0, tags: "", platforms: "", blacklisted: 0, level: 1 });
+  const basePath = useMemo(() => {
+    const p = String(location.pathname || "");
+    if (p.startsWith("/employee/")) return "/employee";
+    return "/admin";
+  }, [location.pathname]);
 
   const load = async () => {
     setLoading(true);
@@ -84,9 +92,15 @@ export default function InfluencersPage() {
                 <td style={{ padding: 10 }}>{row.level}</td>
                 <td style={{ padding: 10 }}>
                   {editing === row.id ? (
-                    <button type="button" onClick={saveProfile} style={{ padding: "4px 10px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>保存</button>
+                    <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                      <button type="button" onClick={saveProfile} style={{ padding: "4px 10px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>保存</button>
+                      <button type="button" onClick={() => setEditing(null)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>取消</button>
+                    </div>
                   ) : (
-                    <button type="button" onClick={() => startEdit(row)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer" }}>编辑</button>
+                    <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                      <button type="button" onClick={() => startEdit(row)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>编辑</button>
+                      <button type="button" onClick={() => nav(`${basePath}/influencers/${row.id}`)} style={{ padding: "4px 10px", border: "1px solid rgba(26,35,126,0.22)", borderRadius: 6, cursor: "pointer", background: "#fff", color: "var(--xt-primary)" }}>查看达人详情</button>
+                    </div>
                   )}
                 </td>
               </tr>

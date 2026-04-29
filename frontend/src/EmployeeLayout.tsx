@@ -23,6 +23,7 @@ export default function EmployeeLayout() {
     { to: "/employee/graded-video-hall", label: "视频分级工作台", icon: "🧰", group: "points" },
     { to: "/employee/skus", label: "SKU 列表", icon: "🧱", group: "points" },
     { to: "/employee/points", label: "视频分级结算", icon: "🪙", group: "points" },
+    { to: "/employee/influencers", label: "达人管理", icon: "👥", group: "match" },
     { to: "/employee/merchant-members", label: "会员与保证金", icon: "👑", group: "match" },
     { to: "/employee/influencer-permissions", label: "达人撮合权限审核", icon: "✅", group: "match" },
     { to: "/employee/cooperation-types", label: "合作业务类型说明", icon: "🧩", group: "match" },

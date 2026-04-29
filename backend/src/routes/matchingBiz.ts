@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿import { Router, Response } from "express";
+﻿﻿﻿﻿﻿﻿﻿import { Router, Response } from "express";
 import multer from "multer";
 import path from "path";
 import { promises as fs } from "fs";
@@ -44,12 +44,14 @@ function isInfluencerProfileComplete(row: {
   tiktok_fans: string | null;
   expertise_domains: string | null;
   influencer_bio: string | null;
+  line_contact?: string | null;
 } | null | undefined): boolean {
   if (!row) return false;
   if (!String(row.tiktok_account || "").trim()) return false;
   if (!String(row.tiktok_fans || "").trim()) return false;
   if (!String(row.expertise_domains || "").trim()) return false;
   if (!String(row.influencer_bio || "").trim()) return false;
+  if (!String(row.line_contact || "").trim()) return false;
   return true;
 }
 
@@ -196,8 +198,9 @@ router.get("/influencer/profile", async (req: AuthRequest, res: Response) => {
       tiktok_fans: string | null;
       expertise_domains: string | null;
       influencer_bio: string | null;
+      line_contact: string | null;
     }>(
-      `SELECT tiktok_account, tiktok_fans, expertise_domains, influencer_bio
+      `SELECT tiktok_account, tiktok_fans, expertise_domains, influencer_bio, line_contact
          FROM users
         WHERE id=$1`,
       [req.user.userId],
@@ -211,6 +214,7 @@ router.get("/influencer/profile", async (req: AuthRequest, res: Response) => {
             tiktok_fans: String(row.tiktok_fans || ""),
             expertise_domains: domains,
             influencer_bio: String(row.influencer_bio || ""),
+            line_contact: String(row.line_contact || ""),
             completed: isInfluencerProfileComplete(row),
           }
         : null,
@@ -229,6 +233,7 @@ router.put("/influencer/profile", async (req: AuthRequest, res: Response) => {
   const tiktokFans = String(req.body?.tiktok_fans || "").trim();
   const influencerBio = String(req.body?.influencer_bio || "").trim();
   const domains = normalizeDomains(req.body?.expertise_domains);
+  const lineContact = String(req.body?.line_contact || "").trim();
 
   if (!tiktokAccount || !/^@?[A-Za-z0-9._]{2,32}$/.test(tiktokAccount)) {
     return res.status(400).json({ error: "INVALID_TIKTOK_ACCOUNT", message: "请填写有效的 TikTok 账号。" });
@@ -242,6 +247,9 @@ router.put("/influencer/profile", async (req: AuthRequest, res: Response) => {
   if (!influencerBio) {
     return res.status(400).json({ error: "INVALID_INFLUENCER_BIO", message: "请填写自我介绍/个人优势。" });
   }
+  if (!lineContact) {
+    return res.status(400).json({ error: "INVALID_LINE_CONTACT", message: "请填写 Line 联系方式。" });
+  }
 
   try {
     await query(
@@ -250,9 +258,10 @@ router.put("/influencer/profile", async (req: AuthRequest, res: Response) => {
               tiktok_fans=$3,
               expertise_domains=$4,
               influencer_bio=$5,
+              line_contact=$6,
               updated_at=now()
         WHERE id=$1`,
-      [req.user.userId, tiktokAccount, tiktokFans, domains.join(","), influencerBio],
+      [req.user.userId, tiktokAccount, tiktokFans, domains.join(","), influencerBio, lineContact],
     );
     return res.json({ ok: true });
   } catch (e) {

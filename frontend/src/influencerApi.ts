@@ -295,6 +295,7 @@ export type InfluencerProfilePayload = {
   tiktok_fans: string;
   expertise_domains: string[];
   influencer_bio: string;
+  line_contact: string;
 };
 
 /** 读取达人信息（报名必填）。 */

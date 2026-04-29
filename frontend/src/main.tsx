@@ -44,6 +44,7 @@ import MerchantMembersPage from "./admin/MerchantMembersPage";
 import InfluencerPermissionsPage from "./admin/InfluencerPermissionsPage";
 import CooperationTypesPage from "./admin/CooperationTypesPage";
 import CooperationOrdersPage from "./admin/CooperationOrdersPage";
+import InfluencerDetailPage from "./admin/InfluencerDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
 import App from "./App";
 import AboutUsPage from "./AboutUsPage";
@@ -68,6 +69,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/admin/market-orders" replace />} />
             <Route path="influencers" element={<InfluencersPage />} />
+            <Route path="influencers/:id" element={<InfluencerDetailPage />} />
             <Route path="points" element={<PointsPage />} />
             <Route path="settlement" element={<SettlementPage />} />
             <Route path="withdrawals" element={<WithdrawalsPage />} />
@@ -88,6 +90,8 @@ createRoot(document.getElementById("root")!).render(
           </Route>
           <Route path="/employee" element={<ProtectedRoute roles={["employee"]}><EmployeeLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/employee/market-orders" replace />} />
+            <Route path="influencers" element={<InfluencersPage />} />
+            <Route path="influencers/:id" element={<InfluencerDetailPage />} />
             <Route path="models" element={<ModelsPage />} />
             <Route path="showcase-influencers" element={<ShowcaseInfluencersPage />} />
             <Route path="showcase-content-creators" element={<ShowcaseContentCreatorsPage />} />

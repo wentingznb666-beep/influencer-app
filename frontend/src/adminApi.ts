@@ -198,6 +198,12 @@ export async function updateInfluencerProfile(userId: number, body: { show_face?
 
 }
 
+export async function getInfluencerDetail(userId: number) {
+  const res = await fetchWithAuth(`/api/admin/influencers/${userId}/detail`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
+  return res.json();
+}
+
 
 
 /** 投稿列表 */

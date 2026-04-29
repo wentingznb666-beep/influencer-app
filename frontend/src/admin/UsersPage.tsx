@@ -25,6 +25,8 @@ type UserItem = {
 
   disabled: number;
 
+  line_contact?: string | null;
+
   created_at: string;
 
 };
@@ -739,7 +741,7 @@ export default function UsersPage() {
 
         <div style={{ overflowX: "auto", background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
 
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 860 }}>
 
             <thead>
 
@@ -750,6 +752,8 @@ export default function UsersPage() {
                 <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>用户名</th>
 
                 <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>显示名</th>
+
+                <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>Line</th>
 
                 <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>账号类型</th>
 
@@ -775,6 +779,10 @@ export default function UsersPage() {
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}><span data-no-auto-translate>{item.username}</span></td>
 
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{item.display_name || "—"}</td>
+
+                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>
+                    {item.role === "influencer" ? (item.line_contact || "—") : "—"}
+                  </td>
 
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{roleTextMap[item.role] ?? item.role}</td>
 

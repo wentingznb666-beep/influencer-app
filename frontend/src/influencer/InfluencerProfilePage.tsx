@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getInfluencerProfile, saveInfluencerProfile, type InfluencerProfilePayload } from "../influencerApi";
 
 const DOMAIN_OPTIONS = ["美妆", "服饰", "数码", "家居", "母婴", "食品", "运动", "教育", "旅行", "其他"];
@@ -11,6 +11,7 @@ export default function InfluencerProfilePage() {
     tiktok_fans: "",
     expertise_domains: [],
     influencer_bio: "",
+    line_contact: "",
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -30,6 +31,7 @@ export default function InfluencerProfilePage() {
     const account = form.tiktok_account.trim();
     const fans = form.tiktok_fans.trim();
     const bio = form.influencer_bio.trim();
+    const line = form.line_contact.trim();
 
     if (!account) return "请填写 TikTok 账号";
     if (!/^@?[A-Za-z0-9._]{2,32}$/.test(account)) return "TikTok 账号格式不正确";
@@ -37,6 +39,7 @@ export default function InfluencerProfilePage() {
     if (!/^[0-9]+(\+|\s*-\s*[0-9]+)?$/.test(fans)) return "粉丝数量仅支持正整数或区间，如 10000 或 10000-20000";
     if (form.expertise_domains.length === 0) return "请至少选择一个擅长领域";
     if (!bio) return "请填写自我介绍/个人优势";
+    if (!line) return "请填写 Line 联系方式";
     return null;
   };
 
@@ -53,6 +56,7 @@ export default function InfluencerProfilePage() {
           tiktok_fans: String(profile.tiktok_fans || ""),
           expertise_domains: Array.isArray(profile.expertise_domains) ? profile.expertise_domains.map((x: unknown) => String(x || "")).filter(Boolean) : [],
           influencer_bio: String(profile.influencer_bio || ""),
+          line_contact: String((profile as any).line_contact || ""),
         });
         const completed = Boolean(profile.completed);
         setSaved(completed || saved);
@@ -100,6 +104,7 @@ export default function InfluencerProfilePage() {
         tiktok_fans: form.tiktok_fans.trim(),
         expertise_domains: form.expertise_domains,
         influencer_bio: form.influencer_bio.trim(),
+        line_contact: form.line_contact.trim(),
       });
       setSaved(true);
       setEditing(false);
@@ -192,6 +197,17 @@ export default function InfluencerProfilePage() {
             value={form.influencer_bio}
             onChange={(e) => setForm((prev) => ({ ...prev, influencer_bio: e.target.value }))}
             placeholder="例如：擅长剧情类短视频创作，能稳定周更..."
+            style={{ width: "100%", marginTop: 6 }}
+          />
+        </label>
+
+        <label>
+          Line 联系方式 <span style={{ color: "#dc2626" }}>*</span>
+          <input
+            value={form.line_contact}
+            disabled={!editing}
+            onChange={(e) => setForm((prev) => ({ ...prev, line_contact: e.target.value }))}
+            placeholder="如 line_id 或手机号（仅管理员/员工可见）"
             style={{ width: "100%", marginTop: 6 }}
           />
         </label>

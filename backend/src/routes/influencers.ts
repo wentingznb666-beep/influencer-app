@@ -4,7 +4,7 @@ import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
 const router = Router();
 router.use(requireAuth);
-router.use(requireRole("admin"));
+router.use(requireRole("admin", "employee"));
 
 /**
  * GET /api/admin/influencers
@@ -47,6 +47,89 @@ router.get("/", (_req: AuthRequest, res: Response) => {
     res.json({ list });
   })().catch((e) => {
     console.error("influencers list error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+ * GET /api/admin/influencers/:userId/detail
+ * 达人详情（管理员/员工可见），含 Line 联系方式与完整资料。
+ */
+router.get("/:userId/detail", (req: AuthRequest, res: Response) => {
+  const userId = Number(req.params.userId);
+  if (!Number.isInteger(userId) || userId < 1) {
+    res.status(400).json({ error: "INVALID_ID", message: "无效的用户 ID。" });
+    return;
+  }
+  (async () => {
+    const { rows } = await query<{
+      id: number;
+      username: string;
+      display_name: string | null;
+      disabled: number;
+      influencer_status: string;
+      created_at: string;
+      updated_at: string;
+      tiktok_account: string | null;
+      tiktok_fans: string | null;
+      expertise_domains: string | null;
+      influencer_bio: string | null;
+      line_contact: string | null;
+      real_name: string | null;
+      bank_name: string | null;
+      bank_branch: string | null;
+      bank_card: string | null;
+      show_face: number | null;
+      tags: string | null;
+      platforms: string | null;
+      blacklisted: number | null;
+      level: number | null;
+    }>(
+      `
+      SELECT u.id, u.username, u.display_name, u.disabled, u.influencer_status, u.created_at, u.updated_at,
+             u.tiktok_account, u.tiktok_fans, u.expertise_domains, u.influencer_bio, u.line_contact,
+             u.real_name, u.bank_name, u.bank_branch, u.bank_card,
+             p.show_face, p.tags, p.platforms, p.blacklisted, p.level
+        FROM users u
+        JOIN roles r ON u.role_id = r.id
+        LEFT JOIN influencer_profiles p ON u.id = p.user_id
+       WHERE u.id=$1 AND r.name='influencer'
+      `,
+      [userId]
+    );
+    const row = rows[0];
+    if (!row) {
+      res.status(404).json({ error: "NOT_FOUND", message: "达人不存在。" });
+      return;
+    }
+    const domains = row.expertise_domains ? String(row.expertise_domains).split(",").map((s) => s.trim()).filter(Boolean) : [];
+    res.json({
+      profile: {
+        id: row.id,
+        username: row.username,
+        display_name: row.display_name,
+        disabled: row.disabled,
+        influencer_status: row.influencer_status,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+        tiktok_account: row.tiktok_account,
+        tiktok_fans: row.tiktok_fans,
+        expertise_domains: domains,
+        influencer_bio: row.influencer_bio,
+        line_contact: row.line_contact,
+        real_name: row.real_name,
+        bank_name: row.bank_name,
+        bank_branch: row.bank_branch,
+        bank_card: row.bank_card,
+        show_face: row.show_face ?? 0,
+        tags: row.tags,
+        platforms: row.platforms,
+        blacklisted: row.blacklisted ?? 0,
+        level: row.level ?? 1,
+      },
+    });
+  })().catch((e) => {
+    console.error("influencers detail error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   });
 });
