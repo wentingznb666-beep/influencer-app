@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { getStoredUser } from "../authApi";
-import { getAdminCooperationOrders, reviewAdminCooperationOrder } from "../matchingApi";
+import { getAdminCooperationOrders } from "../matchingApi";
 
 type Row = {
   id: number;
@@ -107,12 +107,10 @@ export default function CooperationOrdersPage() {
   const [list, setList] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [msg, setMsg] = useState("");
 
   const [type, setType] = useState("");
   const [phase, setPhase] = useState("");
   const [q, setQ] = useState("");
-  const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
 
   const filteredList = useMemo(() => {
     const src = Array.isArray(list) ? list : [];
@@ -164,23 +162,6 @@ export default function CooperationOrdersPage() {
     return "合作订单工作台";
   }, [isAdmin, isEmployee]);
 
-  const review = async (orderId: number, action: "approve" | "reject") => {
-    const key = `${orderId}:${action}`;
-    setBusyMap((p) => ({ ...p, [key]: true }));
-    setError(null);
-    setMsg("");
-    try {
-      const note = window.prompt(action === "reject" ? "请输入驳回原因（可选）：" : "请输入审核备注（可选）：") ?? "";
-      await reviewAdminCooperationOrder(orderId, { action, note: note.trim() || undefined });
-      setMsg(action === "approve" ? "已审核通过" : "已驳回");
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败");
-    } finally {
-      setBusyMap((p) => ({ ...p, [key]: false }));
-    }
-  };
-
   return (
     <div>
       <style>{`
@@ -193,20 +174,21 @@ export default function CooperationOrdersPage() {
         .xt-coop-meta { color: var(--xt-text-muted); font-size: 12px; }
         .xt-coop-table-wrap { width: 100%; max-width: 100%; overflow-x: hidden; background:#fff; border:1px solid var(--xt-border); border-radius: 12px; }
         .xt-coop-table { width:100%; max-width:100%; border-collapse: separate; border-spacing:0; table-layout: fixed; }
-        .xt-coop-col-order { width: 22%; }
-        .xt-coop-col-type { width: 11%; }
-        .xt-coop-col-phase { width: 15%; }
+        .xt-coop-col-orderNo { width: 10%; }
+        .xt-coop-col-taskName { width: 18%; }
+        .xt-coop-col-type { width: 12%; }
         .xt-coop-col-amount { width: 10%; }
-        .xt-coop-col-person { width: 20%; }
-        .xt-coop-col-links { width: 12%; }
-        .xt-coop-col-action { width: 10%; }
+        .xt-coop-col-client { width: 14%; }
+        .xt-coop-col-influencer { width: 14%; }
+        .xt-coop-col-status { width: 12%; }
+        .xt-coop-col-delivery { width: 10%; }
         .xt-coop-th { position: sticky; top: 0; z-index: 1; background: rgba(21,42,69,0.06); text-align:left; padding: 10px; font-size: 12px; color: #475569; font-weight: 900; border-bottom: 1px solid rgba(148,163,184,0.28); }
         .xt-coop-td { box-sizing: border-box; padding: 10px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); vertical-align: top; overflow: hidden; }
         .xt-coop-row:hover { background: rgba(15,23,42,0.02); }
         .xt-coop-ellipsis { display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .xt-coop-order-no { font-weight: 900; color: var(--xt-primary); }
-        .xt-coop-title { margin-top: 4px; color: #0f172a; font-weight: 700; }
-        .xt-coop-sub { margin-top: 6px; display:flex; gap: 8px; flex-wrap:wrap; align-items:center; }
+        .xt-coop-title { color: #0f172a; font-weight: 700; }
+        .xt-coop-sub { display:flex; gap: 8px; flex-wrap:wrap; align-items:center; }
         .xt-coop-amount { text-align: right; font-weight: 900; color: var(--xt-accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
         .xt-coop-person { display:grid; gap: 6px; color:#0f172a; min-width:0; }
         .xt-coop-person-line { display:grid; grid-template-columns: 34px minmax(0,1fr); gap: 4px; align-items: start; min-width:0; }
@@ -222,17 +204,18 @@ export default function CooperationOrdersPage() {
         .xt-coop-linkbtn[disabled] { opacity: .55; cursor: not-allowed; }
         .xt-coop-review-note { margin-top: 8px; color: #475569; font-size: 12px; line-height: 1.4; max-height: 3.6em; overflow: hidden; text-overflow: ellipsis; }
         @media (max-width: 1280px) {
-          .xt-coop-col-order { width: 21%; }
-          .xt-coop-col-type { width: 10%; }
-          .xt-coop-col-phase { width: 14%; }
+          .xt-coop-col-orderNo { width: 11%; }
+          .xt-coop-col-taskName { width: 18%; }
+          .xt-coop-col-type { width: 12%; }
           .xt-coop-col-amount { width: 10%; }
-          .xt-coop-col-person { width: 21%; }
-          .xt-coop-col-links { width: 13%; }
-          .xt-coop-col-action { width: 11%; }
+          .xt-coop-col-client { width: 14%; }
+          .xt-coop-col-influencer { width: 14%; }
+          .xt-coop-col-status { width: 12%; }
+          .xt-coop-col-delivery { width: 9%; }
         }
         @media (max-width: 1023px) {
           .xt-coop-table-wrap { overflow-x: auto; }
-          .xt-coop-table { min-width: 900px; }
+          .xt-coop-table { min-width: 980px; }
         }
         @media (max-width: 720px) {
           .xt-coop-input { min-width: 100%; }
@@ -278,28 +261,30 @@ export default function CooperationOrdersPage() {
         </div>
 
         {error ? <p style={{ color: "#b91c1c", marginTop: 10 }}>{error}</p> : null}
-        {msg ? <p style={{ color: "#166534", marginTop: 8 }}>{msg}</p> : null}
+        
 
         <div className="xt-coop-table-wrap">
           <table className="xt-coop-table">
             <colgroup>
-              <col className="xt-coop-col-order" />
+              <col className="xt-coop-col-orderNo" />
+              <col className="xt-coop-col-taskName" />
               <col className="xt-coop-col-type" />
-              <col className="xt-coop-col-phase" />
               <col className="xt-coop-col-amount" />
-              <col className="xt-coop-col-person" />
-              <col className="xt-coop-col-links" />
-              <col className="xt-coop-col-action" />
+              <col className="xt-coop-col-client" />
+              <col className="xt-coop-col-influencer" />
+              <col className="xt-coop-col-status" />
+              <col className="xt-coop-col-delivery" />
             </colgroup>
             <thead>
               <tr>
-                <th className="xt-coop-th">订单</th>
-                <th className="xt-coop-th">合作类型</th>
-                <th className="xt-coop-th">阶段</th>
+                <th className="xt-coop-th">订单号</th>
+                <th className="xt-coop-th">任务名称</th>
+                <th className="xt-coop-th">任务类型</th>
                 <th className="xt-coop-th" style={{ textAlign: "right", minWidth: 96 }}>金额</th>
-                <th className="xt-coop-th">商家 / 达人</th>
-                <th className="xt-coop-th">交付 / 发布</th>
-                <th className="xt-coop-th" style={{ textAlign: "right" }}>操作</th>
+                <th className="xt-coop-th">商家</th>
+                <th className="xt-coop-th">达人</th>
+                <th className="xt-coop-th">订单状态</th>
+                <th className="xt-coop-th">交付</th>
               </tr>
             </thead>
             <tbody>
@@ -308,20 +293,16 @@ export default function CooperationOrdersPage() {
                 const coop = safeText(r.cooperation_type_id);
                 const ph = safeText(r.phase);
                 const workLinks = asLinks(r.work_links);
-                const publishLinks = asLinks(r.publish_links);
-                const canReview = coop === "creator_review_video" && ph === "review_pending";
                 return (
                   <tr key={id} className="xt-coop-row">
                     <td className="xt-coop-td">
                       <div className="xt-coop-order-no xt-coop-ellipsis" title={safeText(r.order_no) || `#${id}`}>
                         {safeText(r.order_no) || `#${id}`}
                       </div>
+                    </td>
+                    <td className="xt-coop-td">
                       <div className="xt-coop-title xt-coop-ellipsis" title={safeText(r.title) || "-"}>
                         {safeText(r.title) || "-"}
-                      </div>
-                      <div className="xt-coop-sub">
-                        <span style={statusBadgeStyle("status", safeText(r.status))}>{safeText(r.status) || "-"}</span>
-                        <span style={statusBadgeStyle("match", safeText(r.match_status))}>{safeText(r.match_status) || "-"}</span>
                       </div>
                     </td>
                     <td className="xt-coop-td">
@@ -329,75 +310,35 @@ export default function CooperationOrdersPage() {
                         {typeLabel(coop)}
                       </span>
                     </td>
-                    <td className="xt-coop-td">
-                      <span style={statusBadgeStyle("phase", ph)}>{phaseLabel(ph)}</span>
-                      {safeText(r.review_note) ? (
-                        <div className="xt-coop-review-note" title={`备注：${safeText(r.review_note)}`}>
-                          备注：{safeText(r.review_note)}
-                        </div>
-                      ) : null}
-                    </td>
                     <td className="xt-coop-td xt-coop-amount">{safeNum(r.task_amount).toFixed(0)} ฿</td>
                     <td className="xt-coop-td">
                       <div className="xt-coop-person">
-                        <div className="xt-coop-person-line">
-                          <span className="xt-coop-person-label">商家：</span>
-                          <span className="xt-coop-person-value xt-coop-ellipsis" title={safeText(r.client_name) || safeText(r.client_username) || "-"}>
-                            {safeText(r.client_name) || safeText(r.client_username) || "-"}
-                          </span>
-                        </div>
-                        <div className="xt-coop-person-line">
-                          <span className="xt-coop-person-label">达人：</span>
-                          <span className="xt-coop-person-value xt-coop-ellipsis" title={safeText(r.influencer_name) || safeText(r.influencer_username) || "-"}>
-                            {safeText(r.influencer_name) || safeText(r.influencer_username) || "-"}
-                          </span>
-                        </div>
+                        <span className="xt-coop-person-value xt-coop-ellipsis" title={safeText(r.client_name) || safeText(r.client_username) || "-"}>
+                          {safeText(r.client_name) || safeText(r.client_username) || "-"}
+                        </span>
                       </div>
                     </td>
                     <td className="xt-coop-td">
-                      <div className="xt-coop-links">
-                        {workLinks.length ? (
-                          <div className="xt-coop-link-row">
-                            <span className="xt-coop-link-tag">交付</span>
-                            <a className="xt-coop-link-url xt-coop-ellipsis" href={workLinks[0]} target="_blank" rel="noreferrer" title={workLinks[0]}>
-                              {workLinks[0]}
-                            </a>
-                          </div>
-                        ) : (
-                          <span className="xt-coop-muted">交付链接：-</span>
-                        )}
-                        {publishLinks.length ? (
-                          <div className="xt-coop-link-row">
-                            <span className="xt-coop-link-tag">发布</span>
-                            <a
-                              className="xt-coop-link-url xt-coop-ellipsis"
-                              href={publishLinks[publishLinks.length - 1]}
-                              target="_blank"
-                              rel="noreferrer"
-                              title={publishLinks[publishLinks.length - 1]}
-                            >
-                              {publishLinks[publishLinks.length - 1]}
-                            </a>
-                          </div>
-                        ) : (
-                          <span className="xt-coop-muted">发布链接：-</span>
-                        )}
+                      <div className="xt-coop-person">
+                        <span className="xt-coop-person-value xt-coop-ellipsis" title={safeText(r.influencer_name) || safeText(r.influencer_username) || "-"}>
+                          {safeText(r.influencer_name) || safeText(r.influencer_username) || "-"}
+                        </span>
                       </div>
                     </td>
-                    <td className="xt-coop-td" style={{ textAlign: "right" }}>
-                      {canReview ? (
-                        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
-                          <button type="button" disabled={!!busyMap[`${id}:approve`]} onClick={() => void review(id, "approve")} style={{ height: 32, fontWeight: 800 }}>
-                            {busyMap[`${id}:approve`] ? "处理中…" : "审核通过"}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={!!busyMap[`${id}:reject`]}
-                            onClick={() => void review(id, "reject")}
-                            style={{ height: 32, border: "1px solid rgba(185,28,28,0.35)", background: "rgba(185,28,28,0.08)", color: "#b91c1c" }}
-                          >
-                            {busyMap[`${id}:reject`] ? "处理中…" : "驳回"}
-                          </button>
+                    <td className="xt-coop-td">
+                      <div className="xt-coop-sub">
+                        <span style={statusBadgeStyle("phase", ph)}>{phaseLabel(ph)}</span>
+                        <span style={statusBadgeStyle("status", safeText(r.status))}>{safeText(r.status) || "-"}</span>
+                        <span style={statusBadgeStyle("match", safeText(r.match_status))}>{safeText(r.match_status) || "-"}</span>
+                      </div>
+                    </td>
+                    <td className="xt-coop-td">
+                      {workLinks.length ? (
+                        <div className="xt-coop-link-row">
+                          <span className="xt-coop-link-tag">交付</span>
+                          <a className="xt-coop-link-url xt-coop-ellipsis" href={workLinks[0]} target="_blank" rel="noreferrer" title={workLinks[0]}>
+                            {workLinks[0]}
+                          </a>
                         </div>
                       ) : (
                         <span className="xt-coop-muted">—</span>
