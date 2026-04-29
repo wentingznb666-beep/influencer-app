@@ -17,6 +17,7 @@ type Row = {
   influencer_username?: string | null;
   work_links?: unknown;
   cooperation_type_id?: string | null;
+  detail_json?: unknown;
   phase?: string | null;
   publish_links?: unknown;
   review_note?: string | null;
@@ -38,18 +39,19 @@ function asLinks(v: unknown): string[] {
   return v.map((x) => String(x || "").trim()).filter(Boolean);
 }
 
-function cleanTaskName(raw: string): string {
+function pickTaskNameFromTitle(raw: string): string {
   const s = String(raw || "").trim();
   if (!s) return "-";
-  const parts = s
-    .split("|")
-    .map((x) => x.trim())
-    .filter(Boolean);
-  if (!parts.length) return "-";
-  const first = parts[0];
-  const second = parts[1] || "";
-  if (second && first === second) return first;
-  return first;
+  const split = s.split(/[\|｜]/).map((x) => x.trim()).filter(Boolean);
+  return split[0] || s;
+}
+
+function getDetailText(row: unknown, key: string): string {
+  if (!row || typeof row !== "object") return "";
+  const v = (row as any)[key];
+  if (v == null) return "";
+  const s = String(v).trim();
+  return s;
 }
 
 function formatOrderStatus(status: string) {
@@ -154,13 +156,27 @@ export default function CooperationOrdersPage() {
     return m;
   }, [typeConfig]);
 
-  const typeLabel = (typeId: string) => {
+  const typeIdLabel = (typeId: string) => {
     const id = String(typeId || "").trim();
-    if (!id) return t("未知类型");
+    if (!id) return "—";
     const name = typeNameMap.get(id);
     const isTh = String(i18n.language || "").toLowerCase().startsWith("th");
     const label = isTh ? name?.th : name?.zh;
     return (label && String(label).trim()) || id;
+  };
+
+  const taskNameLabel = (row: Row) => {
+    const detailName = getDetailText(row.detail_json, "task_name");
+    if (detailName) return detailName;
+    return pickTaskNameFromTitle(safeText(row.title));
+  };
+
+  const taskTypeLabel = (row: Row) => {
+    const detailType = getDetailText(row.detail_json, "task_type");
+    if (detailType) return detailType;
+    const id = String(row.cooperation_type_id || "").trim();
+    if (!id) return "—";
+    return typeIdLabel(id);
   };
 
   const filteredList = useMemo(() => {
@@ -334,7 +350,7 @@ export default function CooperationOrdersPage() {
             <option value="">全部类型</option>
             {typeOptions.map((t) => (
               <option key={t} value={t}>
-                {typeLabel(t)}
+                {typeIdLabel(t)}
               </option>
             ))}
           </select>
@@ -383,7 +399,6 @@ export default function CooperationOrdersPage() {
             <tbody>
               {filteredList.map((r) => {
                 const id = r.id;
-                const coop = safeText(r.cooperation_type_id);
                 const ph = safeText(r.phase);
                 const workLinks = asLinks(r.work_links);
                 return (
@@ -392,10 +407,10 @@ export default function CooperationOrdersPage() {
                       <div className="xt-coop-order-no">{safeText(r.order_no) || `#${id}`}</div>
                     </td>
                     <td className="xt-coop-td">
-                      <div className="xt-coop-title">{cleanTaskName(safeText(r.title))}</div>
+                      <div className="xt-coop-title">{taskNameLabel(r)}</div>
                     </td>
                     <td className="xt-coop-td">
-                      <span>{typeLabel(coop)}</span>
+                      <span>{taskTypeLabel(r)}</span>
                     </td>
                     <td className="xt-coop-td xt-coop-amount">{safeNum(r.task_amount).toFixed(0)} ฿</td>
                     <td className="xt-coop-td">
