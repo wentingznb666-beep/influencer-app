@@ -77,11 +77,17 @@ async function createMessageTx(
   relatedType?: string,
   relatedId?: number
 ): Promise<void> {
-  await client.query(
-    `INSERT INTO system_messages (user_id, category, title, content, related_type, related_id)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [userId, category, title, content, relatedType ?? null, relatedId ?? null]
-  );
+  try {
+    await client.query(
+      `INSERT INTO system_messages (user_id, category, title, content, related_type, related_id)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [userId, category, title, content, relatedType ?? null, relatedId ?? null]
+    );
+  } catch (e: any) {
+    const code = typeof e?.code === "string" ? e.code : "";
+    if (code === "42P01" || code === "42703") return;
+    throw e;
+  }
 }
 
 function toStringList(input: unknown): string[] {

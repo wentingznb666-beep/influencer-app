@@ -461,6 +461,20 @@ export async function getClientVideoOrderDetail(id: number) {
   return res.json() as Promise<{ order: OfflineVideoOrder }>;
 }
 
+async function readApiErrorMessage(res: Response): Promise<string> {
+  try {
+    const data = await res.json().catch(() => ({} as any));
+    const msg = typeof data?.message === "string" ? data.message : "";
+    if (msg) return msg;
+  } catch {}
+  try {
+    const text = await res.text();
+    return String(text || "").trim();
+  } catch {
+    return "";
+  }
+}
+
 export async function createClientVideoOrder(body: {
   type_id: OfflineVideoOrderTypeId;
   title: string;
@@ -478,7 +492,7 @@ export async function createClientVideoOrder(body: {
 
 export async function acceptClientVideoOrder(id: number) {
   const res = await fetchWithAuth(`/api/client/video-orders/${id}/accept`, { method: "POST" });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  if (!res.ok) throw new Error((await readApiErrorMessage(res)) || "操作失败");
   return res.json();
 }
 
@@ -488,7 +502,7 @@ export async function rejectClientVideoOrder(id: number, note?: string) {
     headers: { "Content-Type": "application/json; charset=utf-8" },
     body: JSON.stringify({ note: note || "" }),
   });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "操作失败");
+  if (!res.ok) throw new Error((await readApiErrorMessage(res)) || "操作失败");
   return res.json();
 }
 
