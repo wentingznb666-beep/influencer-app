@@ -296,10 +296,28 @@ export default function MatchingCenterPage() {
     if (!Number.isFinite(n)) return "-";
     return n.toFixed(2);
   };
+  const getDetailObj = (it: any): Record<string, unknown> | null => {
+    const d = it?.detail && typeof it.detail === "object" ? (it.detail as Record<string, unknown>) : null;
+    if (d) return d;
+    const dj = it?.detail_json && typeof it.detail_json === "object" ? (it.detail_json as Record<string, unknown>) : null;
+    if (dj) return dj;
+    const d2 = it?.detailJson && typeof it.detailJson === "object" ? (it.detailJson as Record<string, unknown>) : null;
+    if (d2) return d2;
+    return null;
+  };
   const getDetailText = (it: any, key: string): string => {
-    const d = it?.detail && typeof it.detail === "object" ? (it.detail as any) : null;
-    const v = d?.[key];
+    const d = getDetailObj(it) as any;
+    const v = d ? d[key] : undefined;
     return safeText(v).trim();
+  };
+  const normalizeTaskType = (taskType: string, contentForm: string): MatchingFormState["task_type"] => {
+    const v = String(taskType || "").trim();
+    if (v === "短视频" || v === "图文" || v === "直播" || v === "探店") return v;
+    const cf = String(contentForm || "").trim();
+    if (cf.includes("直播")) return "直播";
+    if (cf.includes("图文")) return "图文";
+    if (cf.includes("短视频")) return "短视频";
+    return "短视频";
   };
   const formatOrderStatus = (status: unknown): string => {
     const v = safeText(status).trim();
@@ -348,7 +366,7 @@ export default function MatchingCenterPage() {
           {orders.map((it) => {
             const orderNo = safeText(it.order_no).trim() || "-";
             const taskName = getDetailText(it, "task_name") || safeText(it.title).trim() || "-";
-            const taskType = getDetailText(it, "task_type") || "-";
+            const taskType = normalizeTaskType(getDetailText(it, "task_type"), getDetailText(it, "content_form"));
             const amount = safeAmount(it.task_amount);
             const statusText = formatOrderStatus(it.status);
             return (
@@ -371,11 +389,11 @@ export default function MatchingCenterPage() {
                 <button
               type="button" 
               onClick={() => {
-                if (it.detail) {
-                  const d = it.detail as Record<string, unknown>;
+                const d = getDetailObj(it);
+                if (d) {
                   setForm({
                     task_name: typeof d.task_name === "string" ? d.task_name : "",
-                    task_type: (typeof d.task_type === "string" && ["短视频", "图文", "直播", "探店"].includes(d.task_type)) ? d.task_type as MatchingFormState["task_type"] : "短视频",
+                    task_type: normalizeTaskType(typeof d.task_type === "string" ? d.task_type : "", typeof d.content_form === "string" ? d.content_form : ""),
                     industry: (typeof d.industry === "string" && ["美妆", "服饰", "美食", "家居", "其他"].includes(d.industry)) ? d.industry as MatchingFormState["industry"] : "其他",
                     recruit_count: typeof d.recruit_count === "number" ? String(d.recruit_count) : "",
                     start_date: typeof d.start_date === "string" ? d.start_date : "",
