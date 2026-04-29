@@ -8,7 +8,7 @@ import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFi
 
 import WorkLinksModal from "../components/WorkLinksModal";
 
-import { showToast } from "../utils/showToast";
+import { showToastNotice } from "../utils/showToast";
 
 import { normalizeWorkLinks } from "../utils/workLinks";
 
@@ -792,9 +792,12 @@ export default function ClientMarketOrdersPage() {
     setError(null);
     try {
       await api.acceptClientVideoOrder(id);
+      showToastNotice(`✅ 订单 VO-${id} 验收通过！订单状态已更新`, { variant: "success", placement: "top-right", durationMs: 4200, closable: true });
       load(searchQ, dateFilter);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败");
+      const msg = e instanceof Error ? e.message : "操作失败";
+      setError(msg);
+      showToastNotice(`❌ 订单 VO-${id} 验收失败，请重新操作`, { variant: "error", placement: "top-right", durationMs: 4200, closable: true });
     }
   };
 
@@ -803,9 +806,12 @@ export default function ClientMarketOrdersPage() {
     setError(null);
     try {
       await api.rejectClientVideoOrder(id, note);
+      showToastNotice(`✅ 订单 VO-${id} 已驳回，订单状态已更新`, { variant: "success", placement: "top-right", durationMs: 4200, closable: true });
       load(searchQ, dateFilter);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败");
+      const msg = e instanceof Error ? e.message : "操作失败";
+      setError(msg);
+      showToastNotice(`❌ 订单 VO-${id} 驳回失败，请重新操作`, { variant: "error", placement: "top-right", durationMs: 4200, closable: true });
     }
   };
 
@@ -827,10 +833,12 @@ export default function ClientMarketOrdersPage() {
           }),
         );
       }
-      showToast("验收成功");
+      showToastNotice(`✅ 订单 VO-${orderId} 批次${batchNo} 验收通过！订单状态已更新`, { variant: "success", placement: "top-right", durationMs: 4200, closable: true });
       void load(searchQ, dateFilter);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败");
+      const msg = e instanceof Error ? e.message : "操作失败";
+      setError(msg);
+      showToastNotice(`❌ 订单 VO-${orderId} 批次${batchNo} 验收失败，请重新操作`, { variant: "error", placement: "top-right", durationMs: 4200, closable: true });
     }
   };
 
