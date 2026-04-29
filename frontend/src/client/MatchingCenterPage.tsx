@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import {
   createMatchingOrder,
   getClientMerchantInfoTemplate,
@@ -82,6 +83,7 @@ function isVideoUrl(url: string): boolean {
 
 /** 商家端撮合中心：弹窗发布撮合订单。 */
 export default function MatchingCenterPage() {
+  const { t } = useTranslation();
   const { merchantTemplate, setMerchantTemplate } = useAppStore();
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
@@ -288,8 +290,44 @@ export default function MatchingCenterPage() {
   /** 附件预览列表。 */
   const previews = useMemo(() => uploadedUrls, [uploadedUrls]);
 
+  const safeText = (v: unknown): string => (typeof v === "string" ? v : v == null ? "" : String(v));
+  const safeAmount = (v: unknown): string => {
+    const n = typeof v === "number" ? v : Number(v);
+    if (!Number.isFinite(n)) return "-";
+    return n.toFixed(2);
+  };
+  const getDetailText = (it: any, key: string): string => {
+    const d = it?.detail && typeof it.detail === "object" ? (it.detail as any) : null;
+    const v = d?.[key];
+    return safeText(v).trim();
+  };
+  const formatOrderStatus = (status: unknown): string => {
+    const v = safeText(status).trim();
+    if (v === "open") return t("待认领");
+    if (v === "claimed") return t("已认领");
+    if (v === "completed") return t("已完成");
+    if (v === "accepted") return t("已验收");
+    if (v === "cancelled") return t("已取消");
+    return v || "-";
+  };
+
   return (
     <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
+      <style>{`
+        .xt-mc-list { display: grid; gap: 10px; }
+        .xt-mc-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #fff; display:flex; justify-content:space-between; gap: 12px; align-items:flex-start; }
+        .xt-mc-main { min-width: 0; flex: 1 1 auto; }
+        .xt-mc-no { font-weight: 900; color: var(--xt-primary); }
+        .xt-mc-grid { margin-top: 8px; display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 6px 10px; align-items:start; }
+        .xt-mc-label { color: #64748b; font-size: 13px; white-space: nowrap; }
+        .xt-mc-val { color: #0f172a; font-size: 13px; overflow-wrap: anywhere; word-break: break-word; }
+        .xt-mc-amount { font-variant-numeric: tabular-nums; font-weight: 900; color: var(--xt-accent); }
+        .xt-mc-status { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.35); background: rgba(148,163,184,0.12); color: #334155; font-size: 12px; font-weight: 800; white-space: nowrap; }
+        @media (max-width: 720px) {
+          .xt-mc-card { flex-direction: column; }
+          .xt-mc-grid { grid-template-columns: 76px minmax(0, 1fr); }
+        }
+      `}</style>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <h2 style={{ margin: 0 }}>撮合中心</h2>
         <button type="button" onClick={() => setShowModal(true)} style={{ height: 38, fontWeight: 700 }}>
@@ -302,16 +340,35 @@ export default function MatchingCenterPage() {
 
       <div style={{ marginTop: 14 }}>
         <h3 style={{ marginBottom: 8 }}>已发布撮合订单</h3>
+        <p style={{ marginTop: 0, marginBottom: 10, color: "#64748b", fontSize: 13 }}>
+          点击“编辑”可查看并修改当前订单；订单状态会根据认领与交付流程自动更新。
+        </p>
         {orders.length === 0 ? <p style={{ color: "#64748b" }}>暂无订单</p> : null}
-        {orders.map((it) => (
-          <div key={it.id} style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 10, marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <div>{it.order_no}｜{it.title}</div>
-              <div style={{ color: "#475569", marginTop: 4 }}>
-                金额：{it.task_amount}｜状态：{it.status}
-              </div>
-            </div>
-            <button 
+        <div className="xt-mc-list">
+          {orders.map((it) => {
+            const orderNo = safeText(it.order_no).trim() || "-";
+            const taskName = getDetailText(it, "task_name") || safeText(it.title).trim() || "-";
+            const taskType = getDetailText(it, "task_type") || "-";
+            const amount = safeAmount(it.task_amount);
+            const statusText = formatOrderStatus(it.status);
+            return (
+              <div key={it.id} className="xt-mc-card">
+                <div className="xt-mc-main">
+                  <div className="xt-mc-no">{orderNo}</div>
+                  <div className="xt-mc-grid">
+                    <div className="xt-mc-label">{t("任务名称")}</div>
+                    <div className="xt-mc-val">{taskName}</div>
+                    <div className="xt-mc-label">{t("任务类型")}</div>
+                    <div className="xt-mc-val">{taskType}</div>
+                    <div className="xt-mc-label">{t("金额")}</div>
+                    <div className="xt-mc-val xt-mc-amount">{amount}</div>
+                    <div className="xt-mc-label">{t("订单状态")}</div>
+                    <div className="xt-mc-val">
+                      <span className="xt-mc-status">{statusText}</span>
+                    </div>
+                  </div>
+                </div>
+                <button
               type="button" 
               onClick={() => {
                 if (it.detail) {
@@ -363,8 +420,10 @@ export default function MatchingCenterPage() {
             >
               编辑
             </button>
-          </div>
-        ))}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {showModal ? (
