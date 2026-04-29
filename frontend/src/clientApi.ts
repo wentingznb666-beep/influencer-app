@@ -908,6 +908,13 @@ export async function acceptMatchingOrder(orderId: number) {
   return res.json();
 }
 
+/** 商家端：读取已验收撮合订单的达人收款信息。 */
+export async function getMatchingOrderPaymentProfile(orderId: number) {
+  const res = await fetchWithAuth(`/api/matching/client/matching-orders/${orderId}/payment-profile`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '请求失败');
+  return res.json();
+}
+
 
 /** 商家端上传撮合任务图片/短视频。 */
 export async function uploadMatchingOrderAssets(files: File[]) {

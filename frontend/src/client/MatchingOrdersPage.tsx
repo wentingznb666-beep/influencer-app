@@ -4,10 +4,12 @@ import {
   acceptMatchingOrder,
   getMatchingOrderApplicants,
   getMatchingOrders,
+  getMatchingOrderPaymentProfile,
   rejectMatchingOrderAccept,
   rejectMatchingOrderApplicant,
   selectMatchingOrderApplicant,
 } from "../clientApi";
+import { showToastNotice } from "../utils/showToast";
 
 type OrderRow = {
   id: number;
@@ -60,6 +62,7 @@ function formatDateTimeLite(raw: unknown): string {
 
 function statusBadgeStyle(status: string): { bg: string; text: string; border: string } {
   const s = status.toLowerCase();
+  if (s === "accepted") return { bg: "rgba(16,185,129,0.12)", text: "#0f766e", border: "rgba(16,185,129,0.35)" };
   if (s === "completed") return { bg: "rgba(16,185,129,0.12)", text: "#0f766e", border: "rgba(16,185,129,0.35)" };
   if (s === "claimed") return { bg: "rgba(245,158,11,0.14)", text: "#b45309", border: "rgba(245,158,11,0.40)" };
   if (s === "open") return { bg: "rgba(59,130,246,0.12)", text: "#1d4ed8", border: "rgba(59,130,246,0.35)" };
@@ -71,6 +74,7 @@ function statusText(status: string): string {
   if (s === "open") return "开放中";
   if (s === "claimed") return "执行中";
   if (s === "completed") return "待验收";
+  if (s === "accepted") return "已验收";
   return status || "-";
 }
 
@@ -87,6 +91,7 @@ export default function MatchingOrdersPage() {
   const [actionBusy, setActionBusy] = useState<Record<string, boolean>>({});
   const [detailOpen, setDetailOpen] = useState(false);
   const [activeInfluencer, setActiveInfluencer] = useState<ApplicantRow | null>(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "claimed" | "completed">("all");
@@ -144,6 +149,7 @@ export default function MatchingOrdersPage() {
     setActiveOrderId(null);
     setApplicants([]);
     setPaymentInfo(null);
+    setPaymentModalOpen(false);
   };
 
   const openInfluencerDetail = (influencer: ApplicantRow) => {
@@ -195,8 +201,10 @@ export default function MatchingOrdersPage() {
       setPaymentInfo(null);
       await loadAll();
       setMsg("已驳回，任务退回执行中");
+      showToastNotice("❌ 驳回成功", { variant: "error", placement: "top-right", durationMs: 4200, closable: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "驳回失败");
+      showToastNotice("❌ 驳回失败", { variant: "error", placement: "top-right", durationMs: 4200, closable: true });
     } finally {
       setBusy(key, false);
     }
@@ -212,14 +220,39 @@ export default function MatchingOrdersPage() {
       setPaymentInfo(ret?.payment_profile || null);
       await loadAll();
       setMsg("验收通过，已展示收款信息");
+      showToastNotice("✅ 验收成功", { variant: "success", placement: "top-right", durationMs: 4200, closable: true });
+      setPaymentModalOpen(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "验收失败");
+      showToastNotice("❌ 验收失败", { variant: "error", placement: "top-right", durationMs: 4200, closable: true });
+    } finally {
+      setBusy(key, false);
+    }
+  };
+
+  const loadPaymentProfile = async (orderId: number) => {
+    const key = `paymentProfile:${orderId}`;
+    setBusy(key, true);
+    try {
+      const ret = await getMatchingOrderPaymentProfile(orderId);
+      setPaymentInfo(ret?.payment_profile || null);
+    } catch (err) {
+      const m = err instanceof Error ? err.message : "加载失败";
+      setError(m);
+      showToastNotice(`❌ ${m}`, { variant: "error", placement: "top-right", durationMs: 4200, closable: true });
     } finally {
       setBusy(key, false);
     }
   };
 
   const activeOrder = useMemo(() => orders.find((o) => o.id === activeOrderId) || null, [orders, activeOrderId]);
+  const isAccepted = useMemo(() => safeText(activeOrder?.match_status).toLowerCase() === "completed", [activeOrder]);
+  useEffect(() => {
+    if (!activeOrderId) return;
+    if (!isAccepted) return;
+    if (paymentInfo) return;
+    void loadPaymentProfile(activeOrderId);
+  }, [activeOrderId, isAccepted, paymentInfo]);
   const influencerDomains = useMemo(() => {
     if (!activeInfluencer?.expertise_domains) return "-";
     return safeText(activeInfluencer.expertise_domains)
@@ -395,7 +428,9 @@ export default function MatchingOrdersPage() {
         {pagedOrders.map((it) => {
           const amount = safeNumber(it.task_amount);
           const status = safeText(it.status);
-          const badge = statusBadgeStyle(status);
+          const accepted = safeText(it.match_status).toLowerCase() === "completed";
+          const statusKey = accepted ? "accepted" : status;
+          const badge = statusBadgeStyle(statusKey);
           const taskName = getOrderDetailField(it, "task_name") || safeText(it.title);
           const productName = getOrderDetailField(it, "product_name");
           const coopType = getOrderDetailField(it, "cooperation_type_id");
@@ -422,12 +457,12 @@ export default function MatchingOrdersPage() {
                 <div className="xt-right">
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
                     <div className="xt-amount"><strong>{amount.toFixed(0)}</strong><span>฿</span></div>
-                    <span className="xt-badge" style={{ background: badge.bg, color: badge.text, borderColor: badge.border }}>{statusText(status)}</span>
+                    <span className="xt-badge" style={{ background: badge.bg, color: badge.text, borderColor: badge.border }}>{statusText(statusKey)}</span>
                   </div>
                   <div className="xt-actions">
                     <button type="button" className="xt-btn xt-btn--primary" onClick={() => void openApplicants(it.id)}>报名管理</button>
                     {firstWork ? <a className="xt-btn xt-btn--outline" href={firstWork} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>查看回传短视频</a> : null}
-                    {safeText(it.status) === "completed" ? (
+                    {safeText(it.status) === "completed" && !accepted ? (
                       <>
                         <button type="button" className="xt-btn xt-btn--primary" onClick={() => void acceptOrder(it.id)} disabled={!!actionBusy[`acceptOrder:${it.id}`]}>
                           {actionBusy[`acceptOrder:${it.id}`] ? "验收中…" : "验收通过"}
@@ -510,8 +545,48 @@ export default function MatchingOrdersPage() {
                 </table>
               ) : null}
 
+              {isAccepted ? (
+                <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                  <button
+                    type="button"
+                    className="xt-btn xt-btn--outline"
+                    onClick={() => {
+                      if (activeOrderId && !paymentInfo) void loadPaymentProfile(activeOrderId);
+                      setPaymentModalOpen(true);
+                    }}
+                    disabled={!!actionBusy[`paymentProfile:${activeOrder.id}`]}
+                  >
+                    {actionBusy[`paymentProfile:${activeOrder.id}`] ? "加载中…" : "查看收款信息"}
+                  </button>
+                </div>
+              ) : null}
+
               {paymentInfo ? (
                 <div style={{ marginTop: 14, padding: 12, border: "1px solid rgba(16,185,129,0.35)", borderRadius: 12, background: "rgba(16,185,129,0.08)" }}>
+                  <div style={{ fontWeight: 800, color: "#065f46" }}>达人收款信息（请商家线下转账）</div>
+                  <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "120px 1fr", rowGap: 6, columnGap: 10, fontSize: 13, lineHeight: 1.8 }}>
+                    <div style={{ color: "#047857" }}>姓名</div><div>{paymentInfo.real_name || "-"}</div>
+                    <div style={{ color: "#047857" }}>银行</div><div>{paymentInfo.bank_name || "-"}</div>
+                    <div style={{ color: "#047857" }}>银行卡号</div><div>{paymentInfo.bank_card || "-"}</div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {paymentModalOpen && activeOrder ? (
+        <div className="xt-modal-mask" onClick={(e) => { if (e.target === e.currentTarget) setPaymentModalOpen(false); }} style={{ zIndex: 1350 }}>
+          <div className="xt-modal" style={{ width: "min(720px, 94vw)" }}>
+            <div className="xt-modal-head">
+              <h3 className="xt-modal-title">达人收款信息</h3>
+              <button type="button" className="xt-close" onClick={() => setPaymentModalOpen(false)}>×</button>
+            </div>
+            <div className="xt-modal-body">
+              {!paymentInfo ? <div style={{ color: "#64748b", padding: "10px 2px" }}>暂无收款信息，请达人先在【收款信息】中填写。</div> : null}
+              {paymentInfo ? (
+                <div style={{ padding: 12, border: "1px solid rgba(16,185,129,0.35)", borderRadius: 12, background: "rgba(16,185,129,0.08)" }}>
                   <div style={{ fontWeight: 800, color: "#065f46" }}>达人收款信息（请商家线下转账）</div>
                   <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "120px 1fr", rowGap: 6, columnGap: 10, fontSize: 13, lineHeight: 1.8 }}>
                     <div style={{ color: "#047857" }}>姓名</div><div>{paymentInfo.real_name || "-"}</div>

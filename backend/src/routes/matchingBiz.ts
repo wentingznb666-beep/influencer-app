@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿import { Router, Response } from "express";
+﻿﻿﻿﻿﻿﻿import { Router, Response } from "express";
 import multer from "multer";
 import path from "path";
 import { promises as fs } from "fs";
@@ -860,6 +860,30 @@ router.post("/client/matching-orders/:id/applicants/:appId/reject", async (req: 
 });
 
 /** 商家端：验收通过并展示达人收款信息。 */
+router.get("/client/matching-orders/:id/payment-profile", async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+  const orderId = Number(req.params.id);
+  if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
+  try {
+    const ord = await query<{ influencer_id: number | null }>(
+      `SELECT influencer_id
+         FROM client_market_orders
+        WHERE id=$1 AND client_id=$2 AND is_deleted=0 AND COALESCE(order_type,0)=1 AND COALESCE(match_status,'')='completed'`,
+      [orderId, req.user.userId]
+    );
+    const row = ord.rows[0];
+    if (!row || !row.influencer_id) return res.status(404).json({ error: "NOT_FOUND", message: "未找到可查看收款信息的订单。" });
+    const inf = await query<{ id: number; username: string; real_name: string | null; bank_name: string | null; bank_card: string | null }>(
+      `SELECT id, username, real_name, bank_name, bank_card FROM users WHERE id=$1`,
+      [row.influencer_id]
+    );
+    return res.json({ ok: true, payment_profile: inf.rows[0] || null });
+  } catch (e) {
+    console.error("client read matching payment profile error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  }
+});
+
 router.post("/client/matching-orders/:id/accept", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   const orderId = Number(req.params.id);
@@ -869,7 +893,7 @@ router.post("/client/matching-orders/:id/accept", async (req: AuthRequest, res: 
       const ord = await client.query<{ influencer_id: number; task_amount: string | null }>(
         `SELECT influencer_id, task_amount
            FROM client_market_orders
-          WHERE id=$1 AND client_id=$2 AND is_deleted=0 AND COALESCE(order_type,0)=1 AND status='completed'
+          WHERE id=$1 AND client_id=$2 AND is_deleted=0 AND COALESCE(order_type,0)=1 AND status='completed' AND COALESCE(match_status,'')<>'completed'
           FOR UPDATE`,
         [orderId, req.user!.userId]
       );
