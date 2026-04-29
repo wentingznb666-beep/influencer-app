@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type InputHTMLAttributes } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { login } from "./authApi";
 import LanguageSwitch from "./LanguageSwitch";
@@ -296,6 +296,7 @@ export default function Login() {
   const [searchParams] = useSearchParams();
 
   const from = searchParams.get("from") || "/";
+  const notice = searchParams.get("notice") || "";
 
 
 
@@ -465,6 +466,24 @@ export default function Login() {
                   </button>
                 </div>
 
+                {notice ? (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      marginBottom: 10,
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      background: "#ecfdf5",
+                      border: "1px solid #86efac",
+                      color: "#166534",
+                      fontSize: 14,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {notice}
+                  </div>
+                ) : null}
+
                 {error && <p style={{ color: "#c00", marginTop: 10, marginBottom: 10, fontSize: 14 }}>{error}</p>}
 
                 <button
@@ -481,6 +500,13 @@ export default function Login() {
                 >
                   {loadingLogin ? "登录中…" : "登录"}
                 </button>
+
+                <div style={{ marginTop: 14, textAlign: "center", fontSize: 14, color: "#516072" }}>
+                  没有账号？{" "}
+                  <Link to="/register" style={{ color: "#2563eb", fontWeight: 700, textDecoration: "none" }}>
+                    立即注册
+                  </Link>
+                </div>
               </form>
             </div>
           </div>

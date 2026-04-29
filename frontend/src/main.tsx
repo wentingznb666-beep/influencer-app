@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
 import Login from "./Login";
+import Register from "./Register";
 import AdminLayout from "./AdminLayout";
 import EmployeeLayout from "./EmployeeLayout";
 import InfluencersPage from "./admin/InfluencersPage";
@@ -63,6 +64,7 @@ createRoot(document.getElementById("root")!).render(
           <LanguageProvider>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/admin/market-orders" replace />} />
             <Route path="influencers" element={<InfluencersPage />} />
