@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import { getStoredUser } from "../authApi";
-import { getAdminCooperationOrders } from "../matchingApi";
+import { getAdminCooperationOrders, getCooperationTypes, type CooperationTypesConfig } from "../matchingApi";
 
 type Row = {
   id: number;
@@ -37,9 +38,36 @@ function asLinks(v: unknown): string[] {
   return v.map((x) => String(x || "").trim()).filter(Boolean);
 }
 
-function typeLabel(typeId: string) {
-  if (!typeId) return "-";
-  return typeId;
+function cleanTaskName(raw: string): string {
+  const s = String(raw || "").trim();
+  if (!s) return "-";
+  const parts = s
+    .split("|")
+    .map((x) => x.trim())
+    .filter(Boolean);
+  if (!parts.length) return "-";
+  const first = parts[0];
+  const second = parts[1] || "";
+  if (second && first === second) return first;
+  return first;
+}
+
+function formatOrderStatus(status: string) {
+  const v = String(status || "").trim();
+  if (v === "open") return "开放";
+  if (v === "claimed") return "已认领";
+  if (v === "completed") return "已完成";
+  if (v === "accepted") return "已验收";
+  if (v === "cancelled") return "已取消";
+  return v || "—";
+}
+
+function formatMatchStatus(status: string) {
+  const v = String(status || "").trim();
+  if (v === "matched") return "已匹配";
+  if (v === "unmatched") return "未匹配";
+  if (v === "pending_selection") return "待选择";
+  return v || "—";
 }
 
 function phaseLabel(p: string) {
@@ -102,6 +130,7 @@ function statusBadgeStyle(kind: "phase" | "status" | "match", value: string) {
 
 export default function CooperationOrdersPage() {
   const location = useLocation();
+  const { t, i18n } = useTranslation();
   const user = getStoredUser();
   const isAdmin = user?.role === "admin";
   const isEmployee = user?.role === "employee";
@@ -115,6 +144,24 @@ export default function CooperationOrdersPage() {
   const [q, setQ] = useState("");
   const focusIdRef = useRef<number>(0);
   const jumpedOnceRef = useRef(false);
+  const [typeConfig, setTypeConfig] = useState<CooperationTypesConfig | null>(null);
+
+  const typeNameMap = useMemo(() => {
+    const m = new Map<string, { zh: string; th: string }>();
+    for (const it of typeConfig?.types || []) {
+      m.set(String(it.id || ""), { zh: String(it.name?.zh || ""), th: String(it.name?.th || "") });
+    }
+    return m;
+  }, [typeConfig]);
+
+  const typeLabel = (typeId: string) => {
+    const id = String(typeId || "").trim();
+    if (!id) return t("未知类型");
+    const name = typeNameMap.get(id);
+    const isTh = String(i18n.language || "").toLowerCase().startsWith("th");
+    const label = isTh ? name?.th : name?.zh;
+    return (label && String(label).trim()) || id;
+  };
 
   const filteredList = useMemo(() => {
     const src = Array.isArray(list) ? list : [];
@@ -162,6 +209,12 @@ export default function CooperationOrdersPage() {
 
   useEffect(() => {
     void load();
+  }, []);
+
+  useEffect(() => {
+    getCooperationTypes()
+      .then((ret) => setTypeConfig(ret?.config || null))
+      .catch(() => setTypeConfig(null));
   }, []);
 
   useEffect(() => {
@@ -224,9 +277,8 @@ export default function CooperationOrdersPage() {
         .xt-coop-col-status { width: 12%; }
         .xt-coop-col-delivery { width: 10%; }
         .xt-coop-th { position: sticky; top: 0; z-index: 1; background: rgba(21,42,69,0.06); text-align:left; padding: 10px; font-size: 12px; color: #475569; font-weight: 900; border-bottom: 1px solid rgba(148,163,184,0.28); }
-        .xt-coop-td { box-sizing: border-box; padding: 10px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); vertical-align: top; overflow: hidden; }
+        .xt-coop-td { box-sizing: border-box; padding: 10px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); vertical-align: top; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
         .xt-coop-row:hover { background: rgba(15,23,42,0.02); }
-        .xt-coop-ellipsis { display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .xt-coop-order-no { font-weight: 900; color: var(--xt-primary); }
         .xt-coop-title { color: #0f172a; font-weight: 700; }
         .xt-coop-sub { display:flex; gap: 8px; flex-wrap:wrap; align-items:center; }
@@ -239,7 +291,7 @@ export default function CooperationOrdersPage() {
         .xt-coop-links { display:grid; gap: 8px; min-width:0; }
         .xt-coop-link-row { display:flex; gap: 6px; align-items:center; min-width:0; }
         .xt-coop-link-tag { flex: 0 0 auto; padding: 1px 6px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.35); font-size: 11px; color: #334155; background: rgba(148,163,184,0.12); }
-        .xt-coop-link-url { min-width:0; color: var(--xt-primary); text-decoration: none; }
+        .xt-coop-link-url { min-width:0; color: var(--xt-primary); text-decoration: none; word-break: break-all; white-space: normal; }
         .xt-coop-link-url:hover { text-decoration: underline; }
         .xt-coop-linkbtn { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--xt-border); background: #fff; cursor: pointer; font-weight: 800; font-size: 12px; display:inline-flex; align-items:center; justify-content:center; }
         .xt-coop-linkbtn[disabled] { opacity: .55; cursor: not-allowed; }
@@ -337,49 +389,47 @@ export default function CooperationOrdersPage() {
                 return (
                   <tr key={id} className="xt-coop-row" data-coop-id={id}>
                     <td className="xt-coop-td">
-                      <div className="xt-coop-order-no xt-coop-ellipsis" title={safeText(r.order_no) || `#${id}`}>
-                        {safeText(r.order_no) || `#${id}`}
-                      </div>
+                      <div className="xt-coop-order-no">{safeText(r.order_no) || `#${id}`}</div>
                     </td>
                     <td className="xt-coop-td">
-                      <div className="xt-coop-title xt-coop-ellipsis" title={safeText(r.title) || "-"}>
-                        {safeText(r.title) || "-"}
-                      </div>
+                      <div className="xt-coop-title">{cleanTaskName(safeText(r.title))}</div>
                     </td>
                     <td className="xt-coop-td">
-                      <span className="xt-coop-ellipsis" title={typeLabel(coop)}>
-                        {typeLabel(coop)}
-                      </span>
+                      <span>{typeLabel(coop)}</span>
                     </td>
                     <td className="xt-coop-td xt-coop-amount">{safeNum(r.task_amount).toFixed(0)} ฿</td>
                     <td className="xt-coop-td">
                       <div className="xt-coop-person">
-                        <span className="xt-coop-person-value xt-coop-ellipsis" title={safeText(r.client_name) || safeText(r.client_username) || "-"}>
+                        <span className="xt-coop-person-value" title={safeText(r.client_name) || safeText(r.client_username) || "-"}>
                           {safeText(r.client_name) || safeText(r.client_username) || "-"}
                         </span>
                       </div>
                     </td>
                     <td className="xt-coop-td">
                       <div className="xt-coop-person">
-                        <span className="xt-coop-person-value xt-coop-ellipsis" title={safeText(r.influencer_name) || safeText(r.influencer_username) || "-"}>
+                        <span className="xt-coop-person-value" title={safeText(r.influencer_name) || safeText(r.influencer_username) || "-"}>
                           {safeText(r.influencer_name) || safeText(r.influencer_username) || "-"}
                         </span>
                       </div>
                     </td>
                     <td className="xt-coop-td">
                       <div className="xt-coop-sub">
-                        <span style={statusBadgeStyle("phase", ph)}>{phaseLabel(ph)}</span>
-                        <span style={statusBadgeStyle("status", safeText(r.status))}>{safeText(r.status) || "-"}</span>
-                        <span style={statusBadgeStyle("match", safeText(r.match_status))}>{safeText(r.match_status) || "-"}</span>
+                        <span style={statusBadgeStyle("phase", ph)}>{t(phaseLabel(ph))}</span>
+                        <span style={statusBadgeStyle("status", safeText(r.status))}>{t(formatOrderStatus(safeText(r.status)))}</span>
+                        <span style={statusBadgeStyle("match", safeText(r.match_status))}>{t(formatMatchStatus(safeText(r.match_status)))}</span>
                       </div>
                     </td>
                     <td className="xt-coop-td">
                       {workLinks.length ? (
-                        <div className="xt-coop-link-row">
-                          <span className="xt-coop-link-tag">交付</span>
-                          <a className="xt-coop-link-url xt-coop-ellipsis" href={workLinks[0]} target="_blank" rel="noreferrer" title={workLinks[0]}>
-                            {workLinks[0]}
-                          </a>
+                        <div className="xt-coop-links">
+                          {workLinks.map((url, idx) => (
+                            <div key={`${id}-work-${idx}`} className="xt-coop-link-row">
+                              <span className="xt-coop-link-tag">{t("交付")}</span>
+                              <a className="xt-coop-link-url" href={url} target="_blank" rel="noreferrer">
+                                {url}
+                              </a>
+                            </div>
+                          ))}
                         </div>
                       ) : (
                         <span className="xt-coop-muted">—</span>

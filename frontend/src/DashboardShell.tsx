@@ -365,7 +365,18 @@ export default function DashboardShell({
   const jumpFromMessage = async (it: SystemMessage) => {
     if (msgJumpingId === it.id) return;
     setMsgJumpingId(it.id);
-    const target = resolveMessageTarget(it, shellVariant, user?.role || null);
+    const roleGuess =
+      user?.role ||
+      (location.pathname.startsWith("/admin")
+        ? "admin"
+        : location.pathname.startsWith("/employee")
+          ? "employee"
+          : location.pathname.startsWith("/influencer")
+            ? "influencer"
+            : location.pathname.startsWith("/client")
+              ? "client"
+              : null);
+    const target = resolveMessageTarget(it, shellVariant, roleGuess);
     try {
       if (Number(it.is_read) !== 1) await readMessage(it.id);
       setMsgOpen(false);
@@ -585,7 +596,18 @@ export default function DashboardShell({
                   {!msgLoading && messages.length === 0 && <p style={{ margin: "6px 0", color: "#64748b" }}>暂无消息</p>}
                   <div style={{ display: "grid", gap: 8 }}>
                     {messages.map((it) => {
-                      const target = resolveMessageTarget(it, shellVariant, user?.role || null);
+                      const roleGuess =
+                        user?.role ||
+                        (location.pathname.startsWith("/admin")
+                          ? "admin"
+                          : location.pathname.startsWith("/employee")
+                            ? "employee"
+                            : location.pathname.startsWith("/influencer")
+                              ? "influencer"
+                              : location.pathname.startsWith("/client")
+                                ? "client"
+                                : null);
+                      const target = resolveMessageTarget(it, shellVariant, roleGuess);
                       const jumping = msgJumpingId === it.id;
                       return (
                         <div
@@ -627,7 +649,19 @@ export default function DashboardShell({
                         <p style={{ margin: "6px 0", fontSize: 13 }}>{it.content || "-"}</p>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
                           <div style={{ fontSize: 12, color: "#64748b" }}>{String(it.created_at || "")}</div>
-                          {target ? <div style={{ fontSize: 12, color: "#2563eb" }}>点击查看详情</div> : null}
+                          {target ? (
+                            <a
+                              href={target}
+                              onClick={(ev) => {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                void jumpFromMessage(it);
+                              }}
+                              style={{ fontSize: 12, color: "#2563eb", textDecoration: "none", pointerEvents: jumping ? "none" : "auto" }}
+                            >
+                              {jumping ? "跳转中…" : "查看详情"}
+                            </a>
+                          ) : null}
                         </div>
                       </div>
                       );
