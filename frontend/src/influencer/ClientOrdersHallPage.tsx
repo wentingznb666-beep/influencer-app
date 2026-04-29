@@ -765,18 +765,11 @@ export default function ClientOrdersHallPage() {
     }
   };
 
-  const handleMonthlySubmitBatch = async (orderId: number) => {
+  const handleMonthlySubmitBatch = async (orderId: number, batchNo: number, allSubmitted: boolean) => {
+    if (allSubmitted) return;
     const draft = offlineMonthlyDraft[orderId] || { batchNo: "1", videoCount: "1", urls: "" };
-    const bnRaw = Number(draft.batchNo);
     const vcRaw = Number(draft.videoCount);
-    const bn = Math.floor(bnRaw);
     const vc = Math.floor(vcRaw);
-    if (!Number.isFinite(bnRaw) || bn < 1) {
-      const msg = t("请输入有效批次号（>= 1）。");
-      setError(msg);
-      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
-      return;
-    }
     if (!Number.isFinite(vcRaw) || vc < 1) {
       const msg = t("请输入有效数量（>= 1）。");
       setError(msg);
@@ -799,8 +792,8 @@ export default function ClientOrdersHallPage() {
     setOfflineActionOk((p) => ({ ...p, [orderId]: "" }));
     setOfflineActionLoading((p) => ({ ...p, [`${orderId}:monthly-submit`]: true }));
     try {
-      await employeeApi.submitEmployeeMonthlyBatch(orderId, { batch_no: bn, video_count: vc, video_urls: urls });
-      setOfflineMonthlyDraft((p) => ({ ...p, [orderId]: { ...draft, batchNo: String(bn + 1), urls: "" } }));
+      await employeeApi.submitEmployeeMonthlyBatch(orderId, { batch_no: batchNo, video_count: vc, video_urls: urls });
+      setOfflineMonthlyDraft((p) => ({ ...p, [orderId]: { ...draft, urls: "" } }));
       setOfflineActionOk((p) => ({ ...p, [orderId]: t("已提交批次交付") }));
       load();
     } catch (e) {
@@ -1213,9 +1206,20 @@ export default function ClientOrdersHallPage() {
           return Number(a?.batch_no || 0) - Number(b?.batch_no || 0);
         })
       : [];
-    const deliveredBatchCount = batchListChrono.filter((x: any) => Array.isArray(x?.proof_links) && x.proof_links.some((u: unknown) => String(u || "").trim())).length;
-    const pendingBatchCount = batchListChrono.filter((x: any) => String(x?.status || "") === "pending_acceptance").length;
-    const nextBatchNo = batchListChrono.length + 1;
+    const expectedBatchCount = (() => {
+      const months = Math.max(1, Math.floor(Number(req.contract_months || 0) || 1));
+      const weeklyEnabled = req.weekly_batch_enabled !== false;
+      const perMonthBatches = weeklyEnabled ? 4 : 1;
+      return Math.max(1, months * perMonthBatches);
+    })();
+    const submittedBatchCount = batchListChrono.filter((x: any) => {
+      const st = String(x?.status || "");
+      if (st === "rejected") return false;
+      const links = Array.isArray(x?.proof_links) ? x.proof_links : [];
+      return links.some((u: unknown) => String(u || "").trim());
+    }).length;
+    const allSubmitted = o.type_id === "monthly_package" && submittedBatchCount >= expectedBatchCount;
+    const nextBatchNo = allSubmitted ? expectedBatchCount : Math.max(1, submittedBatchCount + 1);
     const monthlyPlanSummary =
       o.type_id === "monthly_package"
         ? `${Number(req.contract_months || 0) || 1}${t("个月")} / ${Number(req.min_videos_per_month || 0) || 20}${t("条/月")}`
@@ -1355,11 +1359,11 @@ export default function ClientOrdersHallPage() {
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                       <div style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff" }}>
                         <div style={{ fontSize: 12, color: "#64748b", marginBottom: 2 }}>{t("已交付批次：")}</div>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>{deliveredBatchCount}</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>{submittedBatchCount}</div>
                       </div>
                       <div style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff" }}>
-                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 2 }}>{t("待交付批次：")}</div>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>{pendingBatchCount}</div>
+                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 2 }}>{t("应交付批次：")}</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>{expectedBatchCount}</div>
                       </div>
                     </div>
 
@@ -1368,7 +1372,7 @@ export default function ClientOrdersHallPage() {
                         <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8 }}>{t("批次记录")}</div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 220, overflowY: "auto" }}>
                           {batchListChrono.map((x: any, idx: number) => {
-                            const displayNo = idx + 1;
+                            const displayNo = Number(x?.batch_no || idx + 1);
                             const vc = Number(x?.video_count || 0);
                             const st = String(x?.status || "");
                             const submittedAt = String(x?.submitted_at || "").trim();
@@ -1408,57 +1412,76 @@ export default function ClientOrdersHallPage() {
                       </div>
                     )}
 
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                      <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b" }}>
-                        <span>{t("批次号")}</span>
-                        <input
-                          type="number"
-                          value={(offlineMonthlyDraft[o.id]?.batchNo ?? String(nextBatchNo)) as any}
-                          onChange={(e) => setOfflineMonthlyDraft((p) => ({ ...p, [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), batchNo: e.target.value } }))}
-                          style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea" }}
-                          placeholder={t("批次号")}
-                          min={1}
-                        />
-                      </label>
-                      <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b" }}>
-                        <span>{t("本次交付数量")}</span>
-                        <input
-                          type="number"
-                          value={(offlineMonthlyDraft[o.id]?.videoCount ?? "1") as any}
-                          onChange={(e) => setOfflineMonthlyDraft((p) => ({ ...p, [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), videoCount: e.target.value } }))}
-                          style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea" }}
-                          placeholder={t("数量")}
-                          min={1}
-                        />
-                      </label>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 10, flexWrap: "wrap" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, flex: "1 1 220px", minWidth: 0 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b" }}>
+                          <span>{t("批次号")}</span>
+                          <div style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#f8fafc", color: "#0f172a", fontWeight: 800 }}>
+                            {nextBatchNo}
+                          </div>
+                        </div>
+                        {!allSubmitted && (
+                          <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b" }}>
+                            <span>{t("本次交付数量")}</span>
+                            <input
+                              type="number"
+                              value={(offlineMonthlyDraft[o.id]?.videoCount ?? "1") as any}
+                              onChange={(e) =>
+                                setOfflineMonthlyDraft((p) => ({
+                                  ...p,
+                                  [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), videoCount: e.target.value },
+                                }))
+                              }
+                              style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                              placeholder={t("数量")}
+                              min={1}
+                            />
+                          </label>
+                        )}
+                      </div>
+
+                      {allSubmitted && (
+                        <span style={{ padding: "2px 10px", borderRadius: 999, fontSize: 12, fontWeight: 800, border: "1px solid rgba(22,163,74,0.35)", background: "rgba(22,163,74,0.10)", color: "#166534", whiteSpace: "nowrap" }}>
+                          {t("已全部提交")}
+                        </span>
+                      )}
                     </div>
 
-                    <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b" }}>
-                      <span>{t("交付链接（多条用换行分隔）")}</span>
-                      <textarea
-                        value={offlineMonthlyDraft[o.id]?.urls ?? ""}
-                        onChange={(e) => setOfflineMonthlyDraft((p) => ({ ...p, [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), urls: e.target.value } }))}
-                        placeholder={t("交付链接（多条用换行分隔）")}
-                        rows={3}
-                        style={{ width: "100%", padding: "8px 10px", borderRadius: 10, border: "1px solid #dbe1ea", resize: "vertical", boxSizing: "border-box" }}
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      disabled={o.payment_status !== "paid" || !!offlineActionLoading[`${o.id}:monthly-submit`]}
-                      onClick={() => void handleMonthlySubmitBatch(o.id)}
-                      style={{
-                        alignSelf: "flex-end",
-                        padding: "6px 10px",
-                        borderRadius: 8,
-                        border: "1px solid #dbe1ea",
-                        background: o.payment_status !== "paid" ? "#f8fafc" : "#fff",
-                        cursor: o.payment_status !== "paid" ? "not-allowed" : "pointer",
-                        opacity: offlineActionLoading[`${o.id}:monthly-submit`] ? 0.6 : 1,
-                      }}
-                    >
-                      {offlineActionLoading[`${o.id}:monthly-submit`] ? t("提交中…") : t("提交批次")}
-                    </button>
+                    {!allSubmitted && (
+                      <>
+                        <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b" }}>
+                          <span>{t("交付链接（多条用换行分隔）")}</span>
+                          <textarea
+                            value={offlineMonthlyDraft[o.id]?.urls ?? ""}
+                            onChange={(e) =>
+                              setOfflineMonthlyDraft((p) => ({
+                                ...p,
+                                [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), urls: e.target.value },
+                              }))
+                            }
+                            placeholder={t("交付链接（多条用换行分隔）")}
+                            rows={3}
+                            style={{ width: "100%", padding: "8px 10px", borderRadius: 10, border: "1px solid #dbe1ea", resize: "vertical", boxSizing: "border-box" }}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          disabled={o.payment_status !== "paid" || !!offlineActionLoading[`${o.id}:monthly-submit`]}
+                          onClick={() => void handleMonthlySubmitBatch(o.id, nextBatchNo, allSubmitted)}
+                          style={{
+                            alignSelf: "flex-end",
+                            padding: "6px 10px",
+                            borderRadius: 8,
+                            border: "1px solid #dbe1ea",
+                            background: o.payment_status !== "paid" ? "#f8fafc" : "#fff",
+                            cursor: o.payment_status !== "paid" ? "not-allowed" : "pointer",
+                            opacity: offlineActionLoading[`${o.id}:monthly-submit`] ? 0.6 : 1,
+                          }}
+                        >
+                          {offlineActionLoading[`${o.id}:monthly-submit`] ? t("提交中…") : t("提交批次")}
+                        </button>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
