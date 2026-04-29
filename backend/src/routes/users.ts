@@ -4,13 +4,13 @@ import { hashPassword, requireAuth, requireRole, type AuthRequest } from "../aut
 
 const router = Router();
 router.use(requireAuth);
-router.use(requireRole("admin"));
+router.use(requireRole("admin", "employee"));
 
 type UserRole = "admin" | "employee" | "influencer" | "client";
 
 /**
  * GET /api/admin/users
- * 管理员查看账号列表，支持按角色与关键词筛选。
+ * 管理员/员工查看账号列表，支持按角色与关键词筛选。
  */
 router.get("/", (req: AuthRequest, res: Response) => {
   const role = typeof req.query.role === "string" ? req.query.role : "";
@@ -145,10 +145,10 @@ router.patch("/:id/password", (req: AuthRequest, res: Response) => {
  * 管理员启用/禁用账号（禁止禁用自己，防止误锁）。
  */
 router.patch("/:id/status", (req: AuthRequest, res: Response) => {
-  if (req.user?.role !== "admin") {
-    res.status(403).json({ error: "FORBIDDEN", message: "员工无账号编辑权限。" });
-    return;
-  }
+  if (req.user?.role !== "admin" && req.user?.role !== "employee") {
+    res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
+    return;
+  }
   const id = Number(req.params.id);
   const { disabled } = req.body ?? {};
   if (!Number.isInteger(id) || id < 1) {
@@ -159,16 +159,30 @@ router.patch("/:id/status", (req: AuthRequest, res: Response) => {
     res.status(400).json({ error: "INVALID_INPUT", message: "disabled 必须为布尔值。" });
     return;
   }
-  if (req.user?.userId === id && disabled) {
+  if (req.user?.role === "admin" && req.user?.userId === id && disabled) {
     res.status(400).json({ error: "INVALID_OPERATION", message: "不能禁用当前登录账号。" });
     return;
   }
   (async () => {
-    const existed = await query<{ id: number }>("SELECT id FROM users WHERE id = $1", [id]);
-    if (!existed.rows[0]) {
+    const existed = await query<{ id: number; disabled: number; role: string }>(
+      "SELECT u.id, u.disabled, r.name AS role FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = $1",
+      [id]
+    );
+    const row = existed.rows[0];
+    if (!row) {
       res.status(404).json({ error: "NOT_FOUND", message: "账号不存在。" });
       return;
     }
+    if (req.user?.role === "employee") {
+      if (!(row.role === "client" || row.role === "influencer")) {
+        res.status(403).json({ error: "FORBIDDEN", message: "员工仅可审核商家/达人账号。" });
+        return;
+      }
+      if (Number(row.disabled) === 0 && disabled) {
+        res.status(403).json({ error: "FORBIDDEN", message: "员工仅可审核待审核账号，不可禁用已启用账号。" });
+        return;
+      }
+    }
     await query("UPDATE users SET disabled = $1 WHERE id = $2", [disabled ? 1 : 0, id]);
     res.json({ ok: true });
   })().catch((e) => {

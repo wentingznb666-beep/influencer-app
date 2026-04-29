@@ -15,7 +15,7 @@ const BASE_ADMIN_NAV: DashboardNavItem[] = [
   { to: "/admin/points", label: "视频分级结算", icon: "🪙", group: "points" },
   { to: "/admin/settlement", label: "结算打款", icon: "💳", group: "points" },
   { to: "/admin/withdrawals", label: "提现管理", icon: "🏧", group: "points" },
-  { to: "/admin/users", label: "账号管理", icon: "👤", group: "points" },
+  { to: "/admin/users", label: "账号管理", icon: "👤", group: "common" },
   { to: "/admin/merchant-members", label: "会员与保证金", icon: "👑", group: "match" },
   { to: "/admin/influencer-permissions", label: "达人撮合权限审核", icon: "✅", group: "match" },
   { to: "/admin/cooperation-types", label: "合作业务类型配置", icon: "🧩", group: "match" },

@@ -125,10 +125,7 @@ router.post("/register", (req, res: Response) => {
       res.status(409).json({ error: "USER_EXISTS", message: "用户名已存在。" });
       return;
     }
-    /**
-     * 达人账号需管理员审核：注册后先置为禁用态，管理员启用后才可登录。
-     */
-    const requiresApproval = roleName === "influencer";
+    const requiresApproval = roleName === "influencer" || roleName === "client";
     const password_hash = await hashPassword(password);
     const created = await query<{ id: number }>(
       "INSERT INTO users (username, password_hash, role_id, disabled) VALUES ($1, $2, $3, $4) RETURNING id",
@@ -141,7 +138,7 @@ router.post("/register", (req, res: Response) => {
       username,
       role: roleName,
       requiresApproval,
-      message: requiresApproval ? "达人账号已提交，需管理员审核通过后方可登录。" : "注册成功，请登录。",
+      message: requiresApproval ? "账号已提交，需管理员/员工审核通过后方可登录。" : "注册成功，请登录。",
     });
   })().catch((e) => {
     console.error("Register error:", e);

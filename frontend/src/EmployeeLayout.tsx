@@ -27,6 +27,7 @@ export default function EmployeeLayout() {
     { to: "/employee/influencer-permissions", label: "达人撮合权限审核", icon: "✅", group: "match" },
     { to: "/employee/cooperation-types", label: "合作业务类型说明", icon: "🧩", group: "match" },
     { to: "/employee/cooperation-orders", label: "合作订单工作台", icon: "🧾", group: "match" },
+    { to: "/employee/users", label: "账号管理", icon: "👤", group: "common" },
     { to: "/employee/op-logs", label: "我的操作日志", icon: "📄", group: "common" },
   ];
 

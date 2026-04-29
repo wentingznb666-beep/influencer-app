@@ -94,6 +94,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="skus" element={<AdminSkusPage />} />
             <Route path="points" element={<PointsPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
+            <Route path="users" element={<UsersPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
             <Route path="influencer-permissions" element={<InfluencerPermissionsPage />} />
             <Route path="cooperation-types" element={<CooperationTypesPage readOnly />} />

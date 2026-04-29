@@ -468,6 +468,29 @@ export default function UsersPage() {
 
   };
 
+  const isPendingRegister = (item: UserItem) => (item.role === "influencer" || item.role === "client") && item.disabled === 1;
+
+  const handleReviewRegister = async (item: UserItem, approved: boolean) => {
+    if (!isEmployee) return;
+    if (!isPendingRegister(item)) {
+      setError("仅支持审核待审核的商家/达人账号。");
+      return;
+    }
+    setError(null);
+    setSuccessMsg(null);
+    setActionLoadingId(item.id);
+    try {
+      await api.updateUserStatus(item.id, !approved);
+      await load();
+      setSuccessMsg(approved ? "已审核通过，可登录使用。" : "已审核拒绝，该账号仍为禁用状态。");
+      window.setTimeout(() => setSuccessMsg(null), 3000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "更新状态失败");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
 
 
   /**
@@ -480,13 +503,9 @@ export default function UsersPage() {
 
    */
 
-  const displayList = onlyPendingInfluencer
+  const displayList = onlyPendingInfluencer ? list.filter((item) => isPendingRegister(item)) : list;
 
-    ? list.filter((item) => item.role === "influencer" && item.disabled === 1)
-
-    : list;
-
-  const pendingInfluencerCount = list.filter((item) => item.role === "influencer" && item.disabled === 1).length;
+  const pendingInfluencerCount = list.filter((item) => isPendingRegister(item)).length;
 
 
 
@@ -522,7 +541,7 @@ export default function UsersPage() {
 
         >
 
-          待审核达人：{pendingInfluencerCount}
+          待审核账号：{pendingInfluencerCount}
 
         </span>
 
@@ -612,7 +631,7 @@ export default function UsersPage() {
 
           />
 
-          仅看待审核达人（注册后待管理员同意）
+          仅看待审核账号（注册后待管理员/员工审核）
 
         </label>
 
@@ -739,7 +758,7 @@ export default function UsersPage() {
                 <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>撮合/会员字段</th>
                 <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>创建时间</th>
 
-                {!isEmployee && <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>操作</th>}
+                <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>操作</th>
 
               </tr>
 
@@ -761,7 +780,7 @@ export default function UsersPage() {
 
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1", color: item.disabled ? "#c00" : "#0a7a2a" }}>
 
-                    {item.role === "influencer" && item.disabled === 1 ? "待审核" : item.disabled ? "已禁用" : "启用中"}
+                    {isPendingRegister(item) ? "待审核" : item.disabled ? "已禁用" : "启用中"}
 
                   </td>
 
@@ -786,45 +805,51 @@ export default function UsersPage() {
                   </td>
                   <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{item.created_at}</td>
 
-                  {!isEmployee && (
-
-                    <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1", whiteSpace: "nowrap" }}>
-
-                      <button
-
-                        type="button"
-
-                        onClick={() => openResetPasswordModal(item)}
-
-                        disabled={actionLoadingId === item.id}
-
-                        style={{ marginRight: 8, padding: "6px 10px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
-
-                      >
-
-                        重置密码
-
-                      </button>
-
-                      <button
-
-                        type="button"
-
-                        onClick={() => handleToggleDisabled(item)}
-
-                        disabled={actionLoadingId === item.id}
-
-                        style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
-
-                      >
-
-                        {item.role === "influencer" && item.disabled === 1 ? "同意注册" : item.disabled ? "启用" : "禁用"}
-
-                      </button>
-
-                    </td>
-
-                  )}
+                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1", whiteSpace: "nowrap" }}>
+                    {isEmployee ? (
+                      isPendingRegister(item) ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => void handleReviewRegister(item, true)}
+                            disabled={actionLoadingId === item.id}
+                            style={{ marginRight: 8, padding: "6px 10px", borderRadius: 6, border: "1px solid #bbf7d0", background: "#fff", color: "#166534", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
+                          >
+                            审核通过
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void handleReviewRegister(item, false)}
+                            disabled={actionLoadingId === item.id}
+                            style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
+                          >
+                            审核拒绝
+                          </button>
+                        </>
+                      ) : (
+                        <span style={{ color: "var(--xt-text-muted)" }}>-</span>
+                      )
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => openResetPasswordModal(item)}
+                          disabled={actionLoadingId === item.id}
+                          style={{ marginRight: 8, padding: "6px 10px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
+                        >
+                          重置密码
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleDisabled(item)}
+                          disabled={actionLoadingId === item.id}
+                          style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
+                        >
+                          {isPendingRegister(item) ? "同意注册" : item.disabled ? "启用" : "禁用"}
+                        </button>
+                      </>
+                    )}
+                  </td>
 
                 </tr>
 
@@ -834,7 +859,7 @@ export default function UsersPage() {
 
                 <tr>
 
-                  <td colSpan={isEmployee ? 7 : 8} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
+                  <td colSpan={8} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
 
                     暂无符合条件的账号
 

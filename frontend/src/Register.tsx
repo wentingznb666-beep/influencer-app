@@ -59,11 +59,79 @@ function LoginInputWithIcon({ icon, style, className, ...rest }: IconInputProps)
   );
 }
 
+function PasswordInputWithIconToggle({
+  icon,
+  visible,
+  onToggleVisible,
+  style,
+  className,
+  ...rest
+}: IconInputProps & { visible: boolean; onToggleVisible: () => void }) {
+  return (
+    <div style={{ position: "relative", width: "100%" }}>
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: 12,
+          top: "50%",
+          transform: "translateY(-50%)",
+          fontSize: 16,
+          lineHeight: 1,
+          pointerEvents: "none",
+          userSelect: "none",
+        }}
+      >
+        {icon}
+      </span>
+      <button
+        type="button"
+        aria-label={visible ? "隐藏密码" : "显示密码"}
+        onClick={onToggleVisible}
+        style={{
+          position: "absolute",
+          right: 10,
+          top: "50%",
+          transform: "translateY(-50%)",
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          border: "1px solid var(--xt-border)",
+          background: "var(--xt-surface)",
+          cursor: "pointer",
+          display: "grid",
+          placeItems: "center",
+          fontSize: 16,
+          color: "var(--xt-text)",
+        }}
+      >
+        {visible ? "🙈" : "👁"}
+      </button>
+      <input
+        {...rest}
+        className={className}
+        style={{
+          width: "100%",
+          padding: "10px 52px 10px 40px",
+          boxSizing: "border-box",
+          borderRadius: 8,
+          border: "1px solid var(--xt-border)",
+          background: "var(--xt-surface)",
+          fontSize: 15,
+          ...style,
+        }}
+      />
+    </div>
+  );
+}
+
 export default function Register() {
   const [ready, setReady] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [role, setRole] = useState<PublicRegisterRole>("client");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -195,9 +263,9 @@ export default function Register() {
                       <span style={{ fontWeight: 600 }}>达人</span>
                     </label>
                   </div>
-                  {role === "influencer" ? (
+                  {role === "influencer" || role === "client" ? (
                     <div style={{ marginTop: 8, color: "#6b7280", fontSize: 13, lineHeight: 1.6 }}>
-                      达人账号注册后需管理员审核通过，审核完成后方可登录。
+                      商家/达人账号注册后需管理员/员工审核通过，审核完成后方可登录。
                     </div>
                   ) : null}
                 </div>
@@ -216,25 +284,29 @@ export default function Register() {
 
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>密码</label>
-                  <LoginInputWithIcon
+                  <PasswordInputWithIconToggle
                     icon="🔒"
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     autoComplete="new-password"
                     required
+                    visible={showPassword}
+                    onToggleVisible={() => setShowPassword((p) => !p)}
                   />
                 </div>
 
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: "block", marginBottom: 6, fontWeight: 600 }}>确认密码</label>
-                  <LoginInputWithIcon
+                  <PasswordInputWithIconToggle
                     icon="🔐"
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     autoComplete="new-password"
                     required
+                    visible={showConfirmPassword}
+                    onToggleVisible={() => setShowConfirmPassword((p) => !p)}
                   />
                 </div>
 
