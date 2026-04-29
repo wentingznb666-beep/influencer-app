@@ -1200,6 +1200,8 @@ router.post("/market-orders/:id/claim", (req: AuthRequest, res: Response) => {
       return ok;
 
 
+    });
+
     if (!updated) {
 
       res.status(409).json({ error: "UNAVAILABLE", message: "订单不可领取（已被领或已结束）。" });

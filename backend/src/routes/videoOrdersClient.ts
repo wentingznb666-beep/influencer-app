@@ -223,7 +223,7 @@ async function loadClientOwnedOrder(
   clientId: number,
   forUpdate = false
 ): Promise<any | null> {
-  const lockSql = forUpdate ? " FOR UPDATE" : "";
+  const lockSql = forUpdate ? " FOR UPDATE OF o" : "";
   const rows = await client.query(
     `SELECT o.id, o.client_id, o.type_id, o.title, o.amount_thb, o.unit_price_thb, o.unit_count, o.payment_status, o.assigned_employee_id,
             COALESCE((to_jsonb(s)->>'phase'), 'created') AS phase,
@@ -237,6 +237,9 @@ async function loadClientOwnedOrder(
       WHERE o.id=$1 AND o.client_id=$2${lockSql}`,
     [orderId, clientId]
   );
+  if (forUpdate) {
+    await client.query(`SELECT order_id FROM video_order_states WHERE order_id=$1 FOR UPDATE`, [orderId]);
+  }
   return rows.rows[0] || null;
 }
 

@@ -40,6 +40,8 @@ import adminMarketOrdersRoutes from "./routes/adminMarketOrders";
 
 import adminProfitRoutes from "./routes/adminProfit";
 
+import adminSkusRoutes from "./routes/adminSkus";
+
 import operationLogsRoutes from "./routes/operationLogs";
 
 import modelsRoutes, { adminPhotosRouter, employeePhotosRouter } from "./routes/models";
