@@ -191,20 +191,49 @@ export default function CooperationOrdersPage() {
         .xt-coop-input { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--xt-border); min-width: 220px; background: #fff; }
         .xt-coop-select { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--xt-border); background: #fff; }
         .xt-coop-meta { color: var(--xt-text-muted); font-size: 12px; }
-        .xt-coop-table-wrap { overflow-x:auto; background:#fff; border:1px solid var(--xt-border); border-radius: 12px; }
-        .xt-coop-table { width:100%; border-collapse: separate; border-spacing:0; table-layout: fixed; min-width: 980px; }
+        .xt-coop-table-wrap { width: 100%; max-width: 100%; overflow-x: hidden; background:#fff; border:1px solid var(--xt-border); border-radius: 12px; }
+        .xt-coop-table { width:100%; max-width:100%; border-collapse: separate; border-spacing:0; table-layout: fixed; }
+        .xt-coop-col-order { width: 22%; }
+        .xt-coop-col-type { width: 11%; }
+        .xt-coop-col-phase { width: 15%; }
+        .xt-coop-col-amount { width: 10%; }
+        .xt-coop-col-person { width: 20%; }
+        .xt-coop-col-links { width: 12%; }
+        .xt-coop-col-action { width: 10%; }
         .xt-coop-th { position: sticky; top: 0; z-index: 1; background: rgba(21,42,69,0.06); text-align:left; padding: 10px; font-size: 12px; color: #475569; font-weight: 900; border-bottom: 1px solid rgba(148,163,184,0.28); }
-        .xt-coop-td { padding: 10px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); vertical-align: top; overflow: hidden; text-overflow: ellipsis; }
+        .xt-coop-td { box-sizing: border-box; padding: 10px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); vertical-align: top; overflow: hidden; }
         .xt-coop-row:hover { background: rgba(15,23,42,0.02); }
+        .xt-coop-ellipsis { display:block; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .xt-coop-order-no { font-weight: 900; color: var(--xt-primary); }
         .xt-coop-title { margin-top: 4px; color: #0f172a; font-weight: 700; }
         .xt-coop-sub { margin-top: 6px; display:flex; gap: 8px; flex-wrap:wrap; align-items:center; }
-        .xt-coop-amount { text-align: right; font-weight: 900; color: var(--xt-accent); }
-        .xt-coop-person { display:grid; gap: 6px; color:#0f172a; }
+        .xt-coop-amount { text-align: right; font-weight: 900; color: var(--xt-accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .xt-coop-person { display:grid; gap: 6px; color:#0f172a; min-width:0; }
+        .xt-coop-person-line { display:grid; grid-template-columns: 34px minmax(0,1fr); gap: 4px; align-items: start; min-width:0; }
+        .xt-coop-person-label { color: #475569; }
+        .xt-coop-person-value { min-width:0; }
         .xt-coop-muted { color: var(--xt-text-muted); font-size: 12px; }
-        .xt-coop-links { display:grid; gap: 8px; }
+        .xt-coop-links { display:grid; gap: 8px; min-width:0; }
+        .xt-coop-link-row { display:flex; gap: 6px; align-items:center; min-width:0; }
+        .xt-coop-link-tag { flex: 0 0 auto; padding: 1px 6px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.35); font-size: 11px; color: #334155; background: rgba(148,163,184,0.12); }
+        .xt-coop-link-url { min-width:0; color: var(--xt-primary); text-decoration: none; }
+        .xt-coop-link-url:hover { text-decoration: underline; }
         .xt-coop-linkbtn { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--xt-border); background: #fff; cursor: pointer; font-weight: 800; font-size: 12px; display:inline-flex; align-items:center; justify-content:center; }
         .xt-coop-linkbtn[disabled] { opacity: .55; cursor: not-allowed; }
+        .xt-coop-review-note { margin-top: 8px; color: #475569; font-size: 12px; line-height: 1.4; max-height: 3.6em; overflow: hidden; text-overflow: ellipsis; }
+        @media (max-width: 1280px) {
+          .xt-coop-col-order { width: 21%; }
+          .xt-coop-col-type { width: 10%; }
+          .xt-coop-col-phase { width: 14%; }
+          .xt-coop-col-amount { width: 10%; }
+          .xt-coop-col-person { width: 21%; }
+          .xt-coop-col-links { width: 13%; }
+          .xt-coop-col-action { width: 11%; }
+        }
+        @media (max-width: 1023px) {
+          .xt-coop-table-wrap { overflow-x: auto; }
+          .xt-coop-table { min-width: 900px; }
+        }
         @media (max-width: 720px) {
           .xt-coop-input { min-width: 100%; }
           .xt-coop-select { flex: 1 1 auto; min-width: 160px; }
@@ -253,15 +282,24 @@ export default function CooperationOrdersPage() {
 
         <div className="xt-coop-table-wrap">
           <table className="xt-coop-table">
+            <colgroup>
+              <col className="xt-coop-col-order" />
+              <col className="xt-coop-col-type" />
+              <col className="xt-coop-col-phase" />
+              <col className="xt-coop-col-amount" />
+              <col className="xt-coop-col-person" />
+              <col className="xt-coop-col-links" />
+              <col className="xt-coop-col-action" />
+            </colgroup>
             <thead>
               <tr>
-                <th className="xt-coop-th" style={{ width: 280 }}>订单</th>
-                <th className="xt-coop-th" style={{ width: 160 }}>合作类型</th>
-                <th className="xt-coop-th" style={{ width: 180 }}>阶段</th>
-                <th className="xt-coop-th" style={{ width: 110, textAlign: "right" }}>金额</th>
-                <th className="xt-coop-th" style={{ width: 220 }}>商家 / 达人</th>
-                <th className="xt-coop-th" style={{ width: 160 }}>交付 / 发布</th>
-                <th className="xt-coop-th" style={{ width: 170, textAlign: "right" }}>操作</th>
+                <th className="xt-coop-th">订单</th>
+                <th className="xt-coop-th">合作类型</th>
+                <th className="xt-coop-th">阶段</th>
+                <th className="xt-coop-th" style={{ textAlign: "right", minWidth: 96 }}>金额</th>
+                <th className="xt-coop-th">商家 / 达人</th>
+                <th className="xt-coop-th">交付 / 发布</th>
+                <th className="xt-coop-th" style={{ textAlign: "right" }}>操作</th>
               </tr>
             </thead>
             <tbody>
@@ -275,38 +313,72 @@ export default function CooperationOrdersPage() {
                 return (
                   <tr key={id} className="xt-coop-row">
                     <td className="xt-coop-td">
-                      <div className="xt-coop-order-no">{safeText(r.order_no) || `#${id}`}</div>
-                      <div className="xt-coop-title">{safeText(r.title) || "-"}</div>
+                      <div className="xt-coop-order-no xt-coop-ellipsis" title={safeText(r.order_no) || `#${id}`}>
+                        {safeText(r.order_no) || `#${id}`}
+                      </div>
+                      <div className="xt-coop-title xt-coop-ellipsis" title={safeText(r.title) || "-"}>
+                        {safeText(r.title) || "-"}
+                      </div>
                       <div className="xt-coop-sub">
                         <span style={statusBadgeStyle("status", safeText(r.status))}>{safeText(r.status) || "-"}</span>
                         <span style={statusBadgeStyle("match", safeText(r.match_status))}>{safeText(r.match_status) || "-"}</span>
                       </div>
                     </td>
-                    <td className="xt-coop-td">{typeLabel(coop)}</td>
+                    <td className="xt-coop-td">
+                      <span className="xt-coop-ellipsis" title={typeLabel(coop)}>
+                        {typeLabel(coop)}
+                      </span>
+                    </td>
                     <td className="xt-coop-td">
                       <span style={statusBadgeStyle("phase", ph)}>{phaseLabel(ph)}</span>
-                      {safeText(r.review_note) ? <div style={{ marginTop: 8, color: "#475569", fontSize: 12 }}>备注：{safeText(r.review_note)}</div> : null}
+                      {safeText(r.review_note) ? (
+                        <div className="xt-coop-review-note" title={`备注：${safeText(r.review_note)}`}>
+                          备注：{safeText(r.review_note)}
+                        </div>
+                      ) : null}
                     </td>
                     <td className="xt-coop-td xt-coop-amount">{safeNum(r.task_amount).toFixed(0)} ฿</td>
                     <td className="xt-coop-td">
                       <div className="xt-coop-person">
-                        <div>商家：{safeText(r.client_name) || safeText(r.client_username) || "-"}</div>
-                        <div>达人：{safeText(r.influencer_name) || safeText(r.influencer_username) || "-"}</div>
+                        <div className="xt-coop-person-line">
+                          <span className="xt-coop-person-label">商家：</span>
+                          <span className="xt-coop-person-value xt-coop-ellipsis" title={safeText(r.client_name) || safeText(r.client_username) || "-"}>
+                            {safeText(r.client_name) || safeText(r.client_username) || "-"}
+                          </span>
+                        </div>
+                        <div className="xt-coop-person-line">
+                          <span className="xt-coop-person-label">达人：</span>
+                          <span className="xt-coop-person-value xt-coop-ellipsis" title={safeText(r.influencer_name) || safeText(r.influencer_username) || "-"}>
+                            {safeText(r.influencer_name) || safeText(r.influencer_username) || "-"}
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td className="xt-coop-td">
                       <div className="xt-coop-links">
                         {workLinks.length ? (
-                          <a href={workLinks[0]} target="_blank" rel="noreferrer">
-                            交付链接
-                          </a>
+                          <div className="xt-coop-link-row">
+                            <span className="xt-coop-link-tag">交付</span>
+                            <a className="xt-coop-link-url xt-coop-ellipsis" href={workLinks[0]} target="_blank" rel="noreferrer" title={workLinks[0]}>
+                              {workLinks[0]}
+                            </a>
+                          </div>
                         ) : (
                           <span className="xt-coop-muted">交付链接：-</span>
                         )}
                         {publishLinks.length ? (
-                          <a href={publishLinks[publishLinks.length - 1]} target="_blank" rel="noreferrer">
-                            发布链接
-                          </a>
+                          <div className="xt-coop-link-row">
+                            <span className="xt-coop-link-tag">发布</span>
+                            <a
+                              className="xt-coop-link-url xt-coop-ellipsis"
+                              href={publishLinks[publishLinks.length - 1]}
+                              target="_blank"
+                              rel="noreferrer"
+                              title={publishLinks[publishLinks.length - 1]}
+                            >
+                              {publishLinks[publishLinks.length - 1]}
+                            </a>
+                          </div>
                         ) : (
                           <span className="xt-coop-muted">发布链接：-</span>
                         )}
