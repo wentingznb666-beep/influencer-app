@@ -136,13 +136,14 @@ function resolveMessageTarget(
   if (role === "admin" || role === "employee") {
     const base = role === "admin" ? "/admin" : "/employee";
     if (type === "permission") return `${base}/influencer-permissions`;
-    if (type === "market_order" || type === "matching_order" || type === "demand") return `${base}/market-orders`;
+    if (type === "market_order" || type === "matching_order" || type === "demand" || type === "video_order") return `${base}/market-orders`;
     return null;
   }
 
   // 商家端默认映射。
   if (type === "matching_order") return rid > 0 ? `/client/matching-orders?orderId=${rid}` : "/client/matching-orders";
   if (type === "market_order") return "/client/market-orders";
+  if (type === "video_order") return "/client/market-orders";
   if (type === "demand") return "/client/collab-my-applies";
   return null;
 }

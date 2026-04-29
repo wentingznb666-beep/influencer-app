@@ -39,8 +39,6 @@ function normalizeDateOnly(value: unknown): string {
 
 }
 
-
-
 async function resolveMarketOrderCreatorRewardUnitFromConfig(client: { query: Function }, tier: string): Promise<number> {
   const t = String(tier || "").trim().toUpperCase();
   const fallback = t === "A" ? 15 : t === "B" ? 10 : t === "C" ? 5 : 5;
@@ -1182,9 +1180,10 @@ router.post("/market-orders/:id/claim", (req: AuthRequest, res: Response) => {
 
       const u = await client.query<{ id: number }>(
 
-        `UPDATE client_market_orders SET status = 'claimed', influencer_id = $1, updated_at = now()
-
-         WHERE id = $2 AND status = 'open' AND is_deleted = 0 RETURNING id`,
+        `UPDATE client_market_orders
+            SET status = 'claimed', influencer_id = $1, updated_at = now()
+         WHERE id = $2 AND status = 'open' AND is_deleted = 0
+         RETURNING id`,
 
         [userId, orderId]
 
@@ -1200,7 +1199,6 @@ router.post("/market-orders/:id/claim", (req: AuthRequest, res: Response) => {
 
       return ok;
 
-    });
 
     if (!updated) {
 

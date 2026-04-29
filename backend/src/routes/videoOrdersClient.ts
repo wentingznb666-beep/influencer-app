@@ -68,6 +68,22 @@ async function ensureTypeVisibleToClient(typeId: VideoOrderTypeId): Promise<bool
   return isVisibleCooperationType(cfg, typeId, "client");
 }
 
+async function createMessageTx(
+  client: { query: Function },
+  userId: number,
+  category: string,
+  title: string,
+  content: string,
+  relatedType?: string,
+  relatedId?: number
+): Promise<void> {
+  await client.query(
+    `INSERT INTO system_messages (user_id, category, title, content, related_type, related_id)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [userId, category, title, content, relatedType ?? null, relatedId ?? null]
+  );
+}
+
 function toStringList(input: unknown): string[] {
   if (Array.isArray(input)) return input.map((item) => String(item || "").trim()).filter(Boolean);
   if (typeof input === "string") {
@@ -203,7 +219,7 @@ async function loadClientOwnedOrder(
 ): Promise<any | null> {
   const lockSql = forUpdate ? " FOR UPDATE" : "";
   const rows = await client.query(
-    `SELECT o.id, o.client_id, o.type_id, o.amount_thb, o.unit_price_thb, o.unit_count, o.payment_status, o.assigned_employee_id,
+    `SELECT o.id, o.client_id, o.type_id, o.title, o.amount_thb, o.unit_price_thb, o.unit_count, o.payment_status, o.assigned_employee_id,
             COALESCE((to_jsonb(s)->>'phase'), 'created') AS phase,
             COALESCE((to_jsonb(s)->'proof_links'), '[]'::jsonb) AS proof_links,
             COALESCE((to_jsonb(s)->'publish_links'), '[]'::jsonb) AS publish_links,
@@ -358,6 +374,17 @@ router.post("/video-orders/:id/accept", async (_req: AuthRequest, res: Response)
       if (!proofLinks.length && !publishLinks.length) return { kind: "no_delivery" as const };
       await client.query(`UPDATE video_order_states SET phase='accepted', updated_at=now() WHERE order_id=$1`, [id]);
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
+      if (Number(row.assigned_employee_id) > 0) {
+        await createMessageTx(
+          client,
+          Number(row.assigned_employee_id),
+          "video_order_accepted",
+          "订单已验收",
+          `视频订单 #${id}${row.title ? `（${row.title}）` : ""} 已被商家验收。`,
+          "video_order",
+          id
+        );
+      }
       return { kind: "ok" as const };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
@@ -393,6 +420,17 @@ router.post("/video-orders/:id/reject", async (_req: AuthRequest, res: Response)
         [id, note || null, req.user!.userId]
       );
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
+      if (Number(row.assigned_employee_id) > 0) {
+        await createMessageTx(
+          client,
+          Number(row.assigned_employee_id),
+          "video_order_rejected",
+          "订单需修改",
+          `视频订单 #${id}${row.title ? `（${row.title}）` : ""} 被商家退回修改${note ? `：${note}` : "。"}`,
+          "video_order",
+          id
+        );
+      }
       return { kind: "ok" as const };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
@@ -462,6 +500,17 @@ router.post("/video-orders/:id/monthly-batches/:batchNo/accept", async (req: Aut
       list[idx] = nextBatch;
       await updateMonthlyStateWithFallback(client, id, computeOrderPhaseFromBatches(list), list);
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
+      if (Number(row.assigned_employee_id) > 0) {
+        await createMessageTx(
+          client,
+          Number(row.assigned_employee_id),
+          "video_order_batch_accepted",
+          "批次已验收",
+          `视频订单 #${id}${row.title ? `（${row.title}）` : ""} 第 ${Number(current.batch_no || batchToken)} 批已验收，验收数量：${acceptedCount}。`,
+          "video_order",
+          id
+        );
+      }
       return { kind: "ok" as const, batch: nextBatch };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
@@ -516,6 +565,17 @@ router.post("/video-orders/:id/monthly-batches/:batchNo/reject", async (req: Aut
       list[idx] = nextBatch;
       await updateMonthlyStateWithFallback(client, id, computeOrderPhaseFromBatches(list), list);
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
+      if (Number(row.assigned_employee_id) > 0) {
+        await createMessageTx(
+          client,
+          Number(row.assigned_employee_id),
+          "video_order_batch_rejected",
+          "批次需修改",
+          `视频订单 #${id}${row.title ? `（${row.title}）` : ""} 第 ${Number(current.batch_no || batchToken)} 批被退回修改${note ? `：${note}` : "。"}`,
+          "video_order",
+          id
+        );
+      }
       return { kind: "ok" as const, batch: nextBatch };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
@@ -574,6 +634,17 @@ router.post("/video-orders/:id/monthly-batches/:batchNo/settle", async (req: Aut
       );
       await updateMonthlyStateWithFallback(client, id, computeOrderPhaseFromBatches(list), list);
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
+      if (Number(row.assigned_employee_id) > 0) {
+        await createMessageTx(
+          client,
+          Number(row.assigned_employee_id),
+          "video_order_batch_settled",
+          "批次已结算",
+          `视频订单 #${id}${row.title ? `（${row.title}）` : ""} 第 ${Number(current.batch_no || batchToken)} 批已结算，结算金额：${settledAmount} THB。`,
+          "video_order",
+          id
+        );
+      }
       return { kind: "ok" as const, batch: nextBatch };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });

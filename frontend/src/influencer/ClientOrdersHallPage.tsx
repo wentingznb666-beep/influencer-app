@@ -391,7 +391,6 @@ export default function ClientOrdersHallPage() {
 
   const [error, setError] = useState<string | null>(null);
 
-  const [typeFilter, setTypeFilter] = useState<"all" | "graded_video" | OfflineTypeId>("all");
   const [offlineList, setOfflineList] = useState<OfflineOrder[]>([]);
   const [offlineDraftUrls, setOfflineDraftUrls] = useState<Record<number, string>>({});
   const [offlinePublishDraft, setOfflinePublishDraft] = useState<Record<number, string>>({});
@@ -472,9 +471,7 @@ export default function ClientOrdersHallPage() {
 
    */
 
-  const load = async (params?: {
-    typeFilter?: "all" | "graded_video" | OfflineTypeId;
-  }) => {
+  const load = async () => {
 
     setLoading(true);
 
@@ -482,7 +479,6 @@ export default function ClientOrdersHallPage() {
 
     try {
 
-      const nextType = params?.typeFilter ?? typeFilter;
       const [openRes, myRes, offlineRes] = await Promise.all([
 
         api.getMarketOrders(),
@@ -490,7 +486,6 @@ export default function ClientOrdersHallPage() {
         api.getMyMarketOrders(),
 
         employeeApi.getEmployeeVideoOrders({
-          ...(nextType !== "all" && nextType !== "graded_video" ? { type: nextType } : {}),
           limit: 200,
         }),
 
@@ -833,11 +828,7 @@ export default function ClientOrdersHallPage() {
     [offlineList],
   );
 
-  const unifiedOrders = useMemo((): UnifiedOrder[] => {
-    if (typeFilter === "graded_video") return gradedUnified;
-    if (typeFilter === "all") return [...gradedUnified, ...offlineUnified];
-    return offlineUnified.filter((o) => o.type_id === typeFilter);
-  }, [gradedUnified, offlineUnified, typeFilter]);
+  const unifiedOrders = useMemo((): UnifiedOrder[] => [...gradedUnified, ...offlineUnified], [gradedUnified, offlineUnified]);
 
   function statusBadgeStyle(status: string): CSSProperties {
     const base: CSSProperties = {
@@ -1549,30 +1540,11 @@ export default function ClientOrdersHallPage() {
 
       <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16 }}>
 
-        {t("统一查看并处理类型1/2/3/4订单，顶部筛选会直接作用于当前统一订单列表。")}
+        {t("统一查看并处理类型1/2/3/4订单。")}
 
       </p>
 
       {error && <p style={{ color: "#c00" }}>{error}</p>}
-
-      <div style={{ marginBottom: 14, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ fontSize: 13, color: "#475569", fontWeight: 700 }}>{t("订单类型")}</div>
-        <select
-          value={typeFilter}
-          onChange={(e) => {
-            const next = e.target.value as any;
-            setTypeFilter(next);
-            load({ typeFilter: next });
-          }}
-          style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
-        >
-          <option value="all">{t("全部类型")}</option>
-          <option value="graded_video">{t("① 分级视频（A/B/C）")}</option>
-          <option value="high_quality_custom_video">{t("② 高质量视频")}</option>
-          <option value="monthly_package">{t("③ 包月合作套餐")}</option>
-          <option value="creator_review_video">{t("④ Creator带货测评")}</option>
-        </select>
-      </div>
 
       <div style={{ marginBottom: 16 }}>
         <h3 style={{ fontSize: 16, marginTop: 0 }}>{t("统一订单列表")}</h3>

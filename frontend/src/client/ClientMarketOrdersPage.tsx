@@ -284,8 +284,6 @@ export default function ClientMarketOrdersPage() {
 
   const [searchQ, setSearchQ] = useState("");
 
-  const [typeFilter, setTypeFilter] = useState<VideoOrderTypeId | "">("");
-
   const [dateFilter, setDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
 
   const [linksModalOpen, setLinksModalOpen] = useState(false);
@@ -731,8 +729,6 @@ export default function ClientMarketOrdersPage() {
 
     return rows
       .filter((r) => {
-        const typeId: VideoOrderTypeId = r.kind === "graded" ? "graded_video" : r.order.type_id;
-        if (typeFilter && typeId !== typeFilter) return false;
         if (!matchDate(r.created_at)) return false;
         if (!q) return true;
         if (r.kind === "graded") {
@@ -750,7 +746,7 @@ export default function ClientMarketOrdersPage() {
         if (Number.isFinite(ta) && Number.isFinite(tb) && ta !== tb) return tb - ta;
         return b.id - a.id;
       });
-  }, [marketOrders, offlineOrders, searchQ, dateFilter, typeFilter]);
+  }, [marketOrders, offlineOrders, searchQ, dateFilter]);
 
 
 
@@ -909,18 +905,6 @@ export default function ClientMarketOrdersPage() {
           清空
 
         </button>
-
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter((e.target.value as VideoOrderTypeId) || "")}
-          style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
-        >
-          <option value="">全部类型</option>
-          <option value="graded_video">① 分级视频（A/B/C）</option>
-          <option value="high_quality_custom_video">② 高质量视频</option>
-          <option value="monthly_package">③ 包月合作套餐</option>
-          <option value="creator_review_video">④ Creator带货测评</option>
-        </select>
 
         <OrderDateFilter value={dateFilter} onChange={setDateFilter} />
 

@@ -7,12 +7,6 @@
           <div class="subtitle">{{ t("支持当前页直接验收、查看交付链接、管理批次记录，不再依赖弹窗。") }}</div>
         </div>
         <div class="filters">
-          <el-select v-model="typeFilter" clearable :placeholder="t('订单类型筛选')" style="width: 240px" @change="persistUi">
-            <el-option :label="typeLabel('graded_video')" value="graded_video" />
-            <el-option :label="typeLabel('high_quality_custom_video')" value="high_quality_custom_video" />
-            <el-option :label="typeLabel('monthly_package')" value="monthly_package" />
-            <el-option :label="typeLabel('creator_review_video')" value="creator_review_video" />
-          </el-select>
           <el-input v-model="q" :placeholder="t('搜索订单号/标题/员工')" style="width: 260px" @keyup.enter="reloadAll" @blur="persistUi" />
           <el-switch v-model="store.roomyLayout" :active-text="t('宽松布局')" :inactive-text="t('紧凑布局')" @change="persistUi" />
           <el-button class="gold-btn" @click="reloadAll" :loading="loading">{{ t("รีเฟรช") }}</el-button>
@@ -374,7 +368,6 @@ type UnifiedRow = {
 
 const locale = ref<Locale>(readLocale());
 const store = useVideoOrdersStore();
-const typeFilter = ref<UnifiedOrderType | "">(store.clientTypeFilter || "");
 const q = ref(store.orderKeyword || "");
 const detailOpen = ref(false);
 const activeOrder = ref<UnifiedRow | null>(null);
@@ -389,7 +382,6 @@ function typeLabel(type: UnifiedOrderType): string {
 }
 
 function persistUi(): void {
-  store.clientTypeFilter = typeFilter.value;
   store.orderKeyword = q.value;
   store.persist();
 }
@@ -601,7 +593,6 @@ const unified = computed<UnifiedRow[]>(() => {
 const filtered = computed(() =>
   unified.value.filter(
     (item) =>
-      (!typeFilter.value || item.type_id === typeFilter.value) &&
       (!q.value.trim() || `${item.order_no} ${item.title}`.toLowerCase().includes(q.value.trim().toLowerCase())),
   ),
 );

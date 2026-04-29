@@ -12,7 +12,6 @@ import RiskPage from "./admin/RiskPage";
 import WithdrawalsPage from "./admin/WithdrawalsPage";
 import UsersPage from "./admin/UsersPage";
 import MarketOrdersPage from "./admin/MarketOrdersPage";
-import AdminOrdersPage from "./admin/OrdersPage";
 import AdminSkusPage from "./admin/SkusPage";
 import ProfitPage from "./admin/ProfitPage";
 import ModelsPage from "./admin/ModelsPage";
@@ -65,7 +64,7 @@ createRoot(document.getElementById("root")!).render(
             <Routes>
               <Route path="/login" element={<Login />} />
           <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><AdminLayout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/admin/orders" replace />} />
+            <Route index element={<Navigate to="/admin/market-orders" replace />} />
             <Route path="influencers" element={<InfluencersPage />} />
             <Route path="points" element={<PointsPage />} />
             <Route path="settlement" element={<SettlementPage />} />
@@ -77,7 +76,6 @@ createRoot(document.getElementById("root")!).render(
             <Route path="showcase-influencers" element={<ShowcaseInfluencersPage />} />
             <Route path="showcase-content-creators" element={<ShowcaseContentCreatorsPage />} />
             <Route path="market-orders" element={<MarketOrdersPage />} />
-            <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="skus" element={<AdminSkusPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
@@ -86,8 +84,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="cooperation-orders" element={<CooperationOrdersPage />} />
           </Route>
           <Route path="/employee" element={<ProtectedRoute roles={["employee"]}><EmployeeLayout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/employee/orders" replace />} />
-            <Route path="orders" element={<AdminOrdersPage />} />
+            <Route index element={<Navigate to="/employee/market-orders" replace />} />
             <Route path="models" element={<ModelsPage />} />
             <Route path="showcase-influencers" element={<ShowcaseInfluencersPage />} />
             <Route path="showcase-content-creators" element={<ShowcaseContentCreatorsPage />} />

@@ -38,10 +38,6 @@ import usersRoutes from "./routes/users";
 
 import adminMarketOrdersRoutes from "./routes/adminMarketOrders";
 
-import adminOrdersRoutes from "./routes/adminOrders";
-
-import adminSkusRoutes from "./routes/adminSkus";
-
 import adminProfitRoutes from "./routes/adminProfit";
 
 import operationLogsRoutes from "./routes/operationLogs";
@@ -146,8 +142,6 @@ app.use("/api/admin/users", usersRoutes);
 app.use("/api/admin/profit", adminProfitRoutes);
 
 app.use("/api/admin/market-orders", adminMarketOrdersRoutes);
-
-app.use("/api/admin/orders", adminOrdersRoutes);
 
 app.use("/api/admin/skus", adminSkusRoutes);
 

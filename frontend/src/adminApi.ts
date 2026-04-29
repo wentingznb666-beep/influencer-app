@@ -8,6 +8,8 @@ import { getAccessToken } from "./authApi";
 
 import { fetchWithAuth } from "./fetchWithAuth";
 
+import type { OfflineVideoOrder, OfflineVideoOrderPhase, OfflineVideoOrderTypeId } from "./clientApi";
+
 
 
 export type AdminCreatableRole = "admin" | "employee" | "influencer" | "client";
@@ -548,6 +550,22 @@ export async function getAdminMarketOrders(params?: { q?: string; start_date?: s
 
   return res.json();
 
+}
+
+export type AdminVideoOrder = OfflineVideoOrder & {
+  client_username: string;
+  employee_username: string | null;
+};
+
+export async function getAdminVideoOrders(params?: { type?: OfflineVideoOrderTypeId; phase?: OfflineVideoOrderPhase; q?: string; limit?: number }) {
+  const q = new URLSearchParams();
+  if (params?.type) q.set("type", params.type);
+  if (params?.phase) q.set("phase", params.phase);
+  if (params?.q) q.set("q", params.q);
+  if (params?.limit != null) q.set("limit", String(params.limit));
+  const res = await fetchWithAuth(`/api/admin/video-orders?${q}`);
+  if (!res.ok) throw new Error(await readErrorMessage(res, "请求失败"));
+  return res.json() as Promise<{ list: AdminVideoOrder[] }>;
 }
 
 

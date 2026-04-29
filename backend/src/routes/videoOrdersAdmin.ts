@@ -49,6 +49,22 @@ async function ensureTypeVisibleToAdmin(typeId: VideoOrderTypeId): Promise<boole
   return isVisibleCooperationType(cfg, typeId, "admin");
 }
 
+async function createMessageTx(
+  client: { query: Function },
+  userId: number,
+  category: string,
+  title: string,
+  content: string,
+  relatedType?: string,
+  relatedId?: number
+): Promise<void> {
+  await client.query(
+    `INSERT INTO system_messages (user_id, category, title, content, related_type, related_id)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [userId, category, title, content, relatedType ?? null, relatedId ?? null]
+  );
+}
+
 router.get("/video-orders", async (req: AuthRequest, res: Response) => {
   const type = normalizeTypeId(req.query?.type);
   const phase = normalizePhase(req.query?.phase);
@@ -112,8 +128,12 @@ router.post("/video-orders/:id/review", async (req: AuthRequest, res: Response) 
   try {
     const ret = await withTx(async (client) => {
       await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
-      const cur = await client.query<{ type_id: VideoOrderTypeId; phase: string }>(
-        `SELECT o.type_id, (to_jsonb(s)->>'phase') AS phase
+      const cur = await client.query<{ type_id: VideoOrderTypeId; phase: string; assigned_employee_id: number | null; client_id: number; title: string | null }>(
+        `SELECT o.type_id,
+                o.assigned_employee_id,
+                o.client_id,
+                o.title,
+                (to_jsonb(s)->>'phase') AS phase
            FROM video_orders o
            JOIN video_order_states s ON s.order_id=o.id
           WHERE o.id=$1
@@ -134,6 +154,26 @@ router.post("/video-orders/:id/review", async (req: AuthRequest, res: Response) 
         [id, nextPhase, note || null, req.user!.userId]
       );
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
+      if (Number(row.assigned_employee_id) > 0) {
+        await createMessageTx(
+          client,
+          Number(row.assigned_employee_id),
+          action === "approve" ? "video_order_review_approved" : "video_order_review_rejected",
+          action === "approve" ? "审核已通过" : "审核未通过",
+          `视频订单 #${id}${row.title ? `（${row.title}）` : ""} ${action === "approve" ? "已审核通过，可提交发布链接。" : `审核未通过${note ? `：${note}` : "。"} `}`,
+          "video_order",
+          id
+        );
+      }
+      await createMessageTx(
+        client,
+        row.client_id,
+        action === "approve" ? "video_order_review_approved" : "video_order_review_rejected",
+        action === "approve" ? "审核已通过" : "审核未通过",
+        `视频订单 #${id}${row.title ? `（${row.title}）` : ""} ${action === "approve" ? "审核已通过，等待发布。" : `审核未通过${note ? `：${note}` : "。"} `}`,
+        "video_order",
+        id
+      );
       return { kind: "ok" as const, nextPhase };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });

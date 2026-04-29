@@ -54,6 +54,22 @@ async function ensureTypeVisibleToEmployee(typeId: VideoOrderTypeId): Promise<bo
   return isVisibleCooperationType(cfg, typeId, "employee");
 }
 
+async function createMessageTx(
+  client: { query: Function },
+  userId: number,
+  category: string,
+  title: string,
+  content: string,
+  relatedType?: string,
+  relatedId?: number
+): Promise<void> {
+  await client.query(
+    `INSERT INTO system_messages (user_id, category, title, content, related_type, related_id)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [userId, category, title, content, relatedType ?? null, relatedId ?? null]
+  );
+}
+
 router.get("/video-orders", async (req: AuthRequest, res: Response) => {
   const type = normalizeTypeId(req.query?.type);
   const phase = normalizePhase(req.query?.phase);
@@ -112,8 +128,8 @@ router.post("/video-orders/:id/claim", async (req: AuthRequest, res: Response) =
 
   try {
     const ret = await withTx(async (client) => {
-      const cur = await client.query<{ type_id: VideoOrderTypeId; payment_status: string; assigned_employee_id: number | null }>(
-        `SELECT type_id, payment_status, assigned_employee_id
+      const cur = await client.query<{ type_id: VideoOrderTypeId; payment_status: string; assigned_employee_id: number | null; client_id: number; title: string | null }>(
+        `SELECT type_id, payment_status, assigned_employee_id, client_id, title
            FROM video_orders
           WHERE id=$1
           FOR UPDATE`,
@@ -132,6 +148,15 @@ router.post("/video-orders/:id/claim", async (req: AuthRequest, res: Response) =
        */
       const nextPhase = row.payment_status === "paid" ? "in_progress" : "assigned";
       await client.query(`UPDATE video_order_states SET phase=$2, updated_at=now() WHERE order_id=$1`, [id, nextPhase]);
+      await createMessageTx(
+        client,
+        row.client_id,
+        "video_order_claim",
+        "订单已接单",
+        `视频订单 #${id}${row.title ? `（${row.title}）` : ""} 已接单，当前进度：${nextPhase}。`,
+        "video_order",
+        id
+      );
       return { kind: "ok" as const };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
@@ -150,8 +175,8 @@ router.post("/video-orders/:id/mark-paid", async (req: AuthRequest, res: Respons
   if (!Number.isFinite(id) || id <= 0) return res.status(400).json({ error: "INVALID_ID", message: "无效订单ID。" });
   try {
     const ret = await withTx(async (client) => {
-      const cur = await client.query<{ payment_status: string; assigned_employee_id: number | null; amount_thb: unknown }>(
-        `SELECT payment_status, assigned_employee_id, amount_thb
+      const cur = await client.query<{ payment_status: string; assigned_employee_id: number | null; amount_thb: unknown; client_id: number; title: string | null }>(
+        `SELECT payment_status, assigned_employee_id, amount_thb, client_id, title
            FROM video_orders
           WHERE id=$1
           FOR UPDATE`,
@@ -166,6 +191,15 @@ router.post("/video-orders/:id/mark-paid", async (req: AuthRequest, res: Respons
       await client.query(`UPDATE video_orders SET assigned_employee_id=$2, payment_status='paid', paid_at=now(), updated_at=now() WHERE id=$1`, [id, req.user!.userId]);
       await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
       await client.query(`UPDATE video_order_states SET phase='in_progress', updated_at=now() WHERE order_id=$1`, [id]);
+      await createMessageTx(
+        client,
+        row.client_id,
+        "video_order_paid",
+        "订单已确认付款",
+        `视频订单 #${id}${row.title ? `（${row.title}）` : ""} 已确认线下付款，开始制作中。`,
+        "video_order",
+        id
+      );
       return { kind: "ok" as const };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
@@ -222,8 +256,8 @@ router.post("/video-orders/:id/submit-proof", async (req: AuthRequest, res: Resp
 
   try {
     const ret = await withTx(async (client) => {
-      const cur = await client.query<{ type_id: VideoOrderTypeId; payment_status: string; assigned_employee_id: number | null }>(
-        `SELECT type_id, payment_status, assigned_employee_id
+      const cur = await client.query<{ type_id: VideoOrderTypeId; payment_status: string; assigned_employee_id: number | null; client_id: number; title: string | null }>(
+        `SELECT type_id, payment_status, assigned_employee_id, client_id, title
            FROM video_orders
           WHERE id=$1
           FOR UPDATE`,
@@ -244,6 +278,15 @@ router.post("/video-orders/:id/submit-proof", async (req: AuthRequest, res: Resp
         [id, nextPhase, JSON.stringify(videoUrls)]
       );
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
+      await createMessageTx(
+        client,
+        row.client_id,
+        "video_order_proof_submitted",
+        "已提交交付链接",
+        `视频订单 #${id}${row.title ? `（${row.title}）` : ""} 已提交交付链接，当前进度：${nextPhase}。`,
+        "video_order",
+        id
+      );
       return { kind: "ok" as const, nextPhase };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
@@ -266,10 +309,12 @@ router.post("/video-orders/:id/publish", async (req: AuthRequest, res: Response)
   try {
     const ret = await withTx(async (client) => {
       await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
-      const cur = await client.query<{ type_id: VideoOrderTypeId; payment_status: string; assigned_employee_id: number | null; phase: string; publish_links: any }>(
+      const cur = await client.query<{ type_id: VideoOrderTypeId; payment_status: string; assigned_employee_id: number | null; phase: string; publish_links: any; client_id: number; title: string | null }>(
         `SELECT o.type_id,
                 o.payment_status,
                 o.assigned_employee_id,
+                o.client_id,
+                o.title,
                 (to_jsonb(s)->>'phase') AS phase,
                 (to_jsonb(s)->'publish_links') AS publish_links
            FROM video_orders o
@@ -292,6 +337,15 @@ router.post("/video-orders/:id/publish", async (req: AuthRequest, res: Response)
         [id, JSON.stringify(list)]
       );
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
+      await createMessageTx(
+        client,
+        row.client_id,
+        "video_order_published",
+        "订单已发布",
+        `视频订单 #${id}${row.title ? `（${row.title}）` : ""} 已完成发布链接提交。`,
+        "video_order",
+        id
+      );
       return { kind: "ok" as const };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });
@@ -327,10 +381,12 @@ router.post("/video-orders/:id/monthly-batches/submit", async (req: AuthRequest,
   try {
     const ret = await withTx(async (client) => {
       await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [id]);
-      const cur = await client.query<{ type_id: string; payment_status: string; assigned_employee_id: number | null; batch_payload: any }>(
+      const cur = await client.query<{ type_id: string; payment_status: string; assigned_employee_id: number | null; batch_payload: any; client_id: number; title: string | null }>(
         `SELECT o.type_id,
                 o.payment_status,
                 o.assigned_employee_id,
+                o.client_id,
+                o.title,
                 (to_jsonb(s)->'batch_payload') AS batch_payload
            FROM video_orders o
            JOIN video_order_states s ON s.order_id=o.id
@@ -360,6 +416,15 @@ router.post("/video-orders/:id/monthly-batches/submit", async (req: AuthRequest,
 
       await client.query(`UPDATE video_order_states SET phase='delivered', batch_payload=$2::jsonb, updated_at=now() WHERE order_id=$1`, [id, JSON.stringify(list)]);
       await client.query(`UPDATE video_orders SET updated_at=now() WHERE id=$1`, [id]);
+      await createMessageTx(
+        client,
+        row.client_id,
+        "video_order_batch_submitted",
+        "包月批次已提交",
+        `视频订单 #${id}${row.title ? `（${row.title}）` : ""} 已提交第 ${batchNo} 批交付，共 ${Math.floor(videoCount)} 条。`,
+        "video_order",
+        id
+      );
       return { kind: "ok" as const, batch: next };
     });
     if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "订单不存在。" });

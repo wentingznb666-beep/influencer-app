@@ -5,6 +5,8 @@ import { useSearchParams } from "react-router-dom";
 
 import * as api from "../adminApi";
 
+import * as employeeApi from "../employeeApi";
+
 import { getStoredUser } from "../authApi";
 
 import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFilter";
@@ -75,6 +77,30 @@ type Row = {
 
 };
 
+type MarketRow = Row & {
+  kind: "market";
+  type_id: "graded_video";
+};
+
+type OfflineRow = {
+  kind: "offline";
+  type_id: employeeApi.EmployeeVideoOrderTypeId;
+  id: number;
+  order_no: string;
+  title: string;
+  client_username: string;
+  employee_username: string | null;
+  assigned_employee_id: number | null;
+  payment_status: "unpaid" | "paid";
+  amount_thb: number;
+  phase: employeeApi.EmployeeVideoOrderPhase;
+  work_links: string[];
+  created_at: string;
+  updated_at: string;
+};
+
+type UnifiedRow = MarketRow | OfflineRow;
+
 
 
 /**
@@ -131,7 +157,7 @@ export default function MarketOrdersPage() {
 
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [list, setList] = useState<Row[]>([]);
+  const [list, setList] = useState<UnifiedRow[]>([]);
 
   const [loading, setLoading] = useState(true);
 
@@ -141,7 +167,7 @@ export default function MarketOrdersPage() {
 
   const [dateFilter, setDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
 
-  const [detailOrder, setDetailOrder] = useState<Row | null>(null);
+  const [detailOrder, setDetailOrder] = useState<MarketRow | null>(null);
 
   const [detailWorkLinksDraft, setDetailWorkLinksDraft] = useState<string[]>([]);
 
@@ -185,6 +211,39 @@ export default function MarketOrdersPage() {
 
   };
 
+  const normalizeOfflineLinks = (order: employeeApi.EmployeeVideoOrder): string[] => {
+    const proof = Array.isArray(order.proof_links) ? order.proof_links : [];
+    const publish = Array.isArray(order.publish_links) ? order.publish_links : [];
+    const batch = Array.isArray(order.batch_payload) ? order.batch_payload : [];
+    const fromBatch = batch.flatMap((it) => {
+      const item = it as Record<string, unknown>;
+      const deliveryLinks = Array.isArray(item.delivery_links) ? (item.delivery_links as unknown[]) : null;
+      const proofLinks = Array.isArray(item.proof_links) ? (item.proof_links as unknown[]) : null;
+      const list = deliveryLinks && deliveryLinks.length ? deliveryLinks : proofLinks && proofLinks.length ? proofLinks : [];
+      return list;
+    });
+    return [...proof, ...publish, ...fromBatch]
+      .map((v) => String(v || "").trim())
+      .filter((v) => v.length > 0)
+      .slice(0, 200);
+  };
+
+  const isDateInFilter = (iso: string, filter: DateFilterState): boolean => {
+    if (filter.mode === "all") return true;
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return true;
+    const toDateOnly = (value: Date): string => {
+      const pad = (n: number) => String(n).padStart(2, "0");
+      return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+    };
+    const day = toDateOnly(d);
+    if (filter.mode === "day") return !filter.day || day === filter.day;
+    if (!filter.startDate && !filter.endDate) return true;
+    if (filter.startDate && day < filter.startDate) return false;
+    if (filter.endDate && day > filter.endDate) return false;
+    return true;
+  };
+
 
 
   /**
@@ -209,27 +268,63 @@ export default function MarketOrdersPage() {
 
       };
 
-      const data = await api.getAdminMarketOrders(Object.keys(query).length > 0 ? query : undefined);
+      const qText = q?.trim() || "";
+      const [marketRes, offlineRes] = await Promise.allSettled([
+        api.getAdminMarketOrders(Object.keys(query).length > 0 ? query : undefined),
+        isEmployee
+          ? employeeApi.getEmployeeVideoOrders(qText ? { q: qText } : undefined)
+          : api.getAdminVideoOrders(qText ? { q: qText } : undefined),
+      ]);
 
-      const raw = (data.list as Row[]) || [];
+      const marketList: MarketRow[] =
+        marketRes.status === "fulfilled"
+          ? (((marketRes.value.list as Row[]) || []).map((r) => ({
+              ...r,
+              kind: "market",
+              type_id: "graded_video",
+              work_links: normalizeWorkLinks(r.work_links),
+              sku_codes: normalizeSkuCodes(r.sku_codes),
+              sku_ids: normalizeSkuIds(r.sku_ids),
+              sku_images: normalizeSkuImages(r.sku_images),
+            })) as MarketRow[])
+          : [];
 
-      setList(
+      const offlineRaw: employeeApi.EmployeeVideoOrder[] =
+        offlineRes.status === "fulfilled" ? (((offlineRes.value as { list: employeeApi.EmployeeVideoOrder[] })?.list || []) as employeeApi.EmployeeVideoOrder[]) : [];
 
-        raw.map((r) => ({
+      const offlineList: OfflineRow[] = offlineRaw
+        .filter((it) => isDateInFilter(it.created_at, filter ?? dateFilter))
+        .map((it) => ({
+          kind: "offline",
+          type_id: it.type_id,
+          id: it.id,
+          order_no: `#${it.id}`,
+          title: it.title,
+          client_username: it.client_username,
+          employee_username: isEmployee ? null : (it as unknown as api.AdminVideoOrder).employee_username ?? null,
+          assigned_employee_id: it.assigned_employee_id,
+          payment_status: it.payment_status,
+          amount_thb: Number(it.amount_thb || 0),
+          phase: it.phase,
+          work_links: normalizeOfflineLinks(it),
+          created_at: it.created_at,
+          updated_at: it.updated_at,
+        }));
 
-          ...r,
+      if (marketRes.status === "rejected" && offlineRes.status === "rejected") {
+        const msg =
+          (marketRes.reason instanceof Error && marketRes.reason.message) ||
+          (offlineRes.reason instanceof Error && offlineRes.reason.message) ||
+          "加载失败";
+        throw new Error(msg);
+      }
 
-          work_links: normalizeWorkLinks(r.work_links),
-
-          sku_codes: normalizeSkuCodes(r.sku_codes),
-
-          sku_ids: normalizeSkuIds(r.sku_ids),
-
-          sku_images: normalizeSkuImages(r.sku_images),
-
-        })),
-
-      );
+      setList([...offlineList, ...marketList].sort((a, b) => {
+        const ta = new Date(a.created_at).getTime();
+        const tb = new Date(b.created_at).getTime();
+        if (Number.isFinite(ta) && Number.isFinite(tb) && ta !== tb) return tb - ta;
+        return b.id - a.id;
+      }));
 
     } catch (e) {
 
@@ -289,6 +384,34 @@ export default function MarketOrdersPage() {
       claimed: t("已领取/进行中"),
       completed: t("已完成"),
       cancelled: t("已取消"),
+    }),
+    [t],
+  );
+
+  const offlinePhaseText: Record<string, string> = useMemo(
+    () => ({
+      created: t("待处理"),
+      paid: t("已付款"),
+      assigned: t("已接单"),
+      in_progress: t("制作中"),
+      submitted: t("已提交"),
+      review_pending: t("待审核"),
+      review_rejected: t("审核驳回"),
+      approved_to_publish: t("可发布"),
+      published: t("已发布"),
+      delivered: t("已交付"),
+      completed: t("已完成"),
+      rejected: t("已退回"),
+    }),
+    [t],
+  );
+
+  const typeText: Record<"graded_video" | employeeApi.EmployeeVideoOrderTypeId, string> = useMemo(
+    () => ({
+      graded_video: t("类型1：视频分级"),
+      high_quality_custom_video: t("类型2：高质量定制视频"),
+      monthly_package: t("类型3：包月套餐"),
+      creator_review_video: t("类型4：达人测评视频"),
     }),
     [t],
   );
@@ -458,7 +581,7 @@ export default function MarketOrdersPage() {
 
     <div>
 
-      <h2 style={{ marginTop: 0 }}>{t("达人领单")}</h2>
+      <h2 style={{ marginTop: 0 }}>{t("视频分级订单")}</h2>
 
       <p style={{ fontSize: 14, color: "#64748b" }}>{t("查看商家端发布的达人领单；布局与「商家订单」页保持一致，便于跨页核对。")}</p>
 
@@ -547,12 +670,13 @@ export default function MarketOrdersPage() {
             <colgroup>
 
               <col style={{ width: "6%" }} />
+              <col style={{ width: "10%" }} />
               <col style={{ width: "12%" }} />
-              <col style={{ width: "11%" }} />
-              <col style={{ width: "7%" }} />
-              <col style={{ width: "12%" }} />
+              <col style={{ width: "10%" }} />
+              <col style={{ width: "9%" }} />
+              <col style={{ width: "14%" }} />
               <col style={{ width: "16%" }} />
-              <col style={{ width: "13%" }} />
+              <col style={{ width: "12%" }} />
               <col style={{ width: "7%" }} />
               <col style={{ width: "9%" }} />
               <col style={{ width: "7%" }} />
@@ -564,10 +688,11 @@ export default function MarketOrdersPage() {
               <tr>
 
                 <th style={{ padding: 8, textAlign: "left" }}>{t("订单号")}</th>
+                <th style={{ padding: 8, textAlign: "left" }}>{t("类型")}</th>
                 <th style={{ padding: 8, textAlign: "left" }}>{t("商家账号/名称")}</th>
-                <th style={{ padding: 8, textAlign: "left" }}>{t("领取达人")}</th>
+                <th style={{ padding: 8, textAlign: "left" }}>{t("负责人")}</th>
                 <th style={{ padding: 8, textAlign: "left" }}>{t("状态")}</th>
-                <th style={{ padding: 8, textAlign: "center" }}>{t("视频数量/积分")}</th>
+                <th style={{ padding: 8, textAlign: "center" }}>{t("金额")}</th>
                 <th style={{ padding: 8, textAlign: "left" }}>{t("订单详情")}</th>
 
                 <th style={{ padding: 8, textAlign: "left" }}>{t("SKU信息")}</th>
@@ -576,7 +701,7 @@ export default function MarketOrdersPage() {
 
                 <th style={{ padding: 8, textAlign: "left" }}>{t("创建时间")}</th>
 
-                <th style={{ padding: 8, textAlign: "left" }}>{t("完成时间")}</th>
+                <th style={{ padding: 8, textAlign: "left" }}>{t("完成/更新时间")}</th>
 
               </tr>
 
@@ -594,113 +719,160 @@ export default function MarketOrdersPage() {
 
                       type="button"
 
-                      onClick={() => setDetailOrder(o)}
+                      onClick={() => {
+                        if (o.kind === "market") setDetailOrder(o);
+                        else {
+                          setLinksModalLinks(o.work_links);
+                          setLinksModalOpen(true);
+                        }
+                      }}
 
                       style={{ padding: 0, border: "none", background: "transparent", color: "var(--xt-accent)", cursor: "pointer", textDecoration: "underline", textAlign: "left", whiteSpace: "normal", maxWidth: "100%" }}
 
                     >
 
-                      {o.order_no || `#${o.id}`}
+                      {o.kind === "market" ? o.order_no || `#${o.id}` : o.order_no}
 
                     </button>
 
                   </td>
 
                   <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
+                    <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.95em", display: "inline-block", background: "#eef2ff", color: "#334155" }}>
+                      {typeText[o.type_id]}
+                    </span>
+                  </td>
+
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
 
                     {o.client_username}
-
-                    <br />
-
-                    <span style={{ color: "#64748b" }}>{o.client_display_name || o.client_username}</span>
-
-                    <br />
-
-                    <span style={{ color: "#64748b" }}>{t("店铺：")}{o.client_shop_name?.trim() || t("未填写")}</span>
-
-                    <br />
-
-                    <span style={{ color: "#64748b" }}>
-
-                      {t("群聊：")}
-
-                      {isHttpUrl(o.client_group_chat) ? (
-
-                        <a href={String(o.client_group_chat).trim()} target="_blank" rel="noreferrer">
-
-                          {String(o.client_group_chat).trim()}
-
-                        </a>
-
-                      ) : (
-
-                        o.client_group_chat?.trim() || t("未填写")
-
-                      )}
-
-                    </span>
+                    {o.kind === "market" ? (
+                      <>
+                        <br />
+                        <span style={{ color: "#64748b" }}>{o.client_display_name || o.client_username}</span>
+                        <br />
+                        <span style={{ color: "#64748b" }}>
+                          {t("店铺：")}
+                          {o.client_shop_name?.trim() || t("未填写")}
+                        </span>
+                        <br />
+                        <span style={{ color: "#64748b" }}>
+                          {t("群聊：")}
+                          {isHttpUrl(o.client_group_chat) ? (
+                            <a href={String(o.client_group_chat).trim()} target="_blank" rel="noreferrer">
+                              {String(o.client_group_chat).trim()}
+                            </a>
+                          ) : (
+                            o.client_group_chat?.trim() || t("未填写")
+                          )}
+                        </span>
+                      </>
+                    ) : (
+                      <div style={{ marginTop: 4, color: "#64748b", fontSize: "0.95em" }}>{t("线下视频订单")}</div>
+                    )}
 
                   </td>
 
                   <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
 
-                    {o.influencer_username ? (
-
-                      <span>
-
-                        {o.influencer_username}
-
-                        <br />
-
-                        <span style={{ color: "#64748b" }}>{o.influencer_display_name || o.influencer_username}</span>
-
-                      </span>
-
-                    ) : (
-
-                      <span style={{ color: "#94a3b8" }}>—</span>
-
-                    )}
-
-                  </td>
-
-                                    <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
-                    <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.95em", display: "inline-block", background: o.status === "open" ? "#ffedd5" : o.status === "claimed" ? "#dbeafe" : "#dcfce7", color: "#334155" }}>
-                      {statusText[o.status] ?? o.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top", textAlign: "center" }}>
-                    <div style={{ fontSize: "12px", color: "#334155" }}>
-                      {t("视频数量：")}{o.task_count || "-"} {t("条")}
-                    </div>
-                    <div style={{ fontWeight: 600, color: "var(--xt-accent)", marginTop: 2 }}>
-                      {t("金额：")}{o.client_pay_total}{t("积分")}
-                      <span style={{ fontWeight: 400, fontSize: "11px", color: "#64748b", marginLeft: 4 }}>
-                        （{t("单套")} {o.client_pay_unit} {t("积分")} × {t("视频数量：")} {o.task_count || 1}）
-                      </span>
-                    </div>
-                    {!isEmployee && (
-                      <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: 4, borderTop: "1px dashed #e2e8f0", paddingTop: 4 }}>
-                        {t("达人收益合计：")}{o.creator_reward_total ?? "—"} {t("积分")}
-                        <span style={{ marginLeft: 4 }}>
-                          （{t("单套")} {o.creator_reward_unit ?? "—"} {t("积分")} × {t("视频数量：")} {o.task_count || 1}）
+                    {o.kind === "market" ? (
+                      o.influencer_username ? (
+                        <span>
+                          {o.influencer_username}
+                          <br />
+                          <span style={{ color: "#64748b" }}>{o.influencer_display_name || o.influencer_username}</span>
                         </span>
-                      </div>
+                      ) : (
+                        <span style={{ color: "#94a3b8" }}>—</span>
+                      )
+                    ) : o.employee_username ? (
+                      <span>
+                        {o.employee_username}
+                        <br />
+                        <span style={{ color: "#64748b" }}>#{o.assigned_employee_id || "-"}</span>
+                      </span>
+                    ) : (
+                      <span style={{ color: "#94a3b8" }}>{o.assigned_employee_id ? `#${o.assigned_employee_id}` : "—"}</span>
+                    )}
+
+                  </td>
+
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
+                    {o.kind === "market" ? (
+                      <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.95em", display: "inline-block", background: o.status === "open" ? "#ffedd5" : o.status === "claimed" ? "#dbeafe" : "#dcfce7", color: "#334155" }}>
+                        {statusText[o.status] ?? o.status}
+                      </span>
+                    ) : (
+                      <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.95em", display: "inline-block", background: ["rejected", "review_rejected"].includes(o.phase) ? "#fee2e2" : ["review_pending", "pending_acceptance", "in_progress", "assigned", "delivered", "published", "approved_to_publish", "submitted"].includes(o.phase) ? "#dbeafe" : "#dcfce7", color: "#334155" }}>
+                        {offlinePhaseText[o.phase] ?? o.phase}
+                      </span>
                     )}
                   </td>
+
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top", textAlign: "center" }}>
+                    {o.kind === "market" ? (
+                      <>
+                        <div style={{ fontSize: "12px", color: "#334155" }}>
+                          {t("视频数量：")}
+                          {o.task_count || "-"} {t("条")}
+                        </div>
+                        <div style={{ fontWeight: 600, color: "var(--xt-accent)", marginTop: 2 }}>
+                          {t("金额：")}
+                          {o.client_pay_total}
+                          {t("积分")}
+                          <span style={{ fontWeight: 400, fontSize: "11px", color: "#64748b", marginLeft: 4 }}>
+                            （{t("单套")} {o.client_pay_unit} {t("积分")} × {t("视频数量：")} {o.task_count || 1}）
+                          </span>
+                        </div>
+                        {!isEmployee && (
+                          <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: 4, borderTop: "1px dashed #e2e8f0", paddingTop: 4 }}>
+                            {t("达人收益合计：")}
+                            {o.creator_reward_total ?? "—"} {t("积分")}
+                            <span style={{ marginLeft: 4 }}>
+                              （{t("单套")} {o.creator_reward_unit ?? "—"} {t("积分")} × {t("视频数量：")} {o.task_count || 1}）
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div style={{ fontWeight: 600, color: "var(--xt-accent)" }}>
+                          {Number(o.amount_thb || 0).toFixed(2)} THB
+                        </div>
+                        <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>
+                          {t("付款：")}
+                          {o.payment_status === "paid" ? t("已付") : t("未付")}
+                        </div>
+                      </>
+                    )}
+                  </td>
+
                   <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
 
                     <div style={{ fontWeight: 600 }}>{o.title || t("未命名订单")}</div>
-
-                    <div style={{ marginTop: 4, color: "#64748b", fontSize: "0.95em" }}>{t("档位：")}{o.tier}</div>
-
-                    <div style={{ marginTop: 4, color: "#64748b", fontSize: "0.95em" }}>{t("发布方式：")}{publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}</div>
+                    {o.kind === "market" ? (
+                      <>
+                        <div style={{ marginTop: 4, color: "#64748b", fontSize: "0.95em" }}>
+                          {t("档位：")}
+                          {o.tier}
+                        </div>
+                        <div style={{ marginTop: 4, color: "#64748b", fontSize: "0.95em" }}>
+                          {t("发布方式：")}
+                          {publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ marginTop: 4, color: "#64748b", fontSize: "0.95em" }}>
+                        {t("阶段：")}
+                        {offlinePhaseText[o.phase] ?? o.phase}
+                      </div>
+                    )}
 
                   </td>
 
                   <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
 
-                    <SkuTableCell codes={o.sku_codes} />
+                    {o.kind === "market" ? <SkuTableCell codes={o.sku_codes} /> : <span style={{ color: "#94a3b8" }}>—</span>}
 
                   </td>
 
@@ -712,7 +884,7 @@ export default function MarketOrdersPage() {
 
                       onClick={() => {
 
-                        setLinksModalLinks(normalizeWorkLinks(o.work_links));
+                        setLinksModalLinks(o.kind === "market" ? normalizeWorkLinks(o.work_links) : o.work_links);
 
                         setLinksModalOpen(true);
 
@@ -730,7 +902,9 @@ export default function MarketOrdersPage() {
 
                   <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>{formatDateTime(o.created_at)}</td>
 
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>{formatDateTime(o.completed_at)}</td>
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
+                    {o.kind === "market" ? formatDateTime(o.completed_at) : formatDateTime(o.updated_at)}
+                  </td>
 
                 </tr>
 

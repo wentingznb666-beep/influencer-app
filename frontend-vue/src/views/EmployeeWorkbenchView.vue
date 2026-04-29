@@ -3,12 +3,6 @@
     <div class="header-row">
       <div class="title">{{ t("员工端订单处理") }} / {{ t("หน้าจอพนักงานจัดการคำสั่งงาน") }}</div>
       <div class="filters">
-        <el-select v-model="typeFilter" size="small" clearable style="width: 280px" :placeholder="t('订单类型')" @change="persistUi">
-          <el-option :label="typeLabel('graded_video')" value="graded_video" />
-          <el-option :label="typeLabel('high_quality_custom_video')" value="high_quality_custom_video" />
-          <el-option :label="typeLabel('monthly_package')" value="monthly_package" />
-          <el-option :label="typeLabel('creator_review_video')" value="creator_review_video" />
-        </el-select>
         <el-select v-model="statusFilter" size="small" clearable style="width: 180px" :placeholder="t('状态筛选')">
           <el-option :label="t('待领取')" value="open" />
           <el-option :label="t('已接单')" value="claimed" />
@@ -209,7 +203,6 @@ const locale = ref<Locale>(readLocale());
 const isAdmin = computed(() => auth.role === "admin");
 
 const q = ref(store.orderKeyword || "");
-const typeFilter = ref<UnifiedOrderType | "">(store.employeeTypeFilter || "");
 const statusFilter = ref<UnifiedStatus | "">("");
 const dateRange = ref<string[]>([]);
 const sortMode = ref<SortMode>("created_desc");
@@ -273,7 +266,6 @@ function typeLabel(type: UnifiedOrderType): string {
 
 /** 保存筛选条件。 */
 function persistUi(): void {
-  store.employeeTypeFilter = typeFilter.value;
   store.orderKeyword = q.value;
   store.persist();
 }
@@ -487,7 +479,6 @@ const unified = computed<UnifiedOrderRow[]>(() => {
 const filteredRows = computed<UnifiedOrderRow[]>(() => {
   const keyword = q.value.trim().toLowerCase();
   const rows = unified.value.filter((row) => {
-    if (typeFilter.value && row.type_id !== typeFilter.value) return false;
     if (statusFilter.value && row.unified_status !== statusFilter.value) return false;
     if (!inDateRange(row.created_at)) return false;
     if (!keyword) return true;
@@ -510,7 +501,7 @@ async function reloadAll(): Promise<void> {
   try {
     const [m, o] = await Promise.all([
       listAdminOrders({ q: q.value.trim() || undefined }),
-      isAdmin.value ? listAdminOfflineVideoOrders({ q: q.value.trim() || undefined, type: typeFilter.value && typeFilter.value !== "graded_video" ? (typeFilter.value as OfflineVideoOrderTypeId) : undefined }) : listEmployeeOfflineVideoOrders({ q: q.value.trim() || undefined, type: typeFilter.value && typeFilter.value !== "graded_video" ? (typeFilter.value as OfflineVideoOrderTypeId) : undefined }),
+      isAdmin.value ? listAdminOfflineVideoOrders({ q: q.value.trim() || undefined }) : listEmployeeOfflineVideoOrders({ q: q.value.trim() || undefined }),
     ]);
     marketOrders.value = m;
     offlineOrders.value = o;
