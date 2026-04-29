@@ -72,6 +72,16 @@ function formatMatchStatus(status: string) {
   return v || "—";
 }
 
+function resolveUnifiedStatus(row: { phase?: unknown; status?: unknown; match_status?: unknown }): { kind: "phase" | "status" | "match"; value: string; label: string } | null {
+  const ph = String(row.phase || "").trim();
+  if (ph && ph !== "none") return { kind: "phase", value: ph, label: phaseLabel(ph) };
+  const st = String(row.status || "").trim();
+  if (st) return { kind: "status", value: st, label: formatOrderStatus(st) };
+  const ms = String(row.match_status || "").trim();
+  if (ms) return { kind: "match", value: ms, label: formatMatchStatus(ms) };
+  return null;
+}
+
 function phaseLabel(p: string) {
   if (p === "none") return "—";
   if (p === "assigned") return "已分配";
@@ -399,8 +409,16 @@ export default function CooperationOrdersPage() {
             <tbody>
               {filteredList.map((r) => {
                 const id = r.id;
-                const ph = safeText(r.phase);
-                const workLinks = asLinks(r.work_links);
+                const workLinks = (() => {
+                  const primary = asLinks(r.work_links);
+                  if (primary.length) return primary;
+                  const fromDetail = asLinks((r.detail_json as any)?.work_links);
+                  if (fromDetail.length) return fromDetail;
+                  const fromProof = asLinks((r.detail_json as any)?.proof_links);
+                  if (fromProof.length) return fromProof;
+                  return [];
+                })();
+                const uni = resolveUnifiedStatus(r);
                 return (
                   <tr key={id} className="xt-coop-row" data-coop-id={id}>
                     <td className="xt-coop-td">
@@ -428,11 +446,7 @@ export default function CooperationOrdersPage() {
                       </div>
                     </td>
                     <td className="xt-coop-td">
-                      <div className="xt-coop-sub">
-                        <span style={statusBadgeStyle("phase", ph)}>{t(phaseLabel(ph))}</span>
-                        <span style={statusBadgeStyle("status", safeText(r.status))}>{t(formatOrderStatus(safeText(r.status)))}</span>
-                        <span style={statusBadgeStyle("match", safeText(r.match_status))}>{t(formatMatchStatus(safeText(r.match_status)))}</span>
-                      </div>
+                      {uni ? <span style={statusBadgeStyle(uni.kind, uni.value)}>{t(uni.label)}</span> : <span className="xt-coop-muted">—</span>}
                     </td>
                     <td className="xt-coop-td">
                       {workLinks.length ? (
