@@ -593,13 +593,13 @@ export default function Login() {
             <div className="xt-login-home__footer-title">合规信息</div>
             <div className="xt-login-home__footer-body">
               <div className="xt-login-home__footer-text">
-                เลขทะเบียน:0505564017671 | ประกอบธุรกิจ:โฆษณา | วันที่จดทะเบียน:8 พฤศจิกายน 2564
+                注册号 ：0505564017671
               </div>
               <div className="xt-login-home__footer-text">
-                注册号：0505564017671 | 业务：广告代理 | 成立：2021-11-08
+                业务类型：广告代理及相关业务
               </div>
               <div className="xt-login-home__footer-text">
-                ที่ตั้งแผนที่: 44/34 หมู่ที่ 5 ตำบลหนองป่าครั่ง อำเภอเมืองเชียงใหม่ จ.เชียงใหม่ 50000
+                成立日期 ：2021年11月8日
               </div>
               <div className="xt-login-home__footer-text">
                 办公地址 ：44/34 Moo 5, Nong Pa Khrang, Mueang Chiang Mai, Chiang Mai 50000
