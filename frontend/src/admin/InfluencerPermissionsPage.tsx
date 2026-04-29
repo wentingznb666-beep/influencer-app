@@ -1,13 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { getAdminInfluencerPermissions, reviewAdminInfluencerPermission, toggleAdminInfluencerPermission } from "../matchingApi";
 import { formatInfluencerPermissionStatus } from "../utils/matchingStatusText";
 
 /** 管理端达人撮合权限审核页。 */
 export default function InfluencerPermissionsPage() {
+  const location = useLocation();
   const [list, setList] = useState<any[]>([]);
   const [msg, setMsg] = useState<string>("");
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [isMobile, setIsMobile] = useState(false);
+  const focusIdRef = useRef<number>(0);
+  const jumpedOnceRef = useRef(false);
 
   const setBusyKey = (key: string, value: boolean) => {
     setBusy((prev) => ({ ...prev, [key]: value }));
@@ -66,6 +70,24 @@ export default function InfluencerPermissionsPage() {
       else mq.removeListener(onChange);
     };
   }, []);
+
+  useEffect(() => {
+    const sp = new URLSearchParams(location.search);
+    const id = Number(sp.get("id") || sp.get("permissionId") || 0);
+    if (!Number.isFinite(id) || id < 1) return;
+    focusIdRef.current = id;
+    if (!jumpedOnceRef.current) jumpedOnceRef.current = true;
+  }, [location.search]);
+
+  useEffect(() => {
+    const id = focusIdRef.current;
+    if (!id) return;
+    if (!Array.isArray(list) || list.length === 0) return;
+    const el = document.querySelector<HTMLElement>(`[data-perm-id="${id}"]`);
+    if (!el) return;
+    focusIdRef.current = 0;
+    window.setTimeout(() => el.scrollIntoView({ block: "center" }), 0);
+  }, [list, isMobile]);
 
   /** 审核通过或驳回达人权限申请。 */
   const review = async (id: number, action: "approve" | "reject") => {
@@ -273,7 +295,7 @@ export default function InfluencerPermissionsPage() {
             const tiktokAccount = it.tiktok_account ?? "";
             const category = it.category ?? "";
             return (
-              <div key={it.id} className="xt-perm-card">
+              <div key={it.id} className="xt-perm-card" data-perm-id={it.id}>
                 <div className="xt-perm-card-top">
                   <div style={{ minWidth: 0 }}>
                     <div className="xt-perm-card-title">{renderTruncatedText(name)}</div>
@@ -373,7 +395,7 @@ export default function InfluencerPermissionsPage() {
               const tiktokAccount = it.tiktok_account ?? "";
               const category = it.category ?? "";
               return (
-                <tr key={it.id}>
+                <tr key={it.id} data-perm-id={it.id}>
                   <td style={{ whiteSpace: "nowrap" }}>
                     {renderTruncatedText(name)}
                   </td>

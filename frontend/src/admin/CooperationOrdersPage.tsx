@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useLocation } from "react-router-dom";
 import { getStoredUser } from "../authApi";
 import { getAdminCooperationOrders } from "../matchingApi";
 
@@ -100,6 +101,7 @@ function statusBadgeStyle(kind: "phase" | "status" | "match", value: string) {
 }
 
 export default function CooperationOrdersPage() {
+  const location = useLocation();
   const user = getStoredUser();
   const isAdmin = user?.role === "admin";
   const isEmployee = user?.role === "employee";
@@ -111,6 +113,8 @@ export default function CooperationOrdersPage() {
   const [type, setType] = useState("");
   const [phase, setPhase] = useState("");
   const [q, setQ] = useState("");
+  const focusIdRef = useRef<number>(0);
+  const jumpedOnceRef = useRef(false);
 
   const filteredList = useMemo(() => {
     const src = Array.isArray(list) ? list : [];
@@ -135,11 +139,19 @@ export default function CooperationOrdersPage() {
     setType("");
   }, [type, typeOptions]);
 
-  const load = async () => {
+  const load = async (override?: { type?: string; phase?: string; q?: string }) => {
     setLoading(true);
     setError(null);
     try {
-      const ret = await getAdminCooperationOrders({ type: type || undefined, phase: phase || undefined, q: q || undefined, limit: 200 });
+      const nextType = override?.type ?? type;
+      const nextPhase = override?.phase ?? phase;
+      const nextQ = override?.q ?? q;
+      const ret = await getAdminCooperationOrders({
+        type: nextType || undefined,
+        phase: nextPhase || undefined,
+        q: nextQ || undefined,
+        limit: 200,
+      });
       setList(Array.isArray(ret?.list) ? (ret.list as Row[]) : []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
@@ -155,6 +167,35 @@ export default function CooperationOrdersPage() {
   useEffect(() => {
     void load();
   }, [type, phase]);
+
+  useEffect(() => {
+    const sp = new URLSearchParams(location.search);
+    const orderId = Number(sp.get("orderId") || 0);
+    const nextQ = String(sp.get("q") || "").trim();
+    const hasFocus = Number.isFinite(orderId) && orderId > 0;
+    if (!jumpedOnceRef.current) {
+      jumpedOnceRef.current = true;
+      if (nextQ) setQ(nextQ);
+      if (hasFocus) focusIdRef.current = orderId;
+      if (nextQ) void load({ q: nextQ });
+      return;
+    }
+    if (hasFocus) focusIdRef.current = orderId;
+    if (nextQ && nextQ !== q) {
+      setQ(nextQ);
+      void load({ q: nextQ });
+    }
+  }, [location.search]);
+
+  useEffect(() => {
+    const focusId = focusIdRef.current;
+    if (!focusId) return;
+    if (loading) return;
+    const el = document.querySelector<HTMLElement>(`[data-coop-id="${focusId}"]`);
+    if (!el) return;
+    focusIdRef.current = 0;
+    window.setTimeout(() => el.scrollIntoView({ block: "center" }), 0);
+  }, [loading, filteredList.length]);
 
   const title = useMemo(() => {
     if (isAdmin) return "合作订单工作台（管理员）";
@@ -294,7 +335,7 @@ export default function CooperationOrdersPage() {
                 const ph = safeText(r.phase);
                 const workLinks = asLinks(r.work_links);
                 return (
-                  <tr key={id} className="xt-coop-row">
+                  <tr key={id} className="xt-coop-row" data-coop-id={id}>
                     <td className="xt-coop-td">
                       <div className="xt-coop-order-no xt-coop-ellipsis" title={safeText(r.order_no) || `#${id}`}>
                         {safeText(r.order_no) || `#${id}`}

@@ -112,6 +112,32 @@ function isNavItemActiveForPath(pathname: string, item: DashboardNavItem): boole
   return false;
 }
 
+function withSearch(pathname: string, params: Record<string, string | number | null | undefined>): string {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v === null || v === undefined) continue;
+    const s = typeof v === "number" ? String(v) : String(v).trim();
+    if (!s) continue;
+    sp.set(k, s);
+  }
+  const qs = sp.toString();
+  return qs ? `${pathname}?${qs}` : pathname;
+}
+
+function extractBatchNo(text: string): number | null {
+  const m = text.match(/批次\s*([0-9]{1,4})/);
+  const n = m ? Number(m[1]) : 0;
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+function extractOrderNo(text: string): string | null {
+  const m = text.match(/\b([A-Z]{1,6}-[0-9]{1,10})\b/);
+  if (m && m[1]) return m[1];
+  const v = text.match(/\b(VO-[0-9]{1,10})\b/i);
+  if (v && v[1]) return v[1].toUpperCase();
+  return null;
+}
+
 /** 根据消息关联对象解析跳转目标；无业务页面时返回 null。 */
 function resolveMessageTarget(
   message: SystemMessage,
@@ -120,14 +146,19 @@ function resolveMessageTarget(
 ): string | null {
   const type = String(message.related_type || "").trim();
   const rid = Number(message.related_id || 0);
+  const text = `${String(message.title || "")} ${String(message.content || "")}`;
+  const batchNo = extractBatchNo(text);
+  const orderNo = extractOrderNo(text);
 
   if (!type) return null;
 
   // 达人端沿用既有映射。
   if (variant === "influencer" || role === "influencer") {
-    if (type === "market_order") return "/influencer/client-orders";
-    if (type === "matching_order") return "/influencer/task-hall";
-    if (type === "demand") return "/influencer/my-demands";
+    if (type === "video_order" || type === "market_order") {
+      return withSearch("/influencer/client-orders", { orderId: rid > 0 ? rid : null, batchNo });
+    }
+    if (type === "matching_order") return withSearch("/influencer/task-hall", { orderId: rid > 0 ? rid : null });
+    if (type === "demand") return withSearch("/influencer/my-demands", { demandId: rid > 0 ? rid : null });
     if (type === "permission") return "/influencer/permission";
     return null;
   }
@@ -135,16 +166,18 @@ function resolveMessageTarget(
   // 管理端与员工端统一业务落点，保证交互一致。
   if (role === "admin" || role === "employee") {
     const base = role === "admin" ? "/admin" : "/employee";
-    if (type === "permission") return `${base}/influencer-permissions`;
-    if (type === "market_order" || type === "matching_order" || type === "demand" || type === "video_order") return `${base}/market-orders`;
+    if (type === "permission") return withSearch(`${base}/influencer-permissions`, { id: rid > 0 ? rid : null });
+    if (type === "matching_order") return withSearch(`${base}/cooperation-orders`, { orderId: rid > 0 ? rid : null, q: orderNo });
+    if (type === "video_order") return withSearch(`${base}/graded-video-hall`, { orderId: rid > 0 ? rid : null, batchNo });
+    if (type === "market_order" || type === "demand") return withSearch(`${base}/market-orders`, { q: orderNo });
     return null;
   }
 
   // 商家端默认映射。
   if (type === "matching_order") return rid > 0 ? `/client/matching-orders?orderId=${rid}` : "/client/matching-orders";
-  if (type === "market_order") return "/client/market-orders";
-  if (type === "video_order") return "/client/market-orders";
-  if (type === "demand") return "/client/collab-my-applies";
+  if (type === "market_order") return withSearch("/client/market-orders", { orderId: rid > 0 ? rid : null });
+  if (type === "video_order") return withSearch("/client/market-orders", { orderId: rid > 0 ? rid : null, batchNo });
+  if (type === "demand") return withSearch("/client/collab-my-applies", { applyId: rid > 0 ? rid : null });
   return null;
 }
 
@@ -197,6 +230,7 @@ export default function DashboardShell({
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgLoading, setMsgLoading] = useState(false);
   const [msgError, setMsgError] = useState<string | null>(null);
+  const [msgJumpingId, setMsgJumpingId] = useState<number | null>(null);
   const msgWrapRef = useRef<HTMLDivElement | null>(null);
 
   const { expandedGroups, setExpandedGroups, toggleExpandedGroup } = useAppStore();
@@ -329,11 +363,17 @@ export default function DashboardShell({
 
   /** 处理消息点击：统一已读、关闭弹窗、路由跳转。 */
   const jumpFromMessage = async (it: SystemMessage) => {
+    if (msgJumpingId === it.id) return;
+    setMsgJumpingId(it.id);
     const target = resolveMessageTarget(it, shellVariant, user?.role || null);
-    if (Number(it.is_read) !== 1) await readMessage(it.id);
-    setMsgOpen(false);
-    if (isCompact) setSidebarOpen(false);
-    if (target) navigate(target);
+    try {
+      if (Number(it.is_read) !== 1) await readMessage(it.id);
+      setMsgOpen(false);
+      if (isCompact) setSidebarOpen(false);
+      if (target) navigate(target);
+    } finally {
+      setMsgJumpingId((prev) => (prev === it.id ? null : prev));
+    }
   };
 
   /** 切换任意侧栏业务分组的展开/收起。 */
@@ -546,6 +586,7 @@ export default function DashboardShell({
                   <div style={{ display: "grid", gap: 8 }}>
                     {messages.map((it) => {
                       const target = resolveMessageTarget(it, shellVariant, user?.role || null);
+                      const jumping = msgJumpingId === it.id;
                       return (
                         <div
                           key={it.id}
@@ -563,7 +604,8 @@ export default function DashboardShell({
                             borderRadius: 8,
                             padding: 8,
                             background: Number(it.is_read) === 1 ? "#fff" : "#eff6ff",
-                            cursor: "pointer",
+                            cursor: jumping ? "wait" : "pointer",
+                            opacity: jumping ? 0.72 : 1,
                           }}
                         >
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
@@ -571,6 +613,7 @@ export default function DashboardShell({
                           {Number(it.is_read) !== 1 && (
                             <button
                               type="button"
+                              disabled={jumping}
                               onClick={(ev) => {
                                 ev.stopPropagation();
                                 void readMessage(it.id);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, type CSSProperties } from "react";
 
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import * as api from "../clientApi";
 
@@ -234,6 +234,7 @@ function marketOrderTotalRewardPoints(o: MarketOrder): number {
 export default function ClientMarketOrdersPage() {
 
   const nav = useNavigate();
+  const location = useLocation();
 
   const [marketOrders, setMarketOrders] = useState<MarketOrder[]>([]);
   const [offlineOrders, setOfflineOrders] = useState<OfflineVideoOrder[]>([]);
@@ -295,6 +296,7 @@ export default function ClientMarketOrdersPage() {
   const hasInitBalanceRef = useRef(false);
 
   const hasInitSkusRef = useRef(false);
+  const focusOrderIdRef = useRef<number>(0);
 
 
 
@@ -380,6 +382,25 @@ export default function ClientMarketOrdersPage() {
     }
 
   };
+
+  useEffect(() => {
+    const sp = new URLSearchParams(location.search);
+    const orderId = Number(sp.get("orderId") || 0);
+    if (!Number.isFinite(orderId) || orderId < 1) return;
+    focusOrderIdRef.current = orderId;
+  }, [location.search]);
+
+  useEffect(() => {
+    const id = focusOrderIdRef.current;
+    if (!id) return;
+    if (loading) return;
+    const videoEl = document.querySelector<HTMLElement>(`[data-order-kind="video"][data-order-id="${id}"]`);
+    const marketEl = document.querySelector<HTMLElement>(`[data-order-kind="market"][data-order-id="${id}"]`);
+    const el = videoEl || marketEl;
+    if (!el) return;
+    focusOrderIdRef.current = 0;
+    window.setTimeout(() => el.scrollIntoView({ block: "center" }), 0);
+  }, [loading, marketOrders.length, offlineOrders.length]);
 
 
 
@@ -1319,7 +1340,12 @@ export default function ClientMarketOrdersPage() {
             if (row.kind === "graded") {
               const o = row.order;
               return (
-                <div key={`m-${o.id}`} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+                <div
+                  key={`m-${o.id}`}
+                  data-order-kind="market"
+                  data-order-id={o.id}
+                  style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
+                >
                   <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 8, background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: 13 }}>
                     订单日期：{formatDateTime(o.created_at)}
                   </div>
@@ -1438,7 +1464,12 @@ export default function ClientMarketOrdersPage() {
             const canReject = o.payment_status === "paid" && ["delivered", "published"].includes(o.phase);
 
             return (
-              <div key={`v-${o.id}`} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+              <div
+                key={`v-${o.id}`}
+                data-order-kind="video"
+                data-order-id={o.id}
+                style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
+              >
                 <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 8, background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: 13 }}>
                   订单日期：{formatDateTime(o.created_at)}
                 </div>

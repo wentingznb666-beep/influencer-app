@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { applyMatchingOrder, getInfluencerMatchingTaskHall, getMyMatchingApplies, publishMatchingOrder, submitMatchingProof } from "../influencerApi";
 
@@ -49,6 +49,8 @@ function appliedAccentBorder(status: string | undefined) {
 export default function TaskHallPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const focusOrderIdRef = useRef<number>(0);
   const [tab, setTab] = useState<"available" | "applied">("available");
   const [list, setList] = useState<TaskItem[]>([]);
   const [myApplies, setMyApplies] = useState<TaskItem[]>([]);
@@ -76,6 +78,24 @@ export default function TaskHallPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const sp = new URLSearchParams(location.search);
+    const orderId = Number(sp.get("orderId") || 0);
+    if (!Number.isFinite(orderId) || orderId < 1) return;
+    focusOrderIdRef.current = orderId;
+    setTab("applied");
+  }, [location.search]);
+
+  useEffect(() => {
+    const id = focusOrderIdRef.current;
+    if (!id) return;
+    if (loading) return;
+    const el = document.querySelector<HTMLElement>(`[data-order-id="${id}"]`);
+    if (!el) return;
+    focusOrderIdRef.current = 0;
+    window.setTimeout(() => el.scrollIntoView({ block: "center" }), 0);
+  }, [loading, tab, list.length, myApplies.length]);
 
   /** 报名商家任务。 */
   const apply = async (id: number) => {
@@ -187,7 +207,7 @@ export default function TaskHallPage() {
           ) : null}
           <div style={{ display: "grid", gap: 10 }}>
             {list.map((item) => (
-              <div key={item.id} className="xt-inf-card" style={{ padding: 14, borderLeft: "4px solid #16a34a" }}>
+              <div key={item.id} className="xt-inf-card" data-order-id={item.id} style={{ padding: 14, borderLeft: "4px solid #16a34a" }}>
                 <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: 15 }}>
                   {t("预估收益：")}
                   {item.task_amount ?? "—"}
@@ -235,7 +255,12 @@ export default function TaskHallPage() {
               const orderLabel = formatOrderStatus(it.order_status);
               const applyLabel = formatApplyStatus(it.apply_status);
               return (
-                <div key={it.id} className="xt-inf-card" style={{ padding: 14, borderLeft: `4px solid ${appliedAccentBorder(it.order_status)}` }}>
+                <div
+                  key={it.id}
+                  className="xt-inf-card"
+                  data-order-id={oid > 0 ? oid : it.id}
+                  style={{ padding: 14, borderLeft: `4px solid ${appliedAccentBorder(it.order_status)}` }}
+                >
                   <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: 15 }}>
                     {t("任务状态：")}
                     {t(orderLabel)}

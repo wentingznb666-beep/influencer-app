@@ -1,6 +1,7 @@
 import { Fragment, useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
+import { useLocation } from "react-router-dom";
 
 import * as api from "../influencerApi";
 import * as employeeApi from "../employeeApi";
@@ -382,6 +383,8 @@ function renderSkuInfo(o: { id: number; sku_codes?: string[] | null; sku_images?
 export default function ClientOrdersHallPage() {
 
   const { t } = useTranslation();
+  const location = useLocation();
+  const focusOrderIdRef = useRef<number>(0);
 
   const [openList, setOpenList] = useState<OpenOrder[]>([]);
 
@@ -425,6 +428,13 @@ export default function ClientOrdersHallPage() {
   const [publishing, setPublishing] = useState<Record<number, boolean>>({});
 
   const hasInitLoadedRef = useRef(false);
+
+  useEffect(() => {
+    const sp = new URLSearchParams(location.search);
+    const orderId = Number(sp.get("orderId") || 0);
+    if (!Number.isFinite(orderId) || orderId < 1) return;
+    focusOrderIdRef.current = orderId;
+  }, [location.search]);
 
   const offlineTypeText = useMemo(
     () =>
@@ -959,6 +969,7 @@ export default function ClientOrdersHallPage() {
       return (
         <div
           key={`${o._source}-${o._list_kind}-${o.id}`}
+          data-order-id={o.id}
           style={{ padding: 12, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", width: "100%", boxSizing: "border-box", overflow: "hidden" }}
         >
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
@@ -1274,6 +1285,7 @@ export default function ClientOrdersHallPage() {
     return (
       <div
         key={`${o._source}-${o._list_kind}-${o.id}`}
+        data-order-id={o.id}
         style={{ padding: 12, background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", width: "100%", boxSizing: "border-box", overflow: "hidden" }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
@@ -1550,6 +1562,16 @@ export default function ClientOrdersHallPage() {
       </div>
     );
   };
+
+  useEffect(() => {
+    const id = focusOrderIdRef.current;
+    if (!id) return;
+    if (loading) return;
+    const el = document.querySelector<HTMLElement>(`[data-order-id="${id}"]`);
+    if (!el) return;
+    focusOrderIdRef.current = 0;
+    window.setTimeout(() => el.scrollIntoView({ block: "center" }), 0);
+  }, [loading, gradedFilteredSorted.length]);
 
 
 

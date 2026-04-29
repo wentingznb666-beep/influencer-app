@@ -84,6 +84,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="influencer-permissions" element={<InfluencerPermissionsPage />} />
             <Route path="cooperation-types" element={<CooperationTypesPage />} />
             <Route path="cooperation-orders" element={<CooperationOrdersPage />} />
+            <Route path="graded-video-hall" element={<ClientOrdersHallPage />} />
           </Route>
           <Route path="/employee" element={<ProtectedRoute roles={["employee"]}><EmployeeLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/employee/market-orders" replace />} />
@@ -126,6 +127,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/influencer" element={<ProtectedRoute roles={["influencer"]}><InfluencerLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/influencer/task-hall" replace />} />
             <Route path="task-hall" element={<TaskHallPage />} />
+            <Route path="client-orders" element={<ClientOrdersHallPage />} />
             <Route path="payment-profile" element={<PaymentProfilePage />} />
             <Route path="profile" element={<InfluencerProfilePage />} />
             <Route path="permission" element={<InfluencerPermissionPage />} />
