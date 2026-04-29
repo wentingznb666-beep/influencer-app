@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { getStoredUser } from "../authApi";
 import { getAdminCooperationOrders, reviewAdminCooperationOrder } from "../matchingApi";
 
@@ -20,6 +20,8 @@ type Row = {
   review_note?: string | null;
 };
 
+const VIDEO_ORDER_TYPE_IDS = new Set(["graded_video", "high_quality_custom_video", "monthly_package", "creator_review_video"]);
+
 function safeText(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
@@ -35,19 +37,66 @@ function asLinks(v: unknown): string[] {
 }
 
 function typeLabel(typeId: string) {
-  if (typeId === "graded_video") return "分级视频";
-  if (typeId === "high_quality_custom_video") return "高质量定制视频";
-  if (typeId === "monthly_package") return "包月长期合作";
-  if (typeId === "creator_review_video") return "Creator带货测评";
-  return typeId || "-";
+  if (!typeId) return "-";
+  return typeId;
 }
 
 function phaseLabel(p: string) {
+  if (p === "none") return "—";
+  if (p === "assigned") return "已分配";
+  if (p === "in_progress") return "进行中";
+  if (p === "submitted") return "已提交";
   if (p === "review_pending") return "待审核";
   if (p === "review_rejected") return "已驳回";
   if (p === "approved_to_publish") return "待发布";
   if (p === "published") return "已发布";
+  if (p === "delivered") return "已交付";
+  if (p === "completed") return "已完成";
   return p || "—";
+}
+
+function statusBadgeStyle(kind: "phase" | "status" | "match", value: string) {
+  const base: CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "2px 10px",
+    borderRadius: 999,
+    border: "1px solid rgba(148,163,184,0.35)",
+    background: "rgba(148,163,184,0.12)",
+    color: "#334155",
+    fontSize: 12,
+    fontWeight: 800,
+    lineHeight: 1.6,
+    whiteSpace: "nowrap",
+  };
+
+  const v = String(value || "").trim();
+  if (!v || v === "none") return base;
+
+  if (kind === "phase") {
+    if (v === "review_pending") return { ...base, borderColor: "rgba(234,179,8,0.35)", background: "rgba(234,179,8,0.12)", color: "#92400e" };
+    if (v === "review_rejected") return { ...base, borderColor: "rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.10)", color: "#b91c1c" };
+    if (v === "approved_to_publish") return { ...base, borderColor: "rgba(59,130,246,0.35)", background: "rgba(59,130,246,0.10)", color: "#1d4ed8" };
+    if (v === "published") return { ...base, borderColor: "rgba(22,163,74,0.35)", background: "rgba(22,163,74,0.10)", color: "#166534" };
+    if (v === "delivered" || v === "completed") return { ...base, borderColor: "rgba(22,163,74,0.35)", background: "rgba(22,163,74,0.10)", color: "#166534" };
+    return base;
+  }
+
+  if (kind === "status") {
+    if (v === "open") return { ...base, borderColor: "rgba(59,130,246,0.35)", background: "rgba(59,130,246,0.10)", color: "#1d4ed8" };
+    if (v === "claimed") return { ...base, borderColor: "rgba(15,118,110,0.35)", background: "rgba(15,118,110,0.10)", color: "#0f766e" };
+    if (v === "completed") return { ...base, borderColor: "rgba(22,163,74,0.35)", background: "rgba(22,163,74,0.10)", color: "#166534" };
+    if (v === "cancelled") return { ...base, borderColor: "rgba(239,68,68,0.35)", background: "rgba(239,68,68,0.10)", color: "#b91c1c" };
+    return base;
+  }
+
+  if (kind === "match") {
+    if (v === "matched") return { ...base, borderColor: "rgba(22,163,74,0.35)", background: "rgba(22,163,74,0.10)", color: "#166534" };
+    if (v === "unmatched") return { ...base, borderColor: "rgba(148,163,184,0.35)", background: "rgba(148,163,184,0.12)", color: "#334155" };
+    return base;
+  }
+
+  return base;
 }
 
 export default function CooperationOrdersPage() {
@@ -64,6 +113,29 @@ export default function CooperationOrdersPage() {
   const [phase, setPhase] = useState("");
   const [q, setQ] = useState("");
   const [busyMap, setBusyMap] = useState<Record<string, boolean>>({});
+
+  const filteredList = useMemo(() => {
+    const src = Array.isArray(list) ? list : [];
+    return src.filter((r) => {
+      const coop = safeText(r.cooperation_type_id);
+      return !VIDEO_ORDER_TYPE_IDS.has(coop);
+    });
+  }, [list]);
+
+  const typeOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of filteredList) {
+      const coop = safeText(r.cooperation_type_id);
+      if (coop && !VIDEO_ORDER_TYPE_IDS.has(coop)) set.add(coop);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [filteredList]);
+
+  useEffect(() => {
+    if (!type) return;
+    if (typeOptions.includes(type)) return;
+    setType("");
+  }, [type, typeOptions]);
 
   const load = async () => {
     setLoading(true);
@@ -111,122 +183,160 @@ export default function CooperationOrdersPage() {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0 }}>{title}</h2>
-        <button type="button" onClick={() => void load()} disabled={loading} style={{ height: 34 }}>
-          刷新
-        </button>
-        <div style={{ flex: 1 }} />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索订单号/标题" style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid var(--xt-border)", minWidth: 220 }} />
-        <button type="button" onClick={() => void load()} style={{ height: 34 }}>
-          搜索
-        </button>
-      </div>
+      <style>{`
+        .xt-coop-wrap { display:flex; flex-direction:column; gap: 12px; }
+        .xt-coop-topbar { display:flex; gap: 10px; align-items:center; flex-wrap:wrap; }
+        .xt-coop-topbar h2 { margin: 0; }
+        .xt-coop-spacer { flex: 1 1 auto; }
+        .xt-coop-input { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--xt-border); min-width: 220px; background: #fff; }
+        .xt-coop-select { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--xt-border); background: #fff; }
+        .xt-coop-meta { color: var(--xt-text-muted); font-size: 12px; }
+        .xt-coop-table-wrap { overflow-x:auto; background:#fff; border:1px solid var(--xt-border); border-radius: 12px; }
+        .xt-coop-table { width:100%; border-collapse: separate; border-spacing:0; table-layout: fixed; min-width: 980px; }
+        .xt-coop-th { position: sticky; top: 0; z-index: 1; background: rgba(21,42,69,0.06); text-align:left; padding: 10px; font-size: 12px; color: #475569; font-weight: 900; border-bottom: 1px solid rgba(148,163,184,0.28); }
+        .xt-coop-td { padding: 10px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); vertical-align: top; overflow: hidden; text-overflow: ellipsis; }
+        .xt-coop-row:hover { background: rgba(15,23,42,0.02); }
+        .xt-coop-order-no { font-weight: 900; color: var(--xt-primary); }
+        .xt-coop-title { margin-top: 4px; color: #0f172a; font-weight: 700; }
+        .xt-coop-sub { margin-top: 6px; display:flex; gap: 8px; flex-wrap:wrap; align-items:center; }
+        .xt-coop-amount { text-align: right; font-weight: 900; color: var(--xt-accent); }
+        .xt-coop-person { display:grid; gap: 6px; color:#0f172a; }
+        .xt-coop-muted { color: var(--xt-text-muted); font-size: 12px; }
+        .xt-coop-links { display:grid; gap: 8px; }
+        .xt-coop-linkbtn { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--xt-border); background: #fff; cursor: pointer; font-weight: 800; font-size: 12px; display:inline-flex; align-items:center; justify-content:center; }
+        .xt-coop-linkbtn[disabled] { opacity: .55; cursor: not-allowed; }
+        @media (max-width: 720px) {
+          .xt-coop-input { min-width: 100%; }
+          .xt-coop-select { flex: 1 1 auto; min-width: 160px; }
+        }
+      `}</style>
 
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 10 }}>
-        <select value={type} onChange={(e) => setType(e.target.value)} style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid var(--xt-border)" }}>
-          <option value="">全部类型</option>
-          <option value="high_quality_custom_video">高质量定制视频</option>
-          <option value="monthly_package">包月长期合作</option>
-          <option value="creator_review_video">Creator带货测评</option>
-        </select>
-        <select value={phase} onChange={(e) => setPhase(e.target.value)} style={{ padding: "6px 10px", borderRadius: 10, border: "1px solid var(--xt-border)" }}>
-          <option value="">全部阶段</option>
-          <option value="review_pending">待审核</option>
-          <option value="approved_to_publish">待发布</option>
-          <option value="published">已发布</option>
-          <option value="review_rejected">已驳回</option>
-        </select>
-        <div style={{ color: "var(--xt-text-muted)", fontSize: 12 }}>{loading ? "加载中…" : `共 ${list.length} 条`}</div>
-      </div>
+      <div className="xt-coop-wrap">
+        <div className="xt-coop-topbar">
+          <h2>{title}</h2>
+          <button type="button" onClick={() => void load()} disabled={loading} style={{ height: 34 }}>
+            刷新
+          </button>
+          <div className="xt-coop-spacer" />
+          <input className="xt-coop-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索订单号/标题" />
+          <button type="button" onClick={() => void load()} style={{ height: 34 }}>
+            搜索
+          </button>
+        </div>
 
-      {error ? <p style={{ color: "#b91c1c", marginTop: 10 }}>{error}</p> : null}
-      {msg ? <p style={{ color: "#166534", marginTop: 8 }}>{msg}</p> : null}
+        <div className="xt-coop-topbar">
+          <select className="xt-coop-select" value={type} onChange={(e) => setType(e.target.value)}>
+            <option value="">全部类型</option>
+            {typeOptions.map((t) => (
+              <option key={t} value={t}>
+                {typeLabel(t)}
+              </option>
+            ))}
+          </select>
+          <select className="xt-coop-select" value={phase} onChange={(e) => setPhase(e.target.value)}>
+            <option value="">全部阶段</option>
+            <option value="assigned">已分配</option>
+            <option value="in_progress">进行中</option>
+            <option value="submitted">已提交</option>
+            <option value="review_pending">待审核</option>
+            <option value="review_rejected">已驳回</option>
+            <option value="approved_to_publish">待发布</option>
+            <option value="published">已发布</option>
+            <option value="delivered">已交付</option>
+            <option value="completed">已完成</option>
+          </select>
+          <div className="xt-coop-meta">{loading ? "加载中…" : `共 ${filteredList.length} 条`}</div>
+        </div>
 
-      <div style={{ marginTop: 12, overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 12, overflow: "hidden" }}>
-          <thead>
-            <tr style={{ background: "rgba(21,42,69,0.06)" }}>
-              <th style={{ padding: 10, textAlign: "left" }}>订单</th>
-              <th style={{ padding: 10, textAlign: "left" }}>类型</th>
-              <th style={{ padding: 10, textAlign: "left" }}>阶段</th>
-              <th style={{ padding: 10, textAlign: "right" }}>金额</th>
-              <th style={{ padding: 10, textAlign: "left" }}>商家 / 达人</th>
-              <th style={{ padding: 10, textAlign: "left" }}>交付 / 发布</th>
-              <th style={{ padding: 10, textAlign: "right" }}>操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map((r) => {
-              const id = r.id;
-              const coop = safeText(r.cooperation_type_id);
-              const ph = safeText(r.phase);
-              const workLinks = asLinks(r.work_links);
-              const publishLinks = asLinks(r.publish_links);
-              const canReview = coop === "creator_review_video" && ph === "review_pending";
-              return (
-                <tr key={id} style={{ borderTop: "1px solid var(--xt-border)" }}>
-                  <td style={{ padding: 10, verticalAlign: "top" }}>
-                    <div style={{ fontWeight: 800, color: "var(--xt-primary)" }}>{safeText(r.order_no) || `#${id}`}</div>
-                    <div style={{ marginTop: 4, color: "#0f172a" }}>{safeText(r.title) || "-"}</div>
-                    <div style={{ marginTop: 6, color: "var(--xt-text-muted)", fontSize: 12 }}>
-                      状态：{safeText(r.status) || "-"} / {safeText(r.match_status) || "-"}
-                    </div>
-                  </td>
-                  <td style={{ padding: 10, verticalAlign: "top" }}>{typeLabel(coop)}</td>
-                  <td style={{ padding: 10, verticalAlign: "top" }}>
-                    <div style={{ fontWeight: 800 }}>{phaseLabel(ph)}</div>
-                    {safeText(r.review_note) ? <div style={{ marginTop: 6, color: "#475569", fontSize: 12 }}>备注：{safeText(r.review_note)}</div> : null}
-                  </td>
-                  <td style={{ padding: 10, verticalAlign: "top", textAlign: "right" }}>{safeNum(r.task_amount).toFixed(0)} ฿</td>
-                  <td style={{ padding: 10, verticalAlign: "top" }}>
-                    <div>商家：{safeText(r.client_name) || safeText(r.client_username) || "-"}</div>
-                    <div style={{ marginTop: 6 }}>达人：{safeText(r.influencer_name) || safeText(r.influencer_username) || "-"}</div>
-                  </td>
-                  <td style={{ padding: 10, verticalAlign: "top" }}>
-                    <div style={{ display: "grid", gap: 6 }}>
-                      <div style={{ color: "var(--xt-text-muted)", fontSize: 12 }}>交付链接</div>
-                      {workLinks.length ? (
-                        <a href={workLinks[0]} target="_blank" rel="noreferrer">
-                          打开
-                        </a>
-                      ) : (
-                        <span style={{ color: "#94a3b8" }}>-</span>
-                      )}
-                      <div style={{ color: "var(--xt-text-muted)", fontSize: 12, marginTop: 6 }}>发布链接</div>
-                      {publishLinks.length ? (
-                        <a href={publishLinks[publishLinks.length - 1]} target="_blank" rel="noreferrer">
-                          打开
-                        </a>
-                      ) : (
-                        <span style={{ color: "#94a3b8" }}>-</span>
-                      )}
-                    </div>
-                  </td>
-                  <td style={{ padding: 10, verticalAlign: "top", textAlign: "right" }}>
-                    {canReview ? (
-                      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
-                        <button type="button" disabled={!!busyMap[`${id}:approve`]} onClick={() => void review(id, "approve")} style={{ height: 32, fontWeight: 800 }}>
-                          {busyMap[`${id}:approve`] ? "处理中…" : "审核通过"}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={!!busyMap[`${id}:reject`]}
-                          onClick={() => void review(id, "reject")}
-                          style={{ height: 32, border: "1px solid rgba(185,28,28,0.35)", background: "rgba(185,28,28,0.08)", color: "#b91c1c" }}
-                        >
-                          {busyMap[`${id}:reject`] ? "处理中…" : "驳回"}
-                        </button>
+        {error ? <p style={{ color: "#b91c1c", marginTop: 10 }}>{error}</p> : null}
+        {msg ? <p style={{ color: "#166534", marginTop: 8 }}>{msg}</p> : null}
+
+        <div className="xt-coop-table-wrap">
+          <table className="xt-coop-table">
+            <thead>
+              <tr>
+                <th className="xt-coop-th" style={{ width: 280 }}>订单</th>
+                <th className="xt-coop-th" style={{ width: 160 }}>合作类型</th>
+                <th className="xt-coop-th" style={{ width: 180 }}>阶段</th>
+                <th className="xt-coop-th" style={{ width: 110, textAlign: "right" }}>金额</th>
+                <th className="xt-coop-th" style={{ width: 220 }}>商家 / 达人</th>
+                <th className="xt-coop-th" style={{ width: 160 }}>交付 / 发布</th>
+                <th className="xt-coop-th" style={{ width: 170, textAlign: "right" }}>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredList.map((r) => {
+                const id = r.id;
+                const coop = safeText(r.cooperation_type_id);
+                const ph = safeText(r.phase);
+                const workLinks = asLinks(r.work_links);
+                const publishLinks = asLinks(r.publish_links);
+                const canReview = coop === "creator_review_video" && ph === "review_pending";
+                return (
+                  <tr key={id} className="xt-coop-row">
+                    <td className="xt-coop-td">
+                      <div className="xt-coop-order-no">{safeText(r.order_no) || `#${id}`}</div>
+                      <div className="xt-coop-title">{safeText(r.title) || "-"}</div>
+                      <div className="xt-coop-sub">
+                        <span style={statusBadgeStyle("status", safeText(r.status))}>{safeText(r.status) || "-"}</span>
+                        <span style={statusBadgeStyle("match", safeText(r.match_status))}>{safeText(r.match_status) || "-"}</span>
                       </div>
-                    ) : (
-                      <span style={{ color: "#94a3b8" }}>—</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    </td>
+                    <td className="xt-coop-td">{typeLabel(coop)}</td>
+                    <td className="xt-coop-td">
+                      <span style={statusBadgeStyle("phase", ph)}>{phaseLabel(ph)}</span>
+                      {safeText(r.review_note) ? <div style={{ marginTop: 8, color: "#475569", fontSize: 12 }}>备注：{safeText(r.review_note)}</div> : null}
+                    </td>
+                    <td className="xt-coop-td xt-coop-amount">{safeNum(r.task_amount).toFixed(0)} ฿</td>
+                    <td className="xt-coop-td">
+                      <div className="xt-coop-person">
+                        <div>商家：{safeText(r.client_name) || safeText(r.client_username) || "-"}</div>
+                        <div>达人：{safeText(r.influencer_name) || safeText(r.influencer_username) || "-"}</div>
+                      </div>
+                    </td>
+                    <td className="xt-coop-td">
+                      <div className="xt-coop-links">
+                        {workLinks.length ? (
+                          <a href={workLinks[0]} target="_blank" rel="noreferrer">
+                            交付链接
+                          </a>
+                        ) : (
+                          <span className="xt-coop-muted">交付链接：-</span>
+                        )}
+                        {publishLinks.length ? (
+                          <a href={publishLinks[publishLinks.length - 1]} target="_blank" rel="noreferrer">
+                            发布链接
+                          </a>
+                        ) : (
+                          <span className="xt-coop-muted">发布链接：-</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="xt-coop-td" style={{ textAlign: "right" }}>
+                      {canReview ? (
+                        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" }}>
+                          <button type="button" disabled={!!busyMap[`${id}:approve`]} onClick={() => void review(id, "approve")} style={{ height: 32, fontWeight: 800 }}>
+                            {busyMap[`${id}:approve`] ? "处理中…" : "审核通过"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!!busyMap[`${id}:reject`]}
+                            onClick={() => void review(id, "reject")}
+                            style={{ height: 32, border: "1px solid rgba(185,28,28,0.35)", background: "rgba(185,28,28,0.08)", color: "#b91c1c" }}
+                          >
+                            {busyMap[`${id}:reject`] ? "处理中…" : "驳回"}
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="xt-coop-muted">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
