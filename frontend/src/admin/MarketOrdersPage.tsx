@@ -21,6 +21,7 @@ import OrderTableScrollArea from "../components/OrderTableScrollArea";
 
 import { SkuDetailBlock, SkuTableCell } from "../components/MarketOrderSkuBlocks";
 
+import { showToastNotice } from "../utils/showToast";
 
 
 type Row = {
@@ -181,6 +182,8 @@ export default function MarketOrdersPage() {
 
   const [savingClientInfo, setSavingClientInfo] = useState(false);
 
+  const [offlineActionLoading, setOfflineActionLoading] = useState<Record<string, boolean>>({});
+
   const hasInitLoadedRef = useRef(false);
 
 
@@ -336,6 +339,22 @@ export default function MarketOrdersPage() {
 
     }
 
+  };
+
+  const handleOfflineClaim = async (orderId: number) => {
+    setError(null);
+    setOfflineActionLoading((p) => ({ ...p, [`${orderId}:claim`]: true }));
+    try {
+      await employeeApi.claimEmployeeVideoOrder(orderId);
+      showToastNotice(t("接单成功"), { variant: "success", placement: "top-right" });
+      await load(searchQ, dateFilter);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : t("接单失败");
+      setError(msg);
+      showToastNotice(msg, { variant: "error", placement: "top-right" });
+    } finally {
+      setOfflineActionLoading((p) => ({ ...p, [`${orderId}:claim`]: false }));
+    }
   };
 
 
@@ -674,6 +693,7 @@ export default function MarketOrdersPage() {
               <col style={{ width: "12%" }} />
               <col style={{ width: "10%" }} />
               <col style={{ width: "9%" }} />
+              <col style={{ width: "8%" }} />
               <col style={{ width: "14%" }} />
               <col style={{ width: "16%" }} />
               <col style={{ width: "12%" }} />
@@ -692,6 +712,7 @@ export default function MarketOrdersPage() {
                 <th style={{ padding: 8, textAlign: "left" }}>{t("商家账号/名称")}</th>
                 <th style={{ padding: 8, textAlign: "left" }}>{t("负责人")}</th>
                 <th style={{ padding: 8, textAlign: "left" }}>{t("状态")}</th>
+                <th style={{ padding: 8, textAlign: "left" }}>{t("操作")}</th>
                 <th style={{ padding: 8, textAlign: "center" }}>{t("金额")}</th>
                 <th style={{ padding: 8, textAlign: "left" }}>{t("订单详情")}</th>
 
@@ -809,6 +830,29 @@ export default function MarketOrdersPage() {
                     )}
                   </td>
 
+                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
+                    {isEmployee && o.kind === "offline" && o.phase === "created" && !o.assigned_employee_id ? (
+                      <button
+                        type="button"
+                        disabled={offlineActionLoading[`${o.id}:claim`] === true}
+                        onClick={() => handleOfflineClaim(o.id)}
+                        style={{
+                          padding: "6px 10px",
+                          borderRadius: 8,
+                          border: "none",
+                          background: offlineActionLoading[`${o.id}:claim`] === true ? "#94a3b8" : "var(--xt-accent)",
+                          color: "#fff",
+                          cursor: offlineActionLoading[`${o.id}:claim`] === true ? "not-allowed" : "pointer",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {t("领取")}
+                      </button>
+                    ) : (
+                      <span style={{ color: "#94a3b8" }}>—</span>
+                    )}
+                  </td>
+
                   <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top", textAlign: "center" }}>
                     {o.kind === "market" ? (
                       <>
@@ -914,7 +958,7 @@ export default function MarketOrdersPage() {
 
                 <tr>
 
-                  <td colSpan={11} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
+                  <td colSpan={12} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
 
                     暂无数据
 

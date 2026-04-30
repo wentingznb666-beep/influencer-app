@@ -90,6 +90,30 @@ async function createMessageTx(
   }
 }
 
+async function createMessageToAdminAndEmployeesTx(
+  client: { query: Function },
+  category: string,
+  title: string,
+  content: string,
+  relatedType?: string,
+  relatedId?: number
+): Promise<void> {
+  try {
+    await client.query(
+      `INSERT INTO system_messages (user_id, category, title, content, related_type, related_id)
+       SELECT u.id, $1, $2, $3, $4, $5
+         FROM users u
+         JOIN roles r ON r.id=u.role_id
+        WHERE u.disabled=0 AND r.name IN ('employee','admin')`,
+      [category, title, content, relatedType ?? null, relatedId ?? null]
+    );
+  } catch (e: any) {
+    const code = typeof e?.code === "string" ? e.code : "";
+    if (code === "42P01" || code === "42703") return;
+    throw e;
+  }
+}
+
 function toStringList(input: unknown): string[] {
   if (Array.isArray(input)) return input.map((item) => String(item || "").trim()).filter(Boolean);
   if (typeof input === "string") {
@@ -299,6 +323,14 @@ router.post("/video-orders", async (req: AuthRequest, res: Response) => {
       const row = ins.rows[0];
       if (!row) return null;
       await client.query(`INSERT INTO video_order_states (order_id) VALUES ($1) ON CONFLICT (order_id) DO NOTHING`, [row.id]);
+      await createMessageToAdminAndEmployeesTx(
+        client,
+        "video_order_new",
+        "新视频订单待领取",
+        `新视频订单 #${row.id}${title ? `（${title}）` : ""} 已创建，请尽快处理。`,
+        "video_order",
+        row.id
+      );
       return row;
     });
     if (!created) return res.status(500).json({ error: "DB_ERROR", message: "创建失败，请重试。" });

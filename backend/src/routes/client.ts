@@ -71,6 +71,30 @@ async function resolveMarketOrderCreatorRewardUnitFromConfig(client: { query: Fu
   }
 }
 
+async function createMessageToAdminAndEmployeesTx(
+  client: { query: Function },
+  category: string,
+  title: string,
+  content: string,
+  relatedType?: string,
+  relatedId?: number
+): Promise<void> {
+  try {
+    await client.query(
+      `INSERT INTO system_messages (user_id, category, title, content, related_type, related_id)
+       SELECT u.id, $1, $2, $3, $4, $5
+         FROM users u
+         JOIN roles r ON r.id=u.role_id
+        WHERE u.disabled=0 AND r.name IN ('employee','admin')`,
+      [category, title, content, relatedType ?? null, relatedId ?? null]
+    );
+  } catch (e: any) {
+    const code = typeof e?.code === "string" ? e.code : "";
+    if (code === "42P01" || code === "42703") return;
+    throw e;
+  }
+}
+
 
 
 /**
@@ -1692,6 +1716,14 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
       ]);
       await client.query("UPDATE point_accounts SET balance = balance - $1, updated_at = now() WHERE id = $2", [totalPayPoints, acc.id]);
       await client.query("UPDATE client_market_orders SET pay_deducted = 1, updated_at = now() WHERE id = $1", [orderId]);
+      await createMessageToAdminAndEmployeesTx(
+        client,
+        "market_order_new",
+        "新视频分级订单待领取",
+        `新视频分级订单 ${row0.order_no}${titleText ? `（${titleText}）` : ""} 已创建，请尽快处理。`,
+        "market_order",
+        orderId
+      );
       return { kind: "ok" as const, id: orderId, order_no: row0.order_no, task_count: taskCount };
     });
     if (result.kind === "db_error") {
@@ -2170,4 +2202,3 @@ router.delete("/market-orders/:id", (req: AuthRequest, res: Response) => {
 
 
 export default router;
-
