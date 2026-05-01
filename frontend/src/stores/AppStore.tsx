@@ -5,8 +5,6 @@ export type MerchantTemplateState = {
   product_type: string;
   sales_summary: string;
   shop_link: string;
-  shop_rating: string;
-  user_reviews: string;
 };
 
 export type ExpandedGroupsState = {
@@ -36,8 +34,6 @@ const defaultMerchantTemplate: MerchantTemplateState = {
   product_type: "",
   sales_summary: "",
   shop_link: "",
-  shop_rating: "",
-  user_reviews: "",
 };
 
 const defaultExpandedGroups: ExpandedGroupsState = {
@@ -57,7 +53,15 @@ function readJsonState<T>(key: string, fallback: T): T {
     const parsed = JSON.parse(raw);
     // 关键修复：合并默认值，防止旧缓存中缺少新增字段导致校验失败
     if (typeof fallback === "object" && fallback !== null) {
-      return { ...fallback, ...parsed } as T;
+      const out: Record<string, unknown> = { ...(fallback as Record<string, unknown>) };
+      if (parsed && typeof parsed === "object") {
+        for (const k of Object.keys(out)) {
+          if (Object.prototype.hasOwnProperty.call(parsed, k)) {
+            out[k] = (parsed as Record<string, unknown>)[k];
+          }
+        }
+      }
+      return out as T;
     }
     return parsed as T;
   } catch {

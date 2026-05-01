@@ -15,12 +15,6 @@
     <el-form-item label="店铺链接">
       <el-input v-model="form.shop_link" />
     </el-form-item>
-    <el-form-item label="店铺评分">
-      <el-input v-model="form.shop_rating" />
-    </el-form-item>
-    <el-form-item label="用户评价">
-      <el-input v-model="form.user_reviews" type="textarea" :rows="4" />
-    </el-form-item>
   </el-form>
 </template>
 
@@ -35,8 +29,6 @@ const form = reactive<MerchantTemplate>({
   shop_name: "",
   product_type: "",
   shop_link: "",
-  shop_rating: "",
-  user_reviews: "",
 });
 
 async function load() {

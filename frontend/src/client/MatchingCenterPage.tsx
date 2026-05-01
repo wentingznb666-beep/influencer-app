@@ -113,8 +113,6 @@ export default function MatchingCenterPage() {
       shop_name: String(tpl.shop_name || "").trim(),
       product_type: String(tpl.product_type || "").trim(),
       shop_link: String(tpl.shop_link || "").trim(),
-      shop_rating: String(tpl.shop_rating || "").trim(),
-      user_reviews: String(tpl.user_reviews || "").trim(),
     }));
   };
 
@@ -201,8 +199,6 @@ export default function MatchingCenterPage() {
       ["product_type", merchantTemplate.product_type],
       ["sales_summary", merchantTemplate.sales_summary],
       ["shop_link", merchantTemplate.shop_link],
-      ["shop_rating", merchantTemplate.shop_rating],
-      ["user_reviews", merchantTemplate.user_reviews],
     ].find(([, value]) => !String(value || "").trim());
     if (requiredTemplateError) {
       setError("请先在“商家基本信息（必填模板）”中补全并保存所有必填项");
@@ -216,8 +212,6 @@ export default function MatchingCenterPage() {
         shop_name: merchantTemplate.shop_name.trim(),
         product_type: merchantTemplate.product_type.trim(),
         shop_link: merchantTemplate.shop_link.trim(),
-        shop_rating: merchantTemplate.shop_rating.trim(),
-        user_reviews: merchantTemplate.user_reviews.trim(),
       });
 
       const detail = {
@@ -234,8 +228,6 @@ export default function MatchingCenterPage() {
         merchant_product_type: merchantTemplate.product_type.trim(),
         merchant_sales_summary: merchantTemplate.sales_summary.trim(),
         merchant_shop_link: merchantTemplate.shop_link.trim(),
-        merchant_shop_rating: merchantTemplate.shop_rating.trim(),
-        merchant_user_reviews: merchantTemplate.user_reviews.trim(),
         selling_points: form.selling_points.trim(),
         content_form: form.content_form,
         video_duration: form.video_duration.trim(),

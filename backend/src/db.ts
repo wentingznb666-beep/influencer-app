@@ -1731,11 +1731,11 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     shop_name TEXT NOT NULL,
     product_type TEXT NOT NULL,
     shop_link TEXT NOT NULL,
-    shop_rating TEXT NOT NULL,
-    user_reviews TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
   )`);
+  await query(`ALTER TABLE client_merchant_info_templates DROP COLUMN IF EXISTS shop_rating`);
+  await query(`ALTER TABLE client_merchant_info_templates DROP COLUMN IF EXISTS user_reviews`);
 
   await query(`ALTER TABLE influencer_demand_applications ADD COLUMN IF NOT EXISTS merchant_shop_rating TEXT`);
   await query(`ALTER TABLE influencer_demand_applications ADD COLUMN IF NOT EXISTS merchant_user_reviews TEXT`);

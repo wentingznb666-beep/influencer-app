@@ -67,8 +67,6 @@ export const MerchantInfoForm: React.FC = () => {
         shop_name: merchantTemplate.shop_name.trim(),
         product_type: merchantTemplate.product_type.trim(),
         shop_link: merchantTemplate.shop_link.trim(),
-        shop_rating: merchantTemplate.shop_rating.trim(),
-        user_reviews: merchantTemplate.user_reviews.trim(),
       });
 
       // 强制同步到 localStorage，确保其他页面能立即读取最新值
@@ -214,58 +212,6 @@ export const MerchantInfoForm: React.FC = () => {
             placeholder="https://..."
           />
           {errors.shop_link && <div style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{errors.shop_link}</div>}
-        </div>
-
-        {/* 店铺评分 */}
-        <div className="form-item">
-          <label style={{ display: "block", marginBottom: 6, fontWeight: 500, fontSize: 14 }}>
-            <span style={{ color: "#dc2626", marginRight: 4 }}>*</span>店铺评分
-          </label>
-          <input
-            disabled={!isEditing}
-            style={{ 
-              width: "100%", 
-              padding: "8px 12px", 
-              borderRadius: 6, 
-              border: `1px solid ${errors.shop_rating ? "#dc2626" : "#d1d5db"}`,
-              boxSizing: "border-box",
-              outline: "none",
-              background: isEditing ? "#fff" : "#f1f5f9",
-              color: isEditing ? "#000" : "#64748b"
-            }}
-            value={merchantTemplate.shop_rating}
-            onChange={(e) => handleChange("shop_rating", e.target.value)}
-            onBlur={() => handleBlur("shop_rating")}
-            placeholder="例如：4.8/5.0"
-          />
-          {errors.shop_rating && <div style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{errors.shop_rating}</div>}
-        </div>
-
-        {/* 用户评价 */}
-        <div className="form-item">
-          <label style={{ display: "block", marginBottom: 6, fontWeight: 500, fontSize: 14 }}>
-            <span style={{ color: "#dc2626", marginRight: 4 }}>*</span>用户评价
-          </label>
-          <textarea
-            disabled={!isEditing}
-            style={{ 
-              width: "100%", 
-              padding: "8px 12px", 
-              borderRadius: 6, 
-              border: `1px solid ${errors.user_reviews ? "#dc2626" : "#d1d5db"}`,
-              boxSizing: "border-box",
-              outline: "none",
-              minHeight: 80,
-              resize: "vertical",
-              background: isEditing ? "#fff" : "#f1f5f9",
-              color: isEditing ? "#000" : "#64748b"
-            }}
-            value={merchantTemplate.user_reviews}
-            onChange={(e) => handleChange("user_reviews", e.target.value)}
-            onBlur={() => handleBlur("user_reviews")}
-            placeholder="请简述用户评价情况"
-          />
-          {errors.user_reviews && <div style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{errors.user_reviews}</div>}
         </div>
 
         {/* 保存按钮 */}

@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿import { Router, Response } from "express";
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import { Router, Response } from "express";
 import multer from "multer";
 import path from "path";
 import { promises as fs } from "fs";
@@ -274,7 +274,7 @@ router.get("/client/merchant-info-template", async (req: AuthRequest, res: Respo
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
     const ret = await query(
-      `SELECT shop_name, product_type, shop_link, shop_rating, user_reviews
+      `SELECT shop_name, product_type, shop_link
          FROM client_merchant_info_templates
         WHERE client_id=$1`,
       [req.user.userId]
@@ -292,19 +292,17 @@ router.put("/client/merchant-info-template", async (req: AuthRequest, res: Respo
   const shopName = String(req.body?.shop_name || "").trim();
   const productType = String(req.body?.product_type || "").trim();
   const shopLink = String(req.body?.shop_link || "").trim();
-  const shopRating = String(req.body?.shop_rating || "").trim();
-  const userReviews = String(req.body?.user_reviews || "").trim();
-  if (!shopName || !productType || !shopLink || !shopRating || !userReviews) {
+  if (!shopName || !productType || !shopLink) {
     return res.status(400).json({ error: "INVALID_INPUT", message: "请完整填写商家信息模板。" });
   }
   try {
     await query(
-      `INSERT INTO client_merchant_info_templates (client_id, shop_name, product_type, shop_link, shop_rating, user_reviews)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO client_merchant_info_templates (client_id, shop_name, product_type, shop_link)
+       VALUES ($1, $2, $3, $4)
        ON CONFLICT (client_id)
        DO UPDATE SET shop_name=EXCLUDED.shop_name, product_type=EXCLUDED.product_type, shop_link=EXCLUDED.shop_link,
-                     shop_rating=EXCLUDED.shop_rating, user_reviews=EXCLUDED.user_reviews, updated_at=now()`,
-      [req.user.userId, shopName, productType, shopLink, shopRating, userReviews]
+                    updated_at=now()`,
+      [req.user.userId, shopName, productType, shopLink]
     );
     return res.json({ ok: true });
   } catch (e) {
@@ -345,8 +343,8 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
       );
       const p = profile.rows[0];
       if (!p || Number(p.member_level || 0) < 1) return { kind: "member_required" as const };
-      const tpl = await client.query<{ shop_name: string; product_type: string; shop_link: string; shop_rating: string; user_reviews: string }>(
-        `SELECT shop_name, product_type, shop_link, shop_rating, user_reviews FROM client_merchant_info_templates WHERE client_id=$1`,
+      const tpl = await client.query<{ shop_name: string; product_type: string; shop_link: string }>(
+        `SELECT shop_name, product_type, shop_link FROM client_merchant_info_templates WHERE client_id=$1`,
         [req.user!.userId]
       );
       const merchantTemplate = tpl.rows[0];
@@ -359,8 +357,6 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
           shop_name: merchantTemplate.shop_name,
           product_type: merchantTemplate.product_type,
           shop_link: merchantTemplate.shop_link,
-          shop_rating: merchantTemplate.shop_rating,
-          user_reviews: merchantTemplate.user_reviews,
         },
       };
       const ins = await client.query<{ id: number; order_no: string }>(

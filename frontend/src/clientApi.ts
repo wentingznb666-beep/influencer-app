@@ -850,8 +850,6 @@ export async function saveClientMerchantInfoTemplate(body: {
   shop_name: string;
   product_type: string;
   shop_link: string;
-  shop_rating: string;
-  user_reviews: string;
 }) {
   const res = await fetchWithAuth('/api/matching/client/merchant-info-template', {
     method: 'PUT',

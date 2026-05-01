@@ -9,8 +9,6 @@ export type MerchantTemplate = {
   shop_name: string;
   product_type: string;
   shop_link: string;
-  shop_rating: string;
-  user_reviews: string;
 };
 
 export async function getClientMerchantTemplate(): Promise<MerchantTemplate | null> {
