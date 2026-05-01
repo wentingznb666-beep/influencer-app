@@ -133,7 +133,6 @@ function OrderDetailModal({
   const merchantShopName = String(merchantInfo?.shop_name || "").trim() || detailText(item, "merchant_shop_name") || "-";
   const merchantProductType = String(merchantInfo?.product_type || "").trim() || detailText(item, "merchant_product_type") || "-";
   const merchantShopLink = String(merchantInfo?.shop_link || "").trim() || detailText(item, "merchant_shop_link") || "";
-  const otherDetail = detailObj(item);
 
   return (
     <div
@@ -350,33 +349,6 @@ function OrderDetailModal({
               ) : (
                 <div style={{ color: "#94a3b8" }}>-</div>
               )}
-            </div>
-
-            <div className="xt-inf-card" style={{ padding: 14 }}>
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("全部字段（原始数据）")}</div>
-              <pre
-                style={{
-                  margin: 0,
-                  background: "#0b1220",
-                  color: "#e5e7eb",
-                  padding: 12,
-                  borderRadius: 12,
-                  overflow: "auto",
-                  maxHeight: 360,
-                  fontSize: 12,
-                  lineHeight: 1.45,
-                }}
-              >
-                {JSON.stringify(
-                  {
-                    ...otherDetail,
-                    recruit_total: recruitTotal(item),
-                    applied_count: appliedCount(item),
-                  },
-                  null,
-                  2
-                )}
-              </pre>
             </div>
           </div>
         </div>
