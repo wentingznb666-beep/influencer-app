@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <el-container class="layout-root">
     <el-aside width="250px" class="layout-aside">
       <div class="brand">视频订单ระบบ / Order Hub</div>
@@ -14,6 +14,9 @@
           <el-menu-item index="/client/video-orders">我的订单</el-menu-item>
           <el-menu-item index="/client/video-orders/create">发布订单</el-menu-item>
           <el-menu-item index="/client/merchant-template">商家模板</el-menu-item>
+        </template>
+        <template v-else-if="role === 'influencer'">
+          <el-menu-item index="/influencer/task-hall">任务大厅 / ศูนย์งาน</el-menu-item>
         </template>
       </el-menu>
       <div class="logout-box">

@@ -8,6 +8,7 @@ import EmployeeWorkbenchView from "@/views/EmployeeWorkbenchView.vue";
 import ClientMerchantTemplateView from "@/views/ClientMerchantTemplateView.vue";
 import ClientCreateVideoOrderView from "@/views/ClientCreateVideoOrderView.vue";
 import ClientOrdersView from "@/views/ClientOrdersView.vue";
+import InfluencerTaskHallView from "@/views/InfluencerTaskHallView.vue";
 
 type Role = "admin" | "employee" | "client" | "influencer";
 
@@ -46,6 +47,15 @@ export const router = createRouter({
       ],
     },
     {
+      path: "/influencer",
+      component: DashboardLayout,
+      meta: { roles: ["influencer"] satisfies Role[] },
+      children: [
+        { path: "", redirect: "/influencer/task-hall" },
+        { path: "task-hall", component: InfluencerTaskHallView, meta: { title: "任务大厅 / ศูนย์งาน" } },
+      ],
+    },
+    {
       path: "/",
       redirect: () => {
         const auth = useAuthStore();
@@ -53,7 +63,7 @@ export const router = createRouter({
         if (role === "admin") return "/admin";
         if (role === "employee") return "/employee";
         if (role === "client") return "/client";
-        if (role === "influencer") return "/login";
+        if (role === "influencer") return "/influencer";
         return "/login";
       },
     },
@@ -66,16 +76,13 @@ router.beforeEach(async (to) => {
   if (to.path === "/login") return true;
   if (!auth.user) await auth.ensureMe();
   if (!auth.user) return { path: "/login" };
-  if (auth.user.role === "influencer") {
-    auth.logout();
-    return { path: "/login" };
-  }
 
   const roles = (to.meta?.roles as Role[] | undefined) || undefined;
   if (roles && !roles.includes(auth.user.role)) {
     if (auth.user.role === "admin") return { path: "/admin" };
     if (auth.user.role === "employee") return { path: "/employee" };
     if (auth.user.role === "client") return { path: "/client" };
+    if (auth.user.role === "influencer") return { path: "/influencer" };
     return { path: "/login" };
   }
   return true;

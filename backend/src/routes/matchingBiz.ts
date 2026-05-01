@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import { Router, Response } from "express";
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import { Router, Response } from "express";
 import multer from "multer";
 import path from "path";
 import { promises as fs } from "fs";
@@ -581,11 +581,17 @@ router.get("/influencer/matching-task-hall", async (req: AuthRequest, res: Respo
               COALESCE(md.detail_json->>'cooperation_type_id','') AS cooperation_type_id,
               COALESCE(cs.phase,'none') AS coop_phase,
               COALESCE(cs.publish_links,'[]'::jsonb) AS coop_publish_links,
+              COALESCE(app.applied_count,0) AS applied_count,
               u.username AS client_username, COALESCE(NULLIF(u.display_name,''),u.username) AS client_name
          FROM client_market_orders mo
          JOIN users u ON u.id=mo.client_id
          LEFT JOIN matching_order_details md ON md.order_id=mo.id
          LEFT JOIN cooperation_order_states cs ON cs.order_id=mo.id
+         LEFT JOIN (
+           SELECT market_order_id, COUNT(1)::int AS applied_count
+             FROM market_order_applications
+            GROUP BY market_order_id
+         ) app ON app.market_order_id=mo.id
         WHERE mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1 AND mo.status='open' AND COALESCE(mo.allow_apply,1)=1
           AND COALESCE(md.detail_json->>'cooperation_type_id','') <> ALL($1::text[])
         ORDER BY mo.id DESC`
@@ -623,24 +629,40 @@ router.post("/influencer/matching-orders/:id/apply", async (req: AuthRequest, re
       });
     }
 
-    const ord = await query<{ id: number; client_id: number }>(
-      `SELECT id, client_id
-         FROM client_market_orders
-        WHERE id=$1 AND is_deleted=0 AND COALESCE(order_type,0)=1 AND status='open' AND COALESCE(allow_apply,1)=1
-          AND COALESCE((SELECT detail_json->>'cooperation_type_id' FROM matching_order_details WHERE order_id=$1),'') <> ALL($2::text[])`,
-      [orderId, blockedVideoTypes]
-    );
-    const row = ord.rows[0];
-    if (!row) return res.status(404).json({ error: "NOT_FOUND", message: "任务不存在或不可报名。" });
-    await query(
-      `INSERT INTO market_order_applications (market_order_id, influencer_id, note)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (market_order_id, influencer_id)
-       DO UPDATE SET status='pending', note=EXCLUDED.note, updated_at=now()`,
-      [orderId, req.user.userId, ""]
-    );
-    await query(`UPDATE client_market_orders SET match_status='pending_selection', updated_at=now() WHERE id=$1 AND match_status='open'`, [orderId]);
-    await createMessage(row.client_id, "matching_apply", "撮合任务有新报名", `撮合订单 #${orderId} 收到新的达人报名。`, "matching_order", orderId);
+    const ret = await withTx(async (client) => {
+      const ord = await client.query<{ id: number; client_id: number; recruit_count: string | null }>(
+        `SELECT mo.id, mo.client_id, COALESCE(md.detail_json->>'recruit_count','') AS recruit_count
+           FROM client_market_orders mo
+           LEFT JOIN matching_order_details md ON md.order_id=mo.id
+          WHERE mo.id=$1 AND mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1 AND mo.status='open' AND COALESCE(mo.allow_apply,1)=1
+            AND COALESCE(md.detail_json->>'cooperation_type_id','') <> ALL($2::text[])
+          FOR UPDATE`,
+        [orderId, blockedVideoTypes]
+      );
+      const row = ord.rows[0];
+      if (!row) return { kind: "not_found" as const };
+
+      const recruitTotal = Number(String(row.recruit_count || "").trim() || "0") || 0;
+      if (recruitTotal > 0) {
+        const cnt = await client.query<{ applied_count: number }>(`SELECT COUNT(1)::int AS applied_count FROM market_order_applications WHERE market_order_id=$1`, [orderId]);
+        const appliedCount = Number(cnt.rows[0]?.applied_count || 0) || 0;
+        if (appliedCount >= recruitTotal) return { kind: "full" as const };
+      }
+
+      await client.query(
+        `INSERT INTO market_order_applications (market_order_id, influencer_id, note)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (market_order_id, influencer_id)
+         DO UPDATE SET status='pending', note=EXCLUDED.note, updated_at=now()`,
+        [orderId, req.user!.userId, ""]
+      );
+      await client.query(`UPDATE client_market_orders SET match_status='pending_selection', updated_at=now() WHERE id=$1 AND match_status='open'`, [orderId]);
+      return { kind: "ok" as const, clientId: row.client_id };
+    });
+
+    if (ret.kind === "not_found") return res.status(404).json({ error: "NOT_FOUND", message: "任务不存在或不可报名。" });
+    if (ret.kind === "full") return res.status(400).json({ error: "RECRUIT_FULL", message: "招募数量已满" });
+    await createMessage(ret.clientId, "matching_apply", "撮合任务有新报名", `撮合订单 #${orderId} 收到新的达人报名。`, "matching_order", orderId);
     return res.status(201).json({ ok: true });
   } catch (e) {
     console.error("influencer apply matching order error:", e);
