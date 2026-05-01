@@ -100,7 +100,6 @@ export async function createClientMarketOrder(body: {
   client_group_chat: string;
   publish_method: "client_self_publish" | "influencer_publish_with_cart";
   voice_link?: string;
-  voice_note?: string;
   tiktok_link?: string;
 }): Promise<{ id: number; order_no: string }> {
   const res = await fetchWithAuth("/api/client/market-orders", {
@@ -114,7 +113,6 @@ export async function createClientMarketOrder(body: {
       client_group_chat: body.client_group_chat,
       publish_method: body.publish_method,
       voice_link: body.voice_link || "",
-      voice_note: body.voice_note || "",
       tiktok_link: body.tiktok_link || "",
       product_images: [],
       sku_codes: [],

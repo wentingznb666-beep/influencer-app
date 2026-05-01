@@ -271,8 +271,6 @@ export default function ClientMarketOrdersPage() {
 
   const [voiceLink, setVoiceLink] = useState("");
 
-  const [voiceNote, setVoiceNote] = useState("");
-
   const [tiktokLink, setTiktokLink] = useState("");
 
   const [selectedSkuIds, setSelectedSkuIds] = useState<number[]>([]);
@@ -587,7 +585,6 @@ export default function ClientMarketOrdersPage() {
           client_group_chat: clientGroupChat.trim(),
           tier,
           voice_link: tier === "A" ? (voiceLink.trim() || undefined) : undefined,
-          voice_note: voiceNote.trim() || undefined,
           publish_method: publishMethod,
           is_public_apply: isPublicApply,
           tiktok_link: tiktokLink.trim() || undefined,
@@ -669,7 +666,6 @@ export default function ClientMarketOrdersPage() {
       setPublishMethod("client_self_publish");
       setIsPublicApply(true);
       setVoiceLink("");
-      setVoiceNote("");
       setTiktokLink("");
       setSelectedSkuIds([]);
       setTaskCount(1);
@@ -1102,16 +1098,6 @@ export default function ClientMarketOrdersPage() {
                   />
                 </>
               )}
-
-              <label htmlFor="voiceNote">需求说明（可选）</label>
-              <textarea
-                id="voiceNote"
-                value={voiceNote}
-                onChange={(e) => setVoiceNote(e.target.value)}
-                placeholder="可填写脚本/参考视频/配音要求/审核要求/修改说明等"
-                rows={3}
-                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
-              />
 
               <label htmlFor="taskCount">购买数量（同一 SKU 多数量合并为一条订单）</label>
               <input

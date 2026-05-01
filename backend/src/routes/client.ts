@@ -1497,7 +1497,7 @@ router.get("/market-orders/:id", (req: AuthRequest, res: Response) => {
   (async () => {
 
     const { rows } = await query(
-      `SELECT mo.id, mo.order_no, mo.title, mo.tier, mo.publish_method, mo.is_public_apply, mo.match_status, mo.voice_link, mo.voice_note, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images, mo.sku_ids, mo.task_count, mo.reward_points, (mo.reward_points * GREATEST(COALESCE(mo.task_count, 1), 1))::integer AS reward_points_total, mo.status, mo.influencer_id, mo.work_links, mo.client_shop_name, mo.client_group_chat, mo.created_at, mo.updated_at, mo.completed_at,
+      `SELECT mo.id, mo.order_no, mo.title, mo.tier, mo.publish_method, mo.is_public_apply, mo.match_status, mo.voice_link, mo.tiktok_link, mo.product_images, mo.sku_codes, mo.sku_images, mo.sku_ids, mo.task_count, mo.reward_points, (mo.reward_points * GREATEST(COALESCE(mo.task_count, 1), 1))::integer AS reward_points_total, mo.status, mo.influencer_id, mo.work_links, mo.client_shop_name, mo.client_group_chat, mo.created_at, mo.updated_at, mo.completed_at,
               pl.publish_link
          FROM client_market_orders mo
          LEFT JOIN LATERAL (
@@ -1543,7 +1543,7 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
 
   const clientId = req.user!.userId;
 
-  const { title, tier, voice_link, voice_note, tiktok_link, product_images, task_count, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, publish_method, is_public_apply } = req.body ?? {};
+  const { title, tier, voice_link, tiktok_link, product_images, task_count, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, publish_method, is_public_apply } = req.body ?? {};
 
   if (typeof tiktok_link === "string" && tiktok_link.trim().length > 2000) {
 
@@ -1640,8 +1640,6 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
 
       const voiceLink = voice_link != null ? String(voice_link).trim() : "";
 
-      const voiceNote = voice_note != null ? String(voice_note).trim() : "";
-
       const tiktokLink = tiktok_link != null ? String(tiktok_link).trim() : "";
 
       const productImages = normalizeProductImages(product_images);
@@ -1668,12 +1666,6 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
 
         }
 
-        if (voiceNote.length > 2000) {
-
-          return { kind: "bad_voice" as const, message: "配音要求备注最长 2000 字符。" };
-
-        }
-
       }
 
       const orderNo = await allocateMarketOrderNo(client);
@@ -1692,7 +1684,7 @@ router.post("/market-orders", (req: AuthRequest, res: Response) => {
           creatorRewardUnit,
           platformProfitTotal,
           resolved.tier === "A" ? (voiceLink || null) : null,
-          resolved.tier === "A" ? (voiceNote || null) : null,
+          null,
           tiktokLink || null,
           JSON.stringify(productImages),
           JSON.stringify(finalSkuCodes),
@@ -1790,15 +1782,13 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
 
   }
 
-  const { title, tier, voice_link, voice_note, tiktok_link, product_images, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, publish_method, is_public_apply } = req.body ?? {};
+  const { title, tier, voice_link, tiktok_link, product_images, sku_codes, sku_images, sku_ids, client_shop_name, client_group_chat, publish_method, is_public_apply } = req.body ?? {};
 
   const nextTitle = title !== undefined ? String(title ?? "").trim() : undefined;
 
   const nextTier = typeof tier === "string" ? tier.trim().toUpperCase() : undefined;
 
   const voiceLink = voice_link !== undefined ? String(voice_link ?? "").trim() : undefined;
-
-  const voiceNote = voice_note !== undefined ? String(voice_note ?? "").trim() : undefined;
 
   const tiktokLink = tiktok_link !== undefined ? String(tiktok_link ?? "").trim() : undefined;
 
@@ -1829,14 +1819,6 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
   if (voiceLink !== undefined && voiceLink.length > 2000) {
 
     res.status(400).json({ error: "INVALID_VOICE", message: "配音素材链接最长 2000 字符。" });
-
-    return;
-
-  }
-
-  if (voiceNote !== undefined && voiceNote.length > 2000) {
-
-    res.status(400).json({ error: "INVALID_VOICE", message: "配音要求备注最长 2000 字符。" });
 
     return;
 
@@ -1988,9 +1970,9 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
 
       sets.push(`voice_note = $${idx++}`);
 
-      params.push(nextTier === "A" ? (voiceNote ? voiceNote : null) : null);
+      params.push(null);
 
-    } else if (voiceLink !== undefined || voiceNote !== undefined) {
+    } else if (voiceLink !== undefined) {
 
       // 档位未变更时：仅当当前为 A 才允许写配音字段
 
@@ -2007,14 +1989,6 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
         sets.push(`voice_link = $${idx++}`);
 
         params.push(voiceLink ? voiceLink : null);
-
-      }
-
-      if (voiceNote !== undefined) {
-
-        sets.push(`voice_note = $${idx++}`);
-
-        params.push(voiceNote ? voiceNote : null);
 
       }
 

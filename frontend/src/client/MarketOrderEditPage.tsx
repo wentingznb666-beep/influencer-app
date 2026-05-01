@@ -10,7 +10,6 @@ type MarketOrderItem = {
   publish_method?: "client_self_publish" | "influencer_publish_with_cart" | string;
   is_public_apply?: number;
   voice_link?: string | null;
-  voice_note?: string | null;
   tiktok_link?: string | null;
   client_shop_name?: string | null;
   client_group_chat?: string | null;
@@ -50,7 +49,6 @@ export default function MarketOrderEditPage() {
     publish_method: "client_self_publish" as "client_self_publish" | "influencer_publish_with_cart",
     is_public_apply: true,
     voice_link: "",
-    voice_note: "",
     tiktok_link: "",
     product_images_text: "",
   });
@@ -77,7 +75,6 @@ export default function MarketOrderEditPage() {
         publish_method: String(it.publish_method || "client_self_publish") === "influencer_publish_with_cart" ? "influencer_publish_with_cart" : "client_self_publish",
         is_public_apply: Number(it.is_public_apply || 0) === 1,
         voice_link: (it.voice_link || "") as any,
-        voice_note: (it.voice_note || "") as any,
         tiktok_link: (it.tiktok_link || "") as any,
         product_images_text: Array.isArray(it.product_images) ? it.product_images.join("\n") : "",
       });
@@ -119,7 +116,6 @@ export default function MarketOrderEditPage() {
         publish_method: form.publish_method,
         is_public_apply: form.is_public_apply,
         voice_link: form.tier === "A" ? (form.voice_link.trim() || undefined) : undefined,
-        voice_note: form.tier === "A" ? (form.voice_note.trim() || undefined) : undefined,
         tiktok_link: form.tiktok_link.trim() || undefined,
         product_images: form.product_images_text
           .split("\n")
@@ -193,10 +189,6 @@ export default function MarketOrderEditPage() {
               <div style={{ marginBottom: 10 }}>
                 <label>配音素材下载链接（可选）</label>
                 <input value={form.voice_link} onChange={(e) => setForm((f) => ({ ...f, voice_link: e.target.value }))} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
-              </div>
-              <div style={{ marginBottom: 10 }}>
-                <label>配音要求备注（可选）</label>
-                <textarea value={form.voice_note} onChange={(e) => setForm((f) => ({ ...f, voice_note: e.target.value }))} rows={3} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
               </div>
             </>
           )}

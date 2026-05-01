@@ -378,8 +378,6 @@ export async function createMarketOrder(body: {
 
   voice_link?: string;
 
-  voice_note?: string;
-
   tiktok_link?: string;
 
   product_images?: string[];
@@ -547,8 +545,6 @@ export async function updateMarketOrder(
     tier?: "A" | "B" | "C";
 
     voice_link?: string;
-
-    voice_note?: string;
 
     tiktok_link?: string;
 
