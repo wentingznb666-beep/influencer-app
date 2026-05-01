@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { applyMatchingOrder, getInfluencerMatchingTaskHall, getMyMatchingApplies, publishMatchingOrder, submitMatchingProof } from "../influencerApi";
+import { showToastNotice } from "../utils/showToast";
 
 type TaskItem = {
   id: number;
@@ -12,6 +13,9 @@ type TaskItem = {
   client_username?: string;
   task_amount: number | string | null;
   created_at: string;
+  detail_json?: any;
+  attachment_urls?: any;
+  applied_count?: number | null;
   apply_status?: string;
   order_status?: string;
   work_links?: string[];
@@ -45,6 +49,342 @@ function appliedAccentBorder(status: string | undefined) {
   return "#16a34a";
 }
 
+function isImageUrl(url: string): boolean {
+  return /\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(url);
+}
+
+function isVideoUrl(url: string): boolean {
+  return /\.(mp4|webm|mov|m4v|avi)(\?|$)/i.test(url);
+}
+
+function detailObj(item: TaskItem | null): Record<string, unknown> {
+  const d = (item as any)?.detail_json;
+  return d && typeof d === "object" ? (d as Record<string, unknown>) : {};
+}
+
+function detailValue(item: TaskItem | null, key: string): unknown {
+  const d = detailObj(item);
+  return (d as any)[key];
+}
+
+function detailText(item: TaskItem | null, key: string): string {
+  const v = detailValue(item, key);
+  if (v === null || v === undefined) return "";
+  return String(v).trim();
+}
+
+function arrayText(item: TaskItem | null, key: string): string[] {
+  const v = detailValue(item, key);
+  if (!Array.isArray(v)) return [];
+  return v.map((x) => String(x || "").trim()).filter(Boolean);
+}
+
+function recruitTotal(item: TaskItem | null): number {
+  const n = Number(detailValue(item, "recruit_count") || 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function appliedCount(item: TaskItem | null): number {
+  const n = Number((item as any)?.applied_count || 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function isRecruitFull(item: TaskItem | null): boolean {
+  const total = recruitTotal(item);
+  if (total <= 0) return false;
+  return appliedCount(item) >= total;
+}
+
+function attachments(item: TaskItem | null): string[] {
+  const raw = (item as any)?.attachment_urls;
+  const arr: unknown[] = Array.isArray(raw) ? (raw as unknown[]) : Array.isArray(raw?.urls) ? (raw.urls as unknown[]) : [];
+  return arr.map((x: unknown) => String(x || "").trim()).filter(Boolean);
+}
+
+function toastRecruitFull(t: (k: string) => string): void {
+  showToastNotice(t("招募数量已满"), { variant: "error", placement: "top-right" });
+}
+
+function OrderDetailModal({
+  open,
+  onClose,
+  item,
+  t,
+}: {
+  open: boolean;
+  onClose: () => void;
+  item: TaskItem | null;
+  t: (k: string) => string;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const title = detailText(item, "task_name") || (item?.title ? t(item.title) : t("未命名"));
+  const orderNo = item?.order_no || (item?.id ? `#${item.id}` : "-");
+  const merchantInfo = (detailValue(item, "merchant_info") || null) as any;
+  const merchantShopName = String(merchantInfo?.shop_name || "").trim() || detailText(item, "merchant_shop_name") || "-";
+  const merchantProductType = String(merchantInfo?.product_type || "").trim() || detailText(item, "merchant_product_type") || "-";
+  const merchantShopLink = String(merchantInfo?.shop_link || "").trim() || detailText(item, "merchant_shop_link") || "";
+  const otherDetail = detailObj(item);
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,23,42,0.45)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 100,
+        padding: 16,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 12,
+          boxShadow: "0 10px 40px rgba(15,23,42,0.2)",
+          maxWidth: 860,
+          width: "100%",
+          maxHeight: "80vh",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderBottom: "1px solid #eef2f7" }}>
+          <div style={{ fontWeight: 900, color: "var(--xt-primary)" }}>{t("订单详情")}</div>
+          <button type="button" onClick={onClose} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+            {t("关闭")}
+          </button>
+        </div>
+
+        <div style={{ padding: 16, overflow: "auto" }}>
+          <div className="xt-inf-card" style={{ padding: 14, border: "1px solid var(--xt-border)", borderRadius: 12 }}>
+            <div style={{ fontWeight: 900, fontSize: 16, color: "var(--xt-primary)" }}>{title}</div>
+            <div style={{ marginTop: 6, color: "#475569", fontSize: 13 }}>
+              {t("订单编号")}：{orderNo} ｜ {t("预估收益")}：{item?.task_amount ?? "—"}
+            </div>
+            <div style={{ marginTop: 6, color: "#475569", fontSize: 13 }}>
+              {t("招募人数")}：{recruitTotal(item) || "-"} ｜ {t("已报名人数")}：{appliedCount(item)}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+            <div className="xt-inf-card" style={{ padding: 14 }}>
+              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("商家基础信息")}</div>
+              <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+                <div>
+                  {t("商家")}：{item?.client_name || item?.client_username || "-"}
+                </div>
+                <div>
+                  {t("店铺名称")}：{merchantShopName}
+                </div>
+                <div>
+                  {t("产品类型")}：{merchantProductType}
+                </div>
+                <div style={{ wordBreak: "break-all" }}>
+                  {t("店铺链接")}：
+                  {merchantShopLink ? (
+                    <a href={merchantShopLink} target="_blank" rel="noreferrer">
+                      {merchantShopLink}
+                    </a>
+                  ) : (
+                    "-"
+                  )}
+                </div>
+                <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {t("销售概述")}：{detailText(item, "merchant_sales_summary") || "-"}
+                </div>
+              </div>
+            </div>
+
+            <div className="xt-inf-card" style={{ padding: 14 }}>
+              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("任务基础信息")}</div>
+              <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+                <div>
+                  {t("任务名称")}：{detailText(item, "task_name") || title}
+                </div>
+                <div>
+                  {t("任务类型")}：{detailText(item, "task_type") || "-"}
+                </div>
+                <div>
+                  {t("行业")}：{detailText(item, "industry") || "-"}
+                </div>
+                <div>
+                  {t("任务开始时间")}：{detailText(item, "start_date") || "-"}
+                </div>
+                <div>
+                  {t("接单截止时间")}：{detailText(item, "order_deadline") || "-"}
+                </div>
+                <div>
+                  {t("内容发布截止时间")}：{detailText(item, "publish_deadline") || "-"}
+                </div>
+              </div>
+            </div>
+
+            <div className="xt-inf-card" style={{ padding: 14 }}>
+              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("合作内容要求")}</div>
+              <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+                <div>
+                  {t("推广产品/品牌")}：{detailText(item, "product_name") || "-"}
+                </div>
+                <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {t("产品核心卖点")}：{detailText(item, "selling_points") || "-"}
+                </div>
+                <div>
+                  {t("内容形式")}：{detailText(item, "content_form") || "-"}
+                </div>
+                <div>
+                  {t("视频时长")}：{detailText(item, "video_duration") || "-"}
+                </div>
+                <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {t("文案要求")}：{detailText(item, "copy_requirement") || "-"}
+                </div>
+                <div>
+                  {t("必须包含元素")}：
+                  {arrayText(item, "must_elements").length ? (
+                    <span style={{ marginLeft: 6 }}>{arrayText(item, "must_elements").join(" / ")}</span>
+                  ) : (
+                    <span style={{ marginLeft: 6 }}>-</span>
+                  )}
+                </div>
+                <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {t("禁用内容")}：{detailText(item, "forbidden_content") || "-"}
+                </div>
+              </div>
+            </div>
+
+            <div className="xt-inf-card" style={{ padding: 14 }}>
+              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("样品说明")}</div>
+              <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+                <div>
+                  {t("是否提供样品")}：{String(detailValue(item, "provide_sample") ?? "-")}
+                </div>
+                <div>
+                  {t("样品数量")}：{detailText(item, "sample_count") || "-"}
+                </div>
+                <div>
+                  {t("样品是否回收")}：{String(detailValue(item, "sample_recycle") ?? "-")}
+                </div>
+                <div>
+                  {t("运费承担方")}：{detailText(item, "freight_side") || "-"}
+                </div>
+              </div>
+            </div>
+
+            <div className="xt-inf-card" style={{ padding: 14 }}>
+              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("发货与验收标准")}</div>
+              <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+                <div>
+                  {t("准时发布")}：{String(detailValue(item, "standard_publish_on_time") ?? "-")}
+                </div>
+                <div>
+                  {t("无违规")}：{String(detailValue(item, "standard_clear_no_violation") ?? "-")}
+                </div>
+                <div>
+                  {t("内容保留天数")}：{detailText(item, "keep_days") || "-"}
+                </div>
+                <div>
+                  {t("修改次数")}：{detailText(item, "revise_times") || "-"}
+                </div>
+                <div>
+                  {t("不合格处理")}：{detailText(item, "unqualified_action") || "-"}
+                </div>
+              </div>
+            </div>
+
+            <div className="xt-inf-card" style={{ padding: 14 }}>
+              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("平台规则 / 版权协议")}</div>
+              <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+                <div>
+                  {t("授权可用于推广")}：{String(detailValue(item, "rights_granted") ?? "-")}
+                </div>
+                <div>
+                  {t("禁止作弊")}：{String(detailValue(item, "no_cheat") ?? "-")}
+                </div>
+                <div>
+                  {t("违规处理")}：{detailText(item, "violation_action") || "-"}
+                </div>
+              </div>
+            </div>
+
+            <div className="xt-inf-card" style={{ padding: 14 }}>
+              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("结算信息")}</div>
+              <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+                <div>
+                  {t("单条佣金")}：{detailText(item, "unit_commission") || "-"}
+                </div>
+              </div>
+            </div>
+
+            <div className="xt-inf-card" style={{ padding: 14 }}>
+              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("附件")}</div>
+              {attachments(item).length ? (
+                <div style={{ display: "grid", gap: 10 }}>
+                  {attachments(item).map((url, idx) => (
+                    <div key={`${idx}-${url.slice(0, 24)}`} style={{ border: "1px solid #eef2f7", borderRadius: 12, padding: 10, background: "#fff" }}>
+                      {isImageUrl(url) ? (
+                        <img src={url} alt="" style={{ width: "100%", maxHeight: 360, objectFit: "contain", borderRadius: 10, background: "#f8fafc" }} />
+                      ) : isVideoUrl(url) ? (
+                        <video src={url} controls style={{ width: "100%", maxHeight: 420, borderRadius: 10, background: "#000" }} />
+                      ) : (
+                        <a href={url} target="_blank" rel="noreferrer">
+                          {url}
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ color: "#94a3b8" }}>-</div>
+              )}
+            </div>
+
+            <div className="xt-inf-card" style={{ padding: 14 }}>
+              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("全部字段（原始数据）")}</div>
+              <pre
+                style={{
+                  margin: 0,
+                  background: "#0b1220",
+                  color: "#e5e7eb",
+                  padding: 12,
+                  borderRadius: 12,
+                  overflow: "auto",
+                  maxHeight: 360,
+                  fontSize: 12,
+                  lineHeight: 1.45,
+                }}
+              >
+                {JSON.stringify(
+                  {
+                    ...otherDetail,
+                    recruit_total: recruitTotal(item),
+                    applied_count: appliedCount(item),
+                  },
+                  null,
+                  2
+                )}
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** 达人任务大厅：可报名与已报名双标签。 */
 export default function TaskHallPage() {
   const { t } = useTranslation();
@@ -59,6 +399,8 @@ export default function TaskHallPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [activeOrder, setActiveOrder] = useState<TaskItem | null>(null);
 
   /** 拉取任务大厅与我的报名。 */
   const load = useCallback(async () => {
@@ -98,17 +440,22 @@ export default function TaskHallPage() {
   }, [loading, tab, list.length, myApplies.length]);
 
   /** 报名商家任务。 */
-  const apply = async (id: number) => {
+  const apply = async (item: TaskItem) => {
     setError(null);
     setMsg("");
     try {
-      await applyMatchingOrder(id);
+      if (isRecruitFull(item)) {
+        toastRecruitFull(t);
+        return;
+      }
+      await applyMatchingOrder(item.id);
       await load();
       setTab("applied");
       setMsg(t("报名成功"));
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : t("报名失败");
       setError(errMsg);
+      if (errMsg.includes("招募数量已满")) toastRecruitFull(t);
       if (errMsg.includes("请先完善达人信息")) {
         window.alert("请先完善达人信息后再报名任务");
         navigate("/influencer/profile");
@@ -224,9 +571,24 @@ export default function TaskHallPage() {
                   {t("商家：")}
                   {item.client_name || item.client_username || "-"}
                 </div>
-                <button type="button" className="xt-accent-btn" onClick={() => void apply(item.id)} style={{ marginTop: 10 }}>
-                  {t("一键报名")}
-                </button>
+                <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                  <button type="button" onClick={() => (setActiveOrder(item), setDetailOpen(true))} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--xt-border)", background: "#fff", fontWeight: 800 }}>
+                    {t("查看详情")}
+                  </button>
+                  <div style={{ position: "relative" }}>
+                    <button type="button" className="xt-accent-btn" disabled={isRecruitFull(item)} onClick={() => void apply(item)} style={{ opacity: isRecruitFull(item) ? 0.6 : 1 }}>
+                      {t("一键报名")}
+                    </button>
+                    {isRecruitFull(item) ? (
+                      <button
+                        type="button"
+                        aria-label={t("招募数量已满")}
+                        onClick={() => toastRecruitFull(t)}
+                        style={{ position: "absolute", inset: 0, cursor: "not-allowed", background: "transparent", border: "none" }}
+                      />
+                    ) : null}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -325,6 +687,15 @@ export default function TaskHallPage() {
           </div>
         </>
       )}
+      <OrderDetailModal
+        open={detailOpen}
+        onClose={() => {
+          setDetailOpen(false);
+          setActiveOrder(null);
+        }}
+        item={activeOrder}
+        t={t}
+      />
     </div>
   );
 }
