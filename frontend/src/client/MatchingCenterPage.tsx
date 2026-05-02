@@ -39,6 +39,7 @@ type MatchingFormState = {
   no_cheat: boolean;
   violation_action: "取消佣金并拉黑" | "取消合作" | "警告";
   unit_commission: string;
+  reward_thb: string;
 };
 
 const defaultForm: MatchingFormState = {
@@ -69,6 +70,7 @@ const defaultForm: MatchingFormState = {
   no_cheat: true,
   violation_action: "取消佣金并拉黑",
   unit_commission: "",
+  reward_thb: "",
 };
 
 /** 判断是否是图片 URL。 */
@@ -144,7 +146,9 @@ export default function MatchingCenterPage() {
     if (!form.publish_deadline) return "请完善内容发布截止时间信息";
     if (!form.product_name.trim()) return "请完善推广产品/品牌名称信息";
     if (!form.selling_points.trim()) return "请完善产品核心卖点信息";
-    if (!form.unit_commission || Number(form.unit_commission) <= 0) return "请完善单条佣金信息";
+    const commission = Number(String(form.unit_commission || "").replace("%", "").trim());
+    if (!form.unit_commission.trim() || !Number.isFinite(commission) || commission <= 0) return "请完善单条佣金信息";
+    if (!form.reward_thb || Number(form.reward_thb) <= 0) return "请完善报酬信息";
     if (form.provide_sample === "是" && (!form.sample_count || Number(form.sample_count) < 1)) return "请完善样品数量信息";
     if (!form.keep_days || Number(form.keep_days) < 1) return "请完善内容保留天数信息";
     if (form.must_elements.length === 0) return "请完善必须包含元素信息";
@@ -214,6 +218,8 @@ export default function MatchingCenterPage() {
         shop_link: merchantTemplate.shop_link.trim(),
       });
 
+      const commission = Number(String(form.unit_commission || "").replace("%", "").trim());
+      const rewardThb = Number(form.reward_thb);
       const detail = {
         task_name: form.task_name.trim(),
         task_type: form.task_type,
@@ -246,13 +252,13 @@ export default function MatchingCenterPage() {
         rights_granted: form.rights_granted,
         no_cheat: form.no_cheat,
         violation_action: form.violation_action,
-        unit_commission: Number(form.unit_commission),
+        unit_commission: commission,
       };
 
       if (editingOrder) {
         await updateMatchingOrder(editingOrder.id, {
           title: form.task_name.trim(),
-          task_amount: Number(form.unit_commission),
+          task_amount: rewardThb,
           requirement: form.selling_points.trim(),
           allow_apply: true,
           detail,
@@ -261,7 +267,7 @@ export default function MatchingCenterPage() {
       } else {
         await createMatchingOrder({
           title: form.task_name.trim(),
-          task_amount: Number(form.unit_commission),
+          task_amount: rewardThb,
           requirement: form.selling_points.trim(),
           allow_apply: true,
           detail,
@@ -411,6 +417,7 @@ export default function MatchingCenterPage() {
                     no_cheat: Boolean(d.no_cheat),
                     violation_action: (typeof d.violation_action === "string" && ["取消佣金并拉黑", "取消合作", "警告"].includes(d.violation_action)) ? d.violation_action as MatchingFormState["violation_action"] : "取消佣金并拉黑",
                     unit_commission: typeof d.unit_commission === "number" ? String(d.unit_commission) : "",
+                    reward_thb: typeof it.task_amount === "number" ? String(it.task_amount) : "",
                   });
                 }
                 setUploadedUrls(Array.isArray(it.attachments) ? it.attachments : []);
@@ -517,7 +524,7 @@ export default function MatchingCenterPage() {
                   </select>
 
                   <label htmlFor="video_duration">视频时长要求</label>
-                  <input id="video_duration" value={form.video_duration} onChange={(e) => setField("video_duration", e.target.value)} placeholder="例：15s-30s" />
+                  <input id="video_duration" value={form.video_duration} onChange={(e) => setField("video_duration", e.target.value)} placeholder="15-30秒" />
 
                   <label htmlFor="copy_requirement">文案/标题要求</label>
                   <textarea id="copy_requirement" rows={3} value={form.copy_requirement} onChange={(e) => setField("copy_requirement", e.target.value)} />
@@ -570,7 +577,7 @@ export default function MatchingCenterPage() {
                   <label><input type="checkbox" checked={form.standard_clear_no_violation} onChange={(e) => setField("standard_clear_no_violation", e.target.checked)} /> 画面清晰无水印无违规</label>
 
                   <label htmlFor="keep_days">内容保留天数 <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input id="keep_days" type="number" min={1} value={form.keep_days} onChange={(e) => setField("keep_days", e.target.value)} />
+                  <input id="keep_days" type="number" min={1} value={form.keep_days} onChange={(e) => setField("keep_days", e.target.value)} placeholder="永久（ถาวร）" />
 
                   <label htmlFor="revise_times">允许修改次数</label>
                   <input id="revise_times" type="number" min={0} value={form.revise_times} onChange={(e) => setField("revise_times", e.target.value)} />
@@ -593,8 +600,11 @@ export default function MatchingCenterPage() {
                     <option value="取消佣金并拉黑">取消佣金并拉黑</option><option value="取消合作">取消合作</option><option value="警告">警告</option>
                   </select>
 
-                  <label htmlFor="unit_commission">单条佣金 <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input id="unit_commission" type="number" min={1} value={form.unit_commission} onChange={(e) => setField("unit_commission", e.target.value)} />
+                  <label htmlFor="unit_commission">单条佣金（例：10%） <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input id="unit_commission" value={form.unit_commission} onChange={(e) => setField("unit_commission", e.target.value)} placeholder="10%" />
+
+                  <label htmlFor="reward_thb">报酬（泰铢） <span style={{ color: "#dc2626" }}>*</span></label>
+                  <input id="reward_thb" type="number" min={1} value={form.reward_thb} onChange={(e) => setField("reward_thb", e.target.value)} />
                 </div>
               </section>
 
