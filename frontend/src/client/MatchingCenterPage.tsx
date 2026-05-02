@@ -582,7 +582,7 @@ export default function MatchingCenterPage() {
                   <label><input type="checkbox" checked={form.standard_clear_no_violation} onChange={(e) => setField("standard_clear_no_violation", e.target.checked)} /> 画面清晰无水印无违规</label>
 
                   <label htmlFor="keep_days">内容保留天数 <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input id="keep_days" value={form.keep_days} onChange={(e) => setField("keep_days", e.target.value)} list="keep_days_options" placeholder="永久（ถาวร）" />
+                  <input id="keep_days" value={form.keep_days} onChange={(e) => setField("keep_days", e.target.value)} list="keep_days_options" placeholder="例：永久（ถาวร）或者天数" />
                   <datalist id="keep_days_options">
                     <option value="永久（ถาวร）" />
                   </datalist>
