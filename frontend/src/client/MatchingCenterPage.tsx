@@ -64,7 +64,7 @@ const defaultForm: MatchingFormState = {
   standard_publish_on_time: true,
   standard_clear_no_violation: true,
   keep_days: "",
-  revise_times: "1",
+  revise_times: "",
   unqualified_action: "驳回修改",
   rights_granted: true,
   no_cheat: true,
@@ -589,7 +589,13 @@ export default function MatchingCenterPage() {
                   <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>可输入数字天数，或选择：永久（ถาวร）</div>
 
                   <label htmlFor="revise_times">允许修改次数</label>
-                  <input id="revise_times" type="number" min={0} value={form.revise_times} onChange={(e) => setField("revise_times", e.target.value)} />
+                  <input
+                    id="revise_times"
+                    value={form.revise_times}
+                    onChange={(e) => setField("revise_times", e.target.value.replace(/[^\d]/g, ""))}
+                    inputMode="numeric"
+                    placeholder="2-3次"
+                  />
 
                   <label htmlFor="unqualified_action">未达标处理</label>
                   <select id="unqualified_action" value={form.unqualified_action} onChange={(e) => setField("unqualified_action", e.target.value as MatchingFormState["unqualified_action"])}>
@@ -613,7 +619,14 @@ export default function MatchingCenterPage() {
                   <input id="unit_commission" value={form.unit_commission} onChange={(e) => setField("unit_commission", e.target.value)} placeholder="10%" />
 
                   <label htmlFor="reward_thb">报酬（泰铢） <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input id="reward_thb" type="number" min={1} value={form.reward_thb} onChange={(e) => setField("reward_thb", e.target.value)} />
+                  <input
+                    id="reward_thb"
+                    type="number"
+                    min={1}
+                    value={form.reward_thb}
+                    onChange={(e) => setField("reward_thb", e.target.value)}
+                    placeholder="300 – 500 泰铢（根据互动表现）"
+                  />
                 </div>
               </section>
 
