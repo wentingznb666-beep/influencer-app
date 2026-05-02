@@ -99,6 +99,14 @@ export default function MatchingCenterPage() {
   const [editingOrder, setEditingOrder] = useState<any | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
+  const parseFirstPositiveNumber = (text: string): number | null => {
+    const m = String(text || "").replace(/,/g, "").match(/(\d+(?:\.\d+)?)/);
+    if (!m) return null;
+    const n = Number(m[1]);
+    if (!Number.isFinite(n) || n <= 0) return null;
+    return n;
+  };
+
   /** 读取撮合订单列表。 */
   const loadOrders = async () => {
     const ret = await getMatchingOrders();
@@ -148,7 +156,7 @@ export default function MatchingCenterPage() {
     if (!form.selling_points.trim()) return "请完善产品核心卖点信息";
     const commission = Number(String(form.unit_commission || "").replace("%", "").trim());
     if (!form.unit_commission.trim() || !Number.isFinite(commission) || commission <= 0) return "请完善单条佣金信息";
-    if (!form.reward_thb || Number(form.reward_thb) <= 0) return "请完善报酬信息";
+    if (!String(form.reward_thb || "").trim() || !parseFirstPositiveNumber(String(form.reward_thb || ""))) return "请完善报酬信息";
     if (form.provide_sample === "是" && (!form.sample_count || Number(form.sample_count) < 1)) return "请完善样品数量信息";
     const keepDaysText = String(form.keep_days || "").trim();
     if (!keepDaysText) return "请完善内容保留天数信息";
@@ -222,9 +230,11 @@ export default function MatchingCenterPage() {
       });
 
       const commission = Number(String(form.unit_commission || "").replace("%", "").trim());
-      const rewardThb = Number(form.reward_thb);
+      const rewardThb = parseFirstPositiveNumber(String(form.reward_thb || "")) || 0;
       const keepDaysText = String(form.keep_days || "").trim();
       const keepDaysNum = Number(keepDaysText);
+      const reviseText = String(form.revise_times || "").trim();
+      const reviseNum = Number(reviseText);
       const detail = {
         task_name: form.task_name.trim(),
         task_type: form.task_type,
@@ -252,7 +262,7 @@ export default function MatchingCenterPage() {
         standard_publish_on_time: form.standard_publish_on_time,
         standard_clear_no_violation: form.standard_clear_no_violation,
         keep_days: Number.isFinite(keepDaysNum) ? keepDaysNum : keepDaysText,
-        revise_times: Number(form.revise_times || 0),
+        revise_times: reviseText ? (Number.isFinite(reviseNum) ? reviseNum : reviseText) : 0,
         unqualified_action: form.unqualified_action,
         rights_granted: form.rights_granted,
         no_cheat: form.no_cheat,
@@ -416,7 +426,7 @@ export default function MatchingCenterPage() {
                     standard_publish_on_time: Boolean(d.standard_publish_on_time),
                     standard_clear_no_violation: Boolean(d.standard_clear_no_violation),
                     keep_days: typeof d.keep_days === "number" ? String(d.keep_days) : typeof d.keep_days === "string" ? d.keep_days : "",
-                    revise_times: typeof d.revise_times === "number" ? String(d.revise_times) : "",
+                    revise_times: typeof d.revise_times === "number" ? String(d.revise_times) : typeof d.revise_times === "string" ? d.revise_times : "",
                     unqualified_action: (typeof d.unqualified_action === "string" && ["驳回修改", "取消合作", "扣除佣金"].includes(d.unqualified_action)) ? d.unqualified_action as MatchingFormState["unqualified_action"] : "驳回修改",
                     rights_granted: Boolean(d.rights_granted),
                     no_cheat: Boolean(d.no_cheat),
@@ -592,8 +602,7 @@ export default function MatchingCenterPage() {
                   <input
                     id="revise_times"
                     value={form.revise_times}
-                    onChange={(e) => setField("revise_times", e.target.value.replace(/[^\d]/g, ""))}
-                    inputMode="numeric"
+                    onChange={(e) => setField("revise_times", e.target.value)}
                     placeholder="2-3次"
                   />
 
@@ -621,8 +630,6 @@ export default function MatchingCenterPage() {
                   <label htmlFor="reward_thb">报酬（泰铢） <span style={{ color: "#dc2626" }}>*</span></label>
                   <input
                     id="reward_thb"
-                    type="number"
-                    min={1}
                     value={form.reward_thb}
                     onChange={(e) => setField("reward_thb", e.target.value)}
                     placeholder="300 – 500 泰铢（根据互动表现）"
