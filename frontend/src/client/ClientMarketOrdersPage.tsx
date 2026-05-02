@@ -746,15 +746,14 @@ export default function ClientMarketOrdersPage() {
 
     return rows
       .filter((r) => {
+        // 仅显示分级视频订单，隐藏其他类型订单
+        if (r.kind !== "graded") return false;
+
         if (!matchDate(r.created_at)) return false;
         if (!q) return true;
-        if (r.kind === "graded") {
-          const no = r.order.order_no || String(r.order.id);
-          const title = String(r.order.title || "");
-          return matchQ(no) || matchQ(title);
-        }
-        const no = `VO-${r.order.id}`;
-        const title = r.order.title || "";
+        // 此时 r.kind 必定是 "graded"，所以可以直接访问 r.order
+        const no = r.order.order_no || String(r.order.id);
+        const title = String(r.order.title || "");
         return matchQ(no) || matchQ(title);
       })
       .sort((a, b) => {

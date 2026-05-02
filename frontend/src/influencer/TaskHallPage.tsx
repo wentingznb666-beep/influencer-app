@@ -473,14 +473,6 @@ export default function TaskHallPage() {
   /** 当前已报名列表。 */
   const appliedList = useMemo(() => myApplies, [myApplies]);
 
-  const filteredList = useMemo(() => {
-    return list.filter(item => detailText(item, "task_type") === "graded_video");
-  }, [list]);
-
-  const filteredAppliedList = useMemo(() => {
-    return appliedList.filter(item => detailText(item, "task_type") === "graded_video");
-  }, [appliedList]);
-
   return (
     <div>
       <h2 className="xt-inf-page-title">{t("任务大厅（撮合模式）")}</h2>
@@ -524,7 +516,7 @@ export default function TaskHallPage() {
 
       {!loading && tab === "available" && (
         <>
-          {filteredList.length === 0 ? (
+          {list.length === 0 ? (
             <div className="xt-inf-empty xt-inf-card">
               <div className="xt-inf-empty-icon" aria-hidden>
                 📋
@@ -533,7 +525,7 @@ export default function TaskHallPage() {
             </div>
           ) : null}
           <div style={{ display: "grid", gap: 10 }}>
-            {filteredList.map((item) => (
+            {list.map((item) => (
               <div key={item.id} className="xt-inf-card" data-order-id={item.id} style={{ padding: 14, borderLeft: "4px solid #16a34a" }}>
                 <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: 15 }}>
                   {t("预估收益：")}
@@ -577,7 +569,7 @@ export default function TaskHallPage() {
 
       {!loading && tab === "applied" && (
         <>
-          {filteredAppliedList.length === 0 ? (
+          {appliedList.length === 0 ? (
             <div className="xt-inf-empty xt-inf-card">
               <div className="xt-inf-empty-icon" aria-hidden>
                 🗂️
@@ -586,7 +578,7 @@ export default function TaskHallPage() {
             </div>
           ) : null}
           <div style={{ display: "grid", gap: 10 }}>
-            {filteredAppliedList.map((it) => {
+            {appliedList.map((it) => {
               const oid = Number(it.order_id || 0);
               const canSubmitProof = it.apply_status === "selected" && it.order_status === "claimed" && oid > 0;
               const coopType = String(it.cooperation_type_id || "").trim();
