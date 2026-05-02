@@ -150,7 +150,10 @@ export default function MatchingCenterPage() {
     if (!form.unit_commission.trim() || !Number.isFinite(commission) || commission <= 0) return "请完善单条佣金信息";
     if (!form.reward_thb || Number(form.reward_thb) <= 0) return "请完善报酬信息";
     if (form.provide_sample === "是" && (!form.sample_count || Number(form.sample_count) < 1)) return "请完善样品数量信息";
-    if (!form.keep_days || Number(form.keep_days) < 1) return "请完善内容保留天数信息";
+    const keepDaysText = String(form.keep_days || "").trim();
+    if (!keepDaysText) return "请完善内容保留天数信息";
+    const keepDaysNum = Number(keepDaysText);
+    if (Number.isFinite(keepDaysNum) && keepDaysNum < 1) return "请完善内容保留天数信息";
     if (form.must_elements.length === 0) return "请完善必须包含元素信息";
     return null;
   };
@@ -220,6 +223,8 @@ export default function MatchingCenterPage() {
 
       const commission = Number(String(form.unit_commission || "").replace("%", "").trim());
       const rewardThb = Number(form.reward_thb);
+      const keepDaysText = String(form.keep_days || "").trim();
+      const keepDaysNum = Number(keepDaysText);
       const detail = {
         task_name: form.task_name.trim(),
         task_type: form.task_type,
@@ -246,7 +251,7 @@ export default function MatchingCenterPage() {
         freight_side: form.freight_side,
         standard_publish_on_time: form.standard_publish_on_time,
         standard_clear_no_violation: form.standard_clear_no_violation,
-        keep_days: Number(form.keep_days),
+        keep_days: Number.isFinite(keepDaysNum) ? keepDaysNum : keepDaysText,
         revise_times: Number(form.revise_times || 0),
         unqualified_action: form.unqualified_action,
         rights_granted: form.rights_granted,
@@ -410,7 +415,7 @@ export default function MatchingCenterPage() {
                     freight_side: (d.freight_side === "达人承担") ? "达人承担" : "商家承担",
                     standard_publish_on_time: Boolean(d.standard_publish_on_time),
                     standard_clear_no_violation: Boolean(d.standard_clear_no_violation),
-                    keep_days: typeof d.keep_days === "number" ? String(d.keep_days) : "",
+                    keep_days: typeof d.keep_days === "number" ? String(d.keep_days) : typeof d.keep_days === "string" ? d.keep_days : "",
                     revise_times: typeof d.revise_times === "number" ? String(d.revise_times) : "",
                     unqualified_action: (typeof d.unqualified_action === "string" && ["驳回修改", "取消合作", "扣除佣金"].includes(d.unqualified_action)) ? d.unqualified_action as MatchingFormState["unqualified_action"] : "驳回修改",
                     rights_granted: Boolean(d.rights_granted),
@@ -577,7 +582,10 @@ export default function MatchingCenterPage() {
                   <label><input type="checkbox" checked={form.standard_clear_no_violation} onChange={(e) => setField("standard_clear_no_violation", e.target.checked)} /> 画面清晰无水印无违规</label>
 
                   <label htmlFor="keep_days">内容保留天数 <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input id="keep_days" type="number" min={1} value={form.keep_days} onChange={(e) => setField("keep_days", e.target.value)} placeholder="永久（ถาวร）" />
+                  <input id="keep_days" value={form.keep_days} onChange={(e) => setField("keep_days", e.target.value)} list="keep_days_options" placeholder="永久（ถาวร）" />
+                  <datalist id="keep_days_options">
+                    <option value="永久（ถาวร）" />
+                  </datalist>
 
                   <label htmlFor="revise_times">允许修改次数</label>
                   <input id="revise_times" type="number" min={0} value={form.revise_times} onChange={(e) => setField("revise_times", e.target.value)} />
