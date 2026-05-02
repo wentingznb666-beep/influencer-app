@@ -356,7 +356,11 @@ export default function ClientMarketOrdersPage() {
       const errors: string[] = [];
       if (marketRes.status === "fulfilled") {
         const rows = (marketRes.value.list || []) as MarketOrder[];
-        setMarketOrders(rows.map((r) => ({ ...r, work_links: normalizeWorkLinks(r.work_links) })));
+        const filtered = rows.filter((r) => {
+          const orderNo = String(r.order_no || "").trim().toUpperCase();
+          return !orderNo.startsWith("MH-");
+        });
+        setMarketOrders(filtered.map((r) => ({ ...r, work_links: normalizeWorkLinks(r.work_links) })));
       } else {
         errors.push(marketRes.reason instanceof Error ? marketRes.reason.message : "分级订单加载失败");
       }
