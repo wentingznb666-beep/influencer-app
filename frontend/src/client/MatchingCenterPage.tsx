@@ -63,7 +63,7 @@ const defaultForm: MatchingFormState = {
   freight_side: "商家承担",
   standard_publish_on_time: true,
   standard_clear_no_violation: true,
-  keep_days: "30",
+  keep_days: "",
   revise_times: "1",
   unqualified_action: "驳回修改",
   rights_granted: true,
@@ -586,6 +586,7 @@ export default function MatchingCenterPage() {
                   <datalist id="keep_days_options">
                     <option value="永久（ถาวร）" />
                   </datalist>
+                  <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>可输入数字天数，或选择：永久（ถาวร）</div>
 
                   <label htmlFor="revise_times">允许修改次数</label>
                   <input id="revise_times" type="number" min={0} value={form.revise_times} onChange={(e) => setField("revise_times", e.target.value)} />
