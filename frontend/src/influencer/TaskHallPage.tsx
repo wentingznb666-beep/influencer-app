@@ -105,16 +105,45 @@ function toastRecruitFull(t: (k: string) => string): void {
   showToastNotice(t("招募数量已满"), { variant: "error", placement: "top-right" });
 }
 
+function parseRangeFromText(text: string): { min: number; max: number } | null {
+  const nums = String(text || "")
+    .replace(/,/g, "")
+    .match(/\d+(?:\.\d+)?/g);
+  if (!nums || nums.length < 2) return null;
+  const a = Number(nums[0]);
+  const b = Number(nums[1]);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  const min = Math.min(a, b);
+  const max = Math.max(a, b);
+  if (min <= 0 || max <= 0) return null;
+  if (min === max) return null;
+  return { min, max };
+}
+
+function estimatedEarningsText(item: TaskItem | null, lang: string): string {
+  const rawReward = detailText(item, "reward_text");
+  const range = rawReward ? parseRangeFromText(rawReward) : null;
+  if (range) {
+    if (String(lang || "").toLowerCase().startsWith("th")) return `${range.min}-${range.max} บาท/วิดีโอ`;
+    return `${range.min}-${range.max}泰铢/条视频`;
+  }
+  const v = (item as any)?.task_amount;
+  if (v === null || v === undefined || String(v).trim() === "") return "—";
+  return String(v);
+}
+
 function OrderDetailModal({
   open,
   onClose,
   item,
   t,
+  lang,
 }: {
   open: boolean;
   onClose: () => void;
   item: TaskItem | null;
   t: (k: string) => string;
+  lang: string;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -173,8 +202,9 @@ function OrderDetailModal({
           <div className="xt-inf-card" style={{ padding: 14, border: "1px solid var(--xt-border)", borderRadius: 12 }}>
             <div style={{ fontWeight: 900, fontSize: 16, color: "var(--xt-primary)" }}>{title}</div>
             <div style={{ marginTop: 6, color: "#475569", fontSize: 13 }}>
-              {t("订单编号")}：{orderNo} ｜ {t("预估收益")}：{item?.task_amount ?? "—"}
+              {t("订单编号")}：{orderNo} ｜ {t("预估收益")}：{estimatedEarningsText(item, lang)}
             </div>
+            <div style={{ marginTop: 6, color: "#64748b", fontSize: 12 }}>{t("最终收益根据视频互动数据结算")}</div>
             <div style={{ marginTop: 6, color: "#475569", fontSize: 13 }}>
               {t("招募人数")}：{recruitTotal(item) || "-"} ｜ {t("已报名人数")}：{appliedCount(item)}
             </div>
@@ -359,7 +389,7 @@ function OrderDetailModal({
 
 /** 达人任务大厅：可报名与已报名双标签。 */
 export default function TaskHallPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const focusOrderIdRef = useRef<number>(0);
@@ -529,7 +559,7 @@ export default function TaskHallPage() {
               <div key={item.id} className="xt-inf-card" data-order-id={item.id} style={{ padding: 14, borderLeft: "4px solid #16a34a" }}>
                 <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: 15 }}>
                   {t("预估收益：")}
-                  {item.task_amount ?? "—"}
+                  {estimatedEarningsText(item, i18n.language)}
                 </div>
                 <div style={{ fontWeight: 600, marginTop: 6 }}>
                   {t("订单号：")}
@@ -667,6 +697,7 @@ export default function TaskHallPage() {
         }}
         item={activeOrder}
         t={t}
+        lang={i18n.language}
       />
     </div>
   );

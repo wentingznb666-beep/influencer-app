@@ -268,6 +268,7 @@ export default function MatchingCenterPage() {
         no_cheat: form.no_cheat,
         violation_action: form.violation_action,
         unit_commission: commission,
+        reward_text: String(form.reward_thb || "").trim(),
       };
 
       if (editingOrder) {
@@ -432,7 +433,7 @@ export default function MatchingCenterPage() {
                     no_cheat: Boolean(d.no_cheat),
                     violation_action: (typeof d.violation_action === "string" && ["取消佣金并拉黑", "取消合作", "警告"].includes(d.violation_action)) ? d.violation_action as MatchingFormState["violation_action"] : "取消佣金并拉黑",
                     unit_commission: typeof d.unit_commission === "number" ? String(d.unit_commission) : "",
-                    reward_thb: typeof it.task_amount === "number" ? String(it.task_amount) : "",
+                    reward_thb: typeof d.reward_text === "string" ? d.reward_text : typeof it.task_amount === "number" ? String(it.task_amount) : "",
                   });
                 }
                 setUploadedUrls(Array.isArray(it.attachments) ? it.attachments : []);
