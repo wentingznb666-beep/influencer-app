@@ -77,9 +77,15 @@ router.get("/video-orders", async (req: AuthRequest, res: Response) => {
   const limitRaw = Number(req.query?.limit || 200);
   const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(Math.floor(limitRaw), 1), 500) : 200;
 
-  /** 员工订单池：允许查看未付款订单，以便执行“手动标记付款”。 */
-  const where: string[] = ["(o.assigned_employee_id IS NULL OR o.assigned_employee_id=$1)"];
-  const params: any[] = [req.user!.userId];
+  const cfg = await readCooperationTypesConfig();
+  const visibleTypes = cfg.types
+    .filter((t) => t.id !== "graded_video" && Array.isArray(t.visible_roles) && t.visible_roles.includes("employee"))
+    .map((t) => t.id) as VideoOrderTypeId[];
+  if (!visibleTypes.length) return res.json({ list: [] });
+  if (type && !visibleTypes.includes(type)) return res.json({ list: [] });
+
+  const where: string[] = ["o.type_id = ANY($1::text[])"];
+  const params: any[] = [visibleTypes];
   let idx = 2;
 
   if (type) {
@@ -100,6 +106,7 @@ router.get("/video-orders", async (req: AuthRequest, res: Response) => {
     const rows = await query(
       `SELECT o.id, o.client_id, o.type_id, o.title, o.requirements, o.amount_thb, o.payment_method, o.payment_status, o.paid_at, o.assigned_employee_id, o.created_at, o.updated_at,
               c.username AS client_username,
+              ue.username AS employee_username,
               COALESCE((to_jsonb(s)->>'phase'), 'created') AS phase,
               COALESCE((to_jsonb(s)->'proof_links'), '[]'::jsonb) AS proof_links,
               COALESCE((to_jsonb(s)->'publish_links'), '[]'::jsonb) AS publish_links,
@@ -109,6 +116,7 @@ router.get("/video-orders", async (req: AuthRequest, res: Response) => {
               (to_jsonb(s)->>'reviewed_at') AS reviewed_at
          FROM video_orders o
          JOIN users c ON c.id=o.client_id
+         LEFT JOIN users ue ON ue.id=o.assigned_employee_id
          LEFT JOIN video_order_states s ON s.order_id=o.id
         WHERE ${where.join(" AND ")}
         ORDER BY o.id DESC

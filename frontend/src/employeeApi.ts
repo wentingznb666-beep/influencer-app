@@ -28,6 +28,7 @@ export type EmployeeVideoOrder = {
   payment_status: "unpaid" | "paid";
   paid_at: string | null;
   assigned_employee_id: number | null;
+  employee_username?: string | null;
   phase: EmployeeVideoOrderPhase;
   proof_links: unknown[];
   publish_links: unknown[];

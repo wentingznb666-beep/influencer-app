@@ -5,7 +5,7 @@
       <div class="filters">
         <el-select v-model="statusFilter" size="small" clearable style="width: 180px" :placeholder="t('状态筛选')">
           <el-option :label="t('待领取')" value="open" />
-          <el-option :label="t('已接单')" value="claimed" />
+          <el-option :label="t('已领取')" value="claimed" />
           <el-option :label="t('进行中')" value="in_progress" />
           <el-option :label="t('已完成')" value="completed" />
           <el-option :label="t('已取消')" value="cancelled" />
@@ -47,6 +47,15 @@
       <el-table-column prop="order_no" :label="t('订单号')" width="180" />
       <el-table-column :label="t('类型')" width="220"><template #default="{ row }"><el-tag :class="getOrderTypeTagClass(row.type_id)">{{ typeLabel(row.type_id) }}</el-tag></template></el-table-column>
       <el-table-column prop="client_text" :label="t('商家')" width="160" />
+      <el-table-column :label="t('领取人')" width="180">
+        <template #default="{ row }">
+          <template v-if="row.kind === 'offline'">
+            <span v-if="row.raw.assigned_employee_id">{{ row.raw.employee_username || `#${row.raw.assigned_employee_id}` }}</span>
+            <span v-else style="color: #94a3b8">—</span>
+          </template>
+          <span v-else style="color: #94a3b8">—</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="amount_text" :label="t('金额/积分')" width="140" />
       <el-table-column prop="created_at_text" :label="t('创建时间')" width="170" />
       <el-table-column :label="t('状态')" width="220">
@@ -342,7 +351,7 @@ function statusTagClass(status: UnifiedStatus): string {
 
 function unifiedStatusText(status: UnifiedStatus): string {
   if (status === "open") return t("待领取");
-  if (status === "claimed") return t("已接单");
+  if (status === "claimed") return t("已领取");
   if (status === "in_progress") return t("进行中");
   if (status === "completed") return t("已完成");
   return t("已取消");
@@ -365,7 +374,7 @@ function formatDateTime(value?: string | null): string {
 
 function marketPhaseText(status: string): string {
   if (status === "open") return t("待领取");
-  if (status === "claimed") return t("已接单");
+  if (status === "claimed") return t("已领取");
   if (status === "completed") return t("已完成");
   if (status === "cancelled") return t("已取消");
   return status || "-";
@@ -374,7 +383,7 @@ function marketPhaseText(status: string): string {
 function offlinePhaseText(order: VideoOrder): string {
   if (!order.assigned_employee_id) return t("待领取");
   const phase = String(order.phase || "");
-  if (phase === "assigned") return t("已接单");
+  if (phase === "assigned") return t("已领取");
   if (phase === "in_progress") return t("进行中");
   if (phase === "submitted") return t("已提交");
   if (phase === "review_pending") return t("待审核");

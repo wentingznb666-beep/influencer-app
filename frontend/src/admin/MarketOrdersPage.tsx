@@ -304,7 +304,7 @@ export default function MarketOrdersPage() {
           order_no: `#${it.id}`,
           title: it.title,
           client_username: it.client_username,
-          employee_username: isEmployee ? null : (it as unknown as api.AdminVideoOrder).employee_username ?? null,
+          employee_username: (it as unknown as { employee_username?: string | null }).employee_username ?? (it as unknown as api.AdminVideoOrder).employee_username ?? null,
           assigned_employee_id: it.assigned_employee_id,
           payment_status: it.payment_status,
           amount_thb: Number(it.amount_thb || 0),
@@ -411,7 +411,7 @@ export default function MarketOrdersPage() {
     () => ({
       created: t("待处理"),
       paid: t("已付款"),
-      assigned: t("已接单"),
+      assigned: t("已领取"),
       in_progress: t("制作中"),
       submitted: t("已提交"),
       review_pending: t("待审核"),
