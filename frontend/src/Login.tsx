@@ -636,7 +636,6 @@ export default function Login() {
           <div className="xt-login-home__footer-col">
             <div className="xt-login-home__footer-title">联系方式</div>
             <div className="xt-login-home__footer-body">
-              <div className="xt-login-home__footer-text">电话 0653085541 / 0652468116</div>
               <div className="xt-login-home__footer-text">邮箱 Xt.tiktok7@gmail.com</div>
             </div>
           </div>

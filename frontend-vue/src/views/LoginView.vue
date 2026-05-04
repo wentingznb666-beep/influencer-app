@@ -271,7 +271,6 @@
 
         <div class="footer-col">
           <div class="footer-title">联系方式</div>
-          <div class="footer-text">电话：0653085541 / 0652468116</div>
           <div class="footer-text">邮箱：Xt.tiktok7@gmail.com</div>
         </div>
       </div>
