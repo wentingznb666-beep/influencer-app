@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import { Router, Response } from "express";
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿import { Router, Response } from "express";
 import multer from "multer";
 import path from "path";
 import { promises as fs } from "fs";
@@ -528,8 +528,8 @@ router.put("/client/matching-orders/:id", async (req: AuthRequest, res: Response
       if (detailPayload || attachments) {
         let detailWithMerchant: any = detailPayload ? { ...(detailPayload as any) } : null;
         if (detailWithMerchant) {
-          const tpl = await client.query<{ shop_name: string; product_type: string; shop_link: string; shop_rating: string; user_reviews: string }>(
-            `SELECT shop_name, product_type, shop_link, shop_rating, user_reviews FROM client_merchant_info_templates WHERE client_id=$1`,
+          const tpl = await client.query<{ shop_name: string; product_type: string; shop_link: string }>(
+            `SELECT shop_name, product_type, shop_link FROM client_merchant_info_templates WHERE client_id=$1`,
             [req.user!.userId]
           );
           const merchantTemplate = tpl.rows[0];
@@ -540,8 +540,6 @@ router.put("/client/matching-orders/:id", async (req: AuthRequest, res: Response
                 shop_name: merchantTemplate.shop_name,
                 product_type: merchantTemplate.product_type,
                 shop_link: merchantTemplate.shop_link,
-                shop_rating: merchantTemplate.shop_rating,
-                user_reviews: merchantTemplate.user_reviews,
               },
             };
           }

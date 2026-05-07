@@ -10,6 +10,7 @@ import {
 } from "../clientApi";
 import { useAppStore } from "../stores/AppStore";
 import { MerchantInfoForm } from "../components/MerchantInfoForm";
+import { showToastNotice } from "../utils/showToast";
 
 type MatchingFormState = {
   task_name: string;
@@ -98,6 +99,7 @@ export default function MatchingCenterPage() {
   const [form, setForm] = useState<MatchingFormState>(defaultForm);
   const [editingOrder, setEditingOrder] = useState<any | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successKind, setSuccessKind] = useState<"create" | "update">("create");
 
   const parseFirstPositiveNumber = (text: string): number | null => {
     const m = String(text || "").replace(/,/g, "").match(/(\d+(?:\.\d+)?)/);
@@ -222,6 +224,7 @@ export default function MatchingCenterPage() {
 
     setPublishing(true);
     try {
+      const nextSuccessKind: "create" | "update" = editingOrder ? "update" : "create";
       // 发布前再次写入后端模板，避免仅本地有值但服务端校验缺失。
       await saveClientMerchantInfoTemplate({
         shop_name: merchantTemplate.shop_name.trim(),
@@ -292,10 +295,13 @@ export default function MatchingCenterPage() {
       }
 
       await loadOrders();
+      setSuccessKind(nextSuccessKind);
       closeModal();
       setShowSuccessModal(true);
+      showToastNotice(nextSuccessKind === "update" ? "保存成功" : "发布成功", { variant: "success", placement: "top-right" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "发布失败");
+      const actionText = editingOrder ? "保存失败" : "发布失败";
+      setError(err instanceof Error ? err.message : actionText);
     } finally {
       setPublishing(false);
     }
@@ -682,8 +688,10 @@ export default function MatchingCenterPage() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 2000 }}>
           <div style={{ background: "#fff", borderRadius: 16, padding: "32px 40px", textAlign: "center", minWidth: 280 }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✨</div>
-            <div style={{ fontSize: 18, fontWeight: 600, color: "#1e293b", marginBottom: 8 }}>提交成功</div>
-            <div style={{ fontSize: 14, color: "#64748b", marginBottom: 24 }}>撮合订单已提交，请耐心等待</div>
+            <div style={{ fontSize: 18, fontWeight: 600, color: "#1e293b", marginBottom: 8 }}>{successKind === "update" ? "保存成功" : "发布成功"}</div>
+            <div style={{ fontSize: 14, color: "#64748b", marginBottom: 24 }}>
+              {successKind === "update" ? "撮合订单已保存" : "撮合订单已提交，请耐心等待"}
+            </div>
             <button 
               type="button" 
               onClick={() => setShowSuccessModal(false)}
