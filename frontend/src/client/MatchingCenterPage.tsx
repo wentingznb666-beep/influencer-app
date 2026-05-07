@@ -527,7 +527,19 @@ export default function MatchingCenterPage() {
                   <input id="order_deadline" type="date" value={form.order_deadline} onChange={(e) => setField("order_deadline", e.target.value)} />
 
                   <label htmlFor="publish_deadline">内容发布截止时间 <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input id="publish_deadline" type="date" value={form.publish_deadline} onChange={(e) => setField("publish_deadline", e.target.value)} />
+                  <input
+                    id="publish_deadline"
+                    value={form.publish_deadline}
+                    onChange={(e) => setField("publish_deadline", e.target.value)}
+                    list="publish_deadline_options"
+                    placeholder="例：收到商品后3天内 / 2026-05-07"
+                  />
+                  <datalist id="publish_deadline_options">
+                    <option value="收到商品后3天内" />
+                    <option value="收到商品后7天内" />
+                    <option value="收到样品后3天内" />
+                    <option value="收到样品后7天内" />
+                  </datalist>
                 </div>
               </section>
 
