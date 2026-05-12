@@ -46,6 +46,19 @@
     <el-table v-if="filteredRows.length" :data="filteredRows" row-key="row_key" stripe v-loading="loading" size="small">
       <el-table-column prop="order_no" :label="t('订单号')" width="180" />
       <el-table-column :label="t('类型')" width="220"><template #default="{ row }"><el-tag :class="getOrderTypeTagClass(row.type_id)">{{ typeLabel(row.type_id) }}</el-tag></template></el-table-column>
+      <el-table-column :label="t('订单档位')" width="140">
+        <template #default="{ row }">
+          <template v-if="row.kind === 'market'">
+            <el-tooltip placement="top">
+              <template #content>
+                <div class="tier-tooltip">{{ gradedTierTooltip(row.raw.tier) }}</div>
+              </template>
+              <el-tag :class="gradedTierTagClass(row.raw.tier)" effect="plain">{{ normalizeGradedTier(row.raw.tier) }}</el-tag>
+            </el-tooltip>
+          </template>
+          <span v-else style="color: #94a3b8">—</span>
+        </template>
+      </el-table-column>
       <el-table-column prop="client_text" :label="t('商家')" width="160" />
       <el-table-column :label="t('领取人')" width="180">
         <template #default="{ row }">
@@ -105,6 +118,7 @@
       </el-table-column>
       <el-table-column :label="t('操作')" :min-width="isNarrow ? 420 : 620" :fixed="isNarrow ? undefined : 'right'">
         <template #default="{ row }">
+          <el-button size="small" type="info" plain @click="openOrderDetail(row.row_key)">{{ t("รายละเอียด") }} / {{ t("详情") }}</el-button>
           <template v-if="row.kind === 'market'">
             <el-button v-if="row.raw.status === 'open'" size="small" type="primary" :loading="acting[row.raw.id]" @click="onClaimMarket(row.raw.id)">{{ t("接单") }}</el-button>
             <el-button v-if="row.raw.status === 'claimed'" size="small" :loading="acting[row.raw.id]" @click="openCompleteMarket(row.raw.id)">{{ t("分配兼职/交付作品") }}</el-button>
@@ -173,13 +187,76 @@
     </el-dialog>
 
     <el-dialog v-model="dialogMarketComplete.open" :title="t('类型1交付作品')" width="520px" :lock-scroll="false">
+      <div v-if="currentMarketCompleteOrder" class="tier-dialog-block">
+        <div class="tier-dialog-title">{{ t("ระดับคำสั่งงาน") }} / {{ t("订单档位") }}</div>
+        <div class="tier-dialog-row">
+          <el-tag :class="gradedTierTagClass(currentMarketCompleteOrder.tier)" effect="plain">{{ normalizeGradedTier(currentMarketCompleteOrder.tier) }}</el-tag>
+          <div class="tier-dialog-text">
+            <div class="tier-th">{{ gradedTierTextTh(currentMarketCompleteOrder.tier) }}</div>
+            <div class="tier-remark">{{ gradedTierRemarkZhEn(currentMarketCompleteOrder.tier) }}</div>
+            <div class="tier-total">{{ t("总扣除") }} {{ calcGradedPoints(normalizeGradedTier(currentMarketCompleteOrder.tier), Number(currentMarketCompleteOrder.task_count || 0) || 1) }} {{ t("积分") }}（{{ t("数量") }} {{ Number(currentMarketCompleteOrder.task_count || 0) || 1 }}）</div>
+          </div>
+        </div>
+      </div>
       <el-input v-model="dialogMarketComplete.linksText" type="textarea" :rows="6" />
       <template #footer><el-button @click="dialogMarketComplete.open = false">{{ t("关闭") }}</el-button><el-button type="primary" :loading="dialogMarketComplete.loading" @click="submitMarketComplete">{{ t("确认") }}</el-button></template>
     </el-dialog>
 
     <el-dialog v-model="dialogMarketPublish.open" :title="t('类型1提交发布链接')" width="520px" :lock-scroll="false">
+      <div v-if="currentMarketPublishOrder" class="tier-dialog-block">
+        <div class="tier-dialog-title">{{ t("ระดับคำสั่งงาน") }} / {{ t("订单档位") }}</div>
+        <div class="tier-dialog-row">
+          <el-tag :class="gradedTierTagClass(currentMarketPublishOrder.tier)" effect="plain">{{ normalizeGradedTier(currentMarketPublishOrder.tier) }}</el-tag>
+          <div class="tier-dialog-text">
+            <div class="tier-th">{{ gradedTierTextTh(currentMarketPublishOrder.tier) }}</div>
+            <div class="tier-remark">{{ gradedTierRemarkZhEn(currentMarketPublishOrder.tier) }}</div>
+            <div class="tier-total">{{ t("总扣除") }} {{ calcGradedPoints(normalizeGradedTier(currentMarketPublishOrder.tier), Number(currentMarketPublishOrder.task_count || 0) || 1) }} {{ t("积分") }}（{{ t("数量") }} {{ Number(currentMarketPublishOrder.task_count || 0) || 1 }}）</div>
+          </div>
+        </div>
+      </div>
       <el-input v-model="dialogMarketPublish.link" />
       <template #footer><el-button @click="dialogMarketPublish.open = false">{{ t("关闭") }}</el-button><el-button type="primary" :loading="dialogMarketPublish.loading" @click="submitMarketPublish">{{ t("确认") }}</el-button></template>
+    </el-dialog>
+
+    <el-dialog v-model="dialogOrderDetail.open" :title="t('รายละเอียดคำสั่งงาน') + ' / ' + t('订单详情')" width="760px" :lock-scroll="false">
+      <template v-if="currentDetailRow">
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item :label="t('订单号')">{{ currentDetailRow.order_no }}</el-descriptions-item>
+          <el-descriptions-item :label="t('类型')">{{ typeLabel(currentDetailRow.type_id) }}</el-descriptions-item>
+          <el-descriptions-item :label="t('标题')" :span="2">{{ currentDetailRow.title }}</el-descriptions-item>
+          <el-descriptions-item :label="t('商家')">{{ currentDetailRow.client_text }}</el-descriptions-item>
+          <el-descriptions-item :label="t('金额/积分')">{{ currentDetailRow.amount_text }}</el-descriptions-item>
+          <el-descriptions-item :label="t('创建时间')">{{ currentDetailRow.created_at_text }}</el-descriptions-item>
+          <el-descriptions-item :label="t('状态')">{{ currentDetailRow.unified_status_text }} / {{ currentDetailRow.phase_text }}</el-descriptions-item>
+        </el-descriptions>
+
+        <div v-if="currentDetailMarketOrder" class="tier-detail-block">
+          <div class="tier-detail-title">{{ t("ระดับคำสั่งงาน (A/B/C)") }} / {{ t("订单档位(A/B/C)") }}</div>
+          <div class="tier-detail-selected">
+            <el-tag :class="gradedTierTagClass(currentDetailMarketOrder.tier)" effect="plain">{{ normalizeGradedTier(currentDetailMarketOrder.tier) }}</el-tag>
+            <div class="tier-detail-text">
+              <div class="tier-th">{{ gradedTierTextTh(currentDetailMarketOrder.tier) }}</div>
+              <div class="tier-remark">{{ gradedTierRemarkZhEn(currentDetailMarketOrder.tier) }}</div>
+              <div class="tier-total">
+                {{ t("单条") }} {{ gradedTierPoints(normalizeGradedTier(currentDetailMarketOrder.tier)) }} {{ t("积分") }}
+                ｜ {{ t("数量") }} {{ Number(currentDetailMarketOrder.task_count || 0) || 1 }}
+                ｜ {{ t("本单总扣除") }} {{ calcGradedPoints(normalizeGradedTier(currentDetailMarketOrder.tier), Number(currentDetailMarketOrder.task_count || 0) || 1) }} {{ t("积分") }}
+              </div>
+            </div>
+          </div>
+
+          <div class="tier-detail-list">
+            <div v-for="item in gradedTierOptions" :key="item.tier" class="tier-detail-item" :class="{ active: item.tier === normalizeGradedTier(currentDetailMarketOrder.tier) }">
+              <el-tag :class="gradedTierTagClass(item.tier)" effect="plain">{{ item.tier }}</el-tag>
+              <div class="tier-detail-item-text">
+                <div class="tier-th">{{ item.th }}</div>
+                <div class="tier-remark">{{ item.zh }} / {{ item.en }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+      <template #footer><el-button @click="dialogOrderDetail.open = false">{{ t("ปิด") }} / {{ t("关闭") }}</el-button></template>
     </el-dialog>
   </div>
 </template>
@@ -204,7 +281,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useVideoOrdersStore } from "@/stores/videoOrders";
 import { readLocale, tr, type Locale } from "@/utils/i18n";
 import { calcGradedPoints, getOrderTypeTagClass, getOrderTypeTh, getOrderTypeZh, requiresEmployeeManualPayment } from "@/utils/videoOrderRules";
-import type { GradedTier, UnifiedOrderType } from "@/types/videoOrderExt";
+import { GRADED_POINT_UNIT, type GradedTier, type UnifiedOrderType } from "@/types/videoOrderExt";
 
 const auth = useAuthStore();
 const store = useVideoOrdersStore();
@@ -224,6 +301,7 @@ const dialogMarketPublish = reactive({ open: false, orderId: 0, link: "", loadin
 const dialogOfflineSubmit = reactive({ open: false, orderId: 0, linksText: "", loading: false });
 const dialogOfflinePublish = reactive({ open: false, orderId: 0, link: "", loading: false });
 const monthlyBatchDialog = reactive({ open: false, orderId: 0, batchNo: 1, videoCount: 1, linksText: "", loading: false });
+const dialogOrderDetail = reactive({ open: false, rowKey: "" });
 const autoRefreshEnabled = ref(true);
 const autoRefreshSec = ref(20);
 const autoRefreshTimer = ref<number | null>(null);
@@ -421,6 +499,63 @@ function marketAmountValue(order: AdminMarketOrder): number {
   return calcGradedPoints(tier, Number(order.task_count || 0) || 1);
 }
 
+const gradedTierOptions = [
+  {
+    tier: "C" as GradedTier,
+    th: "ระดับ C: ใช้ 20 พอยท์, มีเพลงประกอบ + สติกเกอร์ข้อความ",
+    zh: "C类：消耗20积分，包含背景音乐、文字贴纸",
+    en: "Tier C: 20 points, background music + text stickers",
+  },
+  {
+    tier: "B" as GradedTier,
+    th: "ระดับ B: ใช้ 40 พอยท์, มีระดับ C + เปลี่ยนฉาก + ทรานซิชันเอฟเฟกต์",
+    zh: "B类：消耗40积分，含C类功能+场景切换+特效转场",
+    en: "Tier B: 40 points, Tier C + scene switching + effect transitions",
+  },
+  {
+    tier: "A" as GradedTier,
+    th: "ระดับ A: ใช้ 60 พอยท์, มีระดับ B + บริการพากย์เสียง",
+    zh: "A类：消耗60积分，含B类功能+配音服务",
+    en: "Tier A: 60 points, Tier B + voice-over service",
+  },
+];
+
+function normalizeGradedTier(value: unknown): GradedTier {
+  const v = String(value || "").toUpperCase();
+  if (v === "A" || v === "B" || v === "C") return v;
+  return "C";
+}
+
+function gradedTierPoints(tier: GradedTier): number {
+  return Number(GRADED_POINT_UNIT[tier] || 0);
+}
+
+function gradedTierTagClass(tierOrValue: unknown): string {
+  const tier = normalizeGradedTier(tierOrValue);
+  if (tier === "A") return "tag-tier-a";
+  if (tier === "B") return "tag-tier-b";
+  return "tag-tier-c";
+}
+
+function gradedTierTextTh(tierOrValue: unknown): string {
+  const tier = normalizeGradedTier(tierOrValue);
+  return gradedTierOptions.find((x) => x.tier === tier)?.th || "";
+}
+
+function gradedTierRemarkZhEn(tierOrValue: unknown): string {
+  const tier = normalizeGradedTier(tierOrValue);
+  const item = gradedTierOptions.find((x) => x.tier === tier);
+  if (!item) return "";
+  return `${item.zh} / ${item.en}`;
+}
+
+function gradedTierTooltip(tierOrValue: unknown): string {
+  const tier = normalizeGradedTier(tierOrValue);
+  const item = gradedTierOptions.find((x) => x.tier === tier);
+  if (!item) return "";
+  return `${item.th}\n${item.zh}\n${item.en}`;
+}
+
 function inDateRange(value: string): boolean {
   if (dateRange.value.length !== 2) return true;
   const [start, end] = dateRange.value;
@@ -435,6 +570,24 @@ const currentOfflineDialogOrder = computed(() => offlineOrders.value.find((item)
 const currentMonthlyDialogOrder = computed(() => offlineOrders.value.find((item) => Number(item.id) === Number(monthlyBatchDialog.orderId)) || null);
 const dialogOfflineRejectedNote = computed(() => (currentOfflineDialogOrder.value ? orderRejectedMessage(currentOfflineDialogOrder.value) : ""));
 const dialogMonthlyRejectedBatchText = computed(() => (currentMonthlyDialogOrder.value ? rejectedBatchSummaries(currentMonthlyDialogOrder.value).join("\n") : ""));
+const currentMarketCompleteOrder = computed(() => marketOrders.value.find((item) => Number(item.id) === Number(dialogMarketComplete.orderId)) || null);
+const currentMarketPublishOrder = computed(() => marketOrders.value.find((item) => Number(item.id) === Number(dialogMarketPublish.orderId)) || null);
+
+const currentDetailRow = computed<UnifiedOrderRow | null>(() => {
+  if (!dialogOrderDetail.rowKey) return null;
+  return unified.value.find((item) => String(item.row_key) === String(dialogOrderDetail.rowKey)) || null;
+});
+
+const currentDetailMarketOrder = computed<AdminMarketOrder | null>(() => {
+  const row = currentDetailRow.value;
+  if (!row || row.kind !== "market") return null;
+  return row.raw;
+});
+
+function openOrderDetail(rowKey: string): void {
+  dialogOrderDetail.rowKey = rowKey;
+  dialogOrderDetail.open = true;
+}
 
 const unified = computed<UnifiedOrderRow[]>(() => {
   const rows: UnifiedOrderRow[] = [];
@@ -771,6 +924,22 @@ onBeforeUnmount(() => {
 .list-summary { font-size: 13px; color: #64748b; font-weight: 700; }
 .status-cell { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .title-cell { display: flex; flex-direction: column; gap: 8px; }
+.tier-tooltip { white-space: pre-line; max-width: 360px; line-height: 1.6; }
+.tier-dialog-block { border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+.tier-dialog-title { font-weight: 800; color: #334155; margin-bottom: 6px; }
+.tier-dialog-row { display: flex; gap: 10px; align-items: flex-start; }
+.tier-dialog-text { display: flex; flex-direction: column; gap: 2px; }
+.tier-detail-block { margin-top: 14px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #fff; }
+.tier-detail-title { font-weight: 900; color: #0f172a; margin-bottom: 10px; }
+.tier-detail-selected { display: flex; gap: 10px; align-items: flex-start; padding: 10px 10px; border-radius: 10px; background: #f8fafc; border: 1px solid #e2e8f0; }
+.tier-detail-text { display: flex; flex-direction: column; gap: 2px; }
+.tier-th { font-weight: 800; color: #0f172a; }
+.tier-remark { font-size: 12px; color: #475569; line-height: 1.6; }
+.tier-total { font-size: 12px; color: #334155; margin-top: 2px; font-weight: 700; }
+.tier-detail-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.tier-detail-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; }
+.tier-detail-item.active { border-color: rgba(234, 88, 12, 0.35); background: rgba(234, 88, 12, 0.06); }
+.tier-detail-item-text { display: flex; flex-direction: column; gap: 2px; }
 .rejection-alert { margin-top: 4px; }
 .resubmit-alert { margin-top: 4px; }
 .rejected-batch-list { border: 1px solid #f5c2c7; background: #fff5f5; border-radius: 8px; padding: 8px 10px; color: #8a1f11; }
@@ -781,6 +950,9 @@ onBeforeUnmount(() => {
 .resubmitted-batch-item { line-height: 1.6; }
 .dialog-alert { margin-bottom: 12px; white-space: pre-line; }
 .empty-wrap { padding: 32px 0 20px; background: #fff; border-radius: 12px; border: 1px solid #eef2f7; }
+:deep(.tag-tier-a){ background:rgba(239,68,68,0.12); color:#b91c1c; border-color:rgba(239,68,68,0.35); font-weight:900; }
+:deep(.tag-tier-b){ background:rgba(245,158,11,0.14); color:#b45309; border-color:rgba(245,158,11,0.40); font-weight:900; }
+:deep(.tag-tier-c){ background:rgba(59,130,246,0.12); color:#1d4ed8; border-color:rgba(59,130,246,0.35); font-weight:900; }
 :deep(.tag-gold){ background:#ffe082;color:#5d3a00;border-color:#ffb300;font-weight:700; }
 :deep(.tag-yellow){ background:#fff59d;color:#5d4a00;border-color:#fbc02d;font-weight:700; }
 :deep(.tag-purple){ background:#e1bee7;color:#4a148c;border-color:#ab47bc;font-weight:700; }
