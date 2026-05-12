@@ -264,6 +264,61 @@ function renderTierStandards(tier: string, t: TFunction) {
 
 }
 
+type GradedTier = "A" | "B" | "C";
+
+function normalizeGradedTier(value: unknown): GradedTier {
+  const v = String(value || "").toUpperCase();
+  if (v === "A" || v === "B" || v === "C") return v;
+  return "C";
+}
+
+const GRADED_TIER_BENEFITS: Record<GradedTier, { points: number; th: string; zh: string; en: string }> = {
+  C: {
+    points: 20,
+    th: "ระดับ C: ใช้ 20 คะแนน, มีเพลงประกอบ + สติกเกอร์ข้อความ",
+    zh: "C类：消耗20积分，包含背景音乐、文字贴纸",
+    en: "Tier C: 20 points, background music + text stickers",
+  },
+  B: {
+    points: 40,
+    th: "ระดับ B: ใช้ 40 คะแนน, มีระดับ C + เปลี่ยนฉาก + ทรานซิชันเอฟเฟกต์",
+    zh: "B类：消耗40积分，含C类功能+场景切换+特效转场",
+    en: "Tier B: 40 points, Tier C + scene switching + effect transitions",
+  },
+  A: {
+    points: 60,
+    th: "ระดับ A: ใช้ 60 คะแนน, มีระดับ B + บริการพากย์เสียง",
+    zh: "A类：消耗60积分，含B类功能+配音服务",
+    en: "Tier A: 60 points, Tier B + voice-over service",
+  },
+};
+
+function tierBadgeStyle(tierOrValue: unknown): CSSProperties {
+  const tier = normalizeGradedTier(tierOrValue);
+  const base: CSSProperties = { padding: "2px 8px", borderRadius: 999, fontSize: 12, fontWeight: 900, border: "1px solid transparent" };
+  if (tier === "A") return { ...base, background: "rgba(239,68,68,0.12)", color: "#b91c1c", borderColor: "rgba(239,68,68,0.35)" };
+  if (tier === "B") return { ...base, background: "rgba(245,158,11,0.14)", color: "#b45309", borderColor: "rgba(245,158,11,0.40)" };
+  return { ...base, background: "rgba(59,130,246,0.12)", color: "#1d4ed8", borderColor: "rgba(59,130,246,0.35)" };
+}
+
+function renderGradedTierBenefit(tierOrValue: unknown, t: TFunction): ReactNode {
+  const tier = normalizeGradedTier(tierOrValue);
+  const item = GRADED_TIER_BENEFITS[tier];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <span style={tierBadgeStyle(tier)}>
+          {t("档位")} {tier}
+        </span>
+        <span style={{ fontWeight: 800, color: "#0f172a" }}>{item.th}</span>
+      </div>
+      <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>
+        {item.zh} / {item.en}
+      </div>
+    </div>
+  );
+}
+
 function renderVoiceEntry(o: { tier: string; voice_link?: string | null; voice_note?: string | null }, t: TFunction) {
 
   if (o.tier !== "A") return null;
@@ -936,12 +991,14 @@ export default function ClientOrdersHallPage() {
     );
 
     if (o._source === "graded") {
+      const tier = normalizeGradedTier(o.tier);
       const gradedDetails: Array<{ label: string; value: ReactNode }> = [
         { label: t("订单标题"), value: o.title || "—" },
         { label: t("下单商家账号"), value: o.client_username || "—" },
         { label: t("商家名称"), value: o.client_display_name || "—" },
         { label: t("订单创建日期"), value: formatDateTime(o.created_at) },
         { label: t("订单状态"), value: statusText[String(o.status || "")] || String(o.status || "") || "—" },
+        { label: t("档位"), value: renderGradedTierBenefit(tier, t) },
         {
           label: t("视频数量/积分金额"),
           value: (
@@ -980,6 +1037,10 @@ export default function ClientOrdersHallPage() {
               </span>
               <span style={statusBadgeStyle(String(o.status || ""))}>{statusText[String(o.status || "")] ?? String(o.status || "")}</span>
               <span style={typeBadgeStyle("graded")}>{t("① 分级视频（A/B/C）")}</span>
+              <span style={tierBadgeStyle(tier)}>
+                {t("档位")} {tier} · {GRADED_TIER_BENEFITS[tier].points}
+                {t("积分")}
+              </span>
               <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 12, fontWeight: 800, border: "1px solid #dbe1ea", background: "#f1f5f9", color: "#0f172a" }}>
                 {t("订单日期：")}
                 {formatDateTime(o.created_at)}
