@@ -1320,7 +1320,9 @@ router.post("/skus/batch-import", skuBatchUpload.single("file"), (req: AuthReque
 
       }
 
-    } catch {
+    } catch (parseErr: any) {
+
+      console.error("[batch-import] Excel 解析失败:", parseErr?.message ?? parseErr);
 
       res.status(400).json({ error: "INVALID_INPUT", message: "无法解析文件，请确认是有效的 Excel 或 CSV 文件。" });
 
