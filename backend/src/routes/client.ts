@@ -1211,7 +1211,7 @@ router.post("/skus/batch-import", skuBatchUpload.single("file"), (req: AuthReque
 
       // --- 方式一：浮动图片（通过 sheet.getImages() + array index 匹配 media） ---
       for (let i = 0; i < images.length; i++) {
-        const img = images[i];
+        const img = images[i]!;
         // ExcelJS 在加载文件时不会给 media 项设置 index，所以 img.imageId 为 undefined。
         // 但加载时图片和 media 按相同顺序解析，直接用数组索引对应。
         const mediaItem = mediaItems[i] as any;
@@ -1253,20 +1253,20 @@ router.post("/skus/batch-import", skuBatchUpload.single("file"), (req: AuthReque
             // 解析 rels：rId → media filename
             const ridToTarget = new Map<string, string>();
             for (const m of cellImagesRels.matchAll(/<Relationship[^>]*Id=\"(rId\d+)\"[^>]*Target=\"([^\"]+)\"/g)) {
-              ridToTarget.set(m[1], m[2]);
+              ridToTarget.set(m[1]!, m[2]!);
             }
             // 解析 cellImages：DISPIMG ID → rId
             const idToRid = new Map<string, string>();
             for (const m of cellImagesXml.matchAll(/<xdr:cNvPr[^>]*name=\"([^\"]+)\"/g)) {
-              idToRid.set(m[1], ""); // 先占位
+              idToRid.set(m[1]!, ""); // 先占位
             }
             // 重新遍历，拿到每个 cellImage 里的 name 和 r:embed
             const cellImageBlocks = cellImagesXml.matchAll(/<etc:cellImage>([\s\S]*?)<\/etc:cellImage>/g);
             for (const block of cellImageBlocks) {
-              const nameMatch = block[1].match(/<xdr:cNvPr[^>]*name=\"([^\"]+)\"/);
-              const embedMatch = block[1].match(/r:embed=\"(rId\d+)\"/);
+              const nameMatch = block[1]!.match(/<xdr:cNvPr[^>]*name=\"([^\"]+)\"/);
+              const embedMatch = block[1]!.match(/r:embed=\"(rId\d+)\"/);
               if (nameMatch && embedMatch) {
-                idToRid.set(nameMatch[1], embedMatch[1]);
+                idToRid.set(nameMatch[1]!, embedMatch[1]!);
               }
             }
             // 构建 DISPIMG ID → media 文件名（不含路径）的映射
@@ -1290,7 +1290,7 @@ router.post("/skus/batch-import", skuBatchUpload.single("file"), (req: AuthReque
                   const formula = (val as any).formula as string;
                   const dispMatch = formula.match(/DISPIMG\("([^"]+)"/);
                   if (dispMatch) {
-                    const imgId = dispMatch[1];
+                    const imgId = dispMatch[1]!;
                     const mediaName = dispimgToMediaName.get(imgId);
                     if (mediaName) {
                       const mediaItem = mediaItems.find((m: any) => m.name === mediaName);
