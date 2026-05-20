@@ -12,6 +12,9 @@ import { COOPERATION_TYPES_CONFIG_KEY } from "../cooperationTypes";
 import { recordOperationLogTx } from "../operationLog";
 
 import multer from "multer";
+import * as xlsx from "xlsx";
+import JSZip from "jszip";
+import ExcelJS from "exceljs";
 
 import path from "path";
 
@@ -981,6 +984,810 @@ router.patch("/skus/:id", (req: AuthRequest, res: Response) => {
 
 /**
 
+ * GET /api/client/skus/import-template
+
+ * 下载 SKU 批量导入模板。
+
+ */
+
+router.get("/skus/import-template", (_req: AuthRequest, res: Response) => {
+
+  const wb = xlsx.utils.book_new();
+
+  const ws = xlsx.utils.aoa_to_sheet([["sku编码", "sku名称", "sku图片"]]);
+
+  // 设置列宽和行高（方便放入图片）
+  (ws as any)["!cols"] = [{ wch: 25 }, { wch: 25 }, { wch: 50 }];
+  const rows: any[] = [{ hpt: 30 }]; // 表头行高
+  for (let i = 1; i <= 300; i++) rows.push({ hpt: 80 }); // 数据行高
+  (ws as any)["!rows"] = rows;
+
+  xlsx.utils.book_append_sheet(wb, ws, "SKUs");
+
+  const buf = xlsx.write(wb, { type: "buffer", bookType: "xlsx" });
+
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+  res.setHeader("Content-Disposition", "attachment; filename=sku_import_template.xlsx");
+
+  res.send(buf);
+
+});
+
+
+
+/**
+
+ * POST /api/client/skus/batch-import
+
+ * 批量导入 SKU。支持 mode: "reject"（遇重复全拒）| "skip"（跳过重复）。
+
+ */
+
+const BATCH_IMPORT_MAX = 500;
+
+const skuBatchUpload = multer({
+
+  storage: multer.memoryStorage(),
+
+  limits: { fileSize: 20 * 1024 * 1024, files: 1 },
+
+});
+
+router.post("/skus/batch-import", skuBatchUpload.single("file"), (req: AuthRequest, res: Response) => {
+
+  const clientId = req.user!.userId;
+
+  const mode = req.body.mode === "skip" ? "skip" : "reject";
+
+  const file = req.file;
+
+  if (!file) {
+
+    res.status(400).json({ error: "INVALID_INPUT", message: "请上传文件。" });
+
+    return;
+
+  }
+
+  (async () => {
+
+    // 1. 判断是 ZIP 还是 Excel
+
+    const isZip = file.originalname.toLowerCase().endsWith(".zip");
+
+    let excelBuffer: Buffer;
+
+    let imageMap = new Map<string, { buffer: Buffer; ext: string }[]>(); // skuCode -> images
+
+    if (isZip) {
+
+      // ZIP 模式：解压，找 Excel + 图片
+
+      const zip = await JSZip.loadAsync(file.buffer);
+
+      // 找 Excel 文件
+
+      const excelEntry = zip.file(/\.xlsx?$/i).find((e) => !e.dir);
+
+      if (!excelEntry) {
+
+        res.status(400).json({ error: "INVALID_INPUT", message: "ZIP 中没有找到 Excel 文件（.xlsx/.xls）。" });
+
+        return;
+
+      }
+
+      excelBuffer = await excelEntry.async("nodebuffer");
+
+      // 找图片文件（images/ 子目录或根目录）
+
+      const imageExts = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+
+      const imageEntries = zip.file(/\.(jpg|jpeg|png|webp)$/i).filter((e) => !e.dir);
+
+      for (const entry of imageEntries) {
+
+        const name = path.basename(entry.name); // 如 SKU001.jpg, SKU001_2.jpg
+
+        const dotIdx = name.lastIndexOf(".");
+
+        if (dotIdx < 1) continue;
+
+        const nameWithoutExt = name.substring(0, dotIdx);
+
+        const ext = name.substring(dotIdx).toLowerCase();
+
+        if (!imageExts.has(ext)) continue;
+
+        // 解析 skuCode：格式为 "编码" 或 "编码_序号"
+
+        let skuCode = nameWithoutExt;
+
+        const lastUnderscore = nameWithoutExt.lastIndexOf("_");
+
+        if (lastUnderscore > 0) {
+
+          const afterUnderscore = nameWithoutExt.substring(lastUnderscore + 1);
+
+          if (/^\d+$/.test(afterUnderscore)) {
+
+            skuCode = nameWithoutExt.substring(0, lastUnderscore);
+
+          }
+
+        }
+
+        const buf = await entry.async("nodebuffer");
+
+        if (!imageMap.has(skuCode)) imageMap.set(skuCode, []);
+
+        imageMap.get(skuCode)!.push({ buffer: buf, ext });
+
+      }
+
+    } else {
+
+      // 普通 Excel 模式
+
+      excelBuffer = file.buffer;
+
+    }
+
+    // 2. 解析 Excel（支持读取内嵌图片）
+
+    let rows: Record<string, unknown>[];
+
+    try {
+
+      const wb = new ExcelJS.Workbook();
+
+      await wb.xlsx.load(excelBuffer as any);
+
+      const sheet = wb.worksheets[0];
+
+      if (!sheet) {
+
+        res.status(400).json({ error: "INVALID_INPUT", message: "文件中没有找到工作表。" });
+
+        return;
+
+      }
+
+      // 读取表头
+
+      const headerRow = sheet.getRow(1);
+
+      const headers: string[] = [];
+
+      headerRow.eachCell((cell, colNumber) => {
+
+        headers[colNumber - 1] = String(cell.value ?? "").trim();
+
+      });
+
+      // 读取数据行
+
+      rows = [];
+
+      sheet.eachRow((row, rowNumber) => {
+
+        if (rowNumber === 1) return; // 跳过表头
+
+        const rowData: Record<string, unknown> = {};
+
+        row.eachCell((cell, colNumber) => {
+
+          const key = headers[colNumber - 1];
+
+          if (key) rowData[key] = cell.value;
+
+        });
+
+        rows.push(rowData);
+
+      });
+
+      // 提取内嵌图片，按行号/单元格匹配到 SKU 编码
+
+      const images = sheet.getImages();
+
+      console.log(`[batch-import] Excel 浮动图片数量: ${images.length}`);
+
+      console.log(`[batch-import] media 库数量: ${wb.model.media?.length ?? 0}`);
+
+      const mediaItems = wb.model.media || [];
+
+      // 辅助函数：将 media item 的 buffer 加入 imageMap
+      const addMediaToMap = (skuCode: string, mediaItem: any, logTag: string) => {
+        if (!skuCode || !mediaItem?.buffer) return false;
+        const ext = mediaItem.extension ? `.${mediaItem.extension}` : ".png";
+        const buf = Buffer.from(mediaItem.buffer);
+        if (!imageMap.has(skuCode)) imageMap.set(skuCode, []);
+        imageMap.get(skuCode)!.push({ buffer: buf, ext });
+        console.log(`[batch-import] ${logTag} SKU: ${skuCode}, 大小: ${buf.length} bytes`);
+        return true;
+      };
+
+      // --- 方式一：浮动图片（通过 sheet.getImages() + array index 匹配 media） ---
+      for (let i = 0; i < images.length; i++) {
+        const img = images[i];
+        // ExcelJS 在加载文件时不会给 media 项设置 index，所以 img.imageId 为 undefined。
+        // 但加载时图片和 media 按相同顺序解析，直接用数组索引对应。
+        const mediaItem = mediaItems[i] as any;
+        console.log(`[batch-import] 浮动图片 #${i} imageId=${img.imageId}, range:`, JSON.stringify(img.range));
+        if (!mediaItem || !mediaItem.buffer) {
+          console.log(`[batch-import] 浮动图片 #${i} 未找到 media 或无 buffer`);
+          continue;
+        }
+        const tl = img.range?.tl;
+        if (!tl) {
+          console.log(`[batch-import] 浮动图片 #${i} 无 tl 锚点`);
+          continue;
+        }
+        const rowNum = ((tl as any).nativeRow ?? (tl as any).row ?? 0) + 1;
+        console.log(`[batch-import] 浮动图片 #${i} 所在行: ${rowNum}`);
+        if (rowNum < 2 || rowNum > rows.length + 1) {
+          console.log(`[batch-import] 浮动图片 #${i} 行号超出范围`);
+          continue;
+        }
+        const row = rows[rowNum - 2];
+        if (!row) continue;
+        const skuCode = (row["sku编码"] ?? row.sku_code) != null ? String(row["sku编码"] ?? row.sku_code).trim() : "";
+        if (!skuCode) {
+          console.log(`[batch-import] 浮动图片 #${i} 对应行无 sku 编码`);
+          continue;
+        }
+        addMediaToMap(skuCode, mediaItem, `浮动图片 #${i} →`);
+      }
+
+      // --- 方式二：WPS 单元格内图片（DISPIMG 公式 + cellimages.xml） ---
+      // cellimages.xml 在 xlsx 内部，excelBuffer 本身就是 xlsx 文件内容
+      if (excelBuffer) {
+        try {
+          const innerZip = await JSZip.loadAsync(excelBuffer);
+          const cellImagesXml = await innerZip.file("xl/cellimages.xml")?.async("string");
+          const cellImagesRels = await innerZip.file("xl/_rels/cellimages.xml.rels")?.async("string");
+          if (cellImagesXml && cellImagesRels) {
+            console.log("[batch-import] 检测到 cellimages.xml（WPS 单元格内图片），开始解析");
+            // 解析 rels：rId → media filename
+            const ridToTarget = new Map<string, string>();
+            for (const m of cellImagesRels.matchAll(/<Relationship[^>]*Id=\"(rId\d+)\"[^>]*Target=\"([^\"]+)\"/g)) {
+              ridToTarget.set(m[1], m[2]);
+            }
+            // 解析 cellImages：DISPIMG ID → rId
+            const idToRid = new Map<string, string>();
+            for (const m of cellImagesXml.matchAll(/<xdr:cNvPr[^>]*name=\"([^\"]+)\"/g)) {
+              idToRid.set(m[1], ""); // 先占位
+            }
+            // 重新遍历，拿到每个 cellImage 里的 name 和 r:embed
+            const cellImageBlocks = cellImagesXml.matchAll(/<etc:cellImage>([\s\S]*?)<\/etc:cellImage>/g);
+            for (const block of cellImageBlocks) {
+              const nameMatch = block[1].match(/<xdr:cNvPr[^>]*name=\"([^\"]+)\"/);
+              const embedMatch = block[1].match(/r:embed=\"(rId\d+)\"/);
+              if (nameMatch && embedMatch) {
+                idToRid.set(nameMatch[1], embedMatch[1]);
+              }
+            }
+            // 构建 DISPIMG ID → media 文件名（不含路径）的映射
+            const dispimgToMediaName = new Map<string, string>();
+            for (const [id, rid] of idToRid) {
+              const target = ridToTarget.get(rid);
+              if (target) {
+                const basename = target.replace(/^.*[\\/]/, "").replace(/\.[^.]+$/, ""); // "media/image1.jpeg" → "image1"
+                dispimgToMediaName.set(id, basename);
+              }
+            }
+            console.log(`[batch-import] cellimages 解析完成，共 ${dispimgToMediaName.size} 个图片映射`);
+            // 扫描数据行，匹配 DISPIMG 公式
+            for (let i = 0; i < rows.length; i++) {
+              const r = rows[i] as Record<string, unknown>;
+              const skuCode = (r["sku编码"] ?? r.sku_code) != null ? String(r["sku编码"] ?? r.sku_code).trim() : "";
+              if (!skuCode) continue;
+              // 检查所有单元格值，查找 DISPIMG 公式
+              for (const val of Object.values(r)) {
+                if (val && typeof val === "object" && (val as any).formula) {
+                  const formula = (val as any).formula as string;
+                  const dispMatch = formula.match(/DISPIMG\("([^"]+)"/);
+                  if (dispMatch) {
+                    const imgId = dispMatch[1];
+                    const mediaName = dispimgToMediaName.get(imgId);
+                    if (mediaName) {
+                      const mediaItem = mediaItems.find((m: any) => m.name === mediaName);
+                      if (mediaItem) {
+                        addMediaToMap(skuCode, mediaItem, `单元格图片(${imgId}) →`);
+                      } else {
+                        console.log(`[batch-import] 单元格图片 ${imgId} 未找到 media (name=${mediaName})`);
+                      }
+                    } else {
+                      console.log(`[batch-import] 单元格图片 ${imgId} 未在 cellimages.xml 中找到映射`);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch (cellImgErr) {
+          console.log("[batch-import] 解析 cellimages.xml 失败:", cellImgErr);
+        }
+      }
+
+      console.log(`[batch-import] 最终 imageMap: ${imageMap.size} 个 SKU 有图片`);
+
+      for (const [code, imgs] of imageMap) {
+
+        console.log(`[batch-import]   ${code}: ${imgs.length} 张图片`);
+
+      }
+
+    } catch {
+
+      res.status(400).json({ error: "INVALID_INPUT", message: "无法解析文件，请确认是有效的 Excel 或 CSV 文件。" });
+
+      return;
+
+    }
+
+    if (rows.length === 0) {
+
+      res.status(400).json({ error: "INVALID_INPUT", message: "文件中没有数据行。" });
+
+      return;
+
+    }
+
+    if (rows.length > BATCH_IMPORT_MAX) {
+
+      res.status(400).json({ error: "INVALID_INPUT", message: `单次最多导入 ${BATCH_IMPORT_MAX} 条，当前 ${rows.length} 条。` });
+
+      return;
+
+    }
+
+    // 3. 校验 + 文件内去重
+
+    const errors: { row: number; sku_code: string; reason: string }[] = [];
+
+    const valid: { sku_code: string; sku_name: string | null }[] = [];
+
+    const seenInFile = new Set<string>();
+
+    for (let i = 0; i < rows.length; i++) {
+
+      const r = rows[i] as Record<string, unknown>;
+
+      const rawCode = (r["sku编码"] ?? r.sku_code) != null ? String(r["sku编码"] ?? r.sku_code).trim() : "";
+
+      const rawName = (r["sku名称"] ?? r.sku_name) != null ? String(r["sku名称"] ?? r.sku_name).trim() : "";
+
+      const rowNum = i + 2;
+
+      if (!rawCode) {
+
+        errors.push({ row: rowNum, sku_code: "", reason: "sku编码 为空" });
+
+        continue;
+
+      }
+
+      if (rawCode.length > 120) {
+
+        errors.push({ row: rowNum, sku_code: rawCode, reason: "sku编码 超过 120 字符" });
+
+        continue;
+
+      }
+
+      if (seenInFile.has(rawCode)) {
+
+        errors.push({ row: rowNum, sku_code: rawCode, reason: "文件内重复" });
+
+        continue;
+
+      }
+
+      seenInFile.add(rawCode);
+
+      valid.push({ sku_code: rawCode, sku_name: rawName || null });
+
+    }
+
+    // 4. 查询系统中已有的 sku_code
+
+    const existingRes = await query<{ sku_code: string }>(
+
+      `SELECT sku_code FROM client_skus WHERE client_id = $1 AND is_deleted = 0`,
+
+      [clientId]
+
+    );
+
+    const existingCodes = new Set(existingRes.rows.map((r) => r.sku_code));
+
+    // 5. 处理重复
+
+    const toInsert: { sku_code: string; sku_name: string | null }[] = [];
+
+    let skipped = 0;
+
+    for (const item of valid) {
+
+      if (existingCodes.has(item.sku_code)) {
+
+        if (mode === "reject") {
+
+          errors.push({ row: 0, sku_code: item.sku_code, reason: "系统中已存在" });
+
+        } else {
+
+          skipped++;
+
+        }
+
+      } else {
+
+        toInsert.push(item);
+
+      }
+
+    }
+
+    // reject 模式下有重复则整体拒绝
+
+    if (mode === "reject" && errors.length > 0) {
+
+      res.status(409).json({
+
+        error: "DUPLICATE_SKUS",
+
+        message: `发现 ${errors.length} 条重复或无效记录，已拒绝导入。`,
+
+        success: 0,
+
+        skipped: 0,
+
+        errors,
+
+      });
+
+      return;
+
+    }
+
+    // 6. 批量插入 + 保存图片
+
+    let success = 0;
+
+    let imagesImported = 0;
+
+    if (toInsert.length > 0) {
+
+      const uploadDir = path.join(getUploadsRoot(), "skus", String(clientId));
+
+      await fs.mkdir(uploadDir, { recursive: true });
+
+      const base = getPublicBaseUrl(req);
+
+      await withTx(async (dbClient) => {
+
+        for (const item of toInsert) {
+
+          const ins = await dbClient.query<{ id: number }>(
+
+            `INSERT INTO client_skus (client_id, sku_code, sku_name) VALUES ($1, $2, $3) RETURNING id`,
+
+            [clientId, item.sku_code, item.sku_name]
+
+          );
+
+          const skuId = ins.rows[0]!.id;
+
+          // 匹配图片
+
+          const images = imageMap.get(item.sku_code);
+
+          if (images && images.length > 0) {
+
+            const urls: string[] = [];
+
+            for (const img of images) {
+
+              const allowedMime: Record<string, string> = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
+
+              const mime = allowedMime[img.ext];
+
+              if (!mime) continue;
+
+              const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${img.ext}`;
+
+              await fs.writeFile(path.join(uploadDir, filename), img.buffer);
+
+              urls.push(`${base}/uploads/skus/${clientId}/${filename}`);
+
+              imagesImported++;
+
+            }
+
+            if (urls.length > 0) {
+
+              await dbClient.query(
+
+                `UPDATE client_skus SET sku_images = $1::jsonb, updated_at = now() WHERE id = $2`,
+
+                [JSON.stringify(urls), skuId]
+
+              );
+
+            }
+
+          }
+
+          success++;
+
+        }
+
+      });
+
+    }
+
+    console.log(`[batch-import] 导入完成: success=${success}, skipped=${skipped}, imagesImported=${imagesImported}, errors=${errors.length}`);
+
+    res.json({ success, skipped, errors, imagesImported });
+
+  })().catch((e) => {
+
+    console.error("client skus batch-import error:", e);
+
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+
+  });
+
+});
+
+
+
+/**
+
+ * POST /api/client/skus/batch-images
+
+ * 批量上传图片，按文件名匹配到已有 SKU。
+
+ * 文件名格式：编码.jpg 或 编码_序号.jpg
+
+ */
+
+const skuBatchImagesUpload = multer({
+
+  storage: multer.memoryStorage(),
+
+  limits: { fileSize: 20 * 1024 * 1024, files: 50 },
+
+});
+
+router.post("/skus/batch-images", skuBatchImagesUpload.array("files", 50), (req: AuthRequest, res: Response) => {
+
+  const clientId = req.user!.userId;
+
+  const files = req.files as Express.Multer.File[] | undefined;
+
+  if (!files || files.length === 0) {
+
+    res.status(400).json({ error: "INVALID_INPUT", message: "请至少上传一张图片或一个 ZIP 文件。" });
+
+    return;
+
+  }
+
+  (async () => {
+
+    // 1. 查询当前商家所有 active SKU
+
+    const skuRes = await query<{ id: number; sku_code: string; sku_images: unknown }>(
+
+      `SELECT id, sku_code, sku_images FROM client_skus WHERE client_id = $1 AND is_deleted = 0`,
+
+      [clientId]
+
+    );
+
+    const skuMap = new Map<string, { id: number; images: string[] }>();
+
+    for (const row of skuRes.rows) {
+
+      const existing = Array.isArray(row.sku_images) ? row.sku_images as string[] : [];
+
+      skuMap.set(row.sku_code, { id: row.id, images: existing });
+
+    }
+
+    // 2. 收集图片文件（支持直接上传图片 或 上传 ZIP）
+
+    const imageExts = new Set([".jpg", ".jpeg", ".png", ".webp"]);
+
+    const imageFiles: { name: string; buffer: Buffer }[] = [];
+
+    const unmatched: string[] = [];
+
+    for (const file of files) {
+
+      if (file.originalname.toLowerCase().endsWith(".zip")) {
+
+        // 解压 ZIP，提取图片
+
+        const zip = await JSZip.loadAsync(file.buffer);
+
+        for (const entry of Object.values(zip.files)) {
+
+          if (entry.dir) continue;
+
+          const entryName = entry.name.toLowerCase();
+
+          const hasImageExt = [".jpg", ".jpeg", ".png", ".webp"].some((ext) => entryName.endsWith(ext));
+
+          if (!hasImageExt) continue;
+
+          const buf = await entry.async("nodebuffer");
+
+          imageFiles.push({ name: path.basename(entry.name), buffer: buf });
+
+        }
+
+      } else {
+
+        // 直接的图片文件
+
+        const dotIdx = file.originalname.lastIndexOf(".");
+
+        if (dotIdx < 1) { unmatched.push(file.originalname); continue; }
+
+        const ext = file.originalname.substring(dotIdx).toLowerCase();
+
+        if (!imageExts.has(ext)) { unmatched.push(file.originalname); continue; }
+
+        imageFiles.push({ name: file.originalname, buffer: file.buffer });
+
+      }
+
+    }
+
+    // 3. 按文件名分组匹配 SKU
+
+    const fileGroups = new Map<string, { buffer: Buffer; ext: string }[]>();
+
+    for (const img of imageFiles) {
+
+      const dotIdx = img.name.lastIndexOf(".");
+
+      if (dotIdx < 1) { unmatched.push(img.name); continue; }
+
+      const nameWithoutExt = img.name.substring(0, dotIdx);
+
+      const ext = img.name.substring(dotIdx).toLowerCase();
+
+      // 解析 skuCode：格式为 "编码" 或 "编码_序号"
+
+      let skuCode = nameWithoutExt;
+
+      const lastUnderscore = nameWithoutExt.lastIndexOf("_");
+
+      if (lastUnderscore > 0) {
+
+        const afterUnderscore = nameWithoutExt.substring(lastUnderscore + 1);
+
+        if (/^\d+$/.test(afterUnderscore)) {
+
+          skuCode = nameWithoutExt.substring(0, lastUnderscore);
+
+        }
+
+      }
+
+      if (!fileGroups.has(skuCode)) fileGroups.set(skuCode, []);
+
+      fileGroups.get(skuCode)!.push({ buffer: img.buffer, ext });
+
+    }
+
+    // 3. 匹配 + 保存
+
+    const uploadDir = path.join(getUploadsRoot(), "skus", String(clientId));
+
+    await fs.mkdir(uploadDir, { recursive: true });
+
+    const base = getPublicBaseUrl(req);
+
+    let imagesSaved = 0;
+
+    const matchedSkus: string[] = [];
+
+    const notFoundSkus: string[] = [];
+
+    for (const [skuCode, images] of fileGroups) {
+
+      const sku = skuMap.get(skuCode);
+
+      if (!sku) {
+
+        notFoundSkus.push(skuCode);
+
+        continue;
+
+      }
+
+      const newUrls: string[] = [...sku.images];
+
+      for (const img of images) {
+
+        const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${img.ext}`;
+
+        await fs.writeFile(path.join(uploadDir, filename), img.buffer);
+
+        newUrls.push(`${base}/uploads/skus/${clientId}/${filename}`);
+
+        imagesSaved++;
+
+      }
+
+      // 更新数据库
+
+      await query(
+
+        `UPDATE client_skus SET sku_images = $1::jsonb, updated_at = now() WHERE id = $2`,
+
+        [JSON.stringify(newUrls), sku.id]
+
+      );
+
+      matchedSkus.push(skuCode);
+
+    }
+
+    res.json({ imagesSaved, matchedSkus, notFoundSkus, unmatchedFiles: unmatched });
+
+  })().catch((e) => {
+
+    console.error("client skus batch-images error:", e);
+
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+
+  });
+
+});
+
+
+
+
+/**
+ * DELETE /api/client/skus/batch
+ * 批量软删除 SKU。
+ */
+router.delete("/skus/batch", (req: AuthRequest, res: Response) => {
+  const clientId = req.user!.userId;
+  const { ids } = req.body || {};
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 50) {
+    res.status(400).json({ error: "INVALID_INPUT", message: "请提供要删除的 SKU ID 列表（1-50 个）。" });
+    return;
+  }
+  (async () => {
+    await withTx(async (client) => {
+      const deleted = await client.query<{ id: number }>(
+        `UPDATE client_skus
+            SET is_deleted = 1, deleted_at = now(), updated_at = now()
+          WHERE id = ANY($1::int[]) AND client_id = $2 AND is_deleted = 0
+          RETURNING id`,
+        [ids, clientId]
+      );
+      await recordOperationLogTx(client, { userId: clientId, actionType: "delete", targetType: "task", targetId: 0 });
+      res.json({ deleted: deleted.rows.length, deletedIds: deleted.rows.map((r) => r.id) });
+    });
+  })().catch((e) => {
+    console.error("client skus batch-delete error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+  });
+});
+
+/**
+
  * DELETE /api/client/skus/:id
 
  * 软删除 SKU。
@@ -1042,6 +1849,7 @@ router.delete("/skus/:id", (req: AuthRequest, res: Response) => {
   });
 
 });
+
 
 
 

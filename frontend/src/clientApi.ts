@@ -138,6 +138,114 @@ export async function deleteSku(id: number) {
 
 }
 
+/** 批量删除 SKU（软删） */
+export async function batchDeleteSkus(ids: number[]) {
+  const res = await fetchWithAuth("/api/client/skus/batch", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ids }),
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "批量删除失败");
+  return res.json() as Promise<{ deleted: number; deletedIds: number[] }>;
+}
+
+
+
+
+/** 下载 SKU 批量导入模板 */
+
+export async function downloadSkuImportTemplate() {
+
+  const getBase = () => ((import.meta.env.VITE_API_BASE_URL as string) || window.location.origin);
+
+  const token = getAccessToken();
+
+  const res = await fetch(`${getBase()}/api/client/skus/import-template`, {
+
+    headers: { Authorization: `Bearer ${token}` },
+
+  });
+
+  if (!res.ok) throw new Error("下载模板失败");
+
+  const blob = await res.blob();
+
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+
+  a.href = url;
+
+  a.download = "sku_import_template.xlsx";
+
+  document.body.appendChild(a);
+
+  a.click();
+
+  document.body.removeChild(a);
+
+  URL.revokeObjectURL(url);
+
+}
+
+
+
+/** 批量导入 SKU */
+
+export async function batchImportSkus(file: File, mode: "reject" | "skip") {
+
+  const form = new FormData();
+
+  form.append("file", file);
+
+  form.append("mode", mode);
+
+  const res = await fetchWithAuth("/api/client/skus/batch-import", {
+
+    method: "POST",
+
+    body: form,
+
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  // 409 表示有重复，返回完整数据（含 errors 明细）供 UI 展示
+
+  if (res.status === 409) return data as { success: number; skipped: number; errors: { row: number; sku_code: string; reason: string }[]; imagesImported?: number };
+
+  if (!res.ok) throw new Error(data.message || "导入失败");
+
+  return data as { success: number; skipped: number; errors: { row: number; sku_code: string; reason: string }[]; imagesImported?: number };
+
+}
+
+
+
+/** 批量上传图片，按文件名匹配到已有 SKU */
+
+export async function batchImportImages(files: File[]) {
+
+  const form = new FormData();
+
+  for (const f of files) form.append("files", f);
+
+  const res = await fetchWithAuth("/api/client/skus/batch-images", {
+
+    method: "POST",
+
+    body: form,
+
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) throw new Error(data.message || "上传失败");
+
+  return data as { imagesSaved: number; matchedSkus: string[]; notFoundSkus: string[]; unmatchedFiles: string[] };
+
+}
+
 
 
 /**
