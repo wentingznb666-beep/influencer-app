@@ -1,15 +1,12 @@
-# Render 一键部署：会生成固定网址 https://xxx.onrender.com
-# 在 https://render.com 连接 GitHub 仓库后，在 Dashboard 用此 Blueprint 或手动建 Web Service
-# 根目录设为 backend（若仓库为整项目）
-#
-# 上传文件（模特图/SKU）：须与 disk.mountPath 一致设置 UPLOADS_ROOT，否则重启后易 404。
-# 持久盘需付费实例（下方 plan: starter）；若改回免费实例请删除 disk、UPLOADS_ROOT 两项。
+# Render Blueprint — 在 https://dashboard.render.com 点击 "Blueprints" → "New Blueprint Instance" 连接此仓库
+# 服务根目录 backend，构建产物包含前端静态文件
 services:
   - type: web
     name: influencer-app-backend
     runtime: node
     region: singapore
     plan: starter
+    rootDir: backend
     buildCommand: npm ci --include=dev && npm --prefix ../frontend ci --include=dev && npm --prefix ../frontend run build && npm run build
     startCommand: npm run start:server
     disk:
@@ -19,7 +16,6 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # 必须与上方 disk.mountPath 完全相同
       - key: UPLOADS_ROOT
         value: /var/render/uploads
       - key: DATABASE_URL
@@ -30,7 +26,6 @@ services:
         sync: false
       - key: JWT_REFRESH_SECRET
         sync: false
-      # 可选：翻译/朗读（若使用）
       - key: DEEPSEEK_API_KEY
         sync: false
 
