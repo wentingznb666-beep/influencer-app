@@ -5,6 +5,9 @@ import { ensureVideoOrdersSchemaReady, query, withTx } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 import { readCooperationTypesConfig, isVisibleCooperationType, type CooperationTypeId } from "../cooperationTypes";
 
+import { createMessageTx, createMessageToAdminAndEmployeesTx } from "../systemMessages";
+import { getUserFriendlyError } from "../userFriendlyError";
+
 
 
 const router = Router();
@@ -68,52 +71,6 @@ async function ensureTypeVisibleToClient(typeId: VideoOrderTypeId): Promise<bool
   return isVisibleCooperationType(cfg, typeId, "client");
 }
 
-async function createMessageTx(
-  client: { query: Function },
-  userId: number,
-  category: string,
-  title: string,
-  content: string,
-  relatedType?: string,
-  relatedId?: number
-): Promise<void> {
-  try {
-    await client.query(
-      `INSERT INTO system_messages (user_id, category, title, content, related_type, related_id)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
-      [userId, category, title, content, relatedType ?? null, relatedId ?? null]
-    );
-  } catch (e: any) {
-    const code = typeof e?.code === "string" ? e.code : "";
-    if (code === "42P01" || code === "42703") return;
-    throw e;
-  }
-}
-
-async function createMessageToAdminAndEmployeesTx(
-  client: { query: Function },
-  category: string,
-  title: string,
-  content: string,
-  relatedType?: string,
-  relatedId?: number
-): Promise<void> {
-  try {
-    await client.query(
-      `INSERT INTO system_messages (user_id, category, title, content, related_type, related_id)
-       SELECT u.id, $1, $2, $3, $4, $5
-         FROM users u
-         JOIN roles r ON r.id=u.role_id
-        WHERE u.disabled=0 AND r.name IN ('employee','admin')`,
-      [category, title, content, relatedType ?? null, relatedId ?? null]
-    );
-  } catch (e: any) {
-    const code = typeof e?.code === "string" ? e.code : "";
-    if (code === "42P01" || code === "42703") return;
-    throw e;
-  }
-}
-
 function toStringList(input: unknown): string[] {
   if (Array.isArray(input)) return input.map((item) => String(item || "").trim()).filter(Boolean);
   if (typeof input === "string") {
@@ -123,20 +80,6 @@ function toStringList(input: unknown): string[] {
       .filter(Boolean);
   }
   return [];
-}
-
-function formatErrorMessage(err: unknown): string {
-  if (!err) return "";
-  if (err instanceof Error) {
-    const anyErr = err as any;
-    const code = typeof anyErr.code === "string" ? anyErr.code : "";
-    const detail = typeof anyErr.detail === "string" ? anyErr.detail : "";
-    const constraint = typeof anyErr.constraint === "string" ? anyErr.constraint : "";
-    const where = typeof anyErr.where === "string" ? anyErr.where : "";
-    const parts = [err.message, code ? `code=${code}` : "", constraint ? `constraint=${constraint}` : "", detail ? `detail=${detail}` : "", where ? `where=${where}` : ""].filter(Boolean);
-    return parts.join(" | ");
-  }
-  return String(err);
 }
 
 async function updateMonthlyStateWithFallback(
@@ -337,7 +280,7 @@ router.post("/video-orders", async (req: AuthRequest, res: Response) => {
     return res.status(201).json({ id: created.id });
   } catch (e) {
     console.error("client create video order error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -355,13 +298,14 @@ router.get("/video-orders", async (req: AuthRequest, res: Response) => {
          FROM video_orders o
          LEFT JOIN video_order_states s ON s.order_id=o.id
         WHERE o.client_id=$1
-        ORDER BY o.id DESC`,
+        ORDER BY o.id DESC
+        LIMIT 500`,
       [req.user!.userId]
     );
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("client list video orders error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: `服务器内部错误：${formatErrorMessage(e)}` });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: `服务器内部错误：${getUserFriendlyError(e)}` });
   }
 });
 
@@ -388,7 +332,7 @@ router.get("/video-orders/:id", async (req: AuthRequest, res: Response) => {
     return res.json({ order: row });
   } catch (e) {
     console.error("client get video order error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -435,7 +379,7 @@ router.post("/video-orders/:id/accept", async (_req: AuthRequest, res: Response)
     return res.json({ ok: true });
   } catch (e) {
     console.error("client accept video order error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: `服务器内部错误：${formatErrorMessage(e)}` });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: `服务器内部错误：${getUserFriendlyError(e)}` });
   }
 });
 
@@ -481,7 +425,7 @@ router.post("/video-orders/:id/reject", async (_req: AuthRequest, res: Response)
     return res.json({ ok: true });
   } catch (e) {
     console.error("client reject video order error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: `服务器内部错误：${formatErrorMessage(e)}` });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: `服务器内部错误：${getUserFriendlyError(e)}` });
   }
 });
 
@@ -499,7 +443,7 @@ router.get("/video-orders/:id/batches", async (req: AuthRequest, res: Response) 
     return res.json({ list });
   } catch (e) {
     console.error("client list monthly batches error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: `服务器内部错误：${formatErrorMessage(e)}` });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: `服务器内部错误：${getUserFriendlyError(e)}` });
   }
 });
 
@@ -565,7 +509,7 @@ router.post("/video-orders/:id/monthly-batches/:batchNo/accept", async (req: Aut
     console.error("client accept monthly batch error:", e);
     return res.status(500).json({
       error: "INTERNAL_SERVER_ERROR",
-      message: `服务器内部错误：${formatErrorMessage(e)}`,
+      message: `服务器内部错误：${getUserFriendlyError(e)}`,
     });
   }
 });
@@ -628,7 +572,7 @@ router.post("/video-orders/:id/monthly-batches/:batchNo/reject", async (req: Aut
     return res.json({ ok: true, batch: ret.batch });
   } catch (e) {
     console.error("client reject monthly batch error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -695,7 +639,7 @@ router.post("/video-orders/:id/monthly-batches/:batchNo/settle", async (req: Aut
     return res.json({ ok: true, batch: ret.batch });
   } catch (e) {
     console.error("client settle monthly batch error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 

@@ -2,6 +2,8 @@ import { Router, Response } from "express";
 import { query } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
+import { getUserFriendlyError } from "../userFriendlyError";
+
 const router = Router();
 router.use(requireAuth);
 router.use(requireRole("admin", "employee"));
@@ -31,6 +33,7 @@ router.get("/", (_req: AuthRequest, res: Response) => {
     LEFT JOIN influencer_profiles p ON u.id = p.user_id
     WHERE r.name = 'influencer'
     ORDER BY u.id DESC
+    LIMIT 500
   `
     );
     const list = rows.map((r) => ({
@@ -47,7 +50,7 @@ router.get("/", (_req: AuthRequest, res: Response) => {
     res.json({ list });
   })().catch((e) => {
     console.error("influencers list error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -130,7 +133,7 @@ router.get("/:userId/detail", (req: AuthRequest, res: Response) => {
     });
   })().catch((e) => {
     console.error("influencers detail error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -169,7 +172,7 @@ router.put("/:userId/profile", (req: AuthRequest, res: Response) => {
     res.json({ ok: true });
   })().catch((e) => {
     console.error("influencers profile upsert error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 

@@ -18,11 +18,17 @@ import {
 
   requireAuth,
 
+  getUserTokenVersion,
+  setAccessTokenCookie,
+  setRefreshTokenCookie,
+  clearAccessTokenCookie,
+  clearRefreshTokenCookie,
   type AuthRequest,
 
   type JwtPayload,
 
 } from "../auth";
+import { getUserFriendlyError } from "../userFriendlyError";
 
 
 
@@ -100,10 +106,12 @@ router.post("/login", (req, res: Response) => {
 
     const accessToken = signAccessToken(payload);
 
-    const refreshToken = signRefreshToken(payload);
+    const refreshToken = signRefreshToken({ ...payload, tokenVersion: user.token_version });
 
     console.info(`[auth.login] username=${username} outcome=ok dbMs=${dbCostMs} bcryptMs=${bcryptCostMs} totalMs=${Date.now() - startedAt}`);
 
+    setAccessTokenCookie(res, accessToken);
+    setRefreshTokenCookie(res, refreshToken);
     res.json({
 
       accessToken,
@@ -118,7 +126,7 @@ router.post("/login", (req, res: Response) => {
 
     console.error("Login error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -139,29 +147,64 @@ router.post("/login", (req, res: Response) => {
 router.post("/refresh", (req, res: Response) => {
 
   const { refreshToken } = req.body ?? {};
+  const tokenFromCookie = (() => {
+    const header = req.headers.cookie;
+    if (!header) return null;
+    for (const part of header.split(";")) {
+      const idx = part.indexOf("=");
+      if (idx === -1) continue;
+      const key = part.slice(0, idx).trim();
+      if (key === "refresh_token") return part.slice(idx + 1).trim();
+    }
+    return null;
+  })();
+  const token = (typeof refreshToken === "string" ? refreshToken : "").trim() || tokenFromCookie;
 
-  if (!refreshToken || typeof refreshToken !== "string") {
-
+  if (!token) {
     res.status(400).json({ error: "INVALID_INPUT", message: "请提供 refreshToken。" });
-
     return;
-
   }
 
-  const payload = verifyRefreshToken(refreshToken);
+  (async () => {
+    const payload = verifyRefreshToken(token);
 
-  if (!payload) {
+    if (!payload) {
+      clearRefreshTokenCookie(res);
+      res.status(401).json({ error: "TOKEN_INVALID_OR_EXPIRED", message: "刷新令牌无效或已过期。" });
+      return;
+    }
 
-    res.status(401).json({ error: "TOKEN_INVALID_OR_EXPIRED", message: "刷新令牌无效或已过期。" });
+    const currentVersion = await getUserTokenVersion(payload.userId);
+    if ((payload.tokenVersion ?? -1) !== currentVersion) {
+      clearRefreshTokenCookie(res);
+      res.status(401).json({ error: "TOKEN_REVOKED", message: "刷新令牌已失效，请重新登录。" });
+      return;
+    }
 
-    return;
+    const accessToken = signAccessToken(payload);
+    setAccessTokenCookie(res, accessToken);
+    res.json({ accessToken });
+  })().catch((e) => {
+    console.error("Refresh error:", e);
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
+  });
 
-  }
+});
 
-  const accessToken = signAccessToken(payload);
 
-  res.json({ accessToken });
 
+/**
+
+ * POST /api/auth/logout
+
+ * 清除认证 Cookie。
+
+ */
+
+router.post("/logout", (_req, res: Response) => {
+  clearAccessTokenCookie(res);
+  clearRefreshTokenCookie(res);
+  res.json({ ok: true });
 });
 
 
@@ -284,7 +327,7 @@ router.post("/register", (req, res: Response) => {
 
     console.error("Register error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 

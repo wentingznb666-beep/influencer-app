@@ -8,6 +8,10 @@ import { normalizeWorkLinksFromDb } from "../marketOrderWorkLinks";
 
 import { normalizeSkuCodesFromDb, normalizeSkuIdsFromDb, normalizeSkuImagesFromDb } from "../marketOrderSku";
 
+import { normalizeDateOnly } from "../dateUtils";
+
+import { getUserFriendlyError } from "../userFriendlyError";
+
 
 
 const router = Router();
@@ -15,26 +19,6 @@ const router = Router();
 router.use(requireAuth);
 
 router.use(requireRole("admin", "employee"));
-
-
-
-/**
-
- * 解析日期参数（YYYY-MM-DD），非法时返回空字符串。
-
- */
-
-function normalizeDateOnly(value: unknown): string {
-
-  if (typeof value !== "string") return "";
-
-  const v = value.trim();
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return "";
-
-  return v;
-
-}
 
 
 
@@ -109,7 +93,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
 
     const params: unknown[] = [requesterRole];
 
-    const where: string[] = [];
+    const where: string[] = ["mo.is_deleted = 0"];
 
     let idx = 2;
 
@@ -143,11 +127,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
 
     }
 
-    if (where.length > 0) {
-
-      sql += ` WHERE ${where.join(" AND ")}`;
-
-    }
+    sql += ` WHERE ${where.join(" AND ")}`;
 
     sql += ` ORDER BY mo.id DESC LIMIT 500`;
 
@@ -173,7 +153,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
 
     console.error("admin market-orders list error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 

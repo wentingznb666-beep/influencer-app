@@ -124,7 +124,6 @@ createRoot(document.getElementById("root")!).render(
             <Route path="matching-center" element={<MatchingCenterPage />} />
             <Route path="collab-pool" element={<CollabPoolPage />} />
             <Route path="collab-my-applies" element={<CollabMyAppliesPage />} />
-            <Route path="cooperation-types" element={<CooperationTypesPage readOnly />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
           </Route>

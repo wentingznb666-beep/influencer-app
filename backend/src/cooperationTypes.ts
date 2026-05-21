@@ -124,3 +124,23 @@ export function isVisibleCooperationType(config: CooperationTypesConfig, typeId:
   if (!item) return false;
   return Array.isArray(item.visible_roles) && item.visible_roles.includes(role);
 }
+
+export async function resolveMarketOrderCreatorRewardUnitFromConfig(client: { query: Function }, tier: string): Promise<number> {
+  const t = String(tier || "").trim().toUpperCase();
+  const fallback = t === "A" ? 15 : t === "B" ? 10 : t === "C" ? 5 : 5;
+  try {
+    const row = await client.query("SELECT value FROM config WHERE key=$1", [COOPERATION_TYPES_CONFIG_KEY]);
+    const raw = row?.rows?.[0]?.value;
+    if (!raw || typeof raw !== "string") return fallback;
+    const parsed = JSON.parse(raw) as any;
+    const types = Array.isArray(parsed?.types) ? parsed.types : [];
+    const graded = types.find((x: any) => x && x.id === "graded_video");
+    const partTime = graded?.spec?.pricing_points?.part_time;
+    const v = partTime?.[t];
+    const n = typeof v === "number" ? v : Number(v);
+    if (!Number.isFinite(n) || n <= 0) return fallback;
+    return Math.floor(n);
+  } catch {
+    return fallback;
+  }
+}

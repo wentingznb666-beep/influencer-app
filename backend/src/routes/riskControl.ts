@@ -2,6 +2,8 @@ import { Router, Response } from "express";
 import { query, withTx } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
+import { getUserFriendlyError } from "../userFriendlyError";
+
 const router = Router();
 router.use(requireAuth);
 router.use(requireRole("admin"));
@@ -44,7 +46,7 @@ router.get("/checks", (req: AuthRequest, res: Response) => {
     res.json({ list: rows });
   })().catch((e) => {
     console.error("risk checks list error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -151,7 +153,7 @@ router.get("/violations", (req: AuthRequest, res: Response) => {
     res.json({ list: rows });
   })().catch((e) => {
     console.error("risk violations error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -177,7 +179,7 @@ router.get("/alerts", (req: AuthRequest, res: Response) => {
     res.json({ list: rows });
   })().catch((e) => {
     console.error("risk alerts error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 

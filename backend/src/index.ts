@@ -1,5 +1,7 @@
 import express, { Request, Response, NextFunction } from "express";
 
+import helmet from "helmet";
+
 import cors from "cors";
 
 import dotenv from "dotenv";
@@ -16,6 +18,8 @@ import { synthesizeSpeechWithAzure } from "./ttsAzure";
 
 import { requestId, auditLog, loginRateLimit } from "./middlewares";
 
+import { requireAuth } from "./auth";
+
 import authRoutes from "./routes/auth";
 
 import influencersRoutes from "./routes/influencers";
@@ -31,6 +35,8 @@ import riskControlRoutes from "./routes/riskControl";
 import influencerRoutes from "./routes/influencer";
 
 import clientRoutes from "./routes/client";
+import clientSkusRoutes from "./routes/clientSkus";
+import clientMarketOrderRoutes from "./routes/clientMarketOrders";
 
 import withdrawalsRoutes from "./routes/withdrawals";
 
@@ -79,9 +85,11 @@ const port = process.env.PORT || 3000;
 
 
 
-app.use(express.json());
+app.use(helmet());
+app.use(express.json({ limit: "5mb" }));
 
-app.use(cors({ origin: "*" }));
+const corsOrigin = process.env.CORS_ORIGIN || (process.env.NODE_ENV !== "production" ? "http://localhost:5173" : "");
+app.use(cors({ origin: corsOrigin || "http://localhost:3000", credentials: true }));
 
 /** 与写入路径一致；UPLOADS_ROOT 指向持久盘时重启后仍可访问历史文件 */
 
@@ -176,6 +184,8 @@ app.use("/api/influencer", influencerRoutes);
 /** 商家端：合作意向、订单跟踪、达人作品、积分充值 */
 
 app.use("/api/client", clientRoutes);
+app.use("/api/client", clientSkusRoutes);
+app.use("/api/client", clientMarketOrderRoutes);
 
 app.use("/api/client/models", clientModelsRoutes);
 
@@ -229,11 +239,8 @@ function errorHandler(err: any, _req: Request, res: Response, _next: NextFunctio
   if (statusCode >= 500) console.error("Unexpected error:", err);
 
   res.status(statusCode).json({
-
     error: err.message || "INTERNAL_SERVER_ERROR",
-
-    message: typeof err.message === "string" && !["UNAUTHORIZED", "FORBIDDEN", "TOKEN_INVALID_OR_EXPIRED"].includes(err.message) ? err.message : message,
-
+    message,
   });
 
 }
@@ -246,7 +253,7 @@ function errorHandler(err: any, _req: Request, res: Response, _next: NextFunctio
 
  */
 
-app.post("/api/translate", async (req: Request, res: Response) => {
+app.post("/api/translate", requireAuth, async (req: Request, res: Response) => {
 
   const { text, sourceLang, targetLang } = req.body ?? {};
 
@@ -320,7 +327,7 @@ app.post("/api/translate", async (req: Request, res: Response) => {
 
  */
 
-app.post("/api/translate/batch", async (req: Request, res: Response) => {
+app.post("/api/translate/batch", requireAuth, async (req: Request, res: Response) => {
 
   const body = req.body ?? {};
 
@@ -430,7 +437,7 @@ app.post("/api/translate/batch", async (req: Request, res: Response) => {
 
  */
 
-app.post("/api/tts", async (req: Request, res: Response) => {
+app.post("/api/tts", requireAuth, async (req: Request, res: Response) => {
 
   const { text, lang, voice } = req.body ?? {};
 

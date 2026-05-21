@@ -1,6 +1,8 @@
 import { Router, Response } from "express";
 import { query } from "../db";
 import { requireAuth, type AuthRequest } from "../auth";
+
+import { getUserFriendlyError } from "../userFriendlyError";
 
 const router = Router();
 router.use(requireAuth);
@@ -29,7 +31,7 @@ router.get("/me", (req: AuthRequest, res: Response) => {
     res.json({ list: rows });
   })().catch((e) => {
     console.error("operation logs me error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 

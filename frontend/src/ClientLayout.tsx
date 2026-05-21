@@ -17,7 +17,6 @@ const CLIENT_NAV: DashboardNavItem[] = [
   { to: "/client/points", label: "视频分级充值", icon: "🪙", group: "points" },
   { to: "/client/member-center", label: "会员中心", icon: "👑", group: "match" },
   { to: "/client/matching-center", label: "撮合中心", icon: "🏗", group: "match" },
-  { to: "/client/cooperation-types", label: "合作业务类型说明", icon: "🧩", group: "match" },
   { to: "/client/collab-pool", label: "达人需求广场", icon: "📨", group: "match" },
   { to: "/client/collab-my-applies", label: "我的需求报名", icon: "📨", group: "match" },
   { to: "/client/op-logs", label: "我的操作日志", icon: "📄", group: "common" },

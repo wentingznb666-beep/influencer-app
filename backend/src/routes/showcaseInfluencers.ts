@@ -1,6 +1,8 @@
 import { Router, Response } from "express";
 import { query, normalizePhotosFromDb } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
+
+import { getUserFriendlyError } from "../userFriendlyError";
 
 const router = Router();
 router.use(requireAuth);
@@ -75,7 +77,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     res.json({ list });
   })().catch((e) => {
     console.error("showcase influencers list error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -127,7 +129,7 @@ router.post("/", (req: AuthRequest, res: Response) => {
     res.status(201).json({ id: rows[0]!.id });
   })().catch((e) => {
     console.error("showcase influencers create error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -220,7 +222,7 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     res.json({ ok: true });
   })().catch((e) => {
     console.error("showcase influencers patch error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -246,7 +248,7 @@ router.delete("/:id", (req: AuthRequest, res: Response) => {
     res.json({ ok: true });
   })().catch((e) => {
     console.error("showcase influencers delete error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 

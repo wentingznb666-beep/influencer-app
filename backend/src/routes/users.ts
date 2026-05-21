@@ -4,6 +4,8 @@ import { query } from "../db";
 
 import { hashPassword, requireAuth, requireRole, type AuthRequest } from "../auth";
 
+import { getUserFriendlyError } from "../userFriendlyError";
+
 
 
 const router = Router();
@@ -65,6 +67,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
         AND ($3 = '' OR u.disabled = CASE WHEN $3 = '1' THEN 1 ELSE 0 END)
 
       ORDER BY u.id DESC
+      LIMIT 500
 
       `,
 
@@ -78,7 +81,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
 
     console.error("admin users list error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -204,7 +207,7 @@ router.post("/", (req: AuthRequest, res: Response) => {
 
     console.error("admin users create error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -272,7 +275,7 @@ router.patch("/:id/password", (req: AuthRequest, res: Response) => {
 
     console.error("admin users reset password error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -353,7 +356,7 @@ router.patch("/:id/status", (req: AuthRequest, res: Response) => {
 
     console.error("admin users update status error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 

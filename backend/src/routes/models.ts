@@ -6,6 +6,8 @@ import crypto from "crypto";
 import { query, normalizePhotosFromDb } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 import { getUploadsRoot, diskPathFromPublicImageUrl } from "../uploadsConfig";
+
+import { getUserFriendlyError } from "../userFriendlyError";
 
 const router = Router();
 router.use(requireAuth);
@@ -175,7 +177,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     res.json({ list });
   })().catch((e) => {
     console.error("admin models list error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -223,7 +225,7 @@ router.post("/upload", (req: AuthRequest, res: Response) => {
       res.status(201).json({ urls });
     })().catch((e) => {
       console.error("admin models upload error:", e);
-      res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+      res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
     });
   });
 });
@@ -284,7 +286,7 @@ router.post("/", (req: AuthRequest, res: Response) => {
     res.status(201).json({ id: rows[0]!.id });
   })().catch((e) => {
     console.error("admin models create error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -431,7 +433,7 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
     res.json({ ok: true });
   })().catch((e) => {
     console.error("admin models patch error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -462,7 +464,7 @@ router.post("/:id/status-request", (req: AuthRequest, res: Response) => {
     res.json({ ok: true });
   })().catch((e) => {
     console.error("admin models status request error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -514,7 +516,7 @@ router.post("/:id/status-review", (req: AuthRequest, res: Response) => {
     res.json({ ok: true });
   })().catch((e) => {
     console.error("admin models status review error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -555,7 +557,7 @@ function handleModelPhotosBatchDelete(req: AuthRequest, res: Response): void {
     res.json({ ok: true });
   })().catch((e) => {
     console.error("model photos batch delete error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 }
 
@@ -577,7 +579,7 @@ function handleModelPhotoDeleteAsAdmin(req: AuthRequest, res: Response): void {
     res.json({ ok: true });
   })().catch((e) => {
     console.error("admin photos delete error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 }
 
@@ -599,7 +601,7 @@ function handleModelPhotoDeleteAsEmployee(req: AuthRequest, res: Response): void
     res.json({ ok: true });
   })().catch((e) => {
     console.error("employee photos delete error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 }
 
@@ -635,7 +637,7 @@ router.delete("/photos/:photoId", (req: AuthRequest, res: Response) => {
     res.json({ ok: true });
   })().catch((e) => {
     console.error("admin models photo delete error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -741,7 +743,7 @@ router.delete("/:id", (req: AuthRequest, res: Response) => {
     res.json({ ok: true });
   })().catch((e) => {
     console.error("admin models delete error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 

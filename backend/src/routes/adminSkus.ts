@@ -1,6 +1,8 @@
 import { Router, Response } from "express";
 import { query } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
+
+import { getUserFriendlyError } from "../userFriendlyError";
 
 const router = Router();
 router.use(requireAuth);
@@ -25,7 +27,7 @@ router.get("/clients", (_req: AuthRequest, res: Response) => {
     res.json({ list: rows });
   })().catch((e) => {
     console.error("admin skus clients error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -59,7 +61,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     res.json({ list: rows });
   })().catch((e) => {
     console.error("admin skus list error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 

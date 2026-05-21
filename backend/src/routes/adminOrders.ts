@@ -10,6 +10,8 @@ import { normalizeWorkLinksFromDb, parseWorkLinksFromBody, validateWorkLinksForA
 
 import { normalizeSkuCodesFromDb, normalizeSkuIdsFromDb, normalizeSkuImagesFromDb } from "../marketOrderSku";
 
+import { getUserFriendlyError } from "../userFriendlyError";
+
 
 
 const router = Router();
@@ -251,7 +253,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
 
     console.error("admin orders list error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -309,7 +311,7 @@ router.post("/:id/cancel", (req: AuthRequest, res: Response) => {
     res.json({ ok: true });
   })().catch((e) => {
     console.error("admin cancel market order error:", e);
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   });
 });
 
@@ -413,7 +415,7 @@ router.patch("/:id/client-info", (req: AuthRequest, res: Response) => {
 
     console.error("admin orders client-info patch error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -477,7 +479,7 @@ router.patch("/:id/work-links", (req: AuthRequest, res: Response) => {
 
     console.error("admin orders work-links patch error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 

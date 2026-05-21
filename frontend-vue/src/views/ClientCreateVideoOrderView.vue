@@ -21,11 +21,6 @@
         </el-radio-group>
       </el-form-item>
 
-      <el-alert type="warning" :closable="false" show-icon class="rule-alert">
-        <template #title>{{ activeRuleTitle }}</template>
-        <template #default>{{ activeRuleDesc }}</template>
-      </el-alert>
-
       <el-form-item :label="t('标题')">
         <el-input v-model="title" :placeholder="t('请输入订单标题（1-200）')" />
       </el-form-item>
@@ -58,7 +53,7 @@
       <template v-else-if="typeId === 'high_quality_custom_video'">
         <el-form-item :label="t('优质Influencer')"><el-input v-model="talentName" :placeholder="t('请选择或输入Influencer')" /></el-form-item>
         <el-form-item :label="t('单价区间(THB)')"><el-input :model-value="'4000-5000'" readonly /></el-form-item>
-        <el-form-item :label="t('实际单价(THB)')"><el-input-number v-model="taskAmount" :min="4000" :max="5000" :precision="2" /></el-form-item>
+        <el-form-item :label="t('实际单价(THB)')"><el-input v-model="taskAmount" :placeholder="t('如：4000-5000 或按条报价')" /></el-form-item>
         <el-form-item :label="t('修改次数说明')"><el-input :model-value="t('支持1-2次修改，需在初稿后确认')" readonly /></el-form-item>
         <el-form-item :label="t('需求说明')"><el-input v-model="requirement" type="textarea" :rows="5" /></el-form-item>
       </template>
@@ -71,7 +66,7 @@
           <el-switch v-model="weeklyBatchEnabled" />
           <span class="inline-tip">{{ t("按周分批：待验收/已验收/已结算 + 周结算单") }}</span>
         </el-form-item>
-        <el-form-item :label="t('单价(THB/条)')"><el-input-number v-model="taskAmount" :min="650" :max="650" :precision="2" /></el-form-item>
+        <el-form-item :label="t('单价(THB/条)')"><el-input v-model="taskAmount" placeholder="如：650" /></el-form-item>
         <el-form-item :label="t('补充要求')"><el-input v-model="requirement" type="textarea" :rows="4" /></el-form-item>
       </template>
 
@@ -79,13 +74,38 @@
         <el-form-item :label="t('Creator匹配')"><el-input v-model="talentName" :placeholder="t('可指定Creator或由系统匹配')" /></el-form-item>
         <el-form-item :label="t('任务条数（8-10）')"><el-input-number v-model="creatorTaskCount" :min="8" :max="10" /></el-form-item>
         <el-form-item :label="t('预留后台价格字段')"><el-input-number v-model="creatorBossPrice" :min="0" :precision="2" /></el-form-item>
-        <el-form-item :label="t('前端展示价格(THB)')"><el-input-number v-model="taskAmount" :min="0" :precision="2" /></el-form-item>
+        <el-form-item :label="t('前端展示价格(THB)')"><el-input v-model="taskAmount" placeholder="如：0 或面议" /></el-form-item>
         <el-form-item :label="t('审核说明')"><el-input :model-value="t('先审后发，审核通过后可挂车发布')" readonly /></el-form-item>
         <el-form-item :label="t('补充要求')"><el-input v-model="requirement" type="textarea" :rows="4" /></el-form-item>
       </template>
 
       <el-form-item>
-        <el-button type="primary" :loading="creating" @click="create">{{ t("发布需求") }}</el-button>
+        <el-popover
+          placement="top"
+          :width="320"
+          trigger="hover"
+          :disabled="validationErrors.length === 0"
+        >
+          <template #reference>
+            <el-button
+              type="primary"
+              :loading="creating"
+              :disabled="validationErrors.length > 0"
+              @click="create"
+            >
+              {{ t("发布需求") }}
+            </el-button>
+          </template>
+          <div style="color: #f56c6c; line-height: 1.8">
+            <p
+              v-for="(err, i) in validationErrors"
+              :key="i"
+              style="margin: 2px 0"
+            >
+              {{ err }}
+            </p>
+          </div>
+        </el-popover>
       </el-form-item>
     </el-form>
   </div>
@@ -110,7 +130,7 @@ const taskCount = ref(1);
 const shopName = ref("");
 const groupChat = ref("");
 const publishMethod = ref<"client_self_publish" | "influencer_publish_with_cart">("client_self_publish");
-const taskAmount = ref(4000);
+const taskAmount = ref("4000");
 const requirement = ref("");
 const talentName = ref("");
 const contractMonths = ref(1);
@@ -138,9 +158,9 @@ function typeLabel(type: UnifiedOrderType): string {
 watch(
   () => typeId.value,
   (v) => {
-    if (v === "high_quality_custom_video") taskAmount.value = 4000;
-    if (v === "monthly_package") taskAmount.value = 650;
-    if (v === "creator_review_video") taskAmount.value = 0;
+    if (v === "high_quality_custom_video") taskAmount.value = "4000";
+    if (v === "monthly_package") taskAmount.value = "650";
+    if (v === "creator_review_video") taskAmount.value = "0";
   },
   { immediate: true },
 );
@@ -157,20 +177,32 @@ const gradedFixedNotes = computed(
     "【固定规则】兼职仅拍摄剪辑，不提供账号发布；拍摄地点为办公室；不露脸、不供脚本、不支持修改；可选商家自发或Creator挂车发布。",
 );
 
-/** 当前类型规则标题。 */
-const activeRuleTitle = computed(() => {
-  if (typeId.value === "graded_video") return t("类型1：下单扣积分，员工接单后自动制作中");
-  if (typeId.value === "high_quality_custom_video") return t("类型2：需员工手动标记付款后进入制作");
-  if (typeId.value === "monthly_package") return t("类型3：按周批次验收与结算，月最低20条");
-  return t("类型4：8-10条，审核通过后方可挂车发布");
-});
+/** 实时校验错误列表（按钮 hover 时弹窗展示）。 */
+const validationErrors = computed<string[]>(() => {
+  const errors: string[] = [];
 
-/** 当前类型规则描述。 */
-const activeRuleDesc = computed(() => {
-  if (typeId.value === "graded_video") return t("A60/B40/C20 积分每条；取消/退款自动返还；兼职结算A15/B10/C5 THB/条。");
-  if (typeId.value === "high_quality_custom_video") return t("不扣积分。流程：待接单→员工手动标记付款→制作中→初稿→修改→定稿。 ");
-  if (typeId.value === "monthly_package") return t("不扣积分。按周分批提交并验收，批次状态含待验收/已验收/已结算，并自动关联周结算记录。");
-  return t("不扣积分。预留自定义单价字段，数量固定8-10条，先审核后发布挂车。");
+  if (!title.value.trim()) {
+    errors.push(t("请填写标题"));
+    return errors;
+  }
+
+  if (typeId.value === "graded_video") {
+    if (!shopName.value.trim()) errors.push(t("请填写店铺名称"));
+    if (!groupChat.value.trim()) errors.push(t("请填写对接群聊"));
+    return errors;
+  }
+
+  if (typeId.value === "monthly_package" && monthlyMinVideos.value < 20) {
+    errors.push(t("包月每月数量不能少于20"));
+    return errors;
+  }
+
+  if (typeId.value === "creator_review_video" && (creatorTaskCount.value < 8 || creatorTaskCount.value > 10)) {
+    errors.push(t("类型4任务条数需在8-10之间"));
+    return errors;
+  }
+
+  return errors;
 });
 
 /** 加载合作类型配置。 */
@@ -187,17 +219,10 @@ async function loadTypes(): Promise<void> {
 
 /** 提交创建订单。 */
 async function create(): Promise<void> {
-  if (!title.value.trim()) {
-    ElMessage.error(t("请填写标题"));
-    return;
-  }
+  if (validationErrors.value.length > 0) return;
   creating.value = true;
   try {
     if (typeId.value === "graded_video") {
-      if (!shopName.value.trim() || !groupChat.value.trim()) {
-        ElMessage.error(t("请填写店铺名称与对接群聊"));
-        return;
-      }
       const ret = await createClientMarketOrder({
         title: title.value.trim(),
         tier: tier.value,
@@ -210,15 +235,6 @@ async function create(): Promise<void> {
       return;
     }
 
-    if (typeId.value === "monthly_package" && monthlyMinVideos.value < 20) {
-      ElMessage.error(t("包月每月数量不能少于20"));
-      return;
-    }
-    if (typeId.value === "creator_review_video" && (creatorTaskCount.value < 8 || creatorTaskCount.value > 10)) {
-      ElMessage.error(t("类型4任务条数需在8-10之间"));
-      return;
-    }
-
     const requirements: Record<string, unknown> = {
       requirement: requirement.value.trim(),
       selected_talent: talentName.value.trim() || null,
@@ -228,12 +244,10 @@ async function create(): Promise<void> {
       task_count: creatorTaskCount.value,
       creator_price_pending: creatorBossPrice.value,
       manual_payment_required: true,
-      workflow_note: activeRuleDesc.value,
-      benefits_note: activeRuleTitle.value,
     };
 
     if (typeId.value === "high_quality_custom_video") {
-      requirements.price_range = "4000-5000";
+      requirements.price_range = taskAmount.value;
       requirements.revise_limit = "1-2";
     }
     if (typeId.value === "monthly_package") {
@@ -249,7 +263,7 @@ async function create(): Promise<void> {
     const ret = await createClientOfflineVideoOrder({
       type_id: typeId.value as OfflineVideoOrderTypeId,
       title: title.value.trim(),
-      amount_thb: typeId.value === "creator_review_video" ? Number(taskAmount.value || 0) : Number(taskAmount.value),
+      amount_thb: Number(taskAmount.value) || 0,
       requirements,
     });
     ElMessage.success(`${t("订单创建成功")} #${ret.id}`);
@@ -274,6 +288,5 @@ void loadTypes();
 .roomy-form :deep(.el-select__wrapper) { padding: 11px 12px; min-height: 44px; }
 .type-radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
 .inline-tip { margin-left: 10px; color: #5b2a00; font-weight: 600; }
-.rule-alert { margin-bottom: 12px; border: 1px solid #7b1fa2; background: #fff8d4; }
 .hc-thai { line-height: 1.9; }
 </style>

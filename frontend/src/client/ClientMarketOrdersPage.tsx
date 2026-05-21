@@ -259,7 +259,7 @@ export default function ClientMarketOrdersPage() {
 
   const [publishMethod, setPublishMethod] = useState<"client_self_publish" | "influencer_publish_with_cart">("client_self_publish");
 
-  const [offlineAmount, setOfflineAmount] = useState(4000);
+  const [offlineAmount, setOfflineAmount] = useState("4000");
   const [offlineRequirement, setOfflineRequirement] = useState("");
   const [offlineTalent, setOfflineTalent] = useState("");
   const [contractMonths, setContractMonths] = useState(1);
@@ -533,12 +533,37 @@ export default function ClientMarketOrdersPage() {
   const monthlyEstimatedAmount = 650 * monthlyEffectiveVideos * monthlyEffectiveMonths;
 
   const canSubmit = useMemo(() => {
-    if (orderTypeId === "graded_video") return canAfford && canSubmitClientInfo;
+    if (orderTypeId === "graded_video") return !!title.trim() && canAfford && canSubmitClientInfo;
     const hasBase = !!title.trim() && !!clientShopName.trim() && !!clientGroupChat.trim();
-    if (orderTypeId === "high_quality_custom_video") return hasBase && offlineAmount >= 4000 && offlineAmount <= 5000 && !!offlineTalent.trim();
+    if (orderTypeId === "high_quality_custom_video") return hasBase && !!offlineTalent.trim();
     if (orderTypeId === "monthly_package") return hasBase && monthlyEffectiveMonths >= 1 && monthlyEffectiveVideos >= 20;
     return hasBase && creatorTaskCount >= 8 && creatorTaskCount <= 10 && !!offlineTalent.trim();
-  }, [orderTypeId, canAfford, canSubmitClientInfo, title, clientShopName, clientGroupChat, offlineAmount, offlineTalent, creatorTaskCount, monthlyEffectiveMonths, monthlyEffectiveVideos]);
+  }, [orderTypeId, canAfford, canSubmitClientInfo, title, clientShopName, clientGroupChat, offlineTalent, creatorTaskCount, monthlyEffectiveMonths, monthlyEffectiveVideos]);
+
+  const validationErrors = useMemo<string[]>(() => {
+    const errors: string[] = [];
+    if (!title.trim()) { errors.push("请填写订单标题"); return errors; }
+    if (!clientShopName.trim()) { errors.push("请填写商家店铺名称"); return errors; }
+    if (!clientGroupChat.trim()) { errors.push("请填写商家对接群聊"); return errors; }
+    if (orderTypeId === "graded_video") {
+      if (balance != null && balance < totalConsumePoints) errors.push(`积分余额不足（需 ${totalConsumePoints}，当前 ${balance}）`);
+      return errors;
+    }
+    if (orderTypeId === "high_quality_custom_video") {
+      if (!offlineTalent.trim()) errors.push("请填写或选择优质 Influencer");
+      return errors;
+    }
+    if (orderTypeId === "monthly_package") {
+      if (monthlyEffectiveVideos < 20) errors.push("包月每月数量不能少于20");
+      return errors;
+    }
+    if (orderTypeId === "creator_review_video") {
+      if (creatorTaskCount < 8 || creatorTaskCount > 10) errors.push("任务条数需在8-10之间");
+      if (!offlineTalent.trim()) errors.push("请填写或选择 Creator 账号");
+      return errors;
+    }
+    return errors;
+  }, [title, clientShopName, clientGroupChat, orderTypeId, balance, totalConsumePoints, offlineTalent, monthlyEffectiveVideos, creatorTaskCount]);
 
 
 
@@ -615,10 +640,6 @@ export default function ClientMarketOrdersPage() {
         };
 
         if (orderTypeId === "high_quality_custom_video") {
-          if (!Number.isFinite(offlineAmount) || offlineAmount < 4000 || offlineAmount > 5000) {
-            setError("高质量视频单价需在 4000-5000 THB 之间");
-            return;
-          }
           if (!offlineTalent.trim()) {
             setError("请填写或选择优质 Influencer");
             return;
@@ -657,7 +678,7 @@ export default function ClientMarketOrdersPage() {
         await api.createClientVideoOrder({
           type_id: orderTypeId,
           title: titleText,
-          amount_thb: orderTypeId === "high_quality_custom_video" ? offlineAmount : 0,
+          amount_thb: orderTypeId === "high_quality_custom_video" ? (parseFloat(offlineAmount) || 0) : 0,
           requirements: req,
         });
       }
@@ -674,7 +695,7 @@ export default function ClientMarketOrdersPage() {
       setSelectedSkuIds([]);
       setTaskCount(1);
 
-      setOfflineAmount(4000);
+      setOfflineAmount("4000");
       setOfflineRequirement("");
       setOfflineTalent("");
       setContractMonths(1);
@@ -994,32 +1015,6 @@ export default function ClientMarketOrdersPage() {
             <option value="creator_review_video">④ Creator带货测评（8-10条/次，单价待配置）</option>
           </select>
 
-          <div
-            style={{
-              margin: "-4px 0 12px",
-              padding: "10px 12px",
-              background: "#f8fafc",
-              border: "1px solid #e2e8f0",
-              borderRadius: 8,
-              color: "#334155",
-              fontSize: 13,
-              lineHeight: 1.7,
-              width: "100%",
-              maxWidth: 560,
-              boxSizing: "border-box",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-            }}
-          >
-            {orderTypeId === "graded_video" && "分级视频：A/B/C 分别扣 60/40/20 积分/条（1积分=1THB）；兼职拍摄剪辑线下完成，可选商家自发或Creator发布挂车。"}
-            {orderTypeId === "high_quality_custom_video" &&
-              "高质量视频：不扣积分，商家从平台选择优质Influencer拍摄；视频完成后可提供1-2次合理修改服务；单价4000-5000泰铢/条"}
-            {orderTypeId === "monthly_package" &&
-              "包月合作：不扣积分，商家从平台选择Creator按月签约；可对前1-4条视频修改以确定风格，后续按统一标准执行；单价650泰铢/条，要求≥20条/月"}
-            {orderTypeId === "creator_review_video" &&
-              "Creator带货测评：不扣积分，8-10条/次；Creator需具备TAP挂车能力；所有视频需先提交我方审核，通过后发布；单价待平台配置"}
-          </div>
-
           <label htmlFor="clientShopName">商家店铺名称（必填）</label>
 
           <input
@@ -1156,14 +1151,12 @@ export default function ClientMarketOrdersPage() {
             <>
               {orderTypeId === "high_quality_custom_video" && (
                 <>
-                  <label htmlFor="offlineAmount">单价（THB/条，4000-5000）</label>
+                  <label htmlFor="offlineAmount">单价（THB/条）</label>
                   <input
                     id="offlineAmount"
-                    type="number"
-                    min={4000}
-                    max={5000}
+                    type="text"
                     value={offlineAmount}
-                    onChange={(e) => setOfflineAmount(Math.max(0, Number(e.target.value) || 0))}
+                    onChange={(e) => setOfflineAmount(e.target.value)}
                     style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
                   />
                 </>
@@ -1253,36 +1246,32 @@ export default function ClientMarketOrdersPage() {
 
           <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
 
+            {validationErrors.length > 0 && (
+              <div style={{
+                background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 14px",
+                color: "#b91c1c", fontSize: 13, lineHeight: 1.8, whiteSpace: "nowrap",
+              }}>
+                {validationErrors.map((err, i) => (
+                  <div key={i}>• {err}</div>
+                ))}
+              </div>
+            )}
+
             <button
-
               type="button"
-
               onClick={handleCreate}
-
               disabled={!canSubmit}
-
               style={{
-
                 padding: "8px 16px",
-
                 background: "var(--xt-accent)",
-
                 color: "#fff",
-
                 border: "none",
-
                 borderRadius: 8,
-
                 cursor: !canSubmit ? "not-allowed" : "pointer",
-
                 opacity: !canSubmit ? 0.6 : 1,
-
               }}
-
             >
-
               发布
-
             </button>
 
             {orderTypeId === "graded_video" ? (

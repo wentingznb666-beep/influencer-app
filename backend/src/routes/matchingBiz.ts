@@ -7,18 +7,12 @@ import { query, withTx } from "../db";
 import { getUploadsRoot } from "../uploadsConfig";
 import { isVisibleCooperationType, readCooperationTypesConfig } from "../cooperationTypes";
 
+import { createMessage } from "../systemMessages";
+import { getUserFriendlyError } from "../userFriendlyError";
+
 const router = Router();
 router.use(requireAuth);
 const matchingUpload = multer({ storage: multer.memoryStorage() });
-
-/** 创建系统通知消息。 */
-async function createMessage(userId: number, category: string, title: string, content: string, relatedType?: string, relatedId?: number): Promise<void> {
-  await query(
-    `INSERT INTO system_messages (user_id, category, title, content, related_type, related_id)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [userId, category, title, content, relatedType ?? null, relatedId ?? null]
-  );
-}
 
 /** 会员等级到泰铢价格映射。 */
 function getMemberPrice(level: number): number {
@@ -77,7 +71,7 @@ router.get("/client/member", async (req: AuthRequest, res: Response) => {
     return res.json({ profile: ret.rows[0] || null, logs: logs.rows });
   } catch (e) {
     console.error("client member read error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -112,7 +106,7 @@ router.post("/client/member/purchase", async (req: AuthRequest, res: Response) =
     return res.status(201).json({ ok: true, order_id: ret });
   } catch (e) {
     console.error("client member purchase error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -141,7 +135,7 @@ router.post("/client/deposit/topup", async (req: AuthRequest, res: Response) => 
     return res.status(201).json({ ok: true });
   } catch (e) {
     console.error("client deposit topup error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -158,7 +152,7 @@ router.get("/influencer/payment-profile", async (req: AuthRequest, res: Response
     return res.json({ profile: ret.rows[0] || null });
   } catch (e) {
     console.error("influencer payment profile read error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -183,7 +177,7 @@ router.put("/influencer/payment-profile", async (req: AuthRequest, res: Response
     return res.json({ ok: true });
   } catch (e) {
     console.error("influencer payment profile write error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -221,7 +215,7 @@ router.get("/influencer/profile", async (req: AuthRequest, res: Response) => {
     });
   } catch (e) {
     console.error("influencer profile read error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -266,7 +260,7 @@ router.put("/influencer/profile", async (req: AuthRequest, res: Response) => {
     return res.json({ ok: true });
   } catch (e) {
     console.error("influencer profile save error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -282,7 +276,7 @@ router.get("/client/merchant-info-template", async (req: AuthRequest, res: Respo
     return res.json({ template: ret.rows[0] || null });
   } catch (e) {
     console.error("client merchant template read error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -307,7 +301,7 @@ router.put("/client/merchant-info-template", async (req: AuthRequest, res: Respo
     return res.json({ ok: true });
   } catch (e) {
     console.error("client merchant template save error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -322,7 +316,7 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
     ? (req.body.attachments as unknown[]).map((x) => String(x || "").trim()).filter(Boolean).slice(0, 20)
     : [];
   if (!title || title.length > 200) return res.status(400).json({ error: "INVALID_TITLE", message: "请填写任务标题（1-200字）。" });
-  if (!Number.isFinite(taskAmount) || taskAmount <= 0) return res.status(400).json({ error: "INVALID_AMOUNT", message: "请填写有效任务金额。" });
+  if (!Number.isFinite(taskAmount) || taskAmount < 0) return res.status(400).json({ error: "INVALID_AMOUNT", message: "请填写有效任务金额。" });
   try {
     const coopTypeId =
       detailPayload && typeof (detailPayload as any).cooperation_type_id === "string" ? String((detailPayload as any).cooperation_type_id).trim() : "";
@@ -350,7 +344,7 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
       const merchantTemplate = tpl.rows[0];
       if (!merchantTemplate) return { kind: "merchant_template_required" as const };
       const available = Number(p.deposit_amount || 0) - Number(p.deposit_frozen || 0);
-      if (available < taskAmount) return { kind: "deposit_insufficient" as const, available };
+      if (taskAmount > 0 && available < taskAmount) return { kind: "deposit_insufficient" as const, available };
       const detailWithMerchant = {
         ...(detailPayload || {}),
         merchant_info: {
@@ -375,19 +369,21 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
          DO UPDATE SET detail_json=EXCLUDED.detail_json, attachment_urls=EXCLUDED.attachment_urls, updated_at=now()`,
         [inserted.id, JSON.stringify(detailWithMerchant), JSON.stringify(attachments)]
       );
-      await client.query(
-        `UPDATE merchant_profiles
-            SET deposit_frozen = deposit_frozen + $2,
-                deposit_status = CASE WHEN deposit_amount - (deposit_frozen + $2) <= 0 THEN 'warning' ELSE deposit_status END,
-                updated_at = now()
-          WHERE client_id=$1`,
-        [req.user!.userId, taskAmount]
-      );
-      await client.query(
-        `INSERT INTO deposit_log (client_id, change_amount, type, ref_order_id, note)
-         VALUES ($1, $2, 'freeze', $3, '发布撮合单冻结保证金')`,
-        [req.user!.userId, -taskAmount, inserted.id]
-      );
+      if (taskAmount > 0) {
+        await client.query(
+          `UPDATE merchant_profiles
+              SET deposit_frozen = deposit_frozen + $2,
+                  deposit_status = CASE WHEN deposit_amount - (deposit_frozen + $2) <= 0 THEN 'warning' ELSE deposit_status END,
+                  updated_at = now()
+            WHERE client_id=$1`,
+          [req.user!.userId, taskAmount]
+        );
+        await client.query(
+          `INSERT INTO deposit_log (client_id, change_amount, type, ref_order_id, note)
+           VALUES ($1, $2, 'freeze', $3, '发布撮合单冻结保证金')`,
+          [req.user!.userId, -taskAmount, inserted.id]
+        );
+      }
       return { kind: "ok" as const, id: inserted.id, order_no: inserted.order_no };
     });
     if (ret.kind === "member_required") return res.status(403).json({ error: "MEMBER_REQUIRED", message: "开通会员后才可发布撮合订单。" });
@@ -397,7 +393,7 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
     return res.status(201).json({ id: ret.id, order_no: ret.order_no });
   } catch (e) {
     console.error("client create matching order error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -429,7 +425,7 @@ router.post("/client/matching-orders/upload", (req: AuthRequest, res: Response) 
       return res.json({ urls });
     } catch (e) {
       console.error("client matching order upload error:", e);
-      return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+      return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
     }
   });
 });
@@ -450,13 +446,14 @@ router.get("/client/matching-orders", async (req: AuthRequest, res: Response) =>
          LEFT JOIN cooperation_order_states cs ON cs.order_id=mo.id
         WHERE mo.client_id=$1 AND mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1
           AND COALESCE(md.detail_json->>'cooperation_type_id','') <> ALL($2::text[])
-        ORDER BY mo.id DESC`,
+        ORDER BY mo.id DESC
+        LIMIT 500`,
       [req.user.userId, videoTypeIds]
     );
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("client matching order list error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -564,7 +561,7 @@ router.put("/client/matching-orders/:id", async (req: AuthRequest, res: Response
     return res.json({ ok: true });
   } catch (e) {
     console.error("client matching order update error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -592,14 +589,13 @@ router.get("/influencer/matching-task-hall", async (req: AuthRequest, res: Respo
          ) app ON app.market_order_id=mo.id
         WHERE mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1 AND mo.status='open' AND COALESCE(mo.allow_apply,1)=1
           AND COALESCE(md.detail_json->>'cooperation_type_id','') <> ALL($1::text[])
-        ORDER BY mo.id DESC`
-      ,
+        ORDER BY mo.id DESC
+        LIMIT 500`,
       [blockedVideoTypes]
     );
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("influencer matching task hall error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
   }
 });
 
@@ -664,7 +660,7 @@ router.post("/influencer/matching-orders/:id/apply", async (req: AuthRequest, re
     return res.status(201).json({ ok: true });
   } catch (e) {
     console.error("influencer apply matching order error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -688,13 +684,14 @@ router.get("/influencer/my-matching-applies", async (req: AuthRequest, res: Resp
          LEFT JOIN cooperation_order_states cs ON cs.order_id=mo.id
         WHERE a.influencer_id=$1 AND mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1
           AND COALESCE(md.detail_json->>'cooperation_type_id','') <> ALL($2::text[])
-        ORDER BY a.id DESC`,
+        ORDER BY a.id DESC
+        LIMIT 500`,
       [req.user.userId, blockedVideoTypes]
     );
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("influencer matching apply list error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -752,7 +749,7 @@ router.post("/influencer/matching-orders/:id/submit-proof", async (req: AuthRequ
     return res.json({ ok: true });
   } catch (e) {
     console.error("influencer submit matching proof error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -800,7 +797,7 @@ router.post("/influencer/matching-orders/:id/publish", async (req: AuthRequest, 
     return res.json({ ok: true });
   } catch (e) {
     console.error("influencer publish matching order error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -819,13 +816,13 @@ router.get("/client/matching-orders/:id/applicants", async (req: AuthRequest, re
          FROM market_order_applications a
          JOIN users u ON u.id=a.influencer_id
         WHERE a.market_order_id=$1
-        ORDER BY a.id DESC`,
+        ORDER BY a.id DESC LIMIT 500`,
       [orderId]
     );
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("client matching applicants error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -855,7 +852,7 @@ router.post("/client/matching-orders/:id/applicants/:appId/select", async (req: 
     return res.json({ ok: true });
   } catch (e) {
     console.error("client select matching applicant error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -880,7 +877,7 @@ router.post("/client/matching-orders/:id/applicants/:appId/reject", async (req: 
     return res.json({ ok: true });
   } catch (e) {
     console.error("client reject matching applicant error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -905,7 +902,7 @@ router.get("/client/matching-orders/:id/payment-profile", async (req: AuthReques
     return res.json({ ok: true, payment_profile: inf.rows[0] || null });
   } catch (e) {
     console.error("client read matching payment profile error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -967,7 +964,7 @@ router.post("/client/matching-orders/:id/accept", async (req: AuthRequest, res: 
     return res.json({ ok: true, payment_profile: ret.payment });
   } catch (e) {
     console.error("client accept matching order error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -996,7 +993,7 @@ router.post("/client/matching-orders/:id/reject", async (req: AuthRequest, res: 
     return res.json({ ok: true });
   } catch (e) {
     console.error("client reject matching order error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -1013,12 +1010,13 @@ router.get("/admin/merchant-members", async (req: AuthRequest, res: Response) =>
          JOIN roles r ON r.id=u.role_id AND r.name='client'
          LEFT JOIN merchant_profiles m ON m.client_id=u.id
         WHERE u.disabled=0
-        ORDER BY u.id DESC`
+        ORDER BY u.id DESC
+        LIMIT 500`
     );
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("admin merchant members error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -1038,7 +1036,7 @@ router.get("/messages", async (req: AuthRequest, res: Response) => {
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("list messages error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -1052,7 +1050,7 @@ router.post("/messages/clear", async (req: AuthRequest, res: Response) => {
     return res.json({ ok: true });
   } catch (e) {
     console.error("clear messages error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -1073,7 +1071,7 @@ router.post("/messages/:id/read", async (req: AuthRequest, res: Response) => {
     return res.json({ ok: true });
   } catch (e) {
     console.error("read message error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 

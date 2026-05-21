@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import type { AuthUser } from "@/api/auth";
-import { clearAuth, getMe, getStoredUser, login as apiLogin } from "@/api/auth";
+import { clearAuth, getMe, getStoredUser, login as apiLogin, logout as apiLogout } from "@/api/auth";
 
 export const useAuthStore = defineStore("auth", {
   state: () => ({
@@ -38,7 +38,7 @@ export const useAuthStore = defineStore("auth", {
       return user;
     },
     logout() {
-      clearAuth();
+      apiLogout();
       this.user = null;
     },
   },

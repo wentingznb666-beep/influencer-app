@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -106,6 +106,15 @@ export default function MarketOrderEditPage() {
 
   });
 
+  const validationErrors = useMemo<string[]>(() => {
+    const errors: string[] = [];
+    const titleText = form.title.trim();
+    if (!titleText || titleText.length > 200) errors.push("请填写订单标题（1–200 字）");
+    if (!form.client_shop_name.trim()) errors.push("请填写商家店铺名称");
+    if (!form.client_group_chat.trim()) errors.push("请填写商家对接群聊");
+    return errors;
+  }, [form.title, form.client_shop_name, form.client_group_chat]);
+
 
 
   useEffect(() => {
@@ -182,45 +191,21 @@ export default function MarketOrderEditPage() {
 
     setError(null);
 
-    if (!form.client_shop_name.trim()) {
-
-      setError("请输入商家店铺名称");
-
+    if (validationErrors.length > 0) {
+      setError(validationErrors[0]);
       return;
-
-    }
-
-    if (!form.client_group_chat.trim()) {
-
-      setError("请输入商家对接群聊（群号/链接）");
-
-      return;
-
     }
 
     if (!(form.publish_method === "client_self_publish" || form.publish_method === "influencer_publish_with_cart")) {
-
       setError("请选择发布方式");
-
       return;
-
-    }
-
-    const titleText = form.title.trim();
-
-    if (!titleText || titleText.length > 200) {
-
-      setError("请填写订单标题（1–200 字）。");
-
-      return;
-
     }
 
     try {
 
       await api.updateMarketOrder(item.id, {
 
-        title: titleText,
+        title: form.title.trim(),
 
         client_shop_name: form.client_shop_name.trim(),
 
@@ -409,11 +394,34 @@ export default function MarketOrderEditPage() {
 
           </div>
 
-          <button type="submit" style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: "var(--xt-accent)", color: "#fff", cursor: "pointer", fontWeight: 700 }}>
-
-            保存
-
-          </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>
+            {validationErrors.length > 0 && (
+              <div style={{
+                background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 14px",
+                color: "#b91c1c", fontSize: 13, lineHeight: 1.8,
+              }}>
+                {validationErrors.map((err, i) => (
+                  <div key={i} style={{ whiteSpace: "nowrap" }}>• {err}</div>
+                ))}
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={validationErrors.length > 0}
+              style={{
+                padding: "10px 16px",
+                borderRadius: 10,
+                border: "none",
+                background: "var(--xt-accent)",
+                color: "#fff",
+                cursor: validationErrors.length > 0 ? "not-allowed" : "pointer",
+                fontWeight: 700,
+                opacity: validationErrors.length > 0 ? 0.6 : 1,
+              }}
+            >
+              保存
+            </button>
+          </div>
 
         </form>
 

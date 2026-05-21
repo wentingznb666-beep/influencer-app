@@ -23,7 +23,11 @@ export function requestId(req: Request & { requestId?: string }, _res: Response,
 export function auditLog(req: Request & { requestId?: string; user?: { userId: number } }, _res: Response, next: NextFunction): void {
   next();
   query("INSERT INTO audit_log (request_id, user_id, path, method) VALUES ($1, $2, $3, $4)", [req.requestId || null, req.user?.userId ?? null, req.path, req.method])
-    .catch((e) => console.error("Audit log write failed:", e));
+    .catch((e: any) => {
+      const code = typeof e?.code === "string" ? e.code : "";
+      if (code === "42P01" || code === "42703") return;
+      console.error("Audit log write failed:", e);
+    });
 }
 
 /**

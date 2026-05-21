@@ -147,26 +147,35 @@ export default function MatchingCenterPage() {
     });
   };
 
-  /** 校验发布表单并返回首个错误。 */
-  const validateForm = (): string | null => {
-    if (!form.task_name.trim()) return "请完善任务名称信息";
-    if (!form.recruit_count || Number(form.recruit_count) < 1) return "请完善招募达人数量信息";
-    if (!form.start_date) return "请完善任务开始时间信息";
-    if (!form.order_deadline) return "请完善接单截止时间信息";
-    if (!form.publish_deadline) return "请完善内容发布截止时间信息";
-    if (!form.product_name.trim()) return "请完善推广产品/品牌名称信息";
-    if (!form.selling_points.trim()) return "请完善产品核心卖点信息";
-    const commission = Number(String(form.unit_commission || "").replace("%", "").trim());
-    if (!form.unit_commission.trim() || !Number.isFinite(commission) || commission <= 0) return "请完善单条佣金信息";
-    if (!String(form.reward_thb || "").trim() || !parseFirstPositiveNumber(String(form.reward_thb || ""))) return "请完善报酬信息";
-    if (form.provide_sample === "是" && (!form.sample_count || Number(form.sample_count) < 1)) return "请完善样品数量信息";
+  /** 校验发布表单并返回所有错误。 */
+  const getValidationErrors = (): string[] => {
+    const errors: string[] = [];
+    if (!form.task_name.trim()) errors.push("请完善任务名称信息");
+    if (!form.recruit_count || Number(form.recruit_count) < 1) errors.push("请完善招募达人数量信息");
+    if (!form.start_date) errors.push("请完善任务开始时间信息");
+    if (!form.order_deadline) errors.push("请完善接单截止时间信息");
+    if (!form.publish_deadline) errors.push("请完善内容发布截止时间信息");
+    if (!form.product_name.trim()) errors.push("请完善推广产品/品牌名称信息");
+    if (!form.selling_points.trim()) errors.push("请完善产品核心卖点信息");
+    if (!form.unit_commission.trim()) errors.push("请完善单条佣金信息");
+    if (!String(form.reward_thb || "").trim()) errors.push("请完善报酬信息");
+    if (form.provide_sample === "是" && (!form.sample_count || Number(form.sample_count) < 1)) errors.push("请完善样品数量信息");
     const keepDaysText = String(form.keep_days || "").trim();
-    if (!keepDaysText) return "请完善内容保留天数信息";
-    const keepDaysNum = Number(keepDaysText);
-    if (Number.isFinite(keepDaysNum) && keepDaysNum < 1) return "请完善内容保留天数信息";
-    if (form.must_elements.length === 0) return "请完善必须包含元素信息";
-    return null;
+    if (!keepDaysText) errors.push("请完善内容保留天数信息");
+    else {
+      const keepDaysNum = Number(keepDaysText);
+      if (Number.isFinite(keepDaysNum) && keepDaysNum < 1) errors.push("请完善内容保留天数信息");
+    }
+    if (form.must_elements.length === 0) errors.push("请完善必须包含元素信息");
+    const tplMissing: string[] = [];
+    if (!String(merchantTemplate.shop_name || "").trim()) tplMissing.push("店铺名称");
+    if (!String(merchantTemplate.product_type || "").trim()) tplMissing.push("产品类型");
+    if (!String(merchantTemplate.shop_link || "").trim()) tplMissing.push("店铺链接");
+    if (tplMissing.length > 0) errors.push(`请先在"商家信息模板"中补全：${tplMissing.join("、")}`);
+    return errors;
   };
+
+  const validationErrors = useMemo(() => getValidationErrors(), [form, merchantTemplate]);
 
   /** 上传图片/视频附件。 */
   const doUpload = async () => {
@@ -205,9 +214,9 @@ export default function MatchingCenterPage() {
     setError(null);
     setMsg("");
 
-    const verifyError = validateForm();
-    if (verifyError) {
-      setError(verifyError);
+    const verifyErrors = getValidationErrors();
+    if (verifyErrors.length > 0) {
+      setError(verifyErrors[0]);
       return;
     }
 
@@ -651,7 +660,7 @@ export default function MatchingCenterPage() {
                     id="reward_thb"
                     value={form.reward_thb}
                     onChange={(e) => setField("reward_thb", e.target.value)}
-                    placeholder="300 – 500 泰铢（根据互动表现）"
+                    placeholder="根据互动表现"
                   />
                 </div>
               </section>
@@ -676,21 +685,34 @@ export default function MatchingCenterPage() {
                 ) : null}
               </section>
 
-              <button 
-                type="submit" 
-                disabled={publishing} 
-                style={{ 
-                  height: 42, 
-                  fontWeight: 700, 
-                  background: "var(--xt-accent)", 
-                  color: "#fff",
-                  cursor: "pointer",
-                  border: "none",
-                  borderRadius: 8
-                }}
-              >
-                {publishing ? "提交中..." : (editingOrder ? "确认保存" : "确认发布")}
-              </button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>
+                {validationErrors.length > 0 && (
+                  <div style={{
+                    background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 14px",
+                    color: "#b91c1c", fontSize: 13, lineHeight: 1.8, maxWidth: 400,
+                  }}>
+                    {validationErrors.map((err, i) => (
+                      <div key={i} style={{ whiteSpace: "nowrap" }}>• {err}</div>
+                    ))}
+                  </div>
+                )}
+                <button
+                  type="submit"
+                  disabled={publishing || validationErrors.length > 0}
+                  style={{
+                    height: 42,
+                    fontWeight: 700,
+                    background: "var(--xt-accent)",
+                    color: "#fff",
+                    cursor: validationErrors.length > 0 ? "not-allowed" : "pointer",
+                    border: "none",
+                    borderRadius: 8,
+                    opacity: validationErrors.length > 0 ? 0.6 : 1,
+                  }}
+                >
+                  {publishing ? "提交中..." : (editingOrder ? "确认保存" : "确认发布")}
+                </button>
+              </div>
             </form>
           </div>
         </div>

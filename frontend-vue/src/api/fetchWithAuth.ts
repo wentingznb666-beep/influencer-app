@@ -1,4 +1,4 @@
-import { clearAuth, getAccessToken, refreshAccessToken } from "./auth";
+import { clearAuth, logout, refreshAccessToken } from "./auth";
 
 function getBase(): string {
   return (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin;
@@ -17,10 +17,7 @@ export function resolvePublicUploadUrl(url: string): string {
 
 export async function fetchWithAuth(path: string, options: RequestInit = {}): Promise<Response> {
   const doFetch = async (): Promise<Response> => {
-    const token = getAccessToken();
-    const headers = new Headers(options.headers);
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-    return fetch(`${getBase()}${path}`, { ...options, headers });
+    return fetch(`${getBase()}${path}`, { ...options, credentials: "include" });
   };
 
   const res = await doFetch();
@@ -33,4 +30,3 @@ export async function fetchWithAuth(path: string, options: RequestInit = {}): Pr
   }
   return doFetch();
 }
-

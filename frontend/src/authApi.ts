@@ -181,6 +181,7 @@ export async function login(username: string, password: string): Promise<AuthUse
     method: "POST",
 
     headers: { "Content-Type": "application/json; charset=utf-8" },
+    credentials: "include",
 
     body: JSON.stringify({ username, password }),
 
@@ -210,17 +211,12 @@ export async function login(username: string, password: string): Promise<AuthUse
 
 export async function refreshAccessToken(): Promise<string> {
 
-  const refreshToken = localStorage.getItem(STORAGE_REFRESH);
-
-  if (!refreshToken) throw new Error("未登录");
-
   const res = await fetch(`${getApiBaseUrl()}/api/auth/refresh`, {
 
     method: "POST",
 
     headers: { "Content-Type": "application/json; charset=utf-8" },
-
-    body: JSON.stringify({ refreshToken }),
+    credentials: "include",
 
   });
 
@@ -251,6 +247,7 @@ export async function fetchMe(): Promise<AuthUser> {
   if (!token) throw new Error("未登录");
 
   const res = await fetch(`${getApiBaseUrl()}/api/auth/me`, {
+    credentials: "include",
 
     headers: { Authorization: `Bearer ${token}` },
 

@@ -5,29 +5,14 @@ import { query, withTx } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 import { COOPERATION_TYPES_CONFIG_KEY, readCooperationTypesConfig, type CooperationTypesConfig } from "../cooperationTypes";
 
+import { createMessage } from "../systemMessages";
+import { getUserFriendlyError } from "../userFriendlyError";
+
 
 
 const router = Router();
 
 router.use(requireAuth);
-
-
-
-/** 创建系统消息 */
-
-async function createMessage(userId: number, category: string, title: string, content: string, relatedType?: string, relatedId?: number): Promise<void> {
-
-  await query(
-
-    `INSERT INTO system_messages (user_id, category, title, content, related_type, related_id)
-
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-
-    [userId, category, title, content, relatedType ?? null, relatedId ?? null]
-
-  );
-
-}
 
 
 
@@ -219,7 +204,7 @@ router.post("/admin/cooperation-orders/:id/review", requireRole("admin", "employ
     return res.json({ ok: true });
   } catch (e) {
     console.error("admin cooperation order review error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -250,7 +235,7 @@ router.patch("/admin/cooperation-orders/:id/phase", requireRole("admin", "employ
     return res.json({ ok: true });
   } catch (e) {
     console.error("admin cooperation order phase error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -283,7 +268,7 @@ router.get("/client/market-orders/:id/applications", async (req: AuthRequest, re
 
        WHERE a.market_order_id = $1
 
-       ORDER BY a.id DESC`,
+       ORDER BY a.id DESC LIMIT 500`,
 
       [orderId]
 
@@ -295,7 +280,7 @@ router.get("/client/market-orders/:id/applications", async (req: AuthRequest, re
 
     console.error("client applications list error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -369,7 +354,7 @@ router.post("/client/market-orders/:id/applications/:appId/select", async (req: 
 
     console.error("client select influencer error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -421,7 +406,7 @@ router.post("/client/market-orders/:id/applications/:appId/reject", async (req: 
 
     console.error("client reject influencer error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -452,7 +437,8 @@ router.get("/client/collab-pool", async (req: AuthRequest, res: Response) => {
 
        WHERE d.status='open'
 
-       ORDER BY d.id DESC`,
+       ORDER BY d.id DESC
+       LIMIT 500`,
       [req.user.userId]
 
     );
@@ -463,7 +449,7 @@ router.get("/client/collab-pool", async (req: AuthRequest, res: Response) => {
 
     console.error("client collab pool error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -531,7 +517,7 @@ router.post("/client/collab-pool/:demandId/apply", async (req: AuthRequest, res:
 
     console.error("client apply demand error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -560,7 +546,7 @@ router.post("/client/collab-pool/:demandId/consult", async (req: AuthRequest, re
     return res.status(201).json({ ok: true });
   } catch (e) {
     console.error("client consult demand error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -575,13 +561,13 @@ router.get("/client/collab-pool/my-applies", async (req: AuthRequest, res: Respo
        JOIN influencer_collab_demands d ON d.id=a.demand_id
        JOIN users u ON u.id=d.influencer_id
        WHERE a.client_id=$1
-       ORDER BY a.id DESC`,
+       ORDER BY a.id DESC LIMIT 500`,
       [req.user.userId]
     );
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("client collab my applies error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -601,7 +587,7 @@ router.get("/client/messages", async (req: AuthRequest, res: Response) => {
 
     console.error("client messages error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -661,7 +647,7 @@ router.post("/influencer/market-orders/:id/apply", async (req: AuthRequest, res:
 
     console.error("influencer apply market order error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -693,7 +679,7 @@ router.get("/influencer/my-applications", async (req: AuthRequest, res: Response
 
        WHERE a.influencer_id=$1
 
-       ORDER BY a.id DESC`,
+       ORDER BY a.id DESC LIMIT 500`,
 
       [req.user.userId]
 
@@ -705,7 +691,7 @@ router.get("/influencer/my-applications", async (req: AuthRequest, res: Response
 
     console.error("influencer my applications error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -739,7 +725,7 @@ router.get("/influencer/demands", async (req: AuthRequest, res: Response) => {
 
        WHERE influencer_id=$1
 
-       ORDER BY id DESC`,
+       ORDER BY id DESC LIMIT 500`,
 
       [req.user.userId]
 
@@ -751,7 +737,7 @@ router.get("/influencer/demands", async (req: AuthRequest, res: Response) => {
 
     console.error("influencer demands list error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -809,7 +795,7 @@ router.post("/influencer/demands", async (req: AuthRequest, res: Response) => {
     return res.status(201).json({ id: created.rows[0]?.id });
   } catch (e) {
     console.error("influencer create demand error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -877,7 +863,7 @@ router.put("/influencer/demands/:id", async (req: AuthRequest, res: Response) =>
     return res.json({ ok: true, id: updated.rows[0].id });
   } catch (e) {
     console.error("influencer update demand error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 /** 创建系统消息 */
@@ -922,7 +908,7 @@ router.post("/admin/cooperation-orders/:id/claim", requireRole("admin", "employe
     return res.json({ ok: true });
   } catch (e) {
     console.error("admin cooperation order claim error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -983,7 +969,7 @@ router.post("/admin/cooperation-orders/:id/submit-proof", requireRole("admin", "
     return res.json({ ok: true });
   } catch (e) {
     console.error("admin cooperation order submit proof error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -1033,14 +1019,12 @@ router.post("/admin/cooperation-orders/:id/publish", requireRole("admin", "emplo
     return res.json({ ok: true });
   } catch (e) {
     console.error("admin cooperation order publish error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
 
 router.get("/influencer/demands/:id/applications", async (req: AuthRequest, res: Response) => {
-
-  if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
 
   if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
 
@@ -1062,7 +1046,7 @@ router.get("/influencer/demands/:id/applications", async (req: AuthRequest, res:
        FROM influencer_demand_applications a
        JOIN users u ON u.id = a.client_id
        WHERE a.demand_id = $1
-       ORDER BY a.id DESC`,
+       ORDER BY a.id DESC LIMIT 500`,
       [demandId]
 
     );
@@ -1073,7 +1057,7 @@ router.get("/influencer/demands/:id/applications", async (req: AuthRequest, res:
 
     console.error("influencer demand applications list error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -1143,7 +1127,7 @@ router.post("/influencer/demands/:id/applications/:appId/select", async (req: Au
 
     console.error("influencer select client error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -1191,7 +1175,7 @@ router.post("/influencer/demands/:id/applications/:appId/reject", async (req: Au
 
     console.error("influencer reject client error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -1215,7 +1199,7 @@ router.get("/influencer/messages", async (req: AuthRequest, res: Response) => {
 
     console.error("influencer messages error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -1245,7 +1229,8 @@ router.get("/admin/demands", async (req: AuthRequest, res: Response) => {
 
        WHERE ($1='' OR d.status=$1)
 
-       ORDER BY d.id DESC`,
+       ORDER BY d.id DESC
+       LIMIT 500`,
 
       [status]
 
@@ -1257,7 +1242,7 @@ router.get("/admin/demands", async (req: AuthRequest, res: Response) => {
 
     console.error("admin demands list error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -1309,7 +1294,7 @@ router.post("/admin/demands/:id/review", async (req: AuthRequest, res: Response)
 
     console.error("admin review demand error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -1341,7 +1326,8 @@ router.get("/admin/premium-creators", async (req: AuthRequest, res: Response) =>
 
        WHERE r.name='influencer'
 
-       ORDER BY u.id DESC`
+       ORDER BY u.id DESC
+       LIMIT 500`
 
     );
 
@@ -1351,7 +1337,7 @@ router.get("/admin/premium-creators", async (req: AuthRequest, res: Response) =>
 
     console.error("admin premium creators error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -1395,7 +1381,7 @@ router.patch("/admin/premium-creators/:id", async (req: AuthRequest, res: Respon
 
     console.error("admin update premium creator error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -1411,7 +1397,7 @@ router.get("/admin/messages", async (req: AuthRequest, res: Response) => {
 
   try {
 
-    const rows = await query(`SELECT id, category, title, content, related_type, related_id, is_read, created_at FROM system_messages ORDER BY id DESC LIMIT 100`);
+    const rows = await query(`SELECT id, category, title, content, related_type, related_id, is_read, created_at FROM system_messages WHERE user_id=$1 ORDER BY id DESC LIMIT 100`, [req.user!.userId]);
 
     return res.json({ list: rows.rows });
 
@@ -1419,7 +1405,7 @@ router.get("/admin/messages", async (req: AuthRequest, res: Response) => {
 
     console.error("admin messages error:", e);
 
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   }
 
@@ -1441,7 +1427,7 @@ router.get("/influencer/permission-status", async (req: AuthRequest, res: Respon
     return res.json({ status: row.influencer_status, profile: row });
   } catch (e) {
     console.error("influencer permission status error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -1460,7 +1446,7 @@ router.post("/influencer/permission-apply", async (req: AuthRequest, res: Respon
     return res.status(201).json({ ok: true, status: "pending" });
   } catch (e) {
     console.error("influencer permission apply error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -1468,11 +1454,11 @@ router.post("/influencer/permission-apply", async (req: AuthRequest, res: Respon
 router.get("/influencer/task-hall", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
-    const rows = await query(`SELECT mo.id, mo.order_no, mo.title, mo.reward_points, mo.status, mo.match_status, mo.created_at, mo.client_shop_name, mo.client_group_chat, mo.is_public_apply, mo.allow_apply, u.username AS client_username, COALESCE(NULLIF(u.display_name,''),u.username) AS client_name FROM client_market_orders mo JOIN users u ON u.id=mo.client_id WHERE mo.is_deleted=0 AND mo.status='open' AND COALESCE(mo.allow_apply,1)=1 AND COALESCE(mo.is_public_apply,0)=1 ORDER BY mo.id DESC`);
+    const rows = await query(`SELECT mo.id, mo.order_no, mo.title, mo.reward_points, mo.status, mo.match_status, mo.created_at, mo.client_shop_name, mo.client_group_chat, mo.is_public_apply, mo.allow_apply, u.username AS client_username, COALESCE(NULLIF(u.display_name,''),u.username) AS client_name FROM client_market_orders mo JOIN users u ON u.id=mo.client_id WHERE mo.is_deleted=0 AND mo.status='open' AND COALESCE(mo.allow_apply,1)=1 AND COALESCE(mo.is_public_apply,0)=1 ORDER BY mo.id DESC LIMIT 500`);
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("influencer task hall error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -1480,11 +1466,11 @@ router.get("/influencer/task-hall", async (req: AuthRequest, res: Response) => {
 router.get("/admin/influencer-permissions", async (req: AuthRequest, res: Response) => {
   if (!isAdminLike(req.user?.role || "")) return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
-    const rows = await query(`SELECT u.id, u.username, COALESCE(NULLIF(u.display_name,''),u.username) AS display_name, u.influencer_status, u.is_influencer_verified, u.tiktok_account, u.tiktok_fans, u.category, u.real_name, u.bank_name, u.bank_branch, u.bank_card, u.disabled FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='influencer' ORDER BY u.id DESC`);
+    const rows = await query(`SELECT u.id, u.username, COALESCE(NULLIF(u.display_name,''),u.username) AS display_name, u.influencer_status, u.is_influencer_verified, u.tiktok_account, u.tiktok_fans, u.category, u.real_name, u.bank_name, u.bank_branch, u.bank_card, u.disabled FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='influencer' ORDER BY u.id DESC LIMIT 500`);
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("admin influencer permissions error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -1503,7 +1489,7 @@ router.post("/admin/influencer-permissions/:id/review", async (req: AuthRequest,
     return res.json({ ok: true });
   } catch (e) {
     console.error("admin review influencer permission error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -1519,7 +1505,7 @@ router.patch("/admin/influencer-permissions/:id/toggle", async (req: AuthRequest
     return res.json({ ok: true });
   } catch (e) {
     console.error("admin toggle influencer permission error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 

@@ -1325,6 +1325,7 @@ async function applyVideoOrdersSchemaPatches(): Promise<void> {
 async function applyOnlineSchemaPatches(): Promise<void> {
 
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS disabled INTEGER NOT NULL DEFAULT 0`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INTEGER NOT NULL DEFAULT 0`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS influencer_status TEXT NOT NULL DEFAULT 'unapplied'`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_influencer_verified INTEGER NOT NULL DEFAULT 0`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS tiktok_account TEXT`);
@@ -1705,7 +1706,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
 
   await query(`CREATE TABLE IF NOT EXISTS cooperation_order_states (
     order_id INTEGER PRIMARY KEY REFERENCES client_market_orders(id) ON DELETE CASCADE,
-    phase TEXT NOT NULL DEFAULT 'none' CHECK (phase IN ('none','review_pending','review_rejected','approved_to_publish','published')),
+    phase TEXT NOT NULL DEFAULT 'none' CHECK (phase IN ('none','assigned','in_progress','submitted','review_pending','review_rejected','approved_to_publish','published','delivered','completed')),
     review_note TEXT,
     reviewed_by INTEGER REFERENCES users(id),
     reviewed_at TIMESTAMPTZ,
@@ -1714,6 +1715,10 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   )`);
 
   await query(`ALTER TABLE cooperation_order_states DROP CONSTRAINT IF EXISTS cooperation_order_states_phase_check`);
+  await query(
+    `ALTER TABLE cooperation_order_states ADD CONSTRAINT cooperation_order_states_phase_check
+       CHECK (phase IN ('none','assigned','in_progress','submitted','review_pending','review_rejected','approved_to_publish','published','delivered','completed'))`
+  ).catch(() => undefined);
 
   await query(`CREATE TABLE IF NOT EXISTS market_order_publish_logs (
     id SERIAL PRIMARY KEY,

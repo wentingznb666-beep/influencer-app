@@ -7,9 +7,12 @@ import { ensurePointAccountLocked } from "../pointAccounts";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
 import { recordOperationLogTx } from "../operationLog";
+import { getUserFriendlyError } from "../userFriendlyError";
 
 import { normalizeWorkLinksFromDb, parseWorkLinksFromBody, validateWorkLinksForAdminEdit, validateWorkLinksForComplete } from "../marketOrderWorkLinks";
-import { COOPERATION_TYPES_CONFIG_KEY } from "../cooperationTypes";
+import { resolveMarketOrderCreatorRewardUnitFromConfig } from "../cooperationTypes";
+
+import { normalizeDateOnly } from "../dateUtils";
 
 
 
@@ -20,44 +23,6 @@ router.use(requireAuth);
 router.use(requireRole("employee", "admin"));
 
 
-
-/**
-
- * 解析日期参数（YYYY-MM-DD），非法时返回空字符串。
-
- */
-
-function normalizeDateOnly(value: unknown): string {
-
-  if (typeof value !== "string") return "";
-
-  const v = value.trim();
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return "";
-
-  return v;
-
-}
-
-async function resolveMarketOrderCreatorRewardUnitFromConfig(client: { query: Function }, tier: string): Promise<number> {
-  const t = String(tier || "").trim().toUpperCase();
-  const fallback = t === "A" ? 15 : t === "B" ? 10 : t === "C" ? 5 : 5;
-  try {
-    const row = await client.query("SELECT value FROM config WHERE key=$1", [COOPERATION_TYPES_CONFIG_KEY]);
-    const raw = row?.rows?.[0]?.value;
-    if (!raw || typeof raw !== "string") return fallback;
-    const parsed = JSON.parse(raw) as any;
-    const types = Array.isArray(parsed?.types) ? parsed.types : [];
-    const graded = types.find((x: any) => x && x.id === "graded_video");
-    const partTime = graded?.spec?.pricing_points?.part_time;
-    const v = partTime?.[t];
-    const n = typeof v === "number" ? v : Number(v);
-    if (!Number.isFinite(n) || n <= 0) return fallback;
-    return Math.floor(n);
-  } catch {
-    return fallback;
-  }
-}
 
 async function settleMarketOrderComplete(params: {
 
@@ -290,7 +255,7 @@ router.get("/tasks", (req: AuthRequest, res: Response) => {
 
     }
 
-    sql += " ORDER BY t.point_reward DESC, t.id DESC";
+    sql += " ORDER BY t.point_reward DESC, t.id DESC LIMIT 500";
 
 
 
@@ -330,7 +295,7 @@ router.get("/tasks", (req: AuthRequest, res: Response) => {
 
     console.error("influencer tasks error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -512,7 +477,7 @@ router.post("/tasks/:taskId/claim", (req: AuthRequest, res: Response) => {
 
     console.error("influencer claim error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -534,50 +499,6 @@ router.get("/my-claims", (req: AuthRequest, res: Response) => {
 
   return;
 
-  const userId = req.user!.userId;
-
-  (async () => {
-
-    const { rows } = await query(
-
-      `
-
-    SELECT tc.id AS claim_id, tc.task_id, tc.status AS claim_status, tc.claimed_at,
-
-           t.point_reward, t.platform, t.type AS task_type,
-
-           m.title AS material_title, m.cloud_link,
-
-           s.id AS submission_id, s.work_link, s.status AS submission_status, s.note AS review_note
-
-    FROM task_claims tc
-
-    JOIN tasks t ON tc.task_id = t.id
-
-    JOIN materials m ON t.material_id = m.id
-
-    LEFT JOIN submissions s ON s.task_claim_id = tc.id
-
-    WHERE tc.user_id = $1
-
-    ORDER BY tc.claimed_at DESC
-
-  `,
-
-      [userId]
-
-    );
-
-    res.json({ list: rows });
-
-  })().catch((e) => {
-
-    console.error("influencer my-claims error:", e);
-
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-
-  });
-
 });
 
 
@@ -595,62 +516,6 @@ router.get("/my-claims/:claimId", (req: AuthRequest, res: Response) => {
   res.status(410).json({ error: "MODULE_DISABLED", message: "我的任务板块已下线。" });
 
   return;
-
-  const userId = req.user!.userId;
-
-  const claimId = Number(req.params.claimId);
-
-  if (!Number.isInteger(claimId) || claimId < 1) {
-
-    res.status(400).json({ error: "INVALID_ID", message: "无效的领取 ID。" });
-
-    return;
-
-  }
-
-  (async () => {
-
-    const r = await query<Record<string, unknown>>(
-
-      `
-
-    SELECT tc.id AS claim_id, tc.task_id, tc.status AS claim_status, tc.claimed_at,
-
-           t.point_reward, t.platform, m.title AS material_title, m.cloud_link, m.remark
-
-    FROM task_claims tc
-
-    JOIN tasks t ON tc.task_id = t.id
-
-    JOIN materials m ON t.material_id = m.id
-
-    WHERE tc.id = $1 AND tc.user_id = $2
-
-  `,
-
-      [claimId, userId]
-
-    );
-
-    const row = r.rows[0];
-
-    if (!row) {
-
-      res.status(404).json({ error: "NOT_FOUND", message: "记录不存在。" });
-
-      return;
-
-    }
-
-    res.json(row);
-
-  })().catch((e) => {
-
-    console.error("influencer my-claim detail error:", e);
-
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-
-  });
 
 });
 
@@ -670,69 +535,6 @@ router.post("/submissions", (req: AuthRequest, res: Response) => {
 
   return;
 
-  const userId = req.user!.userId;
-
-  const { task_claim_id, work_link, note } = req.body ?? {};
-
-  if (!task_claim_id || !work_link || typeof work_link !== "string" || !work_link.trim()) {
-
-    res.status(400).json({ error: "INVALID_INPUT", message: "请提供领取 ID 与作品链接。" });
-
-    return;
-
-  }
-
-  (async () => {
-
-    const tcRes = await query<{ id: number; task_id: number; user_id: number; status: string }>(
-
-      "SELECT id, task_id, user_id, status FROM task_claims WHERE id = $1",
-
-      [Number(task_claim_id)]
-
-    );
-
-    const tc = tcRes.rows[0];
-
-    if (!tc || tc.user_id !== userId) {
-
-      res.status(404).json({ error: "NOT_FOUND", message: "领取记录不存在或无权操作。" });
-
-      return;
-
-    }
-
-    if (tc.status !== "pending") {
-
-      res.status(400).json({ error: "ALREADY_SUBMITTED", message: "该任务已提交过投稿。" });
-
-      return;
-
-    }
-
-    const existing = await query<{ id: number }>("SELECT id FROM submissions WHERE task_claim_id = $1", [tc.id]);
-
-    if (existing.rows[0]) {
-
-      res.status(409).json({ error: "ALREADY_SUBMITTED", message: "该任务已提交过投稿。" });
-
-      return;
-
-    }
-
-    await query("INSERT INTO submissions (task_claim_id, work_link, note, status) VALUES ($1, $2, $3, 'pending')", [tc.id, work_link.trim(), note ? String(note).trim() : null]);
-
-    await query("UPDATE task_claims SET status = 'submitted' WHERE id = $1", [tc.id]);
-
-    res.status(201).json({ ok: true });
-
-  })().catch((e) => {
-
-    console.error("influencer submission create error:", e);
-
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
-
-  });
 
 });
 
@@ -814,7 +616,7 @@ router.get("/points", (req: AuthRequest, res: Response) => {
 
     console.error("influencer points error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -850,7 +652,7 @@ router.get("/withdrawals", (req: AuthRequest, res: Response) => {
 
     console.error("influencer withdrawals list error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -907,34 +709,32 @@ router.post("/withdrawals", (req: AuthRequest, res: Response) => {
   }
 
   (async () => {
-
-    const accRes = await query<{ balance: number }>("SELECT balance FROM point_accounts WHERE user_id = $1", [userId]);
-
-    const balance = accRes.rows[0]?.balance ?? 0;
-
-    if (balance < num) {
-
-      res.status(409).json({ error: "INSUFFICIENT", message: `余额不足，当前余额 ${balance}。` });
-
+    const result = await withTx(async (client) => {
+      const accRes = await client.query<{ balance: number }>(
+        "SELECT balance FROM point_accounts WHERE user_id = $1 FOR UPDATE",
+        [userId]
+      );
+      const balance = accRes.rows[0]?.balance ?? 0;
+      if (balance < num) {
+        return { kind: "insufficient" as const, balance };
+      }
+      const created = await client.query<{ id: number }>(
+        "INSERT INTO withdrawal_requests (user_id, amount, bank_account_name, bank_name, bank_account_no, status) VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING id",
+        [userId, num, bank_account_name.trim(), bank_name.trim(), bank_account_no.trim()]
+      );
+      return { kind: "ok" as const, id: created.rows[0]!.id };
+    });
+    if (result.kind === "insufficient") {
+      res.status(409).json({ error: "INSUFFICIENT", message: `余额不足，当前余额 ${result.balance}。` });
       return;
-
     }
-
-    const created = await query<{ id: number }>(
-
-      "INSERT INTO withdrawal_requests (user_id, amount, bank_account_name, bank_name, bank_account_no, status) VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING id",
-
-      [userId, num, bank_account_name.trim(), bank_name.trim(), bank_account_no.trim()]
-
-    );
-
-    res.status(201).json({ id: created.rows[0]!.id });
+    res.status(201).json({ id: result.id });
 
   })().catch((e) => {
 
     console.error("influencer withdrawals create error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -1012,7 +812,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
 
     }
 
-    sql += ` ORDER BY mo.id DESC`;
+    sql += ` ORDER BY mo.id DESC LIMIT 500`;
 
     const { rows } = await query(sql, params);
 
@@ -1030,7 +830,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
 
     console.error("influencer market-orders list error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -1116,7 +916,7 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
 
     }
 
-    sql += ` ORDER BY mo.id DESC`;
+    sql += ` ORDER BY mo.id DESC LIMIT 500`;
 
     const { rows } = await query(sql, params);
 
@@ -1134,7 +934,7 @@ router.get("/market-orders/my", (req: AuthRequest, res: Response) => {
 
     console.error("influencer market-orders my error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -1216,7 +1016,7 @@ router.post("/market-orders/:id/claim", (req: AuthRequest, res: Response) => {
 
     console.error("influencer market-orders claim error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -1298,7 +1098,7 @@ router.post("/market-orders/:id/complete", (req: AuthRequest, res: Response) => 
 
     console.error("influencer market-orders complete error:", e);
 
-    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
   });
 
@@ -1343,7 +1143,7 @@ router.post("/market-orders/:id/publish", async (req: AuthRequest, res: Response
     return res.json({ ok: true });
   } catch (e) {
     console.error("influencer market-orders publish error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -1418,7 +1218,7 @@ router.patch(
 
       console.error("influencer market-orders work-links patch error:", e);
 
-      res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+      res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
 
     });
 

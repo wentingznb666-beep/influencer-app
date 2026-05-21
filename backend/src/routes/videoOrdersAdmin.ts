@@ -5,6 +5,10 @@ import { ensureVideoOrdersSchemaReady, query, withTx } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 import { readCooperationTypesConfig, isVisibleCooperationType, type CooperationTypeId } from "../cooperationTypes";
 
+import { createMessageTx } from "../systemMessages";
+
+import { getUserFriendlyError } from "../userFriendlyError";
+
 
 
 const router = Router();
@@ -47,22 +51,6 @@ function normalizePhase(input: unknown): string {
 async function ensureTypeVisibleToAdmin(typeId: VideoOrderTypeId): Promise<boolean> {
   const cfg = await readCooperationTypesConfig();
   return isVisibleCooperationType(cfg, typeId, "admin");
-}
-
-async function createMessageTx(
-  client: { query: Function },
-  userId: number,
-  category: string,
-  title: string,
-  content: string,
-  relatedType?: string,
-  relatedId?: number
-): Promise<void> {
-  await client.query(
-    `INSERT INTO system_messages (user_id, category, title, content, related_type, related_id)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
-    [userId, category, title, content, relatedType ?? null, relatedId ?? null]
-  );
 }
 
 router.get("/video-orders", async (req: AuthRequest, res: Response) => {
@@ -114,7 +102,7 @@ router.get("/video-orders", async (req: AuthRequest, res: Response) => {
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("admin list video orders error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -183,7 +171,7 @@ router.post("/video-orders/:id/review", async (req: AuthRequest, res: Response) 
     return res.json({ ok: true, phase: ret.nextPhase });
   } catch (e) {
     console.error("admin review video order error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -215,7 +203,7 @@ router.get("/video-orders/settlements", async (req: AuthRequest, res: Response) 
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("admin list video order settlements error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -238,7 +226,7 @@ router.patch("/video-orders/settlements/:id", async (req: AuthRequest, res: Resp
     return res.json({ ok: true });
   } catch (e) {
     console.error("admin patch video order settlement error:", e);
-    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: "服务器内部错误，请稍后重试。" });
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
