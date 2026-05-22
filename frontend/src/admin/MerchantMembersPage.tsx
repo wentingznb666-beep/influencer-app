@@ -2,9 +2,19 @@
 import { getAdminMerchantMembers } from "../adminApi";
 import { formatDepositStatus, formatMemberLevel } from "../utils/matchingStatusText";
 
+type MerchantMember = {
+  client_id: number;
+  username?: string | null;
+  member_level?: number | null;
+  member_expire_time?: string | null;
+  deposit_amount?: number | string | null;
+  deposit_frozen?: number | string | null;
+  deposit_status?: string | null;
+};
+
 /** 管理端商家会员与保证金总览。 */
 export default function MerchantMembersPage() {
-  const [list, setList] = useState<any[]>([]);
+  const [list, setList] = useState<MerchantMember[]>([]);
   const [error, setError] = useState<string>("");
 
   /** 加载商家会员数据。 */

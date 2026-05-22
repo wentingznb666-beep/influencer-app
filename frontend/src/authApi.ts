@@ -2,7 +2,7 @@
 
  * 达人分发 APP 鉴权相关 API：登录、刷新令牌、获取当前用户。
 
- * 使用 localStorage 存储 accessToken / refreshToken，请求时自动携带。
+ * refreshToken 仅由后端 httpOnly Cookie 保存，前端只在内存中保留短期 accessToken。
 
  */
 
@@ -45,6 +45,11 @@ const STORAGE_ACCESS = "influencer_app_access_token";
 const STORAGE_REFRESH = "influencer_app_refresh_token";
 
 const STORAGE_USER = "influencer_app_user";
+
+let accessTokenMemory: string | null = null;
+
+localStorage.removeItem(STORAGE_ACCESS);
+localStorage.removeItem(STORAGE_REFRESH);
 
 
 
@@ -100,7 +105,7 @@ function getApiBaseUrl(): string {
 
 export function getAccessToken(): string | null {
 
-  return localStorage.getItem(STORAGE_ACCESS);
+  return accessTokenMemory;
 
 }
 
@@ -112,11 +117,9 @@ export function getAccessToken(): string | null {
 
  */
 
-export function setAuth(accessToken: string, refreshToken: string, user: AuthUser): void {
+export function setAuth(accessToken: string, _refreshToken: string | undefined, user: AuthUser): void {
 
-  localStorage.setItem(STORAGE_ACCESS, accessToken);
-
-  localStorage.setItem(STORAGE_REFRESH, refreshToken);
+  accessTokenMemory = accessToken;
 
   localStorage.setItem(STORAGE_USER, JSON.stringify(normalizeAuthUser(user)));
 
@@ -132,11 +135,15 @@ export function setAuth(accessToken: string, refreshToken: string, user: AuthUse
 
 export function clearAuth(): void {
 
+  accessTokenMemory = null;
+
   localStorage.removeItem(STORAGE_ACCESS);
 
   localStorage.removeItem(STORAGE_REFRESH);
 
   localStorage.removeItem(STORAGE_USER);
+
+  void fetch(`${getApiBaseUrl()}/api/auth/logout`, { method: "POST", credentials: "include" }).catch(() => undefined);
 
 }
 
@@ -205,7 +212,7 @@ export async function login(username: string, password: string): Promise<AuthUse
 
 /**
 
- * 使用 refreshToken 刷新 accessToken。
+ * 使用 httpOnly refresh cookie 刷新 accessToken。
 
  */
 
@@ -226,7 +233,7 @@ export async function refreshAccessToken(): Promise<string> {
 
   const accessToken = data.accessToken as string;
 
-  localStorage.setItem(STORAGE_ACCESS, accessToken);
+  accessTokenMemory = accessToken;
 
   return accessToken;
 
@@ -244,12 +251,10 @@ export async function fetchMe(): Promise<AuthUser> {
 
   const token = getAccessToken();
 
-  if (!token) throw new Error("未登录");
-
   const res = await fetch(`${getApiBaseUrl()}/api/auth/me`, {
     credentials: "include",
 
-    headers: { Authorization: `Bearer ${token}` },
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
 
   });
 
@@ -302,4 +307,3 @@ export async function registerAccount(username: string, password: string, role: 
   };
 
 }
-

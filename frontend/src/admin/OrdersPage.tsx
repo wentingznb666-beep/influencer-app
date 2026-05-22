@@ -226,7 +226,7 @@ export default function OrdersPage() {
 
     load(qFromUrl, statusFromUrl);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
 
   }, []);
 

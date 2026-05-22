@@ -24,6 +24,10 @@ const targetLanguageOptions: LanguageOption[] = sourceLanguageOptions.filter(
   (item) => item.code !== "auto",
 );
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
 function App() {
   const [sourceText, setSourceText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
@@ -57,8 +61,8 @@ function App() {
         targetLang,
       });
       setTranslatedText(translated);
-    } catch (error: any) {
-      setErrorMessage(error?.message || "翻译失败，请稍后重试。");
+    } catch (error: unknown) {
+      setErrorMessage(getErrorMessage(error, "翻译失败，请稍后重试。"));
     } finally {
       setLoadingTranslate(false);
     }
@@ -99,8 +103,8 @@ function App() {
 
     try {
       speakWithBrowser(textToSpeak, langForSpeak);
-    } catch (error: any) {
-      setErrorMessage(error?.message || "朗读失败，请稍后重试。");
+    } catch (error: unknown) {
+      setErrorMessage(getErrorMessage(error, "朗读失败，请稍后重试。"));
     } finally {
       setLoadingTts(null);
     }

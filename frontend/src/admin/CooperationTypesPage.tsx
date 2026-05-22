@@ -14,6 +14,18 @@ function cloneConfig(cfg: CooperationTypesConfig): CooperationTypesConfig {
   return JSON.parse(JSON.stringify(cfg)) as CooperationTypesConfig;
 }
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+}
+
+function ensureRecord(parent: Record<string, unknown>, key: string): Record<string, unknown> {
+  const current = parent[key];
+  if (current && typeof current === "object") return current as Record<string, unknown>;
+  const next: Record<string, unknown> = {};
+  parent[key] = next;
+  return next;
+}
+
 export default function CooperationTypesPage(props: Props) {
   const user = getStoredUser();
   const isAdmin = user?.role === "admin";
@@ -73,24 +85,24 @@ export default function CooperationTypesPage(props: Props) {
   };
 
   const renderSpec = (t: CooperationTypesConfig["types"][number]) => {
-    const spec = (t.spec || {}) as any;
+    const spec = asRecord(t.spec);
 
     if (t.id === "graded_video") {
-      const pricing = spec.pricing_points || {};
-      const c = pricing.client || {};
-      const p = pricing.part_time || {};
+      const pricing = asRecord(spec.pricing_points);
+      const c = asRecord(pricing.client);
+      const p = asRecord(pricing.part_time);
       const rate = toNum(spec.point_rate_thb) ?? 1;
       const setGrade = (who: "client" | "part_time", grade: "A" | "B" | "C", value: number) => {
         updateType(t.id, (tt) => {
-          const s = (tt.spec || {}) as any;
+          const s = asRecord(tt.spec);
           s.point_rate_thb = rate;
-          s.pricing_points = s.pricing_points || {};
-          s.pricing_points[who] = s.pricing_points[who] || {};
-          s.pricing_points[who][grade] = value;
+          const nextPricing = ensureRecord(s, "pricing_points");
+          const target = ensureRecord(nextPricing, who);
+          target[grade] = value;
           tt.spec = s;
         });
       };
-      const cell = (who: "client" | "part_time", grade: "A" | "B" | "C", val: any) => (
+      const cell = (who: "client" | "part_time", grade: "A" | "B" | "C", val: unknown) => (
         <input
           type="number"
           min={0}
@@ -111,7 +123,7 @@ export default function CooperationTypesPage(props: Props) {
               value={rate}
               onChange={(e) =>
                 updateType(t.id, (tt) => {
-                  const s = (tt.spec || {}) as any;
+                  const s = asRecord(tt.spec);
                   s.point_rate_thb = Number(e.target.value || 1);
                   tt.spec = s;
                 })
@@ -151,7 +163,7 @@ export default function CooperationTypesPage(props: Props) {
     }
 
     if (t.id === "high_quality_custom_video") {
-      const range = spec.merchant_price_thb_range || {};
+      const range = asRecord(spec.merchant_price_thb_range);
       const min = toNum(range.min) ?? 4000;
       const max = toNum(range.max) ?? 5000;
       return (
@@ -164,9 +176,9 @@ export default function CooperationTypesPage(props: Props) {
             value={min}
             onChange={(e) =>
               updateType(t.id, (tt) => {
-                const s = (tt.spec || {}) as any;
-                s.merchant_price_thb_range = s.merchant_price_thb_range || {};
-                s.merchant_price_thb_range.min = Number(e.target.value || 0);
+                const s = asRecord(tt.spec);
+                const nextRange = ensureRecord(s, "merchant_price_thb_range");
+                nextRange.min = Number(e.target.value || 0);
                 tt.spec = s;
               })
             }
@@ -180,9 +192,9 @@ export default function CooperationTypesPage(props: Props) {
             value={max}
             onChange={(e) =>
               updateType(t.id, (tt) => {
-                const s = (tt.spec || {}) as any;
-                s.merchant_price_thb_range = s.merchant_price_thb_range || {};
-                s.merchant_price_thb_range.max = Number(e.target.value || 0);
+                const s = asRecord(tt.spec);
+                const nextRange = ensureRecord(s, "merchant_price_thb_range");
+                nextRange.max = Number(e.target.value || 0);
                 tt.spec = s;
               })
             }
@@ -205,7 +217,7 @@ export default function CooperationTypesPage(props: Props) {
             value={minVideos}
             onChange={(e) =>
               updateType(t.id, (tt) => {
-                const s = (tt.spec || {}) as any;
+                const s = asRecord(tt.spec);
                 s.min_videos_per_month = Number(e.target.value || 0);
                 tt.spec = s;
               })
@@ -221,7 +233,7 @@ export default function CooperationTypesPage(props: Props) {
             value={price}
             onChange={(e) =>
               updateType(t.id, (tt) => {
-                const s = (tt.spec || {}) as any;
+                const s = asRecord(tt.spec);
                 s.merchant_price_per_video_thb = Number(e.target.value || 0);
                 tt.spec = s;
               })
@@ -234,7 +246,7 @@ export default function CooperationTypesPage(props: Props) {
     }
 
     if (t.id === "creator_review_video") {
-      const range = spec.deliverables_count_range || {};
+      const range = asRecord(spec.deliverables_count_range);
       const min = toNum(range.min) ?? 8;
       const max = toNum(range.max) ?? 10;
       const price = spec.merchant_price_thb;
@@ -249,9 +261,9 @@ export default function CooperationTypesPage(props: Props) {
               value={min}
               onChange={(e) =>
                 updateType(t.id, (tt) => {
-                  const s = (tt.spec || {}) as any;
-                  s.deliverables_count_range = s.deliverables_count_range || {};
-                  s.deliverables_count_range.min = Number(e.target.value || 0);
+                  const s = asRecord(tt.spec);
+                  const nextRange = ensureRecord(s, "deliverables_count_range");
+                  nextRange.min = Number(e.target.value || 0);
                   tt.spec = s;
                 })
               }
@@ -265,9 +277,9 @@ export default function CooperationTypesPage(props: Props) {
               value={max}
               onChange={(e) =>
                 updateType(t.id, (tt) => {
-                  const s = (tt.spec || {}) as any;
-                  s.deliverables_count_range = s.deliverables_count_range || {};
-                  s.deliverables_count_range.max = Number(e.target.value || 0);
+                  const s = asRecord(tt.spec);
+                  const nextRange = ensureRecord(s, "deliverables_count_range");
+                  nextRange.max = Number(e.target.value || 0);
                   tt.spec = s;
                 })
               }
@@ -285,7 +297,7 @@ export default function CooperationTypesPage(props: Props) {
               placeholder="待定"
               onChange={(e) =>
                 updateType(t.id, (tt) => {
-                  const s = (tt.spec || {}) as any;
+                  const s = asRecord(tt.spec);
                   const v = e.target.value.trim();
                   s.merchant_price_thb = v ? Number(v) : null;
                   tt.spec = s;
@@ -367,4 +379,3 @@ export default function CooperationTypesPage(props: Props) {
     </div>
   );
 }
-

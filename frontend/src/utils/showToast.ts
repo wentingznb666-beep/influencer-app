@@ -56,11 +56,9 @@ export function showToastNotice(message: string, options: ToastOptions = {}): vo
   text.textContent = message;
   el.appendChild(text);
 
-  let removeTimer: number | undefined;
-
   const removeWithAnim = () => {
     if (!el.isConnected) return;
-    if (removeTimer != null) window.clearTimeout(removeTimer);
+    window.clearTimeout(removeTimer);
     el.classList.add("xt-toast2--out");
     window.setTimeout(() => {
       el.remove();
@@ -85,5 +83,5 @@ export function showToastNotice(message: string, options: ToastOptions = {}): vo
 
   stack.appendChild(el);
 
-  removeTimer = window.setTimeout(() => removeWithAnim(), durationMs);
+  const removeTimer = window.setTimeout(() => removeWithAnim(), durationMs);
 }

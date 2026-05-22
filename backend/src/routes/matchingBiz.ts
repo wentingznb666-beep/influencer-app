@@ -6,13 +6,40 @@ import { requireAuth, type AuthRequest } from "../auth";
 import { query, withTx } from "../db";
 import { getUploadsRoot } from "../uploadsConfig";
 import { isVisibleCooperationType, readCooperationTypesConfig } from "../cooperationTypes";
+import { allocateMatchingOrderNo } from "../marketOrderNo";
 
 import { createMessage } from "../systemMessages";
 import { getUserFriendlyError } from "../userFriendlyError";
 
 const router = Router();
 router.use(requireAuth);
-const matchingUpload = multer({ storage: multer.memoryStorage() });
+const MATCHING_UPLOAD_MAX_BYTES = 20 * 1024 * 1024;
+const ALLOWED_MATCHING_UPLOAD_MIME = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+]);
+const ALLOWED_MATCHING_UPLOAD_EXT = new Set([".jpg", ".jpeg", ".png", ".webp", ".mp4", ".webm", ".mov"]);
+const matchingUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MATCHING_UPLOAD_MAX_BYTES, files: 20 },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_MATCHING_UPLOAD_MIME.has(file.mimetype)) cb(null, true);
+    else cb(new Error("UNSUPPORTED_FILE_TYPE"));
+  },
+});
+
+function isAllowedMatchingUploadBuffer(buffer: Buffer, ext: string): boolean {
+  if (ext === ".jpg" || ext === ".jpeg") return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  if (ext === ".png") return buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  if (ext === ".webp") return buffer.length >= 12 && buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP";
+  if (ext === ".webm") return buffer.length >= 4 && buffer.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]));
+  if (ext === ".mp4" || ext === ".mov") return buffer.length >= 12 && buffer.subarray(4, 8).toString("ascii") === "ftyp";
+  return false;
+}
 
 /** 会员等级到泰铢价格映射。 */
 function getMemberPrice(level: number): number {
@@ -353,12 +380,13 @@ router.post("/client/matching-orders", async (req: AuthRequest, res: Response) =
           shop_link: merchantTemplate.shop_link,
         },
       };
+      const orderNo = await allocateMatchingOrderNo(client);
       const ins = await client.query<{ id: number; order_no: string }>(
         `INSERT INTO client_market_orders
            (client_id, order_no, title, reward_points, tier, creator_reward_points, platform_profit_points, pay_deducted, status, match_status, order_type, allow_apply, task_amount, deposit_frozen)
-         VALUES ($1, 'MH-' || to_char(now(),'YYYYMMDD') || '-' || floor(random()*900000+100000)::text, $2, 10, 'C', 5, 5, 0, 'open', 'open', 1, $3, $4, $4)
+         VALUES ($1, $2, $3, 10, 'C', 5, 5, 0, 'open', 'open', 1, $4, $5, $5)
          RETURNING id, order_no`,
-        [req.user!.userId, requirement ? `${title}｜${requirement}` : title, allowApply, taskAmount]
+        [req.user!.userId, orderNo, requirement ? `${title}｜${requirement}` : title, allowApply, taskAmount]
       );
       const inserted = ins.rows[0];
       if (!inserted) return { kind: "db_error" as const };
@@ -412,15 +440,20 @@ router.post("/client/matching-orders/upload", (req: AuthRequest, res: Response) 
       if (!files.length) return res.status(400).json({ error: "NO_FILES", message: "请选择文件。" });
       const uploadDir = path.join(getUploadsRoot(), "matching-orders", String(req.user!.userId));
       await fs.mkdir(uploadDir, { recursive: true });
-      const base = `${req.protocol}://${req.get("host")}`;
       const urls: string[] = [];
       for (const f of files) {
         const ext = path.extname(f.originalname || "").toLowerCase();
-        const safeExt = ext && ext.length <= 10 ? ext : "";
+        if (!ALLOWED_MATCHING_UPLOAD_MIME.has(f.mimetype) || !ALLOWED_MATCHING_UPLOAD_EXT.has(ext)) {
+          return res.status(400).json({ error: "UNSUPPORTED_FILE_TYPE", message: "仅支持 jpg/png/webp 图片或 mp4/webm/mov 视频。" });
+        }
+        if (!isAllowedMatchingUploadBuffer(f.buffer, ext)) {
+          return res.status(400).json({ error: "INVALID_FILE_CONTENT", message: "文件内容与格式不匹配。" });
+        }
+        const safeExt = ext;
         const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${safeExt}`;
         const filepath = path.join(uploadDir, filename);
         await fs.writeFile(filepath, f.buffer);
-        urls.push(`${base}/uploads/matching-orders/${req.user!.userId}/${filename}`);
+        urls.push(`/uploads/matching-orders/${req.user!.userId}/${filename}`);
       }
       return res.json({ urls });
     } catch (e) {
@@ -596,6 +629,7 @@ router.get("/influencer/matching-task-hall", async (req: AuthRequest, res: Respo
     return res.json({ list: rows.rows });
   } catch (e) {
     console.error("influencer matching task hall error:", e);
+    return res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });
   }
 });
 
@@ -606,7 +640,7 @@ router.post("/influencer/matching-orders/:id/apply", async (req: AuthRequest, re
   const orderId = Number(req.params.id);
   if (!Number.isInteger(orderId) || orderId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的订单ID。" });
   try {
-    const blockedVideoTypes = ["high_quality_custom_video", "monthly_package", "creator_review_video"];
+    const blockedVideoTypes = ["high_quality_custom_video", "monthly_package"];
     const profile = await query<{
       tiktok_account: string | null;
       tiktok_fans: string | null;
@@ -669,7 +703,7 @@ router.post("/influencer/matching-orders/:id/apply", async (req: AuthRequest, re
 router.get("/influencer/my-matching-applies", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   try {
-    const blockedVideoTypes = ["high_quality_custom_video", "monthly_package", "creator_review_video"];
+    const blockedVideoTypes = ["high_quality_custom_video", "monthly_package"];
     const rows = await query(
       `SELECT a.id, a.status AS apply_status, a.note, a.created_at,
               mo.id AS order_id, mo.order_no, mo.title, mo.task_amount, mo.status AS order_status, mo.match_status, mo.work_links,
@@ -1077,6 +1111,3 @@ router.post("/messages/:id/read", async (req: AuthRequest, res: Response) => {
 });
 
 export default router;
-
-
-

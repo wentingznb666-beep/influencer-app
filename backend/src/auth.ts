@@ -72,7 +72,7 @@ function clearCookie(res: Response, name: string, path: string): void {
 }
 
 export function setAccessTokenCookie(res: Response, token: string): void {
-  setCookie(res, "access_token", token, ACCESS_MAX_AGE_MS, "/api", "lax");
+  setCookie(res, "access_token", token, ACCESS_MAX_AGE_MS, "/", "lax");
 }
 
 export function setRefreshTokenCookie(res: Response, token: string): void {
@@ -80,6 +80,7 @@ export function setRefreshTokenCookie(res: Response, token: string): void {
 }
 
 export function clearAccessTokenCookie(res: Response): void {
+  clearCookie(res, "access_token", "/");
   clearCookie(res, "access_token", "/api");
 }
 

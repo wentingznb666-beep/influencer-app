@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getPoints as getClientPoints } from "./clientApi";
 import DashboardShell, { type DashboardNavItem } from "./DashboardShell";
 import { xtOutlineBtn } from "./brandTheme";
@@ -29,14 +29,14 @@ export default function ClientLayout() {
   const [balance, setBalance] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
   const [balanceError, setBalanceError] = useState<string | null>(null);
-  const balanceTimerRef = useState<{ id: number | null; fired: boolean }>({ id: null, fired: false })[0];
+  const balanceTimerRef = useRef<{ id: number | null; fired: boolean }>({ id: null, fired: false });
 
   const { setRole } = useAppStore();
 
   /**
    * Load merchant points balance for header display.
    */
-  const loadBalance = async () => {
+  const loadBalance = useCallback(async () => {
     setBalanceLoading(true);
     setBalanceError(null);
     try {
@@ -48,13 +48,14 @@ export default function ClientLayout() {
     } finally {
       setBalanceLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
+    const timerState = balanceTimerRef.current;
     /** Trigger the balance load exactly once. */
     const fire = () => {
-      if (balanceTimerRef.fired) return;
-      balanceTimerRef.fired = true;
+      if (timerState.fired) return;
+      timerState.fired = true;
       void loadBalance();
     };
     if (!import.meta.env.PROD) {
@@ -62,16 +63,16 @@ export default function ClientLayout() {
       return;
     }
     /** Listen for first user intent to preload balance. */
-    const onUserIntent = () => fire();
+    const onUserIntent: EventListener = () => fire();
     window.addEventListener("pointerdown", onUserIntent, { passive: true, once: true });
-    window.addEventListener("keydown", onUserIntent, { passive: true, once: true } as any);
-    balanceTimerRef.id = window.setTimeout(fire, 200) as unknown as number;
+    window.addEventListener("keydown", onUserIntent, { once: true });
+    timerState.id = window.setTimeout(fire, 200) as unknown as number;
     return () => {
-      window.removeEventListener("pointerdown", onUserIntent as any);
-      window.removeEventListener("keydown", onUserIntent as any);
-      if (balanceTimerRef.id != null) window.clearTimeout(balanceTimerRef.id);
+      window.removeEventListener("pointerdown", onUserIntent);
+      window.removeEventListener("keydown", onUserIntent);
+      if (timerState.id != null) window.clearTimeout(timerState.id);
     };
-  }, []);
+  }, [loadBalance]);
 
   /** Synchronize the current role into the global store. */
   useEffect(() => {

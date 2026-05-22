@@ -60,6 +60,12 @@ function resolveEditPageTaskCount(it: { task_count?: number | null }): number {
 
 }
 
+function normalizeMarketOrderTier(value: unknown): "A" | "B" | "C" {
+  const tier = String(value || "C").toUpperCase();
+  if (tier === "A" || tier === "B") return tier;
+  return "C";
+}
+
 
 
 /**
@@ -149,19 +155,19 @@ export default function MarketOrderEditPage() {
 
 
 
-        client_shop_name: (it.client_shop_name || "") as any,
+        client_shop_name: it.client_shop_name || "",
 
-        client_group_chat: (it.client_group_chat || "") as any,
+        client_group_chat: it.client_group_chat || "",
 
-        tier: (String(it.tier || "C").toUpperCase() as any) === "A" ? "A" : (String(it.tier || "C").toUpperCase() as any) === "B" ? "B" : "C",
+        tier: normalizeMarketOrderTier(it.tier),
 
         publish_method: String(it.publish_method || "client_self_publish") === "influencer_publish_with_cart" ? "influencer_publish_with_cart" : "client_self_publish",
 
         is_public_apply: Number(it.is_public_apply || 0) === 1,
 
-        voice_link: (it.voice_link || "") as any,
+        voice_link: it.voice_link || "",
 
-        tiktok_link: (it.tiktok_link || "") as any,
+        tiktok_link: it.tiktok_link || "",
 
         product_images_text: Array.isArray(it.product_images) ? it.product_images.join("\n") : "",
 
@@ -304,7 +310,7 @@ export default function MarketOrderEditPage() {
 
             <label>订单档位</label>
 
-            <select value={form.tier} onChange={(e) => setForm((f) => ({ ...f, tier: e.target.value as any }))} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 240, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box", background: "#fff" }}>
+            <select value={form.tier} onChange={(e) => setForm((f) => ({ ...f, tier: normalizeMarketOrderTier(e.target.value) }))} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 240, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box", background: "#fff" }}>
 
               <option value="C">C 类</option>
 
@@ -436,6 +442,5 @@ export default function MarketOrderEditPage() {
   );
 
 }
-
 
 

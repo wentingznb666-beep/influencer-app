@@ -1484,7 +1484,15 @@ router.post("/admin/influencer-permissions/:id/review", async (req: AuthRequest,
   if (action !== "approve" && action !== "reject") return res.status(400).json({ error: "INVALID_ACTION", message: "无效的审核动作。" });
   try {
     const status = action === "approve" ? "approved" : "rejected";
-    await query(`UPDATE users SET influencer_status=$2, is_influencer_verified=$3 WHERE id=$1`, [userId, status, action === "approve" ? 1 : 0]);
+    const updated = await query(
+      `UPDATE users u
+          SET influencer_status=$2, is_influencer_verified=$3
+         FROM roles r
+        WHERE u.id=$1 AND u.role_id=r.id AND r.name='influencer'
+        RETURNING u.id`,
+      [userId, status, action === "approve" ? 1 : 0]
+    );
+    if (updated.rowCount === 0) return res.status(404).json({ error: "NOT_FOUND", message: "未找到达人用户。" });
     await createMessage(userId, "permission_review", action === "approve" ? "达人撮合权限审核通过" : "达人撮合权限审核驳回", note || (action === "approve" ? "您已可使用撮合功能。" : "审核未通过，可重新申请。"), "permission", userId);
     return res.json({ ok: true });
   } catch (e) {
@@ -1500,7 +1508,15 @@ router.patch("/admin/influencer-permissions/:id/toggle", async (req: AuthRequest
   const enabled = Boolean(req.body?.enabled);
   if (!Number.isInteger(userId) || userId < 1) return res.status(400).json({ error: "INVALID_ID", message: "无效的用户ID。" });
   try {
-    await query(`UPDATE users SET influencer_status=$2, is_influencer_verified=$3 WHERE id=$1`, [userId, enabled ? "approved" : "disabled", enabled ? 1 : 0]);
+    const updated = await query(
+      `UPDATE users u
+          SET influencer_status=$2, is_influencer_verified=$3
+         FROM roles r
+        WHERE u.id=$1 AND u.role_id=r.id AND r.name='influencer'
+        RETURNING u.id`,
+      [userId, enabled ? "approved" : "disabled", enabled ? 1 : 0]
+    );
+    if (updated.rowCount === 0) return res.status(404).json({ error: "NOT_FOUND", message: "未找到达人用户。" });
     await createMessage(userId, "permission_toggle", "达人撮合权限状态变更", enabled ? "管理员已手动开启您的撮合权限。" : "管理员已手动关闭您的撮合权限。", "permission", userId);
     return res.json({ ok: true });
   } catch (e) {

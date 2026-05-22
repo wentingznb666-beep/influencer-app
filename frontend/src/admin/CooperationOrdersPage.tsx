@@ -42,16 +42,21 @@ function asLinks(v: unknown): string[] {
 function pickTaskNameFromTitle(raw: string): string {
   const s = String(raw || "").trim();
   if (!s) return "-";
-  const split = s.split(/[\|｜]/).map((x) => x.trim()).filter(Boolean);
+  const split = s.split(/[|｜]/).map((x) => x.trim()).filter(Boolean);
   return split[0] || s;
 }
 
 function getDetailText(row: unknown, key: string): string {
   if (!row || typeof row !== "object") return "";
-  const v = (row as any)[key];
+  const v = (row as Record<string, unknown>)[key];
   if (v == null) return "";
   const s = String(v).trim();
   return s;
+}
+
+function getDetailLinks(detail: unknown, key: string): string[] {
+  if (!detail || typeof detail !== "object") return [];
+  return asLinks((detail as Record<string, unknown>)[key]);
 }
 
 function formatOrderStatus(status: string) {
@@ -412,9 +417,9 @@ export default function CooperationOrdersPage() {
                 const workLinks = (() => {
                   const primary = asLinks(r.work_links);
                   if (primary.length) return primary;
-                  const fromDetail = asLinks((r.detail_json as any)?.work_links);
+                  const fromDetail = getDetailLinks(r.detail_json, "work_links");
                   if (fromDetail.length) return fromDetail;
-                  const fromProof = asLinks((r.detail_json as any)?.proof_links);
+                  const fromProof = getDetailLinks(r.detail_json, "proof_links");
                   if (fromProof.length) return fromProof;
                   return [];
                 })();
@@ -474,4 +479,3 @@ export default function CooperationOrdersPage() {
     </div>
   );
 }
-

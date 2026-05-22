@@ -3,10 +3,23 @@ import { useLocation } from "react-router-dom";
 import { getAdminInfluencerPermissions, reviewAdminInfluencerPermission, toggleAdminInfluencerPermission } from "../matchingApi";
 import { formatInfluencerPermissionStatus } from "../utils/matchingStatusText";
 
+type InfluencerPermissionRow = {
+  id: number;
+  username?: string | null;
+  display_name?: string | null;
+  influencer_status?: string | null;
+  tiktok_account?: string | null;
+  tiktok_fans?: string | null;
+  category?: string | null;
+  real_name?: string | null;
+  bank_name?: string | null;
+  bank_branch?: string | null;
+};
+
 /** 管理端达人撮合权限审核页。 */
 export default function InfluencerPermissionsPage() {
   const location = useLocation();
-  const [list, setList] = useState<any[]>([]);
+  const [list, setList] = useState<InfluencerPermissionRow[]>([]);
   const [msg, setMsg] = useState<string>("");
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [isMobile, setIsMobile] = useState(false);

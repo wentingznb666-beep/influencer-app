@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
@@ -6,53 +6,54 @@ import Login from "./Login";
 import Register from "./Register";
 import AdminLayout from "./AdminLayout";
 import EmployeeLayout from "./EmployeeLayout";
-import InfluencersPage from "./admin/InfluencersPage";
-import PointsPage from "./admin/PointsPage";
-import SettlementPage from "./admin/SettlementPage";
-import RiskPage from "./admin/RiskPage";
-import WithdrawalsPage from "./admin/WithdrawalsPage";
-import UsersPage from "./admin/UsersPage";
-import MarketOrdersPage from "./admin/MarketOrdersPage";
-import AdminSkusPage from "./admin/SkusPage";
-import ProfitPage from "./admin/ProfitPage";
-import ModelsPage from "./admin/ModelsPage";
 import ClientLayout from "./ClientLayout";
-import ClientMarketOrdersPage from "./client/ClientMarketOrdersPage";
-import MarketOrderEditPage from "./client/MarketOrderEditPage";
-import ClientSkusPage from "./client/SkusPage";
-import ClientPointsPage from "./client/PointsPage";
-import CollabPoolPage from "./client/CollabPoolPage";
-import CollabMyAppliesPage from "./client/CollabMyAppliesPage";
-import MatchingCenterPage from "./client/MatchingCenterPage";
-import MatchingOrdersPage from "./client/MatchingOrdersPage";
-import MemberCenterPage from "./client/MemberCenterPage";
-import MerchantTemplatePage from "./client/MerchantTemplatePage";
-import ClientModelsPage from "./client/ModelsPage";
-import ShowcaseInfluencersPage from "./admin/ShowcaseInfluencersPage";
-import ShowcaseContentCreatorsPage from "./admin/ShowcaseContentCreatorsPage";
-import ClientShowcaseInfluencersPage from "./client/ClientShowcaseInfluencersPage";
-import ClientShowcaseContentCreatorsPage from "./client/ClientShowcaseContentCreatorsPage";
 import InfluencerLayout from "./InfluencerLayout";
-import PaymentProfilePage from "./influencer/PaymentProfilePage";
-import InfluencerProfilePage from "./influencer/InfluencerProfilePage";
-import TaskHallPage from "./influencer/TaskHallPage";
-import InfluencerPermissionPage from "./influencer/InfluencerPermissionPage";
-import CollabDemandsPage from "./influencer/CollabDemandsPage";
-import InfluencerMyDemandsPage from "./influencer/InfluencerMyDemandsPage";
-import ClientOrdersHallPage from "./influencer/ClientOrdersHallPage";
-import MerchantMembersPage from "./admin/MerchantMembersPage";
-import InfluencerPermissionsPage from "./admin/InfluencerPermissionsPage";
-import CooperationTypesPage from "./admin/CooperationTypesPage";
-import CooperationOrdersPage from "./admin/CooperationOrdersPage";
-import InfluencerDetailPage from "./admin/InfluencerDetailPage";
 import ProtectedRoute from "./ProtectedRoute";
-import App from "./App";
 import { I18nextProvider } from "react-i18next";
 import { appI18n } from "./i18n/i18nApp";
 import { LanguageProvider } from "./i18n";
-import OperationLogsPage from "./OperationLogsPage";
 import { runStorageSelfHealMigration } from "./utils/storageMigration";
 import { AppStoreProvider } from "./stores/AppStore";
+
+const App = lazy(() => import("./App"));
+const OperationLogsPage = lazy(() => import("./OperationLogsPage"));
+const InfluencersPage = lazy(() => import("./admin/InfluencersPage"));
+const PointsPage = lazy(() => import("./admin/PointsPage"));
+const SettlementPage = lazy(() => import("./admin/SettlementPage"));
+const RiskPage = lazy(() => import("./admin/RiskPage"));
+const WithdrawalsPage = lazy(() => import("./admin/WithdrawalsPage"));
+const UsersPage = lazy(() => import("./admin/UsersPage"));
+const MarketOrdersPage = lazy(() => import("./admin/MarketOrdersPage"));
+const AdminSkusPage = lazy(() => import("./admin/SkusPage"));
+const ProfitPage = lazy(() => import("./admin/ProfitPage"));
+const ModelsPage = lazy(() => import("./admin/ModelsPage"));
+const ShowcaseInfluencersPage = lazy(() => import("./admin/ShowcaseInfluencersPage"));
+const ShowcaseContentCreatorsPage = lazy(() => import("./admin/ShowcaseContentCreatorsPage"));
+const MerchantMembersPage = lazy(() => import("./admin/MerchantMembersPage"));
+const InfluencerPermissionsPage = lazy(() => import("./admin/InfluencerPermissionsPage"));
+const CooperationTypesPage = lazy(() => import("./admin/CooperationTypesPage"));
+const CooperationOrdersPage = lazy(() => import("./admin/CooperationOrdersPage"));
+const InfluencerDetailPage = lazy(() => import("./admin/InfluencerDetailPage"));
+const ClientMarketOrdersPage = lazy(() => import("./client/ClientMarketOrdersPage"));
+const MarketOrderEditPage = lazy(() => import("./client/MarketOrderEditPage"));
+const ClientSkusPage = lazy(() => import("./client/SkusPage"));
+const ClientPointsPage = lazy(() => import("./client/PointsPage"));
+const CollabPoolPage = lazy(() => import("./client/CollabPoolPage"));
+const CollabMyAppliesPage = lazy(() => import("./client/CollabMyAppliesPage"));
+const MatchingCenterPage = lazy(() => import("./client/MatchingCenterPage"));
+const MatchingOrdersPage = lazy(() => import("./client/MatchingOrdersPage"));
+const MemberCenterPage = lazy(() => import("./client/MemberCenterPage"));
+const MerchantTemplatePage = lazy(() => import("./client/MerchantTemplatePage"));
+const ClientModelsPage = lazy(() => import("./client/ModelsPage"));
+const ClientShowcaseInfluencersPage = lazy(() => import("./client/ClientShowcaseInfluencersPage"));
+const ClientShowcaseContentCreatorsPage = lazy(() => import("./client/ClientShowcaseContentCreatorsPage"));
+const PaymentProfilePage = lazy(() => import("./influencer/PaymentProfilePage"));
+const InfluencerProfilePage = lazy(() => import("./influencer/InfluencerProfilePage"));
+const TaskHallPage = lazy(() => import("./influencer/TaskHallPage"));
+const InfluencerPermissionPage = lazy(() => import("./influencer/InfluencerPermissionPage"));
+const CollabDemandsPage = lazy(() => import("./influencer/CollabDemandsPage"));
+const InfluencerMyDemandsPage = lazy(() => import("./influencer/InfluencerMyDemandsPage"));
+const ClientOrdersHallPage = lazy(() => import("./influencer/ClientOrdersHallPage"));
 
 runStorageSelfHealMigration();
 
@@ -62,6 +63,7 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter>
         <I18nextProvider i18n={appI18n}>
           <LanguageProvider>
+            <Suspense fallback={null}>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
@@ -142,13 +144,12 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
+            </Suspense>
           </LanguageProvider>
         </I18nextProvider>
       </BrowserRouter>
     </AppStoreProvider>
   </StrictMode>
 );
-
-
 
 

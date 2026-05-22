@@ -100,7 +100,7 @@ export default function ModelsPage() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   /**

@@ -18,20 +18,15 @@ router.use(requireRole("client"));
 
 /** 单张 SKU 图片最大体积（与前端提示一致）。 */
 const SKU_UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
+const SKU_ZIP_MAX_ENTRIES = 1000;
+const SKU_ZIP_MAX_IMAGES = 500;
+const SKU_ZIP_MAX_UNCOMPRESSED_BYTES = 80 * 1024 * 1024;
+const SKU_ZIP_MAX_EXCEL_BYTES = 20 * 1024 * 1024;
 const ALLOWED_SKU_IMAGE_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 const skuUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: SKU_UPLOAD_MAX_BYTES, files: 20 },
 });
-
-/**
- * 获取可用于外部访问的文件 URL 根路径。
- */
-function getPublicBaseUrl(req: AuthRequest): string {
-  const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "http";
-  const host = req.get("host") || "localhost:3000";
-  return `${proto}://${host}`;
-}
 
 /**
  * 按 MIME 推断文件扩展名。
@@ -41,6 +36,24 @@ function extByMime(mime: string): string | null {
   if (mime === "image/png") return ".png";
   if (mime === "image/webp") return ".webp";
   return null;
+}
+
+function isAllowedImageBuffer(buffer: Buffer, ext: string): boolean {
+  if (ext === ".jpg" || ext === ".jpeg") return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  if (ext === ".png") return buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  if (ext === ".webp") return buffer.length >= 12 && buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP";
+  return false;
+}
+
+function getZipEntrySize(entry: any): number {
+  return Number(entry?._data?.uncompressedSize || entry?._data?.compressedSize || 0) || 0;
+}
+
+function validateZipEntries(entries: any[]): { ok: true } | { ok: false; message: string } {
+  if (entries.length > SKU_ZIP_MAX_ENTRIES) return { ok: false, message: `ZIP 文件数量不能超过 ${SKU_ZIP_MAX_ENTRIES} 个。` };
+  const estimatedTotal = entries.reduce((sum, entry) => sum + getZipEntrySize(entry), 0);
+  if (estimatedTotal > SKU_ZIP_MAX_UNCOMPRESSED_BYTES) return { ok: false, message: "ZIP 解压后内容过大。" };
+  return { ok: true };
 }
 
 /**
@@ -65,7 +78,6 @@ router.post("/skus/upload", (req: AuthRequest, res: Response) => {
       const uploadDir = path.join(getUploadsRoot(), "skus", String(clientId));
       await fs.mkdir(uploadDir, { recursive: true });
       const urls: string[] = [];
-      const base = getPublicBaseUrl(req);
       for (const file of files) {
         if (!ALLOWED_SKU_IMAGE_MIME.has(file.mimetype)) {
           res.status(400).json({ error: "INVALID_IMAGE_TYPE", message: "仅支持 jpg/png/webp 图片。" });
@@ -80,10 +92,14 @@ router.post("/skus/upload", (req: AuthRequest, res: Response) => {
           res.status(400).json({ error: "INVALID_IMAGE_TYPE", message: "图片格式不支持。" });
           return;
         }
+        if (!isAllowedImageBuffer(file.buffer, ext)) {
+          res.status(400).json({ error: "INVALID_IMAGE_CONTENT", message: "图片内容与格式不匹配。" });
+          return;
+        }
         const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`;
         const filepath = path.join(uploadDir, filename);
         await fs.writeFile(filepath, file.buffer);
-        urls.push(`${base}/uploads/skus/${clientId}/${filename}`);
+        urls.push(`/uploads/skus/${clientId}/${filename}`);
       }
       res.status(201).json({ urls });
     })().catch((e) => {
@@ -255,17 +271,35 @@ router.post("/skus/batch-import", skuBatchUpload.single("file"), (req: AuthReque
     if (isZip) {
       // ZIP 模式：解压，找 Excel + 图片
       const zip = await JSZip.loadAsync(file.buffer);
+      const allEntries = Object.values(zip.files) as any[];
+      const zipValidation = validateZipEntries(allEntries);
+      if (!zipValidation.ok) {
+        res.status(400).json({ error: "ZIP_TOO_LARGE", message: zipValidation.message });
+        return;
+      }
       // 找 Excel 文件
       const excelEntry = zip.file(/\.xlsx?$/i).find((e: any) => !e.dir);
       if (!excelEntry) {
         res.status(400).json({ error: "INVALID_INPUT", message: "ZIP 中没有找到 Excel 文件（.xlsx/.xls）。" });
         return;
       }
+      if (getZipEntrySize(excelEntry) > SKU_ZIP_MAX_EXCEL_BYTES) {
+        res.status(400).json({ error: "EXCEL_TOO_LARGE", message: "Excel 文件过大。" });
+        return;
+      }
       excelBuffer = await excelEntry.async("nodebuffer");
+      if (excelBuffer.length > SKU_ZIP_MAX_EXCEL_BYTES) {
+        res.status(400).json({ error: "EXCEL_TOO_LARGE", message: "Excel 文件过大。" });
+        return;
+      }
 
       // 找图片文件（images/ 子目录或根目录）
       const imageExts = new Set([".jpg", ".jpeg", ".png", ".webp"]);
       const imageEntries = zip.file(/\.(jpg|jpeg|png|webp)$/i).filter((e: any) => !e.dir);
+      if (imageEntries.length > SKU_ZIP_MAX_IMAGES) {
+        res.status(400).json({ error: "TOO_MANY_IMAGES", message: `ZIP 图片数量不能超过 ${SKU_ZIP_MAX_IMAGES} 张。` });
+        return;
+      }
 
       for (const entry of imageEntries) {
         const name = path.basename(entry.name); // 如 SKU001.jpg, SKU001_2.jpg
@@ -285,7 +319,9 @@ router.post("/skus/batch-import", skuBatchUpload.single("file"), (req: AuthReque
           }
         }
 
+        if (getZipEntrySize(entry) > SKU_UPLOAD_MAX_BYTES) continue;
         const buf = await entry.async("nodebuffer");
+        if (buf.length > SKU_UPLOAD_MAX_BYTES || !isAllowedImageBuffer(buf, ext)) continue;
         if (!imageMap.has(skuCode)) imageMap.set(skuCode, []);
         imageMap.get(skuCode)!.push({ buffer: buf, ext });
       }
@@ -507,7 +543,6 @@ router.post("/skus/batch-import", skuBatchUpload.single("file"), (req: AuthReque
     if (toInsert.length > 0) {
       const uploadDir = path.join(getUploadsRoot(), "skus", String(clientId));
       await fs.mkdir(uploadDir, { recursive: true });
-      const base = getPublicBaseUrl(req);
 
       await withTx(async (dbClient) => {
         for (const item of toInsert) {
@@ -527,7 +562,7 @@ router.post("/skus/batch-import", skuBatchUpload.single("file"), (req: AuthReque
               if (!mime) continue;
               const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${img.ext}`;
               await fs.writeFile(path.join(uploadDir, filename), img.buffer);
-              urls.push(`${base}/uploads/skus/${clientId}/${filename}`);
+              urls.push(`/uploads/skus/${clientId}/${filename}`);
               imagesImported++;
             }
             if (urls.length > 0) {
@@ -590,12 +625,26 @@ router.post("/skus/batch-images", skuBatchImagesUpload.array("files", 50), (req:
         // 解压 ZIP，提取图片
         const zip = await JSZip.loadAsync(file.buffer);
         const entries = Object.values(zip.files) as any[];
+        const zipValidation = validateZipEntries(entries);
+        if (!zipValidation.ok) {
+          res.status(400).json({ error: "ZIP_TOO_LARGE", message: zipValidation.message });
+          return;
+        }
+        let imageEntryCount = 0;
         for (const entry of entries) {
           if (entry.dir) continue;
           const entryName = String(entry.name || "").toLowerCase();
           const hasImageExt = [".jpg", ".jpeg", ".png", ".webp"].some((ext) => entryName.endsWith(ext));
           if (!hasImageExt) continue;
+          imageEntryCount += 1;
+          if (imageEntryCount > SKU_ZIP_MAX_IMAGES) {
+            res.status(400).json({ error: "TOO_MANY_IMAGES", message: `ZIP 图片数量不能超过 ${SKU_ZIP_MAX_IMAGES} 张。` });
+            return;
+          }
+          if (getZipEntrySize(entry) > SKU_UPLOAD_MAX_BYTES) continue;
           const buf = await entry.async("nodebuffer");
+          const ext = path.extname(String(entry.name || "")).toLowerCase();
+          if (buf.length > SKU_UPLOAD_MAX_BYTES || !isAllowedImageBuffer(buf, ext)) continue;
           imageFiles.push({ name: path.basename(String(entry.name || "")), buffer: buf });
         }
       } else {
@@ -603,7 +652,7 @@ router.post("/skus/batch-images", skuBatchImagesUpload.array("files", 50), (req:
         const dotIdx = file.originalname.lastIndexOf(".");
         if (dotIdx < 1) { unmatched.push(file.originalname); continue; }
         const ext = file.originalname.substring(dotIdx).toLowerCase();
-        if (!imageExts.has(ext)) { unmatched.push(file.originalname); continue; }
+        if (!imageExts.has(ext) || !isAllowedImageBuffer(file.buffer, ext)) { unmatched.push(file.originalname); continue; }
         imageFiles.push({ name: file.originalname, buffer: file.buffer });
       }
     }
@@ -633,7 +682,6 @@ router.post("/skus/batch-images", skuBatchImagesUpload.array("files", 50), (req:
     // 3. 匹配 + 保存
     const uploadDir = path.join(getUploadsRoot(), "skus", String(clientId));
     await fs.mkdir(uploadDir, { recursive: true });
-    const base = getPublicBaseUrl(req);
 
     let imagesSaved = 0;
     const matchedSkus: string[] = [];
@@ -650,7 +698,7 @@ router.post("/skus/batch-images", skuBatchImagesUpload.array("files", 50), (req:
       for (const img of images) {
         const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${img.ext}`;
         await fs.writeFile(path.join(uploadDir, filename), img.buffer);
-        newUrls.push(`${base}/uploads/skus/${clientId}/${filename}`);
+        newUrls.push(`/uploads/skus/${clientId}/${filename}`);
         imagesSaved++;
       }
 

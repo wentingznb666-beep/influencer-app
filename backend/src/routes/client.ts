@@ -188,6 +188,10 @@ router.patch("/requests/:id", (req: AuthRequest, res: Response) => {
     return;
   }
   const { product_info, target_platform, budget, need_face, status } = req.body ?? {};
+  if (status !== undefined && status !== "draft" && status !== "submitted") {
+    res.status(400).json({ error: "INVALID_STATUS", message: "商家仅可将需求状态设为 draft 或 submitted。" });
+    return;
+  }
   (async () => {
     const row = await query<{ id: number }>(
       "SELECT id FROM client_requests WHERE id = $1 AND client_id = $2 AND is_deleted = 0",
@@ -216,7 +220,7 @@ router.patch("/requests/:id", (req: AuthRequest, res: Response) => {
       sets.push(`need_face = $${idx++}`);
       params.push(need_face ? 1 : 0);
     }
-    if (status === "draft" || status === "submitted" || status === "processing" || status === "done") {
+    if (status === "draft" || status === "submitted") {
       sets.push(`status = $${idx++}`);
       params.push(status);
     }
@@ -249,18 +253,22 @@ router.delete("/requests/:id", (req: AuthRequest, res: Response) => {
     return;
   }
   (async () => {
-    await withTx(async (client) => {
+    const result = await withTx(async (client) => {
       const updated = await client.query<{ id: number }>(
         "UPDATE client_requests SET is_deleted = 1, deleted_at = now() WHERE id = $1 AND client_id = $2 AND is_deleted = 0 RETURNING id",
         [id, clientId]
       );
       if (!updated.rows[0]) {
-        res.status(404).json({ error: "NOT_FOUND", message: "需求不存在。" });
-        return;
+        return { kind: "not_found" as const };
       }
       await recordOperationLogTx(client, { userId: clientId, actionType: "delete", targetType: "intent", targetId: id });
-      res.json({ ok: true });
+      return { kind: "ok" as const };
     });
+    if (result.kind === "not_found") {
+      res.status(404).json({ error: "NOT_FOUND", message: "需求不存在。" });
+      return;
+    }
+    res.json({ ok: true });
   })().catch((e) => {
     console.error("client requests delete error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });

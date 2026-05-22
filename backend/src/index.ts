@@ -83,17 +83,36 @@ const app = express();
 
 const port = process.env.PORT || 3000;
 
+const TRANSLATE_TEXT_MAX_CHARS = 5_000;
+const TRANSLATE_BATCH_ITEM_MAX_CHARS = 2_000;
+const TRANSLATE_BATCH_TOTAL_MAX_CHARS = 20_000;
+const TTS_TEXT_MAX_CHARS = 1_000;
+
+function countChars(value: string): number {
+  return Array.from(value).length;
+}
+
 
 
 app.use(helmet());
 app.use(express.json({ limit: "5mb" }));
 
-const corsOrigin = process.env.CORS_ORIGIN || (process.env.NODE_ENV !== "production" ? "http://localhost:5173" : "");
-app.use(cors({ origin: corsOrigin || "http://localhost:3000", credentials: true }));
+const isProduction = process.env.NODE_ENV === "production";
+const corsOrigins = (process.env.CORS_ORIGIN || (!isProduction ? "http://localhost:5173,http://localhost:3000" : ""))
+  .split(",")
+  .map((x) => x.trim())
+  .filter(Boolean);
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true);
+    return cb(null, corsOrigins.includes(origin));
+  },
+  credentials: true,
+}));
 
-/** 与写入路径一致；UPLOADS_ROOT 指向持久盘时重启后仍可访问历史文件 */
+/** 上传文件需登录后访问，避免素材、凭证等私有文件被公开枚举。 */
 
-app.use("/uploads", express.static(getUploadsRoot()));
+app.use("/uploads", requireAuth, express.static(getUploadsRoot()));
 
 app.use(requestId);
 
@@ -271,6 +290,13 @@ app.post("/api/translate", requireAuth, async (req: Request, res: Response) => {
 
   }
 
+  if (countChars(text) > TRANSLATE_TEXT_MAX_CHARS) {
+    return res.status(400).json({
+      error: "TEXT_TOO_LONG",
+      message: `单次翻译最多 ${TRANSLATE_TEXT_MAX_CHARS} 字符。`,
+    });
+  }
+
 
 
   if (!targetLang || typeof targetLang !== "string") {
@@ -405,6 +431,21 @@ app.post("/api/translate/batch", requireAuth, async (req: Request, res: Response
 
   }
 
+  if (texts.some((t) => countChars(t) > TRANSLATE_BATCH_ITEM_MAX_CHARS)) {
+    return res.status(400).json({
+      error: "TEXT_TOO_LONG",
+      message: `批量翻译单条最多 ${TRANSLATE_BATCH_ITEM_MAX_CHARS} 字符。`,
+    });
+  }
+
+  const totalChars = texts.reduce((sum, t) => sum + countChars(t), 0);
+  if (totalChars > TRANSLATE_BATCH_TOTAL_MAX_CHARS) {
+    return res.status(400).json({
+      error: "TEXT_TOO_LONG",
+      message: `批量翻译总字符最多 ${TRANSLATE_BATCH_TOTAL_MAX_CHARS}。`,
+    });
+  }
+
 
 
   try {
@@ -453,6 +494,13 @@ app.post("/api/tts", requireAuth, async (req: Request, res: Response) => {
 
     });
 
+  }
+
+  if (countChars(text) > TTS_TEXT_MAX_CHARS) {
+    return res.status(400).json({
+      error: "TEXT_TOO_LONG",
+      message: `单次朗读最多 ${TTS_TEXT_MAX_CHARS} 字符。`,
+    });
   }
 
 
@@ -627,5 +675,3 @@ main().catch((e) => {
   process.exit(1);
 
 });
-
-

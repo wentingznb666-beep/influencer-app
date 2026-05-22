@@ -13,8 +13,8 @@ type TaskItem = {
   client_username?: string;
   task_amount: number | string | null;
   created_at: string;
-  detail_json?: any;
-  attachment_urls?: any;
+  detail_json?: Record<string, unknown> | null;
+  attachment_urls?: unknown;
   applied_count?: number | null;
   apply_status?: string;
   order_status?: string;
@@ -58,13 +58,13 @@ function isVideoUrl(url: string): boolean {
 }
 
 function detailObj(item: TaskItem | null): Record<string, unknown> {
-  const d = (item as any)?.detail_json;
+  const d = item?.detail_json;
   return d && typeof d === "object" ? (d as Record<string, unknown>) : {};
 }
 
 function detailValue(item: TaskItem | null, key: string): unknown {
   const d = detailObj(item);
-  return (d as any)[key];
+  return d[key];
 }
 
 function detailText(item: TaskItem | null, key: string): string {
@@ -85,7 +85,7 @@ function recruitTotal(item: TaskItem | null): number {
 }
 
 function appliedCount(item: TaskItem | null): number {
-  const n = Number((item as any)?.applied_count || 0);
+  const n = Number(item?.applied_count || 0);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -96,8 +96,9 @@ function isRecruitFull(item: TaskItem | null): boolean {
 }
 
 function attachments(item: TaskItem | null): string[] {
-  const raw = (item as any)?.attachment_urls;
-  const arr: unknown[] = Array.isArray(raw) ? (raw as unknown[]) : Array.isArray(raw?.urls) ? (raw.urls as unknown[]) : [];
+  const raw = item?.attachment_urls;
+  const rawObj = raw && typeof raw === "object" ? (raw as { urls?: unknown }) : null;
+  const arr: unknown[] = Array.isArray(raw) ? raw : Array.isArray(rawObj?.urls) ? rawObj.urls : [];
   return arr.map((x: unknown) => String(x || "").trim()).filter(Boolean);
 }
 
@@ -127,7 +128,7 @@ function estimatedEarningsText(item: TaskItem | null, lang: string): string {
     if (String(lang || "").toLowerCase().startsWith("th")) return `${range.min}-${range.max} บาท/วิดีโอ`;
     return `${range.min}-${range.max}泰铢/条视频`;
   }
-  const v = (item as any)?.task_amount;
+  const v = item?.task_amount;
   if (v === null || v === undefined || String(v).trim() === "") return "—";
   return String(v);
 }
@@ -158,7 +159,7 @@ function OrderDetailModal({
 
   const title = detailText(item, "task_name") || (item?.title ? t(item.title) : t("未命名"));
   const orderNo = item?.order_no || (item?.id ? `#${item.id}` : "-");
-  const merchantInfo = (detailValue(item, "merchant_info") || null) as any;
+  const merchantInfo = (detailValue(item, "merchant_info") || null) as { shop_name?: unknown; product_type?: unknown; shop_link?: unknown } | null;
   const merchantShopName = String(merchantInfo?.shop_name || "").trim() || detailText(item, "merchant_shop_name") || "-";
   const merchantProductType = String(merchantInfo?.product_type || "").trim() || detailText(item, "merchant_product_type") || "-";
   const merchantShopLink = String(merchantInfo?.shop_link || "").trim() || detailText(item, "merchant_shop_link") || "";

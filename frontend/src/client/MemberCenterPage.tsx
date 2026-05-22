@@ -1,10 +1,25 @@
 ﻿import { useEffect, useState } from "react";
 import { getClientMemberProfile, purchaseClientMember, topupClientDeposit } from "../clientApi";
 
+type ClientMemberProfile = {
+  member_level?: number | null;
+  member_expire_time?: string | null;
+  deposit_amount?: number | string | null;
+  deposit_frozen?: number | string | null;
+};
+
+type DepositLog = {
+  id: number;
+  created_at?: string | null;
+  type?: string | null;
+  change_amount?: number | string | null;
+  note?: string | null;
+};
+
 /** 商家端会员中心：仅会员与保证金。 */
 export default function MemberCenterPage() {
-  const [profile, setProfile] = useState<any>(null);
-  const [logs, setLogs] = useState<any[]>([]);
+  const [profile, setProfile] = useState<ClientMemberProfile | null>(null);
+  const [logs, setLogs] = useState<DepositLog[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
 

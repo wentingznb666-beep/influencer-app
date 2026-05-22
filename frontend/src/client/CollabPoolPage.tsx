@@ -3,8 +3,19 @@ import { useTranslation } from "react-i18next";
 import { applyClientCollabPool, consultClientCollabPool, getClientCollabPool } from "../matchingApi";
 import { formatDemandApplyStatus, formatDemandStatus } from "../utils/matchingStatusText";
 
+type CollabPoolItem = {
+  id: number;
+  demand_detail?: string;
+  title?: string | null;
+  influencer_name?: string | null;
+  influencer_username?: string | null;
+  expected_points?: number | string | null;
+  status?: string | null;
+  my_apply_status?: string | null;
+};
+
 /** Parse demand detail JSON safely. */
-function parseDetail(raw: string | undefined): Record<string, any> {
+function parseDetail(raw: string | undefined): Record<string, unknown> {
   if (!raw) return {};
   try {
     const obj = JSON.parse(raw);
@@ -14,10 +25,16 @@ function parseDetail(raw: string | undefined): Record<string, any> {
   }
 }
 
+function detailText(detail: Record<string, unknown>, key: string): string {
+  const value = detail[key];
+  if (value === null || value === undefined) return "";
+  return String(value).trim();
+}
+
 /** Client side: influencer demand pool page. */
 export default function CollabPoolPage() {
   const { t } = useTranslation();
-  const [list, setList] = useState<any[]>([]);
+  const [list, setList] = useState<CollabPoolItem[]>([]);
   const [msg, setMsg] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [merchantShopName, setMerchantShopName] = useState("");
@@ -91,13 +108,14 @@ export default function CollabPoolPage() {
       <ul>
         {list.map((it) => {
           const detail = parseDetail(it.demand_detail);
+          const taskTypes = Array.isArray(detail.task_types) ? detail.task_types.map((x) => String(x || "").trim()).filter(Boolean).join("/") : "";
           return (
             <li key={it.id} style={{ marginBottom: 12 }}>
               <div>{t("需求")}#{it.id}｜{t("标题：")}{it.title || "-"}｜{t("达人：")}{it.influencer_name || it.influencer_username}</div>
-              <div>{t("粉丝量级：")}{detail.fans_level || "-"}｜{t("任务类型：")}{Array.isArray(detail.task_types) ? detail.task_types.join("/") : "-"}</div>
-              <div>{t("可接产品品类：")}{detail.categories_can_do || "-"}｜{t("不接品类：")}{detail.categories_not_do || "-"}</div>
-              <div>{t("是否需要样品：")}{detail.need_sample || "-"}｜{t("单条报价：")}{it.expected_points ?? "-"}｜{t("出稿时效（天）：")}{detail.delivery_days || "-"}{t("天")}</div>
-              <div>{t("状态：")}{t(formatDemandStatus(it.status))}｜{t("我的报名：")}{t(formatDemandApplyStatus(it.my_apply_status))}</div>
+              <div>{t("粉丝量级：")}{detailText(detail, "fans_level") || "-"}｜{t("任务类型：")}{taskTypes || "-"}</div>
+              <div>{t("可接产品品类：")}{detailText(detail, "categories_can_do") || "-"}｜{t("不接品类：")}{detailText(detail, "categories_not_do") || "-"}</div>
+              <div>{t("是否需要样品：")}{detailText(detail, "need_sample") || "-"}｜{t("单条报价：")}{it.expected_points ?? "-"}｜{t("出稿时效（天）：")}{detailText(detail, "delivery_days") || "-"}{t("天")}</div>
+              <div>{t("状态：")}{t(formatDemandStatus(it.status || undefined))}｜{t("我的报名：")}{t(formatDemandApplyStatus(it.my_apply_status || undefined))}</div>
               <button type="button" onClick={() => void consult(it.id)} style={{ marginTop: 6 }}>{t("咨询")}</button>
               <button type="button" disabled={it.my_apply_status === "pending" || it.my_apply_status === "selected"} onClick={() => void apply(it.id)} style={{ marginLeft: 8 }}>
                 {it.my_apply_status === "pending" || it.my_apply_status === "selected" ? t("已报名") : t("报名")}

@@ -974,8 +974,6 @@ export async function initDb(): Promise<void> {
 
   if (initialized) return;
 
-  initialized = true;
-
   const initStartedAt = Date.now();
 
   const mode = resolveDbInitMode();
@@ -1003,6 +1001,8 @@ export async function initDb(): Promise<void> {
   await ensureOptionalTables();
 
   await seedDefaultUsers();
+
+  initialized = true;
 
   console.info(`[db.init] mode=${mode} costMs=${Date.now() - initStartedAt}`);
 
@@ -1992,13 +1992,18 @@ async function applyOnlineSchemaPatches(): Promise<void> {
 
 async function seedDefaultUsers(): Promise<void> {
 
-  await ensureUserIfMissing("admin", "admin123", 1);
+  const isProduction = process.env.NODE_ENV === "production";
+  const seedBuiltIn = envBool("SEED_DEFAULT_USERS", !isProduction);
 
-  await ensureUserIfMissing("employee001", "123456", 4);
+  if (seedBuiltIn) {
+    await ensureUserIfMissing("admin", "admin123", 1);
+
+    await ensureUserIfMissing("employee001", "123456", 4);
+  }
 
 
 
-  const seedDemo = envBool("SEED_DEMO_USERS", true);
+  const seedDemo = envBool("SEED_DEMO_USERS", !isProduction);
 
   if (!seedDemo) return;
 
@@ -2019,4 +2024,3 @@ async function seedDefaultUsers(): Promise<void> {
   await ensureUserIfMissing(influencerUsername, influencerPassword, 3);
 
 }
-

@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom";
 
 import { TH_UI_DICT } from "./locales/th";
 import { appI18n, persistThBundlePatch } from "./i18n/i18nApp";
-import { getStoredUser } from "./authApi";
+import { getAccessToken, getStoredUser } from "./authApi";
 import {
   computeBackoffMs,
   defaultPathTranslatePriority,
@@ -155,9 +155,13 @@ function mergeAutoTranslationsIntoI18nBundle(patch: Record<string, string>): voi
  */
 async function requestBatchTranslate(texts: string[], targetLang: "th"): Promise<string[]> {
   const base = (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin;
+  const token = getAccessToken();
+  const headers = new Headers({ "Content-Type": "application/json; charset=utf-8" });
+  if (token) headers.set("Authorization", `Bearer ${token}`);
   const res = await fetch(`${base}/api/translate/batch`, {
     method: "POST",
-    headers: { "Content-Type": "application/json; charset=utf-8" },
+    headers,
+    credentials: "include",
     body: JSON.stringify({ texts, targetLang }),
   });
   const data = await res.json().catch(() => ({}));
@@ -581,4 +585,3 @@ export function useLanguage(): LangContextValue {
   if (!ctx) throw new Error("useLanguage must be used inside LanguageProvider");
   return ctx;
 }
-

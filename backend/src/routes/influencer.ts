@@ -20,7 +20,7 @@ const router = Router();
 
 router.use(requireAuth);
 
-router.use(requireRole("employee", "admin"));
+router.use(requireRole("influencer"));
 
 
 
@@ -664,7 +664,7 @@ router.get("/withdrawals", (req: AuthRequest, res: Response) => {
 
  * POST /api/influencer/withdrawals
 
- * 发起提现申请（策略 A：申请不扣余额，打款时扣）。
+ * 发起提现申请（申请不扣余额，但会预占可用额度，避免重复超额申请）。
 
  * 请求体: { amount, bank_account_name, bank_name, bank_account_no }
 
@@ -715,8 +715,14 @@ router.post("/withdrawals", (req: AuthRequest, res: Response) => {
         [userId]
       );
       const balance = accRes.rows[0]?.balance ?? 0;
-      if (balance < num) {
-        return { kind: "insufficient" as const, balance };
+      const pendingRes = await client.query<{ pending_amount: number }>(
+        "SELECT COALESCE(SUM(amount), 0)::integer AS pending_amount FROM withdrawal_requests WHERE user_id = $1 AND status = 'pending' AND is_deleted = 0",
+        [userId]
+      );
+      const pendingAmount = Number(pendingRes.rows[0]?.pending_amount || 0);
+      const available = balance - pendingAmount;
+      if (available < num) {
+        return { kind: "insufficient" as const, balance, available };
       }
       const created = await client.query<{ id: number }>(
         "INSERT INTO withdrawal_requests (user_id, amount, bank_account_name, bank_name, bank_account_no, status) VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING id",
@@ -725,7 +731,7 @@ router.post("/withdrawals", (req: AuthRequest, res: Response) => {
       return { kind: "ok" as const, id: created.rows[0]!.id };
     });
     if (result.kind === "insufficient") {
-      res.status(409).json({ error: "INSUFFICIENT", message: `余额不足，当前余额 ${result.balance}。` });
+      res.status(409).json({ error: "INSUFFICIENT", message: `可提现余额不足，当前余额 ${result.balance}，已申请待处理 ${result.balance - result.available}。` });
       return;
     }
     res.status(201).json({ id: result.id });
@@ -778,7 +784,7 @@ router.get("/market-orders", (req: AuthRequest, res: Response) => {
 
        JOIN users u ON mo.client_id = u.id
 
-      WHERE mo.status = 'open' AND mo.is_deleted = 0`;
+      WHERE mo.status = 'open' AND mo.is_deleted = 0 AND COALESCE(mo.is_public_apply, 0) = 1 AND COALESCE(mo.allow_apply, 1) = 1`;
 
     const params: unknown[] = [];
 
@@ -982,7 +988,7 @@ router.post("/market-orders/:id/claim", (req: AuthRequest, res: Response) => {
 
         `UPDATE client_market_orders
             SET status = 'claimed', influencer_id = $1, updated_at = now()
-         WHERE id = $2 AND status = 'open' AND is_deleted = 0
+         WHERE id = $2 AND status = 'open' AND is_deleted = 0 AND COALESCE(is_public_apply, 0) = 1 AND COALESCE(allow_apply, 1) = 1
          RETURNING id`,
 
         [userId, orderId]
@@ -1229,6 +1235,4 @@ router.patch(
 
 
 export default router;
-
-
 

@@ -45,7 +45,7 @@ type DemandEditForm = {
 };
 
 /** Parse demand detail JSON safely. */
-function parseDemandDetail(raw: string | undefined): Record<string, any> {
+function parseDemandDetail(raw: string | undefined): Record<string, unknown> {
   if (!raw) return {};
   try {
     const obj = JSON.parse(raw);

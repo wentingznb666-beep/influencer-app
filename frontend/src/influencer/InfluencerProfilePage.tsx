@@ -56,7 +56,7 @@ export default function InfluencerProfilePage() {
           tiktok_fans: String(profile.tiktok_fans || ""),
           expertise_domains: Array.isArray(profile.expertise_domains) ? profile.expertise_domains.map((x: unknown) => String(x || "")).filter(Boolean) : [],
           influencer_bio: String(profile.influencer_bio || ""),
-          line_contact: String((profile as any).line_contact || ""),
+          line_contact: String((profile as { line_contact?: unknown }).line_contact || ""),
         });
         const completed = Boolean(profile.completed);
         setSaved(completed || saved);

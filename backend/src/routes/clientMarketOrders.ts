@@ -365,6 +365,10 @@ router.patch("/market-orders/:id", (req: AuthRequest, res: Response) => {
       }
     }
     if (nextTier === "A" || nextTier === "B" || nextTier === "C") {
+      if (nextTier !== String(ord.tier || "").toUpperCase()) {
+        res.status(400).json({ error: "TIER_LOCKED", message: "订单档位已锁定，不支持修改。" });
+        return;
+      }
       sets.push(`tier = $${idx++}`);
       params.push(nextTier);
       // A 类才保留配音字段；否则清空
@@ -448,14 +452,13 @@ router.delete("/market-orders/:id", (req: AuthRequest, res: Response) => {
     return;
   }
   (async () => {
-    await withTx(async (client) => {
+    const result = await withTx(async (client) => {
       const updated = await client.query<{ id: number; pay_deducted: number; reward_points: number; task_count: number }>(
         "UPDATE client_market_orders SET is_deleted = 1, deleted_at = now(), updated_at = now() WHERE id = $1 AND client_id = $2 AND status = 'open' AND is_deleted = 0 RETURNING id, pay_deducted, reward_points, task_count",
         [id, clientId]
       );
       if (!updated.rows[0]) {
-        res.status(404).json({ error: "NOT_FOUND", message: "订单不存在或不可删除。" });
-        return;
+        return { kind: "not_found" as const };
       }
       const row = updated.rows[0];
       if (row.pay_deducted === 1) {
@@ -473,8 +476,13 @@ router.delete("/market-orders/:id", (req: AuthRequest, res: Response) => {
       }
 
       await recordOperationLogTx(client, { userId: clientId, actionType: "delete", targetType: "order", targetId: id });
-      res.json({ ok: true });
+      return { kind: "ok" as const };
     });
+    if (result.kind === "not_found") {
+      res.status(404).json({ error: "NOT_FOUND", message: "订单不存在或不可删除。" });
+      return;
+    }
+    res.json({ ok: true });
   })().catch((e) => {
     console.error("client market-orders delete error:", e);
     res.status(500).json({ error: "INTERNAL_SERVER_ERROR", message: getUserFriendlyError(e) });

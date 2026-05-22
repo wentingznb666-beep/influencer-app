@@ -19,6 +19,7 @@ import {
   requireAuth,
 
   getUserTokenVersion,
+  invalidateUserTokens,
   setAccessTokenCookie,
   setRefreshTokenCookie,
   clearAccessTokenCookie,
@@ -116,8 +117,6 @@ router.post("/login", (req, res: Response) => {
 
       accessToken,
 
-      refreshToken,
-
       user: { userId: user.id, username: user.username, role: user.role },
 
     });
@@ -201,10 +200,33 @@ router.post("/refresh", (req, res: Response) => {
 
  */
 
-router.post("/logout", (_req, res: Response) => {
-  clearAccessTokenCookie(res);
-  clearRefreshTokenCookie(res);
-  res.json({ ok: true });
+router.post("/logout", (req, res: Response) => {
+  const { refreshToken } = req.body ?? {};
+  const tokenFromCookie = (() => {
+    const header = req.headers.cookie;
+    if (!header) return null;
+    for (const part of header.split(";")) {
+      const idx = part.indexOf("=");
+      if (idx === -1) continue;
+      const key = part.slice(0, idx).trim();
+      if (key === "refresh_token") return part.slice(idx + 1).trim();
+    }
+    return null;
+  })();
+  const token = (typeof refreshToken === "string" ? refreshToken : "").trim() || tokenFromCookie;
+
+  (async () => {
+    const payload = token ? verifyRefreshToken(token) : null;
+    if (payload) await invalidateUserTokens(payload.userId);
+    clearAccessTokenCookie(res);
+    clearRefreshTokenCookie(res);
+    res.json({ ok: true });
+  })().catch((e) => {
+    console.error("Logout error:", e);
+    clearAccessTokenCookie(res);
+    clearRefreshTokenCookie(res);
+    res.json({ ok: true });
+  });
 });
 
 
@@ -336,4 +358,3 @@ router.post("/register", (req, res: Response) => {
 
 
 export default router;
-

@@ -266,11 +266,12 @@ export async function uploadSkuImages(files: File[], onProgress?: (percent: numb
 
   const doUpload = (token: string | null) =>
 
-    new Promise<{ status: number; body: any }>((resolve, reject) => {
+    new Promise<{ status: number; body: Record<string, unknown> }>((resolve, reject) => {
 
       const xhr = new XMLHttpRequest();
 
       xhr.open("POST", `${getBase()}/api/client/skus/upload`);
+      xhr.withCredentials = true;
 
       if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
 
@@ -288,7 +289,7 @@ export async function uploadSkuImages(files: File[], onProgress?: (percent: numb
 
       xhr.onload = () => {
 
-        let body: any = {};
+        let body: Record<string, unknown> = {};
 
         try {
 
@@ -569,10 +570,12 @@ export async function getClientVideoOrderDetail(id: number) {
 
 async function readApiErrorMessage(res: Response): Promise<string> {
   try {
-    const data = await res.json().catch(() => ({} as any));
-    const msg = typeof data?.message === "string" ? data.message : "";
+    const data = (await res.json().catch(() => ({}))) as { message?: unknown };
+    const msg = typeof data.message === "string" ? data.message : "";
     if (msg) return msg;
-  } catch {}
+  } catch {
+    // fall back to plain text response
+  }
   try {
     const text = await res.text();
     return String(text || "").trim();

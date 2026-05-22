@@ -21,24 +21,22 @@ const modelUpload = multer({
   limits: { fileSize: MODEL_UPLOAD_MAX_BYTES, files: 20 },
 });
 
-/**
- * 获取可用于外部访问的文件 URL 根路径。
+/**
+ * 按 MIME 推断图片扩展名。
  */
-function getPublicBaseUrl(req: AuthRequest): string {
-  const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "http";
-  const host = req.get("host") || "localhost:3000";
-  return `${proto}://${host}`;
-}
-
-/**
- * 按 MIME 推断图片扩展名。
- */
-function extByMime(mime: string): string | null {
-  if (mime === "image/jpeg") return ".jpg";
-  if (mime === "image/png") return ".png";
-  if (mime === "image/webp") return ".webp";
-  return null;
-}
+function extByMime(mime: string): string | null {
+  if (mime === "image/jpeg") return ".jpg";
+  if (mime === "image/png") return ".png";
+  if (mime === "image/webp") return ".webp";
+  return null;
+}
+
+function isAllowedImageBuffer(buffer: Buffer, ext: string): boolean {
+  if (ext === ".jpg" || ext === ".jpeg") return buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  if (ext === ".png") return buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  if (ext === ".webp") return buffer.length >= 12 && buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP";
+  return false;
+}
 
 /**
  * 规范化模特状态，非法时回退为 disabled。
@@ -201,8 +199,7 @@ router.post("/upload", (req: AuthRequest, res: Response) => {
       }
       const uploadDir = path.join(getUploadsRoot(), "models", String(req.user!.userId));
       await fs.mkdir(uploadDir, { recursive: true });
-      const base = getPublicBaseUrl(req);
-      const urls: string[] = [];
+      const urls: string[] = [];
       for (const file of files) {
         if (!ALLOWED_MODEL_IMAGE_MIME.has(file.mimetype)) {
           res.status(400).json({ error: "INVALID_IMAGE_TYPE", message: "仅支持 jpg/png/webp 图片。" });
@@ -213,14 +210,18 @@ router.post("/upload", (req: AuthRequest, res: Response) => {
           return;
         }
         const ext = extByMime(file.mimetype);
-        if (!ext) {
-          res.status(400).json({ error: "INVALID_IMAGE_TYPE", message: "图片格式不支持。" });
-          return;
-        }
-        const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`;
+        if (!ext) {
+          res.status(400).json({ error: "INVALID_IMAGE_TYPE", message: "图片格式不支持。" });
+          return;
+        }
+        if (!isAllowedImageBuffer(file.buffer, ext)) {
+          res.status(400).json({ error: "INVALID_IMAGE_CONTENT", message: "图片内容与格式不匹配。" });
+          return;
+        }
+        const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`;
         const filepath = path.join(uploadDir, filename);
         await fs.writeFile(filepath, file.buffer);
-        urls.push(`${base}/uploads/models/${req.user!.userId}/${filename}`);
+        urls.push(`/uploads/models/${req.user!.userId}/${filename}`);
       }
       res.status(201).json({ urls });
     })().catch((e) => {
