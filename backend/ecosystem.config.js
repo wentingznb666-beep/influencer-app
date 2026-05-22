@@ -1,10 +1,26 @@
+const fs = require('fs');
+const path = require('path');
+
+// 读取 .env 文件
+const envPath = path.join(__dirname, '.env');
+const envContent = fs.readFileSync(envPath, 'utf8');
+const env = {};
+
+// 解析 .env 文件
+envContent.split('\n').forEach(line => {
+  const match = line.match(/^([^#=]+)=(.*)$/);
+  if (match) {
+    env[match[1].trim()] = match[2].trim();
+  }
+});
+
 module.exports = {
   apps: [{
     name: 'influencer-app',
     script: 'dist/index.js',
     cwd: '/home/ubuntu/influencer-app/backend',
-    node_args: '-r dotenv/config',
     env: {
+      ...env,
       NODE_ENV: 'production',
       PORT: 3000
     },
