@@ -1,0 +1,120 @@
+<div class="page" id="my-orders">
+  <!-- 页面标题 -->
+  <div class="card">
+    <div class="card-title">我的商单</div>
+    <p style="font-size: 14px; color: #666;">查看已领取的商单和完成记录</p>
+  </div>
+
+  <!-- 商单列表 -->
+  <div class="card">
+    <div id="my-orders-list" class="list">
+      <div class="empty">
+        <div class="empty-icon">💰</div>
+        <div class="empty-text">加载中...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 加载我的商单
+  async function loadMyOrders() {
+    try {
+      const orders = await api.getMyMarketOrders();
+      const container = document.getElementById('my-orders-list');
+
+      if (!orders || orders.length === 0) {
+        container.innerHTML = `
+          <div class="empty">
+            <div class="empty-icon">💰</div>
+            <div class="empty-text">暂无商单，去商单中心领取吧</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = orders.map(order => `
+        <div class="list-item">
+          <div class="list-item-content">
+            <div class="list-item-title">${utils.truncateText(order.title || '未命名商单', 25)}</div>
+            <div class="list-item-desc">${utils.truncateText(order.description || '暂无描述', 40)}</div>
+            <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span class="tag ${getStatusTagClass(order.status)}">${getStatusLabel(order.status)}</span>
+                <span style="margin-left: 8px; font-size: 16px; color: #fa8c16; font-weight: 700;">
+                  ¥${utils.formatAmount(order.price || 0)}
+                </span>
+              </div>
+              ${order.status === 'claimed' ? `
+                <button onclick="completeOrder(${order.id})" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">
+                  完成
+                </button>
+              ` : ''}
+            </div>
+            <div style="margin-top: 8px; font-size: 12px; color: #999;">
+              领取时间：${utils.formatDateTime(order.claimed_at)}
+            </div>
+            ${order.deadline ? `
+              <div style="margin-top: 4px; font-size: 12px; color: #f5222d;">
+                截止时间：${utils.formatDateTime(order.deadline)}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+
+    } catch (error) {
+      console.error('加载我的商单失败:', error);
+      document.getElementById('my-orders-list').innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">😢</div>
+          <div class="empty-text">加载失败，请重试</div>
+        </div>
+      `;
+    }
+  }
+
+  // 获取状态标签样式
+  function getStatusTagClass(status) {
+    const classes = {
+      claimed: 'tag-warning',
+      completed: 'tag-info',
+      approved: 'tag-success',
+      rejected: 'tag-error',
+      published: 'tag-success',
+    };
+    return classes[status] || 'tag-warning';
+  }
+
+  // 获取状态标签文本
+  function getStatusLabel(status) {
+    const labels = {
+      claimed: '已领取',
+      completed: '已完成',
+      approved: '已通过',
+      rejected: '已拒绝',
+      published: '已发布',
+    };
+    return labels[status] || '未知';
+  }
+
+  // 完成商单
+  async function completeOrder(orderId) {
+    try {
+      const confirmed = await utils.confirm('确定要标记为已完成吗？');
+      if (!confirmed) return;
+
+      const result = await api.completeMarketOrder(orderId, {});
+      utils.showToast('已标记为完成', 'success');
+      
+      // 重新加载我的商单
+      await loadMyOrders();
+    } catch (error) {
+      console.error('完成商单失败:', error);
+      utils.showToast(error.message || '操作失败', 'error');
+    }
+  }
+
+  // 加载我的商单
+  loadMyOrders();
+</script>
