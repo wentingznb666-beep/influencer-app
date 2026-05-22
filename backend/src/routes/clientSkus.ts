@@ -256,7 +256,7 @@ router.post("/skus/batch-import", skuBatchUpload.single("file"), (req: AuthReque
       // ZIP 模式：解压，找 Excel + 图片
       const zip = await JSZip.loadAsync(file.buffer);
       // 找 Excel 文件
-      const excelEntry = zip.file(/\.xlsx?$/i).find((e) => !e.dir);
+      const excelEntry = zip.file(/\.xlsx?$/i).find((e: any) => !e.dir);
       if (!excelEntry) {
         res.status(400).json({ error: "INVALID_INPUT", message: "ZIP 中没有找到 Excel 文件（.xlsx/.xls）。" });
         return;
@@ -265,7 +265,7 @@ router.post("/skus/batch-import", skuBatchUpload.single("file"), (req: AuthReque
 
       // 找图片文件（images/ 子目录或根目录）
       const imageExts = new Set([".jpg", ".jpeg", ".png", ".webp"]);
-      const imageEntries = zip.file(/\.(jpg|jpeg|png|webp)$/i).filter((e) => !e.dir);
+      const imageEntries = zip.file(/\.(jpg|jpeg|png|webp)$/i).filter((e: any) => !e.dir);
 
       for (const entry of imageEntries) {
         const name = path.basename(entry.name); // 如 SKU001.jpg, SKU001_2.jpg
@@ -309,16 +309,16 @@ router.post("/skus/batch-import", skuBatchUpload.single("file"), (req: AuthReque
       // 读取表头
       const headerRow = sheet.getRow(1);
       const headers: string[] = [];
-      headerRow.eachCell((cell, colNumber) => {
+      headerRow.eachCell((cell: any, colNumber: number) => {
         headers[colNumber - 1] = String(cell.value ?? "").trim();
       });
 
       // 读取数据行
       rows = [];
-      sheet.eachRow((row, rowNumber) => {
+      sheet.eachRow((row: any, rowNumber: number) => {
         if (rowNumber === 1) return; // 跳过表头
         const rowData: Record<string, unknown> = {};
-        row.eachCell((cell, colNumber) => {
+        row.eachCell((cell: any, colNumber: number) => {
           const key = headers[colNumber - 1];
           if (key) rowData[key] = cell.value;
         });
@@ -589,13 +589,14 @@ router.post("/skus/batch-images", skuBatchImagesUpload.array("files", 50), (req:
       if (file.originalname.toLowerCase().endsWith(".zip")) {
         // 解压 ZIP，提取图片
         const zip = await JSZip.loadAsync(file.buffer);
-        for (const entry of Object.values(zip.files)) {
+        const entries = Object.values(zip.files) as any[];
+        for (const entry of entries) {
           if (entry.dir) continue;
-          const entryName = entry.name.toLowerCase();
+          const entryName = String(entry.name || "").toLowerCase();
           const hasImageExt = [".jpg", ".jpeg", ".png", ".webp"].some((ext) => entryName.endsWith(ext));
           if (!hasImageExt) continue;
           const buf = await entry.async("nodebuffer");
-          imageFiles.push({ name: path.basename(entry.name), buffer: buf });
+          imageFiles.push({ name: path.basename(String(entry.name || "")), buffer: buf });
         }
       } else {
         // 直接的图片文件

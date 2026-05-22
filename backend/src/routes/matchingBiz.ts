@@ -1,4 +1,4 @@
-﻿﻿import { Router, Response } from "express";
+﻿﻿﻿import { Router, Response } from "express";
 import multer from "multer";
 import path from "path";
 import { promises as fs } from "fs";
@@ -612,8 +612,9 @@ router.post("/influencer/matching-orders/:id/apply", async (req: AuthRequest, re
       tiktok_fans: string | null;
       expertise_domains: string | null;
       influencer_bio: string | null;
+      line_contact: string | null;
     }>(
-      `SELECT tiktok_account, tiktok_fans, expertise_domains, influencer_bio FROM users WHERE id=$1`,
+      `SELECT tiktok_account, tiktok_fans, expertise_domains, influencer_bio, line_contact FROM users WHERE id=$1`,
       [req.user.userId],
     );
     if (!isInfluencerProfileComplete(profile.rows[0])) {
