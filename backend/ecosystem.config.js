@@ -3,11 +3,11 @@ module.exports = {
     name: 'influencer-app',
     script: 'dist/index.js',
     cwd: '/home/ubuntu/influencer-app/backend',
+    node_args: '-r dotenv/config',
     env: {
       NODE_ENV: 'production',
       PORT: 3000
     },
-    env_file: '.env',
     instances: 1,
     autorestart: true,
     watch: false,
