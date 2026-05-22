@@ -344,7 +344,7 @@ export default function ModelsPage() {
         </div>
       )}
 
-      <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", position: "sticky", top: 0, zIndex: 10, background: "#f5f7fa", padding: "12px 0" }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索模特名称/介绍" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 260 }} />
         <select value={status} onChange={(e) => setStatus(e.target.value as any)} style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff" }}>
           <option value="">全部状态</option>

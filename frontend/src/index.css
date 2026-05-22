@@ -2277,3 +2277,16 @@ textarea {
 }
 
 
+
+/* 固定搜索框样式 */
+.sticky-search,
+[class*="topbar"],
+[class*="search-bar"],
+div:has(> input[placeholder*="搜索"]),
+div:has(> input[placeholder*="Search"]) {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background: var(--xt-bg, #f5f7fa) !important;
+  padding: 12px 0 !important;
+}
