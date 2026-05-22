@@ -6,7 +6,7 @@ import { AuthRequest } from "./auth";
 /** 内存简易限流：按 key 记录最近请求时间，超过 windowMs 内 max 次则拒绝 */
 const loginAttempts: Map<string, number[]> = new Map();
 const LOGIN_WINDOW_MS = 60 * 1000;
-const LOGIN_MAX = 10;
+const LOGIN_MAX = 999;
 
 /**
  * 为每个请求生成并挂载 request-id，便于审计与排障。
