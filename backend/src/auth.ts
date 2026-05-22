@@ -76,7 +76,7 @@ export function setAccessTokenCookie(res: Response, token: string): void {
 }
 
 export function setRefreshTokenCookie(res: Response, token: string): void {
-  setCookie(res, "refresh_token", token, REFRESH_MAX_AGE_MS, "/api/auth", "strict");
+  setCookie(res, "refresh_token", token, REFRESH_MAX_AGE_MS, "/api/auth", "lax");
 }
 
 export function clearAccessTokenCookie(res: Response): void {

@@ -50,6 +50,7 @@ let accessTokenMemory: string | null = null;
 
 localStorage.removeItem(STORAGE_ACCESS);
 localStorage.removeItem(STORAGE_REFRESH);
+  stopAutoRefresh();
 
 
 
@@ -140,6 +141,7 @@ export function clearAuth(): void {
   localStorage.removeItem(STORAGE_ACCESS);
 
   localStorage.removeItem(STORAGE_REFRESH);
+  stopAutoRefresh();
 
   localStorage.removeItem(STORAGE_USER);
 
