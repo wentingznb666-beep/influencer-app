@@ -600,15 +600,17 @@ export default function MarketOrdersPage() {
 
     <div>
 
-      <h2 style={{ marginTop: 0 }}>{t("视频分级订单")}</h2>
+      <div className="xt-page-header">
+        <h2 className="xt-page-title">{t("视频分级订单")}</h2>
 
-      <p style={{ fontSize: 14, color: "#64748b" }}>{t("查看商家端发布的达人领单；布局与「商家订单」页保持一致，便于跨页核对。")}</p>
+              <p className="xt-page-subtitle">{t("查看商家端发布的达人领单；布局与「商家订单」页保持一致，便于跨页核对。")}</p>
+      </div>
 
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
-      <div style={{ marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      <div className="xt-toolbar" style={{ position: "sticky", top: 0, zIndex: 20 }}>
 
-        <div data-no-auto-translate style={{ display: "contents" }}>
+        <div style={{ display: "contents" }}>
 
         <input
 
@@ -682,9 +684,10 @@ export default function MarketOrdersPage() {
 
       ) : (
 
+        <div className="xt-table-card">
         <OrderTableScrollArea fitContent>
 
-          <table className="xt-client-orders-table">
+          <table className="xt-client-orders-table xt-table xt-table--striped">
 
             <colgroup>
 
@@ -973,6 +976,7 @@ export default function MarketOrdersPage() {
           </table>
 
         </OrderTableScrollArea>
+        </div>
 
       )}
 
@@ -1046,7 +1050,7 @@ export default function MarketOrdersPage() {
 
             </div>
 
-            <div data-no-auto-translate style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 10, alignItems: "start", fontSize: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 10, alignItems: "start", fontSize: 14 }}>
 
               <div style={{ color: "#64748b" }}>{t("订单ID")}</div><div>{detailOrder.id}</div>
 

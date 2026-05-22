@@ -1,0 +1,223 @@
+/* ================================================================
+ *  UI 改进补充样式 — 导入到 index.css 末尾
+ * ================================================================ */
+
+/* ----- 统计卡片网格 ----- */
+.xt-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.xt-stat-card {
+  background: var(--xt-surface);
+  border-radius: 12px;
+  border: 1px solid var(--xt-border);
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition: box-shadow 180ms ease, transform 180ms ease;
+}
+.xt-stat-card:hover {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  transform: translateY(-2px);
+}
+.xt-stat-card__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--xt-text-muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+.xt-stat-card__value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--xt-primary);
+  line-height: 1.2;
+}
+.xt-stat-card__sub {
+  font-size: 12px;
+  color: var(--xt-text-muted);
+  margin-top: 4px;
+}
+
+/* ----- 斑马纹表格增强 ----- */
+.xt-table--striped tbody tr:nth-child(even) {
+  background: rgba(238, 242, 248, 0.45);
+}
+.xt-table--striped tbody tr:hover {
+  background: rgba(224, 112, 32, 0.04);
+}
+
+/* 表格内容卡片包裹 */
+.xt-table-card {
+  background: var(--xt-surface);
+  border-radius: 12px;
+  border: 1px solid var(--xt-border);
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+/* ----- 按钮体系 ----- */
+.xt-btn-outline {
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--xt-border-strong);
+  background: var(--xt-surface);
+  color: var(--xt-primary);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+.xt-btn-outline:hover {
+  background: #f8fafc;
+  border-color: var(--xt-accent);
+  box-shadow: 0 2px 8px rgba(224, 112, 32, 0.12);
+}
+
+.xt-btn-danger {
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+  background: #fff;
+  color: #b91c1c;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background-color 150ms ease;
+}
+.xt-btn-danger:hover {
+  background: #fef2f2;
+}
+
+.xt-btn-ghost {
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--xt-text-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+.xt-btn-ghost:hover {
+  color: var(--xt-primary);
+  background: rgba(21, 42, 69, 0.06);
+}
+
+/* ----- Tab 切换 ----- */
+.xt-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--xt-border);
+  margin-bottom: 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.xt-tab {
+  padding: 10px 20px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--xt-text-muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  white-space: nowrap;
+  position: relative;
+  transition: color 150ms ease;
+}
+.xt-tab:hover { color: var(--xt-primary); }
+.xt-tab--active { color: var(--xt-primary); }
+.xt-tab--active::after {
+  content: "";
+  position: absolute;
+  bottom: -2px; left: 0; right: 0;
+  height: 2px;
+  background: var(--xt-accent);
+  border-radius: 2px 2px 0 0;
+}
+
+/* ----- 状态标签 ----- */
+.xt-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+.xt-badge--success { background: #dcfce7; color: #15803d; }
+.xt-badge--warning { background: #fef3c7; color: #a16207; }
+.xt-badge--danger  { background: #fee2e2; color: #b91c1c; }
+.xt-badge--info    { background: #dbeafe; color: #1d4ed8; }
+.xt-badge--neutral { background: #f1f5f9; color: #475569; }
+
+/* ----- 搜索工具栏 ----- */
+.xt-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--xt-bg);
+  padding: 12px 0;
+}
+.xt-search {
+  flex: 1 1 240px;
+  min-width: 160px;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--xt-border);
+  background: var(--xt-surface);
+  color: var(--xt-text);
+  font-size: 14px;
+  font-weight: 600;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.xt-search:focus {
+  outline: none;
+  border-color: var(--xt-primary);
+  box-shadow: 0 0 0 3px rgba(21, 42, 69, 0.12);
+}
+.xt-search::placeholder {
+  color: var(--xt-text-muted);
+  font-weight: 500;
+}
+
+/* ----- 页面标题 ----- */
+.xt-page-header { margin-bottom: 24px; }
+.xt-page-title {
+  margin: 0 0 4px;
+  font-size: 22px; font-weight: 800;
+  color: var(--xt-primary);
+  letter-spacing: 0.02em;
+}
+.xt-page-subtitle {
+  margin: 0;
+  font-size: 14px; color: var(--xt-text-muted);
+  line-height: 1.6;
+}
+
+/* ----- 响应式 ----- */
+@media (max-width: 767px) {
+  .xt-stat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .xt-stat-card__value { font-size: 22px; }
+  .xt-toolbar { flex-direction: column; align-items: stretch; }
+  .xt-search { width: 100%; }
+  .xt-page-title { font-size: 18px; }
+  .xt-hide-mobile { display: none !important; }
+}
+@media (min-width: 768px) {
+  .xt-hide-desktop { display: none !important; }
+}

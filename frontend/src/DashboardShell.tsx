@@ -73,9 +73,9 @@ function sanitizeEscapedTextNodes(root: HTMLElement): void {
 type InfluencerGroupId = "points" | "match" | "common";
 
 const GROUP_META: Record<InfluencerGroupId, { label: string; icon: string }> = {
-  points: { label: "视频分级 คลิปแบ่งเกรด", icon: "💰" },
-  match: { label: "合作业务类型ประเภทความร่วมมือ", icon: "🤝" },
-  common: { label: "公共项目类型 ประเภทโปรเจกต์ทั่วไป", icon: "📄" },
+  points: { label: "视频分级", icon: "💰" },
+  match: { label: "合作业务类型", icon: "🤝" },
+  common: { label: "公共项目类型", icon: "📄" },
 };
 
 /** 业务分组顺序，所有角色保持一致。 */

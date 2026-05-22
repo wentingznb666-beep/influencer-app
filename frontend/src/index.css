@@ -8,19 +8,19 @@
 
   /* 涓昏壊锛氭繁闈涜摑 鈥?涓撲笟銆佷俊浠?*/
 
-  --xt-primary: #152a45;
+  --xt-primary: #2563eb;
 
-  --xt-primary-soft: #1e3a5c;
+  --xt-primary-soft: #3b82f6;
 
   /* 鐐圭紑锛氭鑹?鈥?娲诲姏銆佷笢鍗椾簹/鍑烘捣 */
 
-  --xt-accent: #e07020;
+  --xt-accent: #f97316;
 
-  --xt-accent-hover: #ea8938;
+  --xt-accent-hover: #fb923c;
 
   /* 鑳屾櫙锛氭瀬娣＄伆钃?*/
 
-  --xt-bg: #eef2f8;
+  --xt-bg: #f8fafc;
 
   --xt-surface: #ffffff;
 
@@ -28,19 +28,19 @@
 
   --xt-text-muted: #64748b;
 
-  --xt-border: #d8e0eb;
+  --xt-border: #e2e8f0;
 
-  --xt-border-strong: #c5d0e0;
+  --xt-border-strong: #cbd5e1;
 
   /* 瀵艰埅閫変腑锛氭祬闈涜摑搴?+ 搴曡竟姗欒壊鏉★紙鐢卞唴鑱?box-shadow 瀹炵幇锛?*/
 
-  --xt-nav-active-bg: rgba(21, 42, 69, 0.08);
+  --xt-nav-active-bg: rgba(37, 99, 235, 0.08);
 
   /* 鍚庡彴渚ф爮锛氭繁闈涜摑搴?+ 婵€娲婚」姗欒壊锛堜笌绗竴姝ョ偣缂€鑹插尯鍒嗘椂浠ユ湰鍙橀噺涓哄噯锛?*/
 
-  --xt-sidebar-bg: #1a237e;
+  --xt-sidebar-bg: #1e293b;
 
-  --xt-sidebar-active: #ff9800;
+  --xt-sidebar-active: #f97316;
 
   --xt-sidebar-text: #ffffff;
 
@@ -48,7 +48,7 @@
 
   --xt-main-padding: 32px 36px;
 
-  font-family: system-ui, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: "Inter", "Noto Sans Thai", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
 
   line-height: 1.5;
 
@@ -2290,3 +2290,215 @@ div:has(> input[placeholder*="Search"]) {
   background: var(--xt-bg, #f5f7fa) !important;
   padding: 12px 0 !important;
 }
+
+/* ================================================================
+ *  方案 A：清爽现代 — UI 组件
+ * ================================================================ */
+
+/* ---------- 统计卡片 ---------- */
+.xt-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.xt-stat-card {
+  background: var(--xt-surface);
+  border-radius: 10px;
+  border: 1px solid var(--xt-border);
+  padding: 16px 18px;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.xt-stat-card:hover {
+  border-color: var(--xt-primary);
+  box-shadow: 0 2px 12px rgba(37, 99, 235, 0.08);
+}
+.xt-stat-card__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--xt-text-muted);
+  margin-bottom: 4px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.xt-stat-card__value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--xt-primary);
+  line-height: 1.15;
+}
+.xt-stat-card__sub {
+  font-size: 11px;
+  color: var(--xt-text-muted);
+  margin-top: 2px;
+}
+
+/* ---------- 斑马纹表格 ---------- */
+.xt-table--striped tbody tr:nth-child(even) {
+  background: rgba(248, 250, 252, 0.7);
+}
+.xt-table--striped tbody tr:hover {
+  background: rgba(37, 99, 235, 0.03);
+}
+
+/* ---------- 表格卡片包裹 ---------- */
+.xt-table-card {
+  background: var(--xt-surface);
+  border-radius: 10px;
+  border: 1px solid var(--xt-border);
+  overflow: hidden;
+}
+
+/* ---------- 按钮系统 ---------- */
+.xt-btn-outline {
+  min-height: 38px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--xt-border-strong);
+  background: var(--xt-surface);
+  color: var(--xt-primary);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 150ms ease;
+}
+.xt-btn-outline:hover {
+  background: #eff6ff;
+  border-color: var(--xt-primary);
+}
+
+.xt-btn-ghost {
+  min-height: 38px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--xt-text-muted);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: color 150ms ease, background 150ms ease;
+}
+.xt-btn-ghost:hover {
+  color: var(--xt-primary);
+  background: rgba(37, 99, 235, 0.05);
+}
+
+/* ---------- 状态徽章 ---------- */
+.xt-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.7;
+  letter-spacing: 0.01em;
+}
+.xt-badge--success { background: #dcfce7; color: #15803d; }
+.xt-badge--warning { background: #fff7ed; color: #c2410c; }
+.xt-badge--danger  { background: #fef2f2; color: #b91c1c; }
+.xt-badge--info    { background: #eff6ff; color: #1d4ed8; }
+.xt-badge--neutral { background: #f8fafc; color: #475569; border: 1px solid var(--xt-border); }
+
+/* ---------- 搜索工具栏 ---------- */
+.xt-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--xt-bg);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--xt-border);
+}
+.xt-search {
+  flex: 1 1 220px;
+  min-width: 160px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--xt-border);
+  background: var(--xt-surface);
+  color: var(--xt-text);
+  font-size: 13px;
+  font-weight: 500;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+.xt-search:focus {
+  outline: none;
+  border-color: var(--xt-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.xt-search::placeholder {
+  color: #94a3b8;
+}
+
+/* ---------- 页面标题 ---------- */
+.xt-page-header { margin-bottom: 18px; }
+.xt-page-title {
+  margin: 0 0 2px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--xt-text);
+  letter-spacing: -0.01em;
+}
+.xt-page-subtitle {
+  margin: 0;
+  font-size: 13px;
+  color: var(--xt-text-muted);
+  line-height: 1.5;
+}
+
+/* ---------- 表单网格 ---------- */
+.xt-form-grid {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 10px 14px;
+  align-items: center;
+}
+.xt-form-grid__label {
+  font-weight: 600;
+  color: var(--xt-text-muted);
+  font-size: 12px;
+  text-align: right;
+}
+.xt-form-grid__value {
+  font-weight: 600;
+  color: var(--xt-text);
+}
+
+/* ---------- 按钮组 ---------- */
+.xt-btn-group {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ---------- 阴影统一弱化 ---------- */
+.xt-card {
+  background: var(--xt-surface);
+  border-radius: 10px;
+  border: 1px solid var(--xt-border);
+}
+
+/* ---------- 响应式 ---------- */
+@media (max-width: 767px) {
+  .xt-stat-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .xt-stat-card__value { font-size: 22px; }
+  .xt-toolbar { flex-direction: column; align-items: stretch; }
+  .xt-search { width: 100%; }
+  .xt-page-title { font-size: 18px; }
+  .xt-form-grid { grid-template-columns: 1fr; gap: 4px; }
+  .xt-form-grid__label { text-align: left; }
+}
+
+/* ---------- 等宽字体（订单号、编号） ---------- */
+.xt-mono {
+  font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+  font-weight: 500;
+}
+

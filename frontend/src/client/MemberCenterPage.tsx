@@ -66,30 +66,32 @@ export default function MemberCenterPage() {
   };
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
-      <h2 style={{ marginTop: 0 }}>会员中心 / Membership Center</h2>
+    <div className="xt-card" style={{ padding: 20 }}>
+      <div className="xt-page-header">
+        <h2 className="xt-page-title">会员中心 / Membership Center</h2>
+      </div>
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
       {msg && <p style={{ color: "#166534" }}>{msg}</p>}
 
-      <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
-        <div>会员等级 / Member Level：{profile?.member_level ?? 0}</div>
-        <div>会员到期时间 / Expire Time：{profile?.member_expire_time || "-"}</div>
-        <div>保证金余额 / Deposit Balance：{profile?.deposit_amount ?? 0}</div>
-        <div>已冻结金额 / Frozen Amount：{profile?.deposit_frozen ?? 0}</div>
+      <div className="xt-form-grid" style={{ marginBottom: 16 }}>
+        <div className="xt-form-grid__label">会员等级</div><div className="xt-form-grid__value">Member Level {profile?.member_level ?? 0}</div>
+        <div className="xt-form-grid__label">到期时间</div><div className="xt-form-grid__value">{profile?.member_expire_time || "-"}</div>
+        <div className="xt-form-grid__label">保证金余额</div><div className="xt-form-grid__value">{profile?.deposit_amount ?? 0} 积分</div>
+        <div className="xt-form-grid__label">已冻结金额</div><div className="xt-form-grid__value">{profile?.deposit_frozen ?? 0} 积分</div>
       </div>
 
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
-        <button type="button" onClick={() => void buy(1)}>开通基础会员 / Basic</button>
-        <button type="button" onClick={() => void buy(2)}>开通高级会员 / Advanced</button>
-        <button type="button" onClick={() => void buy(3)}>开通旗舰会员 / Premium</button>
-        <button type="button" onClick={() => void topup()}>充值保证金 / Top up deposit +1000</button>
+      <div className="xt-btn-group" style={{ marginTop: 16, marginBottom: 20 }}>
+        <button type="button" className="xt-btn-outline" onClick={() => void buy(1)}>开通基础会员 / Basic</button>
+        <button type="button" className="xt-btn-outline" onClick={() => void buy(2)}>开通高级会员 / Advanced</button>
+        <button type="button" className="xt-btn-outline" onClick={() => void buy(3)}>开通旗舰会员 / Premium</button>
+        <button type="button" className="xt-accent-btn" onClick={() => void topup()}>充值保证金 / Top up deposit +1000</button>
       </div>
 
-      <h3 style={{ marginBottom: 8 }}>保证金流水 / Deposit Logs</h3>
+      <h3 style={{ marginBottom: 8, marginTop: 8, fontSize: 16, fontWeight: 700, color: "var(--xt-primary)" }}>保证金流水 / Deposit Logs</h3>
       {logs.length === 0 ? <p>暂无记录 / No records</p> : null}
       {logs.length > 0 && (
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table className="xt-table xt-table--striped" style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
                 <th style={{ textAlign: "left", borderBottom: "1px solid #e2e8f0", padding: 6 }}>时间</th>

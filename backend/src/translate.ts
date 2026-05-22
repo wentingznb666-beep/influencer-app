@@ -52,7 +52,7 @@ export async function translateTextWithDeepseek(
 
   const payload = {
 
-    model: "deepseek-chat",
+    model: "deepseek-v4-flash",
 
     messages: [
 
@@ -146,7 +146,7 @@ export async function translateBatchWithDeepseek(
 
   const payload = {
 
-    model: "deepseek-chat",
+    model: "deepseek-v4-flash",
 
     messages: [
 

@@ -125,7 +125,9 @@ export default function InfluencersPage() {
 
     <div>
 
-      <h2 style={{ marginTop: 0 }}>达人管理</h2>
+      <div className="xt-page-header">
+        <h2 className="xt-page-title">达人管理</h2>
+      </div>
 
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 

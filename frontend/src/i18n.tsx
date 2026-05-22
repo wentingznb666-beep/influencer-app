@@ -471,8 +471,16 @@ function UiAutoTranslator({ lang }: { lang: Lang }) {
           schedulePersistCache();
           applyThaiSync(root);
           cleanupEscapedFragments(root);
+          // 延迟再次扫描：捕获异步加载的表格/弹窗等内容
+          const deferredScan = () => {
+            if (destroyed || gen !== translateGeneration) return;
+            const more = collectPendingChineseKeys(root, location.pathname);
+            if (more.length > 0) queueMicrotask(() => runThaiNetworkIfNeeded());
+          };
           const more = collectPendingChineseKeys(root, location.pathname);
           if (more.length > 0) queueMicrotask(() => runThaiNetworkIfNeeded());
+          // 500ms 后兜底扫描（等数据表格渲染完毕）
+          window.setTimeout(deferredScan, 600);
         } catch {
           if (!destroyed && lang === "th" && retryTimer === 0) {
             const delay = computeBackoffMs(networkFailureAttempts, 500, 30_000);
@@ -497,6 +505,14 @@ function UiAutoTranslator({ lang }: { lang: Lang }) {
         return;
       }
       if (!import.meta.env.PROD) loadCache();
+      // 先建立全量文本映射（切换后新 DOM 需要重新映射）
+      const allNodes = collectAllTextNodesDeep(root);
+      for (const node of allNodes) {
+        const full = node.nodeValue ?? "";
+        if (full.trim() && hasCjk(full)) {
+          if (!originalTextByNode.has(node)) originalTextByNode.set(node, full);
+        }
+      }
       applyThaiSync(root);
       cleanupEscapedFragments(root);
       runThaiNetworkIfNeeded();
@@ -547,16 +563,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     return role === "influencer" ? "th" : "zh";
   });
 
-  /**
-   * 达人端默认语言守卫：若被切到中文则自动回切泰语。
-   */
-  useEffect(() => {
-    const role = getStoredUser()?.role;
-    if (role === "influencer" && lang !== "th") {
-      setLangState("th");
-      localStorage.setItem("influencer_app_lang", "th");
-    }
-  }, [lang]);
+  /** 达人端默认泰文，但允许用户手动切换 */
 
   useEffect(() => {
     void appI18n.changeLanguage(lang);

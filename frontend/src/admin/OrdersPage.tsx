@@ -14,6 +14,7 @@ import { normalizeSkuCodes, normalizeSkuIds, normalizeSkuImages } from "../utils
 
 import OrderTableScrollArea from "../components/OrderTableScrollArea";
 
+import StatusBadge from "../components/StatusBadge";
 import { SkuDetailBlock, SkuTableCell } from "../components/MarketOrderSkuBlocks";
 
 
@@ -416,15 +417,17 @@ export default function OrdersPage() {
 
     <div>
 
-      <h2 style={{ marginTop: 0 }}>商家订单列表</h2>
+      <div className="xt-page-header">
+        <h2 className="xt-page-title">商家订单列表</h2>
 
-      <p style={{ fontSize: 14, color: "#64748b" }}>展示商家端发布的所有达人任务订单，状态与领取达人信息与商家端/达人端实时互通。</p>
+              <p className="xt-page-subtitle">展示商家端发布的所有达人任务订单，状态与领取达人信息与商家端/达人端实时互通。</p>
+      </div>
 
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
 
 
-      <div style={{ marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      <div className="xt-toolbar">
 
         <input
 
@@ -440,7 +443,7 @@ export default function OrdersPage() {
 
         />
 
-        <select value={status} onChange={(e) => setStatus(e.target.value as any)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", minWidth: 140 }}>
+        <select value={status} onChange={(e) => setStatus(e.target.value as any)} className="xt-input xt-select" style={{ minWidth: 140 }}>
 
           <option value="">全部状态</option>
 
@@ -508,9 +511,10 @@ export default function OrdersPage() {
 
       ) : (
 
+        <div className="xt-table-card">
         <OrderTableScrollArea fitContent>
 
-          <table className="xt-client-orders-table">
+          <table className="xt-client-orders-table xt-table xt-table--striped">
 
             <colgroup>
               <col style={{ width: "6%" }} />
@@ -622,9 +626,7 @@ export default function OrdersPage() {
                   </td>
 
                   <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
-                    <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: "0.95em", display: "inline-block", background: o.status === "open" ? "#ffedd5" : o.status === "claimed" ? "#dbeafe" : "#dcfce7", color: "#334155" }}>
-                      {statusText[o.status] ?? o.status}
-                    </span>
+                    <StatusBadge status={statusText[o.status] ?? o.status} />
                   </td>
                   <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top", textAlign: "center" }}>
                     <div style={{ fontSize: "12px", color: "#334155" }}>
@@ -712,6 +714,7 @@ export default function OrdersPage() {
           </table>
 
         </OrderTableScrollArea>
+        </div>
 
       )}
 
