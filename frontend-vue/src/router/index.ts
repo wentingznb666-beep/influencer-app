@@ -57,16 +57,9 @@ export const router = createRouter({
     },
     {
       path: "/",
-      redirect: () => {
-        const auth = useAuthStore();
-        const role = auth.user?.role;
-        if (role === "admin") return "/admin";
-        if (role === "employee") return "/employee";
-        if (role === "client") return "/client";
-        if (role === "influencer") return "/influencer";
-        return "/login";
-      },
+      redirect: "/login",
     },
+    { path: "/:pathMatch(.*)*", redirect: "/login" },
   ],
 });
 
