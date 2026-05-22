@@ -1,4 +1,4 @@
-﻿﻿﻿import { Router, Response } from "express";
+﻿﻿﻿﻿import { Router, Response } from "express";
 import multer from "multer";
 import path from "path";
 import { promises as fs } from "fs";
@@ -631,7 +631,7 @@ router.post("/influencer/matching-orders/:id/apply", async (req: AuthRequest, re
            LEFT JOIN matching_order_details md ON md.order_id=mo.id
           WHERE mo.id=$1 AND mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1 AND mo.status='open' AND COALESCE(mo.allow_apply,1)=1
             AND COALESCE(md.detail_json->>'cooperation_type_id','') <> ALL($2::text[])
-          FOR UPDATE`,
+          FOR UPDATE OF mo`,
         [orderId, blockedVideoTypes]
       );
       const row = ord.rows[0];
