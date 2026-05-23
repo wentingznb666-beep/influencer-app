@@ -27,7 +27,7 @@ const TEXT_CACHE_KEY = "influencer_app_i18n_th_cache_v2";
 const translatedCache = new Map<string, string>();
 const originalTextByNode = new WeakMap<Text, string>();
 
-type AttrName = "placeholder" | "title" | "aria-label" | "alt";
+type AttrName = "placeholder" | "title" | "aria-label" | "alt" | "value";
 const originalAttrByEl = new WeakMap<Element, Partial<Record<AttrName, string>>>();
 
 let persistCacheTimer: number | null = null;
@@ -240,6 +240,15 @@ function collectAttrJobsDeep(root: HTMLElement): Array<{ el: Element; attr: Attr
     if (shouldSkipElementTag(tag)) return;
     if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
       if (el.placeholder?.trim()) result.push({ el, attr: "placeholder" });
+      // 翻译有中文内容的输入框值（跳过密码/数字/日期等类型）
+      const skipValueTypes = new Set(["password", "number", "date", "datetime-local", "month", "week", "time", "color", "file", "hidden"]);
+      const isInput = el instanceof HTMLInputElement;
+      if (isInput && skipValueTypes.has(el.type)) { /* skip */ }
+      else if (el.value?.trim() && hasCjk(el.value)) result.push({ el, attr: "value" });
+    }
+    if (el instanceof HTMLSelectElement) {
+      const selected = el.selectedOptions?.[0];
+      if (selected?.text?.trim() && hasCjk(selected.text.trim())) result.push({ el, attr: "value" });
     }
     for (const attr of ["title", "aria-label", "alt"] as const) {
       if (el.getAttribute(attr)?.trim()) result.push({ el, attr });
@@ -256,6 +265,11 @@ function readAttr(el: Element, attr: AttrName): string {
     if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return el.placeholder;
     return "";
   }
+  if (attr === "value") {
+    if (el instanceof HTMLSelectElement) return el.selectedOptions?.[0]?.text ?? "";
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return el.value;
+    return "";
+  }
   return el.getAttribute(attr) ?? "";
 }
 
@@ -265,6 +279,11 @@ function readAttr(el: Element, attr: AttrName): string {
 function writeAttr(el: Element, attr: AttrName, value: string): void {
   if (attr === "placeholder") {
     if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) el.placeholder = value;
+    return;
+  }
+  if (attr === "value") {
+    if (el instanceof HTMLSelectElement) return; // select value can't be directly overwritten
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) el.value = value;
     return;
   }
   el.setAttribute(attr, value);
