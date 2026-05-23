@@ -572,6 +572,13 @@ function serveFrontendIfBuilt(appInstance: express.Express): void {
 
   appInstance.use(express.static(frontendDist));
 
+  // 托管 LIFF 小程序静态文件
+  const liffAppDir = path.resolve(__dirname, "../../liff-app");
+  if (fs.existsSync(liffAppDir)) {
+    appInstance.use("/liff", express.static(liffAppDir));
+    console.log(`[liff.static] serving from ${liffAppDir}`);
+  }
+
 
 
   /**
@@ -580,7 +587,7 @@ function serveFrontendIfBuilt(appInstance: express.Express): void {
 
    */
 
-  appInstance.get(/^(?!\/api)(?!\/uploads).*/, (_req: Request, res: Response) => {
+  appInstance.get(/^(?!\/api)(?!\/uploads)(?!\/liff).*/, (_req: Request, res: Response) => {
 
     res.sendFile(path.join(frontendDist, "index.html"));
 
