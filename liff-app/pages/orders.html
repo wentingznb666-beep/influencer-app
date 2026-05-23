@@ -1,96 +1,45 @@
 <div class="page" id="orders">
-  <!-- 页面标题 -->
-  <div class="card">
-    <div class="card-title">商单中心</div>
-    <p style="font-size: 14px; color: #666;">浏览和领取商单，完成商单可获得收益</p>
+  <div class="section-header" style="margin-bottom:16px;">
+    <span class="section-title">💰 商单中心</span>
+    <span class="text-sm text-muted">浏览和领取商单</span>
   </div>
 
-  <!-- 商单列表 -->
-  <div class="card">
-    <div id="orders-list" class="list">
-      <div class="empty">
-        <div class="empty-icon">💰</div>
-        <div class="empty-text">加载中...</div>
-      </div>
+  <div id="orders-list">
+    <div class="empty">
+      <div class="empty-icon">📭</div>
+      <div class="empty-text">暂无可用商单</div>
     </div>
   </div>
 </div>
 
 <script>
-  // 加载商单列表
   async function loadOrders() {
     try {
       const orders = await api.getMarketOrders();
-      const container = document.getElementById('orders-list');
-
-      if (!orders || orders.length === 0) {
-        container.innerHTML = `
-          <div class="empty">
-            <div class="empty-icon">💰</div>
-            <div class="empty-text">暂无可用商单</div>
-          </div>
-        `;
+      const listEl = document.getElementById('orders-list');
+      
+      if (!Array.isArray(orders) || orders.length === 0) {
+        listEl.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">暂无可用商单</div></div>';
         return;
       }
 
-      container.innerHTML = orders.map(order => `
+      listEl.innerHTML = '<div class="list">' + orders.map(order => `
         <div class="list-item">
+          <div class="list-item-icon" style="background:#fef3c7;">💎</div>
           <div class="list-item-content">
-            <div class="list-item-title">${utils.truncateText(order.title || '未命名商单', 25)}</div>
-            <div class="list-item-desc">${utils.truncateText(order.description || '暂无描述', 40)}</div>
-            <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <span class="tag tag-warning">${order.status || '待领取'}</span>
-                <span style="margin-left: 8px; font-size: 16px; color: #fa8c16; font-weight: 700;">
-                  ¥${utils.formatAmount(order.price || 0)}
-                </span>
-              </div>
-              <button onclick="claimOrder(${order.id})" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">
-                领取
-              </button>
-            </div>
-            ${order.deadline ? `
-              <div style="margin-top: 8px; font-size: 12px; color: #999;">
-                截止时间：${utils.formatDateTime(order.deadline)}
-              </div>
-            ` : ''}
-            ${order.requirements ? `
-              <div style="margin-top: 8px; font-size: 12px; color: #666;">
-                要求：${utils.truncateText(order.requirements, 50)}
-              </div>
-            ` : ''}
+            <div class="list-item-title">${order.title || '未命名商单'}</div>
+            <div class="list-item-desc">${order.tier || 'C'}级 · ${order.status === 'open' ? '可领取' : order.status}</div>
+          </div>
+          <div class="list-item-right">
+            <div class="list-item-value">+${order.reward_points || 0}</div>
+            <div class="list-item-meta">积分</div>
           </div>
         </div>
-      `).join('');
-
+      `).join('') + '</div>';
     } catch (error) {
-      console.error('加载商单列表失败:', error);
-      document.getElementById('orders-list').innerHTML = `
-        <div class="empty">
-          <div class="empty-icon">😢</div>
-          <div class="empty-text">加载失败，请重试</div>
-        </div>
-      `;
+      console.error('加载商单失败:', error);
     }
   }
 
-  // 领取商单
-  async function claimOrder(orderId) {
-    try {
-      const confirmed = await utils.confirm('确定要领取这个商单吗？');
-      if (!confirmed) return;
-
-      const result = await api.claimMarketOrder(orderId);
-      utils.showToast('领取成功', 'success');
-      
-      // 重新加载商单列表
-      await loadOrders();
-    } catch (error) {
-      console.error('领取商单失败:', error);
-      utils.showToast(error.message || '领取失败', 'error');
-    }
-  }
-
-  // 加载商单列表
   loadOrders();
 </script>

@@ -1,106 +1,53 @@
 <div class="page" id="my-tasks">
-  <!-- 页面标题 -->
-  <div class="card">
-    <div class="card-title">我的任务</div>
-    <p style="font-size: 14px; color: #666;">查看已领取的任务和提交记录</p>
+  <div class="section-header" style="margin-bottom:16px;">
+    <span class="section-title">✅ 我的任务</span>
   </div>
 
-  <!-- 任务列表 -->
-  <div class="card">
-    <div id="my-tasks-list" class="list">
-      <div class="empty">
-        <div class="empty-icon">✅</div>
-        <div class="empty-text">加载中...</div>
-      </div>
+  <div id="my-tasks-list">
+    <div class="empty">
+      <div class="empty-icon">📋</div>
+      <div class="empty-text">暂无任务</div>
+      <div class="empty-sub">去任务大厅领取任务吧</div>
     </div>
   </div>
 </div>
 
 <script>
-  // 加载我的任务
   async function loadMyTasks() {
     try {
       const claims = await api.getMyClaims();
-      const container = document.getElementById('my-tasks-list');
-
-      if (!claims || claims.length === 0) {
-        container.innerHTML = `
-          <div class="empty">
-            <div class="empty-icon">✅</div>
-            <div class="empty-text">暂无任务，去任务大厅领取吧</div>
-          </div>
-        `;
+      const listEl = document.getElementById('my-tasks-list');
+      
+      if (!Array.isArray(claims) || claims.length === 0) {
+        listEl.innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">暂无任务</div><div class="empty-sub">去任务大厅领取任务吧</div></div>';
         return;
       }
 
-      container.innerHTML = claims.map(claim => `
-        <div class="list-item">
-          <div class="list-item-content">
-            <div class="list-item-title">${utils.truncateText(claim.task_title || '未命名任务', 25)}</div>
-            <div class="list-item-desc">${utils.truncateText(claim.task_description || '暂无描述', 40)}</div>
-            <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
-              <div>
-                <span class="tag ${getStatusTagClass(claim.status)}">${getStatusLabel(claim.status)}</span>
-                <span style="margin-left: 8px; font-size: 16px; color: #00B900; font-weight: 700;">
-                  ${utils.formatPoints(claim.task_points || 0)} 积分
-                </span>
-              </div>
-              ${claim.status === 'claimed' ? `
-                <button onclick="goToSubmit(${claim.id})" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">
-                  提交
-                </button>
-              ` : ''}
-            </div>
-            <div style="margin-top: 8px; font-size: 12px; color: #999;">
-              领取时间：${utils.formatDateTime(claim.claimed_at)}
-            </div>
-            ${claim.deadline ? `
-              <div style="margin-top: 4px; font-size: 12px; color: #f5222d;">
-                截止时间：${utils.formatDateTime(claim.deadline)}
-              </div>
-            ` : ''}
-          </div>
-        </div>
-      `).join('');
+      const statusMap = {
+        'pending': { text: '待提交', tag: 'tag-warning' },
+        'submitted': { text: '已提交', tag: 'tag-info' },
+        'approved': { text: '已通过', tag: 'tag-success' },
+        'rejected': { text: '已拒绝', tag: 'tag-error' },
+      };
 
+      listEl.innerHTML = '<div class="list">' + claims.map(claim => {
+        const st = statusMap[claim.status] || { text: claim.status, tag: '' };
+        return `
+          <div class="list-item">
+            <div class="list-item-icon" style="background:#eff6ff;">🎬</div>
+            <div class="list-item-content">
+              <div class="list-item-title">${claim.material_title || claim.title || '任务'}</div>
+              <div class="list-item-desc">${claim.platform || 'TikTok'}</div>
+            </div>
+            <div class="list-item-right">
+              <span class="tag ${st.tag}">${st.text}</span>
+            </div>
+          </div>`;
+      }).join('') + '</div>';
     } catch (error) {
       console.error('加载我的任务失败:', error);
-      document.getElementById('my-tasks-list').innerHTML = `
-        <div class="empty">
-          <div class="empty-icon">😢</div>
-          <div class="empty-text">加载失败，请重试</div>
-        </div>
-      `;
     }
   }
 
-  // 获取状态标签样式
-  function getStatusTagClass(status) {
-    const classes = {
-      claimed: 'tag-warning',
-      submitted: 'tag-info',
-      approved: 'tag-success',
-      rejected: 'tag-error',
-    };
-    return classes[status] || 'tag-warning';
-  }
-
-  // 获取状态标签文本
-  function getStatusLabel(status) {
-    const labels = {
-      claimed: '已领取',
-      submitted: '已提交',
-      approved: '已通过',
-      rejected: '已拒绝',
-    };
-    return labels[status] || '未知';
-  }
-
-  // 跳转到提交页面
-  function goToSubmit(claimId) {
-    window.location.href = `/liff-app/pages/submit.html?claimId=${claimId}`;
-  }
-
-  // 加载我的任务
   loadMyTasks();
 </script>
