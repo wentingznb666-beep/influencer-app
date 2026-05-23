@@ -1093,6 +1093,7 @@ export default function ClientOrdersHallPage() {
                 <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                   <input
                     type="url"
+                    inputMode="url"
                     value={publishDraft[o.id] || ""}
                     onChange={(e) => setPublishDraft((p) => ({ ...p, [o.id]: e.target.value }))}
                     placeholder={t("发布链接（TikTok/TAP）")}
@@ -1190,6 +1191,7 @@ export default function ClientOrdersHallPage() {
                         <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
                           <input
                             type="url"
+                            inputMode="url"
                             value={line}
                             onChange={(e) => {
                               const v = e.target.value;
@@ -1498,6 +1500,7 @@ export default function ClientOrdersHallPage() {
                             <span>{t("本次交付数量")}</span>
                             <input
                               type="number"
+                              inputMode="decimal"
                               value={(offlineMonthlyDraft[o.id]?.videoCount ?? "1") as any}
                               onChange={(e) =>
                                 setOfflineMonthlyDraft((p) => ({

@@ -105,6 +105,7 @@ export default function CooperationTypesPage(props: Props) {
       const cell = (who: "client" | "part_time", grade: "A" | "B" | "C", val: unknown) => (
         <input
           type="number"
+          inputMode="decimal"
           min={0}
           disabled={readOnly}
           value={toNum(val) ?? 0}
@@ -118,6 +119,7 @@ export default function CooperationTypesPage(props: Props) {
             <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>1 积分 =</div>
             <input
               type="number"
+              inputMode="decimal"
               min={1}
               disabled={readOnly}
               value={rate}
@@ -171,6 +173,7 @@ export default function CooperationTypesPage(props: Props) {
           <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>对外报价（泰铢）</div>
           <input
             type="number"
+            inputMode="decimal"
             min={0}
             disabled={readOnly}
             value={min}
@@ -187,6 +190,7 @@ export default function CooperationTypesPage(props: Props) {
           <div>—</div>
           <input
             type="number"
+            inputMode="decimal"
             min={0}
             disabled={readOnly}
             value={max}
@@ -212,6 +216,7 @@ export default function CooperationTypesPage(props: Props) {
           <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>门槛</div>
           <input
             type="number"
+            inputMode="decimal"
             min={0}
             disabled={readOnly}
             value={minVideos}
@@ -228,6 +233,7 @@ export default function CooperationTypesPage(props: Props) {
           <div style={{ fontWeight: 700, color: "var(--xt-primary)", marginLeft: 8 }}>单价</div>
           <input
             type="number"
+            inputMode="decimal"
             min={0}
             disabled={readOnly}
             value={price}
@@ -256,6 +262,7 @@ export default function CooperationTypesPage(props: Props) {
             <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>产出条数</div>
             <input
               type="number"
+              inputMode="decimal"
               min={0}
               disabled={readOnly}
               value={min}
@@ -272,6 +279,7 @@ export default function CooperationTypesPage(props: Props) {
             <div>—</div>
             <input
               type="number"
+              inputMode="decimal"
               min={0}
               disabled={readOnly}
               value={max}
@@ -291,6 +299,7 @@ export default function CooperationTypesPage(props: Props) {
             <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>报价（泰铢）</div>
             <input
               type="number"
+              inputMode="decimal"
               min={0}
               disabled={readOnly}
               value={price == null ? "" : toNum(price) ?? ""}

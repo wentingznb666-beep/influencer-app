@@ -206,6 +206,7 @@ export const MerchantInfoForm: React.FC = () => {
               color: isEditing ? "#000" : "#64748b"
             }}
             type="url"
+            inputMode="url"
             value={merchantTemplate.shop_link}
             onChange={(e) => handleChange("shop_link", e.target.value)}
             onBlur={() => handleBlur("shop_link")}

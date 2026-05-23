@@ -196,6 +196,7 @@ export default function WithdrawPage() {
         >
           <input
             type="number"
+            inputMode="decimal"
             min={1}
             step={1}
             value={amount}

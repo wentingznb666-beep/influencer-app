@@ -273,9 +273,9 @@ export default function InfluencerMyDemandsPage() {
               <label>{t("可接产品品类")}<input value={editForm.categories_can_do} onChange={(e) => setEditForm((f) => (f ? { ...f, categories_can_do: e.target.value } : f))} /></label>
               <label>{t("不接品类")}<input value={editForm.categories_not_do} onChange={(e) => setEditForm((f) => (f ? { ...f, categories_not_do: e.target.value } : f))} /></label>
               <label>{t("是否需要样品")}<select value={editForm.need_sample} onChange={(e) => setEditForm((f) => (f ? { ...f, need_sample: e.target.value as "是" | "否" } : f))}><option value="是">{t("是")}</option><option value="否">{t("否")}</option></select></label>
-              <label>{t("单条报价")}<input type="number" value={editForm.unit_price} onChange={(e) => setEditForm((f) => (f ? { ...f, unit_price: e.target.value } : f))} /></label>
-              <label>{t("出稿时效（天）")}<input type="number" value={editForm.delivery_days} onChange={(e) => setEditForm((f) => (f ? { ...f, delivery_days: e.target.value } : f))} /></label>
-              <label>{t("可修改次数")}<input type="number" value={editForm.revise_times} onChange={(e) => setEditForm((f) => (f ? { ...f, revise_times: e.target.value } : f))} /></label>
+              <label>{t("单条报价")}<input type="number" inputMode="decimal" value={editForm.unit_price} onChange={(e) => setEditForm((f) => (f ? { ...f, unit_price: e.target.value } : f))} /></label>
+              <label>{t("出稿时效（天）")}<input type="number" inputMode="decimal" value={editForm.delivery_days} onChange={(e) => setEditForm((f) => (f ? { ...f, delivery_days: e.target.value } : f))} /></label>
+              <label>{t("可修改次数")}<input type="number" inputMode="decimal" value={editForm.revise_times} onChange={(e) => setEditForm((f) => (f ? { ...f, revise_times: e.target.value } : f))} /></label>
               <label>{t("自我介绍/个人优势")}<textarea rows={4} value={editForm.intro} onChange={(e) => setEditForm((f) => (f ? { ...f, intro: e.target.value } : f))} /></label>
             </div>
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}>

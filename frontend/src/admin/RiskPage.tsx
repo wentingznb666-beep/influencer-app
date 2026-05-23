@@ -54,9 +54,10 @@ export default function RiskPage() {
         <h3>手动巡检</h3>
         <p style={{ fontSize: 14, color: "#666" }}>输入投稿 ID，检测作品链接是否可访问。锁定期内若检测到删除将自动扣分并记违规，满 3 次违规将列入黑名单。</p>
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
-          <input
-            type="number"
-            placeholder="投稿 ID"
+          <input
+            type="number"
+            inputMode="decimal"
+            placeholder="投稿 ID"
             value={checkSubId}
             onChange={(e) => setCheckSubId(e.target.value)}
             style={{ width: 100, padding: "6px 10px" }}

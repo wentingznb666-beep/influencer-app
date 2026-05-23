@@ -257,7 +257,7 @@ export default function InfluencersPage() {
 
             <label>等级</label>
 
-            <input type="number" min={1} value={form.level} onChange={(e) => setForm((f) => ({ ...f, level: Number(e.target.value) || 1 }))} style={{ marginLeft: 8, width: 60, padding: "6px 8px" }} />
+            <input type="number" inputMode="decimal" min={1} value={form.level} onChange={(e) => setForm((f) => ({ ...f, level: Number(e.target.value) || 1 }))} style={{ marginLeft: 8, width: 60, padding: "6px 8px" }} />
 
           </div>
 

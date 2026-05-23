@@ -161,13 +161,13 @@ export default function CollabDemandsPage() {
         </select>
 
         <label htmlFor="unit_price">{t("单条报价")} <span style={{ color: "#dc2626" }}>*</span></label>
-        <input id="unit_price" type="number" min={1} disabled={status !== "approved" || creating} value={form.unit_price} onChange={(e) => setForm((f) => ({ ...f, unit_price: e.target.value }))} />
+        <input id="unit_price" type="number" inputMode="decimal" min={1} disabled={status !== "approved" || creating} value={form.unit_price} onChange={(e) => setForm((f) => ({ ...f, unit_price: e.target.value }))} />
 
         <label htmlFor="delivery_days">{t("出稿时效（天）")} <span style={{ color: "#dc2626" }}>*</span></label>
-        <input id="delivery_days" type="number" min={1} disabled={status !== "approved" || creating} value={form.delivery_days} onChange={(e) => setForm((f) => ({ ...f, delivery_days: e.target.value }))} />
+        <input id="delivery_days" type="number" inputMode="decimal" min={1} disabled={status !== "approved" || creating} value={form.delivery_days} onChange={(e) => setForm((f) => ({ ...f, delivery_days: e.target.value }))} />
 
         <label htmlFor="revise_times">{t("可修改次数")} <span style={{ color: "#dc2626" }}>*</span></label>
-        <input id="revise_times" type="number" min={0} disabled={status !== "approved" || creating} value={form.revise_times} onChange={(e) => setForm((f) => ({ ...f, revise_times: e.target.value }))} />
+        <input id="revise_times" type="number" inputMode="decimal" min={0} disabled={status !== "approved" || creating} value={form.revise_times} onChange={(e) => setForm((f) => ({ ...f, revise_times: e.target.value }))} />
 
         <label htmlFor="intro">{t("自我介绍/个人优势")} <span style={{ color: "#dc2626" }}>*</span></label>
         <textarea id="intro" rows={4} disabled={status !== "approved" || creating} value={form.intro} onChange={(e) => setForm((f) => ({ ...f, intro: e.target.value }))} />
@@ -176,7 +176,7 @@ export default function CollabDemandsPage() {
         <input id="tiktok_account" disabled={status !== "approved" || creating} value={form.tiktok_account} onChange={(e) => setForm((f) => ({ ...f, tiktok_account: e.target.value }))} />
 
         <label htmlFor="tiktok_fans">{t("粉丝数量")} <span style={{ color: "#dc2626" }}>*</span></label>
-        <input id="tiktok_fans" type="number" min={0} disabled={status !== "approved" || creating} value={form.tiktok_fans} onChange={(e) => setForm((f) => ({ ...f, tiktok_fans: e.target.value }))} />
+        <input id="tiktok_fans" type="number" inputMode="decimal" min={0} disabled={status !== "approved" || creating} value={form.tiktok_fans} onChange={(e) => setForm((f) => ({ ...f, tiktok_fans: e.target.value }))} />
       </div>
       <button type="button" disabled={status !== "approved" || creating} onClick={() => void create()} style={{ marginTop: 10 }}>
         {creating ? t("提交中...") : t("发布需求")}

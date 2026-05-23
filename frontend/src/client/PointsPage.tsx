@@ -65,9 +65,10 @@ export default function ClientPointsPage() {
           </div>
           <form onSubmit={handleRecharge} style={{ marginBottom: 24, padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
             <label>充值积分（提交订单）</label>
-            <input
-              type="number"
-              min={1}
+            <input
+              type="number"
+              inputMode="decimal"
+              min={1}
               max={1000000}
               value={rechargeAmount}
               onChange={(e) => setRechargeAmount(e.target.value)}

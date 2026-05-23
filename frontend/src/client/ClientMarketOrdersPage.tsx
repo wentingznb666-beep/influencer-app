@@ -1090,6 +1090,7 @@ export default function ClientMarketOrdersPage() {
                   <input
                     id="voiceLink"
                     type="url"
+                    inputMode="url"
                     value={voiceLink}
                     onChange={(e) => setVoiceLink(e.target.value)}
                     placeholder="https://..."
@@ -1102,6 +1103,7 @@ export default function ClientMarketOrdersPage() {
               <input
                 id="taskCount"
                 type="number"
+                inputMode="decimal"
                 min={1}
                 max={100}
                 value={taskCount}
@@ -1113,6 +1115,7 @@ export default function ClientMarketOrdersPage() {
               <input
                 id="tiktokLink"
                 type="url"
+                inputMode="url"
                 value={tiktokLink}
                 onChange={(e) => setTiktokLink(e.target.value)}
                 placeholder="https://www.tiktok.com/..."
@@ -1168,6 +1171,7 @@ export default function ClientMarketOrdersPage() {
                   <input
                     id="contractMonths"
                     type="number"
+                    inputMode="decimal"
                     min={1}
                     max={12}
                     value={contractMonths}
@@ -1179,6 +1183,7 @@ export default function ClientMarketOrdersPage() {
                   <input
                     id="monthlyMinVideos"
                     type="number"
+                    inputMode="decimal"
                     min={20}
                     max={999}
                     value={monthlyMinVideos}
@@ -1202,6 +1207,7 @@ export default function ClientMarketOrdersPage() {
                   <input
                     id="creatorTaskCount"
                     type="number"
+                    inputMode="decimal"
                     min={8}
                     max={10}
                     value={creatorTaskCount}

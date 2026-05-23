@@ -527,7 +527,7 @@ export default function MatchingCenterPage() {
                   </select>
 
                   <label htmlFor="recruit_count">招募达人数量 <span style={{ color: "#dc2626" }}>*</span></label>
-                  <input id="recruit_count" type="number" min={1} value={form.recruit_count} onChange={(e) => setField("recruit_count", e.target.value)} />
+                  <input id="recruit_count" type="number" inputMode="decimal" min={1} value={form.recruit_count} onChange={(e) => setField("recruit_count", e.target.value)} />
 
                   <label htmlFor="start_date">任务开始时间 <span style={{ color: "#dc2626" }}>*</span></label>
                   <input id="start_date" type="date" value={form.start_date} onChange={(e) => setField("start_date", e.target.value)} />
@@ -597,7 +597,7 @@ export default function MatchingCenterPage() {
                   {form.provide_sample === "是" ? (
                     <>
                       <label htmlFor="sample_count">样品数量 <span style={{ color: "#dc2626" }}>*</span></label>
-                      <input id="sample_count" type="number" min={1} value={form.sample_count} onChange={(e) => setField("sample_count", e.target.value)} />
+                      <input id="sample_count" type="number" inputMode="decimal" min={1} value={form.sample_count} onChange={(e) => setField("sample_count", e.target.value)} />
                     </>
                   ) : null}
 

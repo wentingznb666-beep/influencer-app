@@ -179,7 +179,7 @@ export default function PointsPage() {
                   ))
                 )}
               </select>
-              <input type="number" min={1} value={manualAmount} onChange={(e) => setManualAmount(e.target.value)} placeholder="充值积分" style={{ padding: "6px 8px", width: 120 }} />
+              <input type="number" inputMode="decimal" min={1} value={manualAmount} onChange={(e) => setManualAmount(e.target.value)} placeholder="充值积分" style={{ padding: "6px 8px", width: 120 }} />
               <input type="text" value={manualNote} onChange={(e) => setManualNote(e.target.value)} placeholder="备注（可选）" style={{ padding: "6px 8px", width: 220 }} />
               <button
                 type="button"
@@ -280,7 +280,7 @@ export default function PointsPage() {
         <h3>积分流水</h3>
         <div style={{ marginBottom: 8 }}>
           <label>按用户筛选</label>
-          <input type="number" value={ledgerUserId} onChange={(e) => setLedgerUserId(e.target.value)} placeholder="用户 ID，留空全部" style={{ marginLeft: 8, padding: "6px 8px", width: 100 }} />
+          <input type="number" inputMode="decimal" value={ledgerUserId} onChange={(e) => setLedgerUserId(e.target.value)} placeholder="用户 ID，留空全部" style={{ marginLeft: 8, padding: "6px 8px", width: 100 }} />
         </div>
         <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 8, overflow: "hidden" }}>
           <thead>
