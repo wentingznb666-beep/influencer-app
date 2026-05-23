@@ -1,0 +1,176 @@
+<div class="page" id="home">
+  <!-- 用户信息卡片 -->
+  <div class="card">
+    <div style="display: flex; align-items: center; margin-bottom: 16px;">
+      <img id="user-avatar" class="avatar" src="" alt="头像">
+      <div style="margin-left: 12px;">
+        <div id="user-name" style="font-size: 18px; font-weight: 600;"></div>
+        <div id="user-role" style="font-size: 14px; color: #666;"></div>
+      </div>
+    </div>
+    <div class="grid">
+      <div class="grid-item">
+        <div class="grid-item-icon">⭐</div>
+        <div class="grid-item-title">积分</div>
+        <div id="user-points" class="grid-item-value">0</div>
+      </div>
+      <div class="grid-item">
+        <div class="grid-item-icon">📋</div>
+        <div class="grid-item-title">任务</div>
+        <div id="user-tasks" class="grid-item-value">0</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 快捷入口 -->
+  <div class="card">
+    <div class="card-title">快捷入口</div>
+    <div class="grid">
+      <a href="pages/tasks.html" class="grid-item" style="text-decoration: none; color: inherit;">
+        <div class="grid-item-icon">📋</div>
+        <div class="grid-item-title">任务大厅</div>
+      </a>
+      <a href="pages/orders.html" class="grid-item" style="text-decoration: none; color: inherit;">
+        <div class="grid-item-icon">💰</div>
+        <div class="grid-item-title">商单中心</div>
+      </a>
+      <a href="pages/my-tasks.html" class="grid-item" style="text-decoration: none; color: inherit;">
+        <div class="grid-item-icon">✅</div>
+        <div class="grid-item-title">我的任务</div>
+      </a>
+      <a href="pages/points.html" class="grid-item" style="text-decoration: none; color: inherit;">
+        <div class="grid-item-icon">💎</div>
+        <div class="grid-item-title">积分中心</div>
+      </a>
+    </div>
+  </div>
+
+  <!-- 最新任务 -->
+  <div class="card">
+    <div class="card-title">最新任务</div>
+    <div id="latest-tasks" class="list">
+      <div class="empty">
+        <div class="empty-icon">📋</div>
+        <div class="empty-text">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 最新商单 -->
+  <div class="card">
+    <div class="card-title">最新商单</div>
+    <div id="latest-orders" class="list">
+      <div class="empty">
+        <div class="empty-icon">💰</div>
+        <div class="empty-text">加载中...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 加载首页数据
+  async function loadHomeData() {
+    try {
+      // 获取用户信息
+      const user = JSON.parse(localStorage.getItem('liff_user'));
+      if (user) {
+        document.getElementById('user-name').textContent = user.lineDisplayName || user.username || '用户';
+        document.getElementById('user-role').textContent = getRoleName(user.role);
+        document.getElementById('user-avatar').src = user.linePictureUrl || '/liff-app/assets/images/default-avatar.png';
+      }
+
+      // 获取积分信息
+      try {
+        const points = await api.getPoints();
+        if (points) {
+          document.getElementById('user-points').textContent = utils.formatPoints(points.balance || 0);
+        }
+      } catch (error) {
+        console.error('获取积分失败:', error);
+      }
+
+      // 获取任务列表
+      try {
+        const tasks = await api.getTasks();
+        if (tasks && tasks.length > 0) {
+          renderLatestTasks(tasks.slice(0, 3));
+          document.getElementById('user-tasks').textContent = tasks.length;
+        } else {
+          document.getElementById('latest-tasks').innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">暂无任务</div></div>';
+        }
+      } catch (error) {
+        console.error('获取任务失败:', error);
+        document.getElementById('latest-tasks').innerHTML = '<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">获取任务失败</div></div>';
+      }
+
+      // 获取商单列表
+      try {
+        const orders = await api.getMarketOrders();
+        if (orders && orders.length > 0) {
+          renderLatestOrders(orders.slice(0, 3));
+        } else {
+          document.getElementById('latest-orders').innerHTML = '<div class="empty"><div class="empty-icon">💰</div><div class="empty-text">暂无商单</div></div>';
+        }
+      } catch (error) {
+        console.error('获取商单失败:', error);
+        document.getElementById('latest-orders').innerHTML = '<div class="empty"><div class="empty-icon">💰</div><div class="empty-text">获取商单失败</div></div>';
+      }
+
+    } catch (error) {
+      console.error('加载首页数据失败:', error);
+    }
+  }
+
+  // 渲染最新任务
+  function renderLatestTasks(tasks) {
+    const container = document.getElementById('latest-tasks');
+    container.innerHTML = tasks.map(task => `
+      <div class="list-item">
+        <div class="list-item-content">
+          <div class="list-item-title">${utils.truncateText(task.title || '未命名任务', 20)}</div>
+          <div class="list-item-desc">${utils.truncateText(task.description || '暂无描述', 30)}</div>
+          <div style="margin-top: 8px;">
+            <span class="tag tag-success">${task.status || '待领取'}</span>
+            <span style="margin-left: 8px; font-size: 14px; color: #00B900; font-weight: 600;">
+              ${utils.formatPoints(task.points || 0)} 积分
+            </span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // 渲染最新商单
+  function renderLatestOrders(orders) {
+    const container = document.getElementById('latest-orders');
+    container.innerHTML = orders.map(order => `
+      <div class="list-item">
+        <div class="list-item-content">
+          <div class="list-item-title">${utils.truncateText(order.title || '未命名商单', 20)}</div>
+          <div class="list-item-desc">${utils.truncateText(order.description || '暂无描述', 30)}</div>
+          <div style="margin-top: 8px;">
+            <span class="tag tag-warning">${order.status || '待领取'}</span>
+            <span style="margin-left: 8px; font-size: 14px; color: #fa8c16; font-weight: 600;">
+              ¥${utils.formatAmount(order.price || 0)}
+            </span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // 获取角色名称
+  function getRoleName(role) {
+    const roleNames = {
+      admin: '管理员',
+      employee: '员工',
+      client: '客户',
+      influencer: '达人',
+    };
+    return roleNames[role] || '用户';
+  }
+
+  // 加载首页数据
+  loadHomeData();
+</script>

@@ -1,0 +1,91 @@
+<div class="page" id="tasks">
+  <!-- 页面标题 -->
+  <div class="card">
+    <div class="card-title">任务大厅</div>
+    <p style="font-size: 14px; color: #666;">浏览和领取任务，完成任务可获得积分奖励</p>
+  </div>
+
+  <!-- 任务列表 -->
+  <div class="card">
+    <div id="tasks-list" class="list">
+      <div class="empty">
+        <div class="empty-icon">📋</div>
+        <div class="empty-text">加载中...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 加载任务列表
+  async function loadTasks() {
+    try {
+      const tasks = await api.getTasks();
+      const container = document.getElementById('tasks-list');
+
+      if (!tasks || tasks.length === 0) {
+        container.innerHTML = `
+          <div class="empty">
+            <div class="empty-icon">📋</div>
+            <div class="empty-text">暂无可用任务</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = tasks.map(task => `
+        <div class="list-item">
+          <div class="list-item-content">
+            <div class="list-item-title">${utils.truncateText(task.title || '未命名任务', 25)}</div>
+            <div class="list-item-desc">${utils.truncateText(task.description || '暂无描述', 40)}</div>
+            <div style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <span class="tag tag-success">${task.status || '待领取'}</span>
+                <span style="margin-left: 8px; font-size: 16px; color: #00B900; font-weight: 700;">
+                  ${utils.formatPoints(task.points || 0)} 积分
+                </span>
+              </div>
+              <button onclick="claimTask(${task.id})" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">
+                领取
+              </button>
+            </div>
+            ${task.deadline ? `
+              <div style="margin-top: 8px; font-size: 12px; color: #999;">
+                截止时间：${utils.formatDateTime(task.deadline)}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `).join('');
+
+    } catch (error) {
+      console.error('加载任务列表失败:', error);
+      document.getElementById('tasks-list').innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">😢</div>
+          <div class="empty-text">加载失败，请重试</div>
+        </div>
+      `;
+    }
+  }
+
+  // 领取任务
+  async function claimTask(taskId) {
+    try {
+      const confirmed = await utils.confirm('确定要领取这个任务吗？');
+      if (!confirmed) return;
+
+      const result = await api.claimTask(taskId);
+      utils.showToast('领取成功', 'success');
+      
+      // 重新加载任务列表
+      await loadTasks();
+    } catch (error) {
+      console.error('领取任务失败:', error);
+      utils.showToast(error.message || '领取失败', 'error');
+    }
+  }
+
+  // 加载任务列表
+  loadTasks();
+</script>

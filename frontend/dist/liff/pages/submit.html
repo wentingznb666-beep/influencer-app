@@ -1,0 +1,204 @@
+<div class="page" id="submit">
+  <!-- 页面标题 -->
+  <div class="card">
+    <div class="card-title">提交任务</div>
+    <p style="font-size: 14px; color: #666;">上传任务完成证明</p>
+  </div>
+
+  <!-- 任务信息 -->
+  <div class="card">
+    <div id="task-info" style="margin-bottom: 16px;">
+      <div class="empty">
+        <div class="empty-icon">📋</div>
+        <div class="empty-text">加载中...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 提交表单 -->
+  <div class="card">
+    <div class="card-title">提交信息</div>
+    <form id="submit-form">
+      <div class="form-group">
+        <label class="form-label">完成说明</label>
+        <textarea id="description" class="form-input" rows="4" placeholder="请描述任务完成情况..." required></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">图片证明</label>
+        <div style="border: 2px dashed #ddd; border-radius: 8px; padding: 20px; text-align: center; cursor: pointer;" onclick="document.getElementById('images').click()">
+          <div style="font-size: 32px; margin-bottom: 8px;">📷</div>
+          <div style="font-size: 14px; color: #666;">点击上传图片</div>
+          <div style="font-size: 12px; color: #999; margin-top: 4px;">支持 JPG、PNG 格式</div>
+        </div>
+        <input type="file" id="images" accept="image/*" multiple style="display: none;">
+        <div id="image-preview" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">视频链接（可选）</label>
+        <input type="url" id="video-url" class="form-input" placeholder="请输入视频链接">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width: 100%;">提交任务</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  let claimId = null;
+  let selectedImages = [];
+
+  // 获取任务信息
+  async function loadTaskInfo() {
+    const urlParams = new URLSearchParams(window.location.search);
+    claimId = urlParams.get('claimId');
+
+    if (!claimId) {
+      document.getElementById('task-info').innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">😢</div>
+          <div class="empty-text">任务信息不存在</div>
+        </div>
+      `;
+      return;
+    }
+
+    try {
+      const claim = await api.getMyClaim(claimId);
+      
+      document.getElementById('task-info').innerHTML = `
+        <div style="margin-bottom: 16px;">
+          <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">
+            ${claim.task_title || '未命名任务'}
+          </div>
+          <div style="font-size: 14px; color: #666; margin-bottom: 12px;">
+            ${claim.task_description || '暂无描述'}
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="tag ${getStatusTagClass(claim.status)}">${getStatusLabel(claim.status)}</span>
+            <span style="font-size: 16px; color: #00B900; font-weight: 700;">
+              ${utils.formatPoints(claim.task_points || 0)} 积分
+            </span>
+          </div>
+          ${claim.deadline ? `
+            <div style="margin-top: 8px; font-size: 12px; color: #f5222d;">
+              截止时间：${utils.formatDateTime(claim.deadline)}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    } catch (error) {
+      console.error('获取任务信息失败:', error);
+      document.getElementById('task-info').innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">😢</div>
+          <div class="empty-text">获取任务信息失败</div>
+        </div>
+      `;
+    }
+  }
+
+  // 图片选择
+  document.getElementById('images').addEventListener('change', (e) => {
+    const files = Array.from(e.target.files);
+    selectedImages = [...selectedImages, ...files];
+    renderImagePreview();
+  });
+
+  // 渲染图片预览
+  function renderImagePreview() {
+    const container = document.getElementById('image-preview');
+    container.innerHTML = selectedImages.map((file, index) => `
+      <div style="position: relative; width: 80px; height: 80px;">
+        <img src="${URL.createObjectURL(file)}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+        <button onclick="removeImage(${index})" style="position: absolute; top: -8px; right: -8px; width: 20px; height: 20px; border-radius: 50%; background: #f5222d; color: #fff; border: none; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center;">
+          ×
+        </button>
+      </div>
+    `).join('');
+  }
+
+  // 移除图片
+  function removeImage(index) {
+    selectedImages.splice(index, 1);
+    renderImagePreview();
+  }
+
+  // 提交表单
+  document.getElementById('submit-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const description = document.getElementById('description').value;
+    const videoUrl = document.getElementById('video-url').value;
+
+    if (!description) {
+      utils.showToast('请填写完成说明', 'warning');
+      return;
+    }
+
+    try {
+      // 上传图片
+      const imageUrls = [];
+      for (const file of selectedImages) {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch('https://xiangtaiyyj.site/api/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('liff_access_token')}`,
+          },
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          imageUrls.push(data.url);
+        }
+      }
+
+      // 提交任务
+      const submitData = {
+        claim_id: claimId,
+        description,
+        image_urls: imageUrls,
+        video_url: videoUrl,
+      };
+
+      const result = await api.submitTask(submitData);
+      utils.showToast('提交成功', 'success');
+
+      // 跳转到我的任务页面
+      setTimeout(() => {
+        window.location.href = '/liff-app/pages/my-tasks.html';
+      }, 1500);
+
+    } catch (error) {
+      console.error('提交失败:', error);
+      utils.showToast(error.message || '提交失败', 'error');
+    }
+  });
+
+  // 获取状态标签样式
+  function getStatusTagClass(status) {
+    const classes = {
+      claimed: 'tag-warning',
+      submitted: 'tag-info',
+      approved: 'tag-success',
+      rejected: 'tag-error',
+    };
+    return classes[status] || 'tag-warning';
+  }
+
+  // 获取状态标签文本
+  function getStatusLabel(status) {
+    const labels = {
+      claimed: '已领取',
+      submitted: '已提交',
+      approved: '已通过',
+      rejected: '已拒绝',
+    };
+    return labels[status] || '未知';
+  }
+
+  // 加载任务信息
+  loadTaskInfo();
+</script>
