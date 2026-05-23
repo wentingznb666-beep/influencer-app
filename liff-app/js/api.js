@@ -35,7 +35,7 @@ async function request(url, options = {}) {
     
     if (response.status === 401) {
       clearToken();
-      window.location.href = '/liff/pages/login.html';
+      window.location.href = '/liff-app/pages/login.html';
       return null;
     }
     

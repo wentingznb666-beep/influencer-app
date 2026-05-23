@@ -97,7 +97,7 @@
       if (user) {
         document.getElementById('profile-name').textContent = user.lineDisplayName || user.username || '用户';
         document.getElementById('profile-role').textContent = getRoleName(user.role);
-        document.getElementById('profile-avatar').src = user.linePictureUrl || '/liff/assets/images/default-avatar.png';
+        document.getElementById('profile-avatar').src = user.linePictureUrl || '/liff-app/assets/images/default-avatar.png';
       }
     } catch (error) {
       console.error('获取用户信息失败:', error);
@@ -145,7 +145,7 @@
         liff.logout();
       }
       
-      window.location.href = '/liff/pages/login.html';
+      window.location.href = '/liff-app/pages/login.html';
     }
   }
 
