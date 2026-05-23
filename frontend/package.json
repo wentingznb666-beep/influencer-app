@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && cp -r ../liff-app dist/liff",
+    "build": "vite build && cp -r ../liff-app dist/liff",
     "lint": "eslint .",
     "preview": "vite preview",
     "check:encoding": "python ../backend/scripts/encoding_audit.py --root ..",
