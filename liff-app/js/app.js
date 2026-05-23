@@ -15,7 +15,7 @@ const app = {
     const loggedIn = await auth.autoLogin();
     if (!loggedIn) {
       // 跳转到登录页面
-      window.location.href = '/liff-app/pages/login.html';
+      window.location.href = '/liff/pages/login.html';
       return;
     }
 
@@ -60,7 +60,7 @@ const app = {
       pageContent.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
 
       // 加载页面内容
-      const response = await fetch(`/liff-app/pages/${pageName}.html`);
+      const response = await fetch(`/liff/pages/${pageName}.html`);
       const html = await response.text();
       
       // 插入页面内容

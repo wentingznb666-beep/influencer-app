@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>登录 - 湘泰出海</title>
-  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="/liff/css/style.css">
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <style>
     .login-container {
@@ -216,7 +216,7 @@
           localStorage.setItem('liff_user', JSON.stringify(data.user));
           
           // 跳转到首页
-          window.location.href = '/liff-app/';
+          window.location.href = '/liff/';
         } else {
           showError(data.message || 'LINE 登录失败');
         }
@@ -248,7 +248,7 @@
           localStorage.setItem('liff_user', JSON.stringify(data.user));
           
           // 跳转到首页
-          window.location.href = '/liff-app/';
+          window.location.href = '/liff/';
         } else {
           showError(data.message || '登录失败');
         }

@@ -35,7 +35,7 @@ const auth = {
     if (liff.isLoggedIn()) {
       liff.logout();
     }
-    window.location.href = '/liff-app/pages/login.html';
+    window.location.href = '/liff/pages/login.html';
   },
 
   // 获取 LINE 用户信息
