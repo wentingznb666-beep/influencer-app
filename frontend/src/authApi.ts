@@ -48,6 +48,10 @@ const STORAGE_USER = "influencer_app_user";
 
 let accessTokenMemory: string | null = null;
 
+function stopAutoRefresh(): void {
+  // Token auto-refresh is not implemented yet; stub for future use.
+}
+
 localStorage.removeItem(STORAGE_ACCESS);
 localStorage.removeItem(STORAGE_REFRESH);
   stopAutoRefresh();
