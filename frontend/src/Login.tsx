@@ -300,13 +300,20 @@ export default function Login() {
 
 
 
+  // 记住我：仅当用户上次勾选并登录成功后才自动填充账号
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as { username?: string; remember?: boolean };
-        if (typeof parsed.username === "string") setUsername(parsed.username);
-        if (typeof parsed.remember === "boolean") setRememberMe(parsed.remember);
+        // 只有勾选了「记住我」才自动填充账号（不填密码，安全考虑）
+        if (parsed.remember && typeof parsed.username === "string") {
+          setUsername(parsed.username);
+          setRememberMe(true);
+        } else {
+          // 没勾选记住我 → 清空，不显示任何内容
+          localStorage.removeItem(STORAGE_KEY);
+        }
       }
     } catch {
       localStorage.removeItem(STORAGE_KEY);
