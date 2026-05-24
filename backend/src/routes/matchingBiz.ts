@@ -989,9 +989,24 @@ router.get("/influencer/matching-orders/:id/link-acceptance", async (req: AuthRe
   const orderId = Number(req.params.id);
   const rows = await query(
     `SELECT la.* FROM link_acceptance la
-     JOIN market_order_applications a ON a.market_order_id=la.order_id AND a.influencer_id=$2
-     WHERE la.order_id=$1 AND la.applicant_id=$2`,
+     JOIN market_order_applications a ON a.id = la.applicant_id
+     WHERE la.order_id=$1 AND a.influencer_id=$2`,
     [orderId, req.user!.userId]
+  );
+  return res.json({ list: rows.rows });
+});
+
+/** 管理员/员工查看订单的链接验收状态 */
+router.get("/admin/matching-orders/:id/link-acceptance", async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "admin" && req.user?.role !== "employee") return res.status(403).json({ error: "FORBIDDEN" });
+  const orderId = Number(req.params.id);
+  const rows = await query(
+    `SELECT la.*, u.username AS influencer_username, COALESCE(NULLIF(u.display_name,''), u.username) AS influencer_name
+     FROM link_acceptance la
+     JOIN market_order_applications a ON a.id = la.applicant_id
+     JOIN users u ON u.id = a.influencer_id
+     WHERE la.order_id=$1`,
+    [orderId]
   );
   return res.json({ list: rows.rows });
 });
