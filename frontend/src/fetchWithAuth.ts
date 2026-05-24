@@ -1,4 +1,4 @@
-import { clearAuth, getAccessToken, refreshAccessToken } from "./authApi";
+import { getAccessToken, refreshAccessToken } from "./authApi";
 
 function getBase(): string {
   return (import.meta.env.VITE_API_BASE_URL as string) || window.location.origin;
@@ -39,9 +39,8 @@ export async function fetchWithAuth(path: string, options: RequestInit = {}): Pr
   try {
     await refreshAccessToken();
   } catch {
-    clearAuth();
+    // 刷新失败不登出，让调用方自行处理 401
     return res;
   }
   return doFetch();
 }
-

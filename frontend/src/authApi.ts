@@ -46,15 +46,13 @@ const STORAGE_REFRESH = "influencer_app_refresh_token";
 
 const STORAGE_USER = "influencer_app_user";
 
-let accessTokenMemory: string | null = null;
+let accessTokenMemory: string | null = (() => {
+  try { return localStorage.getItem(STORAGE_ACCESS); } catch { return null; }
+})();
 
 function stopAutoRefresh(): void {
   // Token auto-refresh is not implemented yet; stub for future use.
 }
-
-localStorage.removeItem(STORAGE_ACCESS);
-localStorage.removeItem(STORAGE_REFRESH);
-  stopAutoRefresh();
 
 
 
@@ -125,6 +123,7 @@ export function getAccessToken(): string | null {
 export function setAuth(accessToken: string, _refreshToken: string | undefined, user: AuthUser): void {
 
   accessTokenMemory = accessToken;
+  try { localStorage.setItem(STORAGE_ACCESS, accessToken); } catch {}
 
   localStorage.setItem(STORAGE_USER, JSON.stringify(normalizeAuthUser(user)));
 
@@ -240,6 +239,7 @@ export async function refreshAccessToken(): Promise<string> {
   const accessToken = data.accessToken as string;
 
   accessTokenMemory = accessToken;
+  try { localStorage.setItem(STORAGE_ACCESS, accessToken); } catch {}
 
   return accessToken;
 
