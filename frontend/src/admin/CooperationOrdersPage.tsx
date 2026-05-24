@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
-import { getStoredUser } from "../authApi";
+import { getAccessToken, getStoredUser } from "../authApi";
 import { getAdminCooperationOrders, getCooperationTypes, type CooperationTypesConfig } from "../matchingApi";
 
 type Row = {
@@ -160,6 +160,7 @@ export default function CooperationOrdersPage() {
   const [phase, setPhase] = useState("");
   const [q, setQ] = useState("");
   const focusIdRef = useRef<number>(0);
+  const [linkAcceptanceMap, setLinkAcceptanceMap] = useState<Record<number, any[]>>({});
   const jumpedOnceRef = useRef(false);
   const [typeConfig, setTypeConfig] = useState<CooperationTypesConfig | null>(null);
 
@@ -237,6 +238,21 @@ export default function CooperationOrdersPage() {
       setLoading(false);
     }
   };
+  /** 加载所有订单的验收/付款截图数据 */
+  const loadLinkAcceptances = useCallback(async (orders: Row[]) => {
+    const map: Record<number, any[]> = {};
+    const token = getAccessToken();
+    await Promise.all(orders.map(async (r) => {
+      try {
+        const res = await fetch(`/api/matching/admin/matching-orders/${r.id}/link-acceptance`, {
+          headers: { Authorization: `Bearer ${token || ""}` },
+        });
+        const data = await res.json();
+        if (data?.list?.length) map[r.id] = data.list;
+      } catch {}
+    }));
+    setLinkAcceptanceMap(map);
+  }, []);
 
   useEffect(() => {
     void load();
@@ -247,6 +263,10 @@ export default function CooperationOrdersPage() {
       .then((ret) => setTypeConfig(ret?.config || null))
       .catch(() => setTypeConfig(null));
   }, []);
+
+  useEffect(() => {
+    if (filteredList.length > 0) void loadLinkAcceptances(filteredList);
+  }, [filteredList, loadLinkAcceptances]);
 
   useEffect(() => {
     void load();
@@ -307,6 +327,7 @@ export default function CooperationOrdersPage() {
         .xt-coop-col-influencer { width: 14%; }
         .xt-coop-col-status { width: 12%; }
         .xt-coop-col-delivery { width: 10%; }
+        .xt-coop-col-acceptance { width: 14%; }
         .xt-coop-th { position: sticky; top: 0; z-index: 1; background: rgba(21,42,69,0.06); text-align:left; padding: 10px; font-size: 12px; color: #475569; font-weight: 900; border-bottom: 1px solid rgba(148,163,184,0.28); }
         .xt-coop-td { box-sizing: border-box; padding: 10px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); vertical-align: top; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
         .xt-coop-row:hover { background: rgba(15,23,42,0.02); }
@@ -336,6 +357,7 @@ export default function CooperationOrdersPage() {
           .xt-coop-col-influencer { width: 14%; }
           .xt-coop-col-status { width: 12%; }
           .xt-coop-col-delivery { width: 9%; }
+          .xt-coop-col-acceptance { width: 13%; }
         }
         @media (max-width: 1023px) {
           .xt-coop-table-wrap { overflow-x: auto; }
@@ -398,6 +420,7 @@ export default function CooperationOrdersPage() {
               <col className="xt-coop-col-influencer" />
               <col className="xt-coop-col-status" />
               <col className="xt-coop-col-delivery" />
+              <col className="xt-coop-col-acceptance" />
             </colgroup>
             <thead>
               <tr>
@@ -409,6 +432,7 @@ export default function CooperationOrdersPage() {
                 <th className="xt-coop-th">达人</th>
                 <th className="xt-coop-th">订单状态</th>
                 <th className="xt-coop-th">交付</th>
+                <th className="xt-coop-th">验收状态</th>
               </tr>
             </thead>
             <tbody>
@@ -468,6 +492,36 @@ export default function CooperationOrdersPage() {
                       ) : (
                         <span className="xt-coop-muted">—</span>
                       )}
+                    </td>
+                    <td className="xt-coop-td">
+                      {(() => {
+                        const acceptances = linkAcceptanceMap[r.id];
+                        if (!acceptances || acceptances.length === 0) return <span className="xt-coop-muted">—</span>;
+                        return (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            {acceptances.map((la, idx) => (
+                              <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", fontSize: 12, flexWrap: "wrap" }}>
+                                <span style={{ flex: "0 0 auto", color: "#64748b" }}>回传{idx + 1}</span>
+                                {la.accepted ? (
+                                  <span style={{ color: "#16a34a", fontWeight: 700, whiteSpace: "nowrap" }}>✅ 通过</span>
+                                ) : la.rejected ? (
+                                  <span style={{ color: "#dc2626", fontWeight: 700, whiteSpace: "nowrap" }}>❌ 驳回</span>
+                                ) : (
+                                  <span style={{ color: "#94a3b8", whiteSpace: "nowrap" }}>待验收</span>
+                                )}
+                                {la.influencer_username && (
+                                  <span style={{ color: "#64748b", fontSize: 11 }}>@{la.influencer_username}</span>
+                                )}
+                                {la.payment_url && (
+                                  <a href={la.payment_url} target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: "2px 8px", background: "#10b981", color: "#fff", borderRadius: 4, textDecoration: "none", whiteSpace: "nowrap" }}>
+                                    付款截图
+                                  </a>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </td>
                   </tr>
                 );
