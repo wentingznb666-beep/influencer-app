@@ -91,23 +91,34 @@ export default function MatchingOrdersPage() {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
   const [actionBusy, setActionBusy] = useState<Record<string, boolean>>({});
-  const STORAGE_ACCEPTED = "xt_link_accepted_v1";
-  const STORAGE_REJECTED = "xt_link_rejected_v1";
-  const STORAGE_PAYMENTS = "xt_link_payments_v1";
+  const [linkAccepted, setLinkAccepted] = useState<Record<string, boolean>>({});
+  const [linkRejected, setLinkRejected] = useState<Record<string, boolean>>({});
+  const [linkPayments, setLinkPayments] = useState<Record<string, string>>({});
 
-  const [linkAccepted, setLinkAccepted] = useState<Record<string, boolean>>(() => {
-    try { return JSON.parse(localStorage.getItem(STORAGE_ACCEPTED) || "{}"); } catch { return {}; }
-  });
-  const [linkRejected, setLinkRejected] = useState<Record<string, boolean>>(() => {
-    try { return JSON.parse(localStorage.getItem(STORAGE_REJECTED) || "{}"); } catch { return {}; }
-  });
-  const [linkPayments, setLinkPayments] = useState<Record<string, string>>(() => {
-    try { return JSON.parse(localStorage.getItem(STORAGE_PAYMENTS) || "{}"); } catch { return {}; }
-  });
+  const saveLinkState = async (orderId: number, applicantId: number, linkIdx: number, accepted: boolean, rejected: boolean, paymentUrl?: string) => {
+    await fetch(`/api/matching/client/matching-orders/${orderId}/link-acceptance`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${getAccessToken() || ""}` },
+      body: JSON.stringify({ applicant_id: applicantId, link_index: linkIdx, accepted, rejected, payment_url: paymentUrl || null }),
+    });
+  };
 
-  const doSetLinkAccepted = (p: Record<string, boolean>) => { setLinkAccepted(p); localStorage.setItem(STORAGE_ACCEPTED, JSON.stringify(p)); };
-  const doSetLinkRejected = (p: Record<string, boolean>) => { setLinkRejected(p); localStorage.setItem(STORAGE_REJECTED, JSON.stringify(p)); };
-  const doSetLinkPayments = (p: Record<string, string>) => { setLinkPayments(p); localStorage.setItem(STORAGE_PAYMENTS, JSON.stringify(p)); };
+  const loadLinkStates = async (orderId: number) => {
+    try {
+      const res = await fetch(`/api/matching/client/matching-orders/${orderId}/link-acceptance`, {
+        headers: { Authorization: `Bearer ${getAccessToken() || ""}` },
+      });
+      const data = await res.json();
+      const acc: Record<string, boolean> = {}, rej: Record<string, boolean> = {}, pay: Record<string, string> = {};
+      for (const r of data.list || []) {
+        const key = `${orderId}-${r.applicant_id}-${r.link_index}`;
+        if (r.accepted) acc[key] = true;
+        if (r.rejected) rej[key] = true;
+        if (r.payment_url) pay[key] = r.payment_url;
+      }
+      setLinkAccepted(acc); setLinkRejected(rej); setLinkPayments(pay);
+    } catch {}
+  };
 
   const uploadPaymentScreenshot = async (orderId: number, linkKey: string, file: File) => {
     const formData = new FormData();
@@ -119,7 +130,9 @@ export default function MatchingOrdersPage() {
     });
     if (!res.ok) throw new Error("上传失败");
     const data = await res.json();
-    doSetLinkPayments((p) => ({ ...p, [linkKey]: data.url }));
+    setLinkPayments((p) => ({ ...p, [linkKey]: data.url }));
+    const parts = linkKey.split("-");
+    saveLinkState(orderId, Number(parts[1]), Number(parts[2]), true, false, data.url);
     showToastNotice("✅ 付款截图已上传", { variant: "success", placement: "top-right" });
   };
   const [detailOpen, setDetailOpen] = useState(false);
@@ -173,6 +186,7 @@ export default function MatchingOrdersPage() {
     setApplicants([]);
     try {
       await loadApplicants(orderId);
+      await loadLinkStates(orderId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载报名失败");
     }
@@ -623,13 +637,13 @@ export default function MatchingOrdersPage() {
                                   <button type="button" onClick={() => navigator.clipboard.writeText(url)} style={{ padding: "2px 8px", fontSize: 11, border: "1px solid #dbe1ea", borderRadius: 4, background: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}>复制</button>
                                   {!isAccepted ? (
                                     <>
-                                      <button type="button" className="xt-btn xt-btn--primary" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => { doSetLinkAccepted((p:any) => ({...p, [linkKey]: true})); }}>验收通过</button>
-                                      <button type="button" className="xt-btn xt-btn--danger" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => { doSetLinkRejected((p:any) => ({...p, [linkKey]: true})); }}>验收驳回</button>
+                                      <button type="button" className="xt-btn xt-btn--primary" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => { setLinkAccepted((p) => ({...p, [linkKey]: true})); saveLinkState(activeOrder.id, a.id, idx, true, false); }}>验收通过</button>
+                                      <button type="button" className="xt-btn xt-btn--danger" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => { setLinkRejected((p) => ({...p, [linkKey]: true})); saveLinkState(activeOrder.id, a.id, idx, false, true); }}>验收驳回</button>
                                     </>
                                   ) : (
                                     linkPayments[linkKey] ? (
                                       <><a href={linkPayments[linkKey]} target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: "4px 10px", background: "#10b981", color: "#fff", borderRadius: 6, textDecoration: "none", whiteSpace: "nowrap" }}>查看付款截图</a>
-                                      <button type="button" onClick={() => { doSetLinkPayments({...linkPayments, [linkKey]: ""}); doSetLinkAccepted({...linkAccepted, [linkKey]: false}); }} style={{ fontSize: 11, padding: "4px 8px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" }}>删除</button></>
+                                      <button type="button" onClick={() => { setLinkPayments((p) => ({...p, [linkKey]: ""})); setLinkAccepted((p) => ({...p, [linkKey]: false})); saveLinkState(activeOrder.id, a.id, idx, false, false, ""); }} style={{ fontSize: 11, padding: "4px 8px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" }}>删除</button></>
                                     ) : (
                                       <label style={{ fontSize: 11, padding: "4px 10px", background: "#f97316", color: "#fff", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" }}>
                                         上传付款截图

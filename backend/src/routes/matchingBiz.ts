@@ -975,6 +975,29 @@ router.post("/client/matching-orders/:id/payment-screenshot", paymentScreenshotU
   return res.json({ ok: true, url });
 });
 
+/** 获取订单的所有链接验收状态 */
+router.get("/client/matching-orders/:id/link-acceptance", async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN" });
+  const orderId = Number(req.params.id);
+  const rows = await query("SELECT * FROM link_acceptance WHERE order_id=$1", [orderId]);
+  return res.json({ list: rows.rows });
+});
+
+/** 保存单条链接的验收/驳回/付款截图 */
+router.post("/client/matching-orders/:id/link-acceptance", async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN" });
+  const orderId = Number(req.params.id);
+  const { applicant_id, link_index, accepted, rejected, payment_url } = req.body;
+  await query(
+    `INSERT INTO link_acceptance (order_id, applicant_id, link_index, accepted, rejected, payment_url)
+     VALUES ($1,$2,$3,$4,$5,$6)
+     ON CONFLICT (order_id, applicant_id, link_index)
+     DO UPDATE SET accepted=$4, rejected=$5, payment_url=COALESCE($6, link_acceptance.payment_url)`,
+    [orderId, applicant_id, link_index, accepted, rejected, payment_url || null]
+  );
+  return res.json({ ok: true });
+});
+
 router.post("/client/matching-orders/:id/accept", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   const orderId = Number(req.params.id);
