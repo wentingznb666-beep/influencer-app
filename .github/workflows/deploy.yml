@@ -17,15 +17,15 @@ jobs:
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
           cd /home/ubuntu/influencer-app
-          git reset --hard HEAD
-          git pull
-          sudo chown -R ubuntu:ubuntu frontend/dist
+          git fetch origin
+          git reset --hard origin/master
           cd backend
           npm install
           npm run build
+          pm2 restart influencer-app
           cd ../frontend
+          sudo rm -rf dist
           npm install
           npm run build
           sudo chown -R www-data:www-data dist
-          cd /home/ubuntu/influencer-app/backend
-          pm2 restart influencer-app
+          echo "✅ 部署完成"
