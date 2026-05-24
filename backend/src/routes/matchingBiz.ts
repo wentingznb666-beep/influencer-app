@@ -975,11 +975,24 @@ router.post("/client/matching-orders/:id/payment-screenshot", paymentScreenshotU
   return res.json({ ok: true, url });
 });
 
-/** 获取订单的所有链接验收状态 */
+/** 获取订单的所有链接验收状态（商家端） */
 router.get("/client/matching-orders/:id/link-acceptance", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN" });
   const orderId = Number(req.params.id);
   const rows = await query("SELECT * FROM link_acceptance WHERE order_id=$1", [orderId]);
+  return res.json({ list: rows.rows });
+});
+
+/** 达人查看自己的链接验收状态 */
+router.get("/influencer/matching-orders/:id/link-acceptance", async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "influencer") return res.status(403).json({ error: "FORBIDDEN" });
+  const orderId = Number(req.params.id);
+  const rows = await query(
+    `SELECT la.* FROM link_acceptance la
+     JOIN market_order_applications a ON a.market_order_id=la.order_id AND a.influencer_id=$2
+     WHERE la.order_id=$1 AND la.applicant_id=$2`,
+    [orderId, req.user!.userId]
+  );
   return res.json({ list: rows.rows });
 });
 

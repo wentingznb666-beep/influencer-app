@@ -358,3 +358,10 @@ export async function publishMatchingOrder(orderId: number, publish_url: string)
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '提交失败');
   return res.json();
 }
+
+/** 达人查询自己的链接验收状态 */
+export async function getMyLinkAcceptance(orderId: number) {
+  const res = await fetchWithAuth(`/api/matching/influencer/matching-orders/${orderId}/link-acceptance`);
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || '请求失败');
+  return res.json();
+}
