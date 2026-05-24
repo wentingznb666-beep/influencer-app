@@ -92,6 +92,21 @@ export default function MatchingOrdersPage() {
   const [actionBusy, setActionBusy] = useState<Record<string, boolean>>({});
   const [linkAccepted, setLinkAccepted] = useState<Record<string, boolean>>({});
   const [linkRejected, setLinkRejected] = useState<Record<string, boolean>>({});
+  const [linkPayments, setLinkPayments] = useState<Record<string, string>>({});
+
+  const uploadPaymentScreenshot = async (orderId: number, linkKey: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`/api/matching/client/matching-orders/${orderId}/payment-screenshot`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${localStorage.getItem("influencer_app_access_token")}` },
+      body: formData,
+    });
+    if (!res.ok) throw new Error("上传失败");
+    const data = await res.json();
+    setLinkPayments((p) => ({ ...p, [linkKey]: data.url }));
+    showToastNotice("✅ 付款截图已上传", { variant: "success", placement: "top-right" });
+  };
   const [detailOpen, setDetailOpen] = useState(false);
   const [activeInfluencer, setActiveInfluencer] = useState<ApplicantRow | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -597,11 +612,14 @@ export default function MatchingOrdersPage() {
                                       <button type="button" className="xt-btn xt-btn--danger" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => { setLinkRejected((p:any) => ({...p, [linkKey]: true})); }}>验收驳回</button>
                                     </>
                                   ) : (
-                                    <label style={{ fontSize: 11, padding: "4px 10px", background: "#f97316", color: "#fff", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" }}>
-                                      上传付款截图
-                                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) { const key = `uploadPayment:${linkKey}`; setActionBusy((p:any) => ({...p, [key]: true})); /* TODO: upload API */ setTimeout(() => setActionBusy((p:any) => ({...p, [key]: false})), 1000); } }} />
-                                    </label>
-                                  )}
+                                    linkPayments[linkKey] ? (
+                                      <a href={linkPayments[linkKey]} target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: "4px 10px", background: "#10b981", color: "#fff", borderRadius: 6, textDecoration: "none", whiteSpace: "nowrap" }}>查看付款截图</a>
+                                    ) : (
+                                      <label style={{ fontSize: 11, padding: "4px 10px", background: "#f97316", color: "#fff", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" }}>
+                                        上传付款截图
+                                        <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPaymentScreenshot(activeOrder.id, linkKey, f); }} />
+                                      </label>
+                                    )
                                 </div>
                               );
                             })}
