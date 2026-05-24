@@ -90,6 +90,8 @@ export default function MatchingOrdersPage() {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
   const [actionBusy, setActionBusy] = useState<Record<string, boolean>>({});
+  const [linkAccepted, setLinkAccepted] = useState<Record<string, boolean>>({});
+  const [linkRejected, setLinkRejected] = useState<Record<string, boolean>>({});
   const [detailOpen, setDetailOpen] = useState(false);
   const [activeInfluencer, setActiveInfluencer] = useState<ApplicantRow | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -567,40 +569,42 @@ export default function MatchingOrdersPage() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                   {applicants.map((a) => {
                     const st = safeText(a.status);
-                    const canAct = st === "pending";
-                    const selectKey = `selectApplicant:${activeOrder.id}:${a.id}`;
-                    const rejectKey = `rejectApplicant:${activeOrder.id}:${a.id}`;
                     const orderWorkLinks = normalizeWorkLinks(Array.isArray(activeOrder.work_links) ? activeOrder.work_links : []);
                     return (
                       <div key={a.id} style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, background: "#fff" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                           <div>
                             <strong style={{ fontSize: 15 }}>{safeText(a.username) || "-"}</strong>
                             <span style={{ marginLeft: 10, fontSize: 12, color: "#64748b" }}>状态：{st || "-"}</span>
                           </div>
-                          <div style={{ display: "flex", gap: 6 }}>
-                            <button type="button" className="xt-btn xt-btn--outline" onClick={() => openInfluencerDetail(a)}>查看详情</button>
-                            {canAct ? (
-                              <>
-                                <button type="button" className="xt-btn xt-btn--primary" onClick={() => void selectApplicant(a.id)} disabled={!!actionBusy[selectKey]}>
-                                  {actionBusy[selectKey] ? "处理中…" : "验收通过"}
-                                </button>
-                                <button type="button" className="xt-btn xt-btn--danger" onClick={() => void rejectApplicant(a.id)} disabled={!!actionBusy[rejectKey]}>
-                                  {actionBusy[rejectKey] ? "处理中…" : "验收驳回"}
-                                </button>
-                              </>
-                            ) : null}
-                          </div>
+                          <button type="button" className="xt-btn xt-btn--outline" onClick={() => openInfluencerDetail(a)}>查看详情</button>
                         </div>
                         {orderWorkLinks.length > 0 ? (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "8px 10px", background: "#f8fafc", borderRadius: 8 }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                             <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>回传视频链接：</div>
-                            {orderWorkLinks.map((url: string, idx: number) => (
-                              <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-                                <a href={url} target="_blank" rel="noreferrer" style={{ flex: 1, wordBreak: "break-all", color: "#2563eb", minWidth: 0 }}>{url}</a>
-                                <button type="button" onClick={() => navigator.clipboard.writeText(url)} style={{ padding: "2px 8px", fontSize: 11, border: "1px solid #dbe1ea", borderRadius: 4, background: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}>复制</button>
-                              </div>
-                            ))}
+                            {orderWorkLinks.map((url: string, idx: number) => {
+                              const linkKey = `${activeOrder.id}-${a.id}-${idx}`;
+                              const isAccepted = !!actionBusy[`acceptLink:${linkKey}`] || !!linkAccepted[linkKey];
+                              const isRejected = !!linkRejected[linkKey];
+                              if (isRejected) return null;
+                              return (
+                                <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: isAccepted ? "#f0fdf4" : "#f8fafc", borderRadius: 8, border: `1px solid ${isAccepted ? "#86efac" : "#e2e8f0"}` }}>
+                                  <a href={url} target="_blank" rel="noreferrer" style={{ flex: 1, fontSize: 13, wordBreak: "break-all", color: "#2563eb", minWidth: 0 }}>{url}</a>
+                                  <button type="button" onClick={() => navigator.clipboard.writeText(url)} style={{ padding: "2px 8px", fontSize: 11, border: "1px solid #dbe1ea", borderRadius: 4, background: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}>复制</button>
+                                  {!isAccepted ? (
+                                    <>
+                                      <button type="button" className="xt-btn xt-btn--primary" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => { setLinkAccepted((p:any) => ({...p, [linkKey]: true})); }}>验收通过</button>
+                                      <button type="button" className="xt-btn xt-btn--danger" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => { setLinkRejected((p:any) => ({...p, [linkKey]: true})); }}>验收驳回</button>
+                                    </>
+                                  ) : (
+                                    <label style={{ fontSize: 11, padding: "4px 10px", background: "#f97316", color: "#fff", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" }}>
+                                      上传付款截图
+                                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) { const key = `uploadPayment:${linkKey}`; setActionBusy((p:any) => ({...p, [key]: true})); /* TODO: upload API */ setTimeout(() => setActionBusy((p:any) => ({...p, [key]: false})), 1000); } }} />
+                                    </label>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         ) : (
                           <div style={{ fontSize: 12, color: "#94a3b8", padding: "4px 0" }}>暂无回传视频</div>
