@@ -620,6 +620,7 @@ export default function MatchingOrdersPage() {
                                         <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPaymentScreenshot(activeOrder.id, linkKey, f); }} />
                                       </label>
                                     )
+                                  )}
                                 </div>
                               );
                             })}
