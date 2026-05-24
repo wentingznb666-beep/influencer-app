@@ -456,7 +456,7 @@ export default function MatchingOrdersPage() {
           const productName = getOrderDetailField(it, "product_name");
           const coopType = getOrderDetailField(it, "cooperation_type_id");
           const workLinks = normalizeWorkLinks(Array.isArray(it.work_links) ? it.work_links : []);
-          const influencerName = getOrderDetailField(it, "influencer_name") || getOrderDetailField(it, "influencer_username") || "";
+          const influencerName = (it as any).influencer_name || (it as any).influencer_username || "";
           const paymentInfo = paymentInfoByOrderId[it.id] || null;
           return (
             <div key={it.id} className="xt-card">
