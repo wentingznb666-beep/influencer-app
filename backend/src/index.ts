@@ -353,7 +353,7 @@ app.post("/api/translate", requireAuth, async (req: Request, res: Response) => {
 
  */
 
-app.post("/api/translate/batch", async (req: Request, res: Response) => {
+app.post("/api/translate/batch", requireAuth, async (req: Request, res: Response) => {
 
   const body = req.body ?? {};
 
