@@ -11,7 +11,6 @@ import {
 } from "../clientApi";
 import WorkLinksModal from "../components/WorkLinksModal";
 import { normalizeWorkLinks } from "../utils/workLinks";
-import { useLanguage } from "../i18n";
 import { showToastNotice } from "../utils/showToast";
 
 type OrderRow = {
@@ -94,7 +93,6 @@ export default function MatchingOrdersPage() {
   const [actionBusy, setActionBusy] = useState<Record<string, boolean>>({});
   const [workLinksModalOpen, setWorkLinksModalOpen] = useState(false);
   const [workLinksModalData, setWorkLinksModalData] = useState<{ links: string[]; influencerName: string }>({ links: [], influencerName: "" });
-  const { lang } = useLanguage();
   const [detailOpen, setDetailOpen] = useState(false);
   const [activeInfluencer, setActiveInfluencer] = useState<ApplicantRow | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -502,25 +500,18 @@ export default function MatchingOrdersPage() {
                   <div className="xt-actions">
                     <button type="button" className="xt-btn xt-btn--primary" onClick={() => void openApplicants(it.id)}>报名管理</button>
                     {workLinks.length > 0 ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
-                        {influencerName ? <div style={{ fontSize: 12, color: "#64748b" }}>达人：{influencerName}</div> : null}
-                        {workLinks.map((url, idx) => (
-                          <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
-                            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#2563eb" }}>
-                              <a href={url} target="_blank" rel="noreferrer">{url}</a>
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => { navigator.clipboard.writeText(url).then(() => setMsg(lang === "th" ? "คัดลอกแล้ว" : "已复制")).catch(() => {}); }}
-                              style={{ padding: "3px 8px", fontSize: 11, border: "1px solid #dbe1ea", borderRadius: 6, background: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}
-                            >
-                              {lang === "th" ? "คัดลอก" : "复制"}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
+                      <button
+                        type="button"
+                        className="xt-btn xt-btn--outline"
+                        onClick={() => {
+                          setWorkLinksModalData({ links: workLinks, influencerName });
+                          setWorkLinksModalOpen(true);
+                        }}
+                      >
+                        查看回传视频
+                      </button>
                     ) : (
-                      <span className="xt-btn xt-btn--outline" style={{ opacity: 0.4, cursor: "default", display: "inline-flex", alignItems: "center" }}>暂无回传视频</span>
+                      <span style={{ fontSize: 13, color: "#94a3b8" }}>暂无回传视频</span>
                     )}
                     {safeText(it.status) === "completed" && !accepted ? (
                       <>
@@ -696,6 +687,13 @@ export default function MatchingOrdersPage() {
           </div>
         </div>
       ) : null}
+      <WorkLinksModal
+        open={workLinksModalOpen}
+        onClose={() => setWorkLinksModalOpen(false)}
+        links={workLinksModalData.links}
+        influencerName={workLinksModalData.influencerName}
+        title="回传视频"
+      />
     </div>
   );
 }
