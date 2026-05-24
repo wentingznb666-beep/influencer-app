@@ -473,7 +473,7 @@ router.get("/client/matching-orders", async (req: AuthRequest, res: Response) =>
               md.detail_json, md.attachment_urls,
               COALESCE(md.detail_json->>'cooperation_type_id','') AS cooperation_type_id,
               COALESCE(cs.phase,'none') AS coop_phase,
-              iu.username AS influencer_username, COALESCE(NULLIF(iu.display_name,), iu.username) AS influencer_name,
+              iu.username AS influencer_username, COALESCE(NULLIF(iu.display_name,''), iu.username) AS influencer_name,
               COALESCE(cs.publish_links,'[]'::jsonb) AS coop_publish_links
          FROM client_market_orders mo
          LEFT JOIN matching_order_details md ON md.order_id=mo.id
@@ -610,7 +610,7 @@ router.get("/influencer/matching-task-hall", async (req: AuthRequest, res: Respo
               md.detail_json, md.attachment_urls,
               COALESCE(md.detail_json->>'cooperation_type_id','') AS cooperation_type_id,
               COALESCE(cs.phase,'none') AS coop_phase,
-              iu.username AS influencer_username, COALESCE(NULLIF(iu.display_name,), iu.username) AS influencer_name,
+              iu.username AS influencer_username, COALESCE(NULLIF(iu.display_name,''), iu.username) AS influencer_name,
               COALESCE(cs.publish_links,'[]'::jsonb) AS coop_publish_links,
               COALESCE(app.applied_count,0) AS applied_count,
               u.username AS client_username, COALESCE(NULLIF(u.display_name,''),u.username) AS client_name
@@ -714,7 +714,7 @@ router.get("/influencer/my-matching-applies", async (req: AuthRequest, res: Resp
               md.detail_json, md.attachment_urls,
               COALESCE(md.detail_json->>'cooperation_type_id','') AS cooperation_type_id,
               COALESCE(cs.phase,'none') AS coop_phase,
-              iu.username AS influencer_username, COALESCE(NULLIF(iu.display_name,), iu.username) AS influencer_name,
+              iu.username AS influencer_username, COALESCE(NULLIF(iu.display_name,''), iu.username) AS influencer_name,
               COALESCE(cs.publish_links,'[]'::jsonb) AS coop_publish_links,
               u.username AS client_username
          FROM market_order_applications a
