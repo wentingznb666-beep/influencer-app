@@ -11,6 +11,7 @@ import {
 } from "../clientApi";
 import { normalizeWorkLinks } from "../utils/workLinks";
 import { showToastNotice } from "../utils/showToast";
+import { getAccessToken } from "../authApi";
 
 type OrderRow = {
   id: number;
@@ -99,7 +100,7 @@ export default function MatchingOrdersPage() {
     formData.append("file", file);
     const res = await fetch(`/api/matching/client/matching-orders/${orderId}/payment-screenshot`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${localStorage.getItem("influencer_app_access_token")}` },
+      headers: { Authorization: `Bearer ${getAccessToken() || ""}` },
       body: formData,
     });
     if (!res.ok) throw new Error("上传失败");
