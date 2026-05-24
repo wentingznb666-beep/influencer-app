@@ -50,8 +50,24 @@ let accessTokenMemory: string | null = (() => {
   try { return localStorage.getItem(STORAGE_ACCESS); } catch { return null; }
 })();
 
+let refreshTimer: number | null = null;
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  refreshTimer = window.setInterval(async () => {
+    try {
+      await refreshAccessToken();
+    } catch {
+      stopAutoRefresh();
+    }
+  }, 10 * 60 * 1000); // 每 10 分钟自动刷新
+}
+
 function stopAutoRefresh(): void {
-  // Token auto-refresh is not implemented yet; stub for future use.
+  if (refreshTimer !== null) {
+    window.clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
 }
 
 
@@ -121,6 +137,7 @@ export function getAccessToken(): string | null {
  */
 
 export function setAuth(accessToken: string, _refreshToken: string | undefined, user: AuthUser): void {
+  startAutoRefresh();
 
   accessTokenMemory = accessToken;
   try { localStorage.setItem(STORAGE_ACCESS, accessToken); } catch {}
