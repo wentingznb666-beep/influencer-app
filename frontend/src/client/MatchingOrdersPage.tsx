@@ -9,6 +9,9 @@ import {
   rejectMatchingOrderApplicant,
   selectMatchingOrderApplicant,
 } from "../clientApi";
+import WorkLinksModal from "../components/WorkLinksModal";
+import { normalizeWorkLinks } from "../utils/workLinks";
+import { useLanguage } from "../i18n";
 import { showToastNotice } from "../utils/showToast";
 
 type OrderRow = {
@@ -89,6 +92,9 @@ export default function MatchingOrdersPage() {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
   const [actionBusy, setActionBusy] = useState<Record<string, boolean>>({});
+  const [workLinksModalOpen, setWorkLinksModalOpen] = useState(false);
+  const [workLinksModalData, setWorkLinksModalData] = useState<{ links: string[]; influencerName: string }>({ links: [], influencerName: "" });
+  const { lang } = useLanguage();
   const [detailOpen, setDetailOpen] = useState(false);
   const [activeInfluencer, setActiveInfluencer] = useState<ApplicantRow | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -451,8 +457,8 @@ export default function MatchingOrdersPage() {
           const taskName = getOrderDetailField(it, "task_name") || safeText(it.title);
           const productName = getOrderDetailField(it, "product_name");
           const coopType = getOrderDetailField(it, "cooperation_type_id");
-          const workLinks = Array.isArray(it.work_links) ? (it.work_links as unknown[]) : [];
-          const firstWork = workLinks.length ? String(workLinks[0] || "") : "";
+          const workLinks = normalizeWorkLinks(Array.isArray(it.work_links) ? it.work_links : []);
+          const influencerName = getOrderDetailField(it, "influencer_name") || getOrderDetailField(it, "influencer_username") || "";
           const paymentInfo = paymentInfoByOrderId[it.id] || null;
           return (
             <div key={it.id} className="xt-card">
@@ -495,7 +501,27 @@ export default function MatchingOrdersPage() {
                   </div>
                   <div className="xt-actions">
                     <button type="button" className="xt-btn xt-btn--primary" onClick={() => void openApplicants(it.id)}>报名管理</button>
-                    {firstWork ? <a className="xt-btn xt-btn--outline" href={firstWork} target="_blank" rel="noreferrer" style={{ display: "inline-flex", alignItems: "center", textDecoration: "none" }}>查看回传短视频</a> : null}
+                    {workLinks.length > 0 ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 6 }}>
+                        {influencerName ? <div style={{ fontSize: 12, color: "#64748b" }}>达人：{influencerName}</div> : null}
+                        {workLinks.map((url, idx) => (
+                          <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#2563eb" }}>
+                              <a href={url} target="_blank" rel="noreferrer">{url}</a>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => { navigator.clipboard.writeText(url).then(() => setMsg(lang === "th" ? "คัดลอกแล้ว" : "已复制")).catch(() => {}); }}
+                              style={{ padding: "3px 8px", fontSize: 11, border: "1px solid #dbe1ea", borderRadius: 6, background: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}
+                            >
+                              {lang === "th" ? "คัดลอก" : "复制"}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="xt-btn xt-btn--outline" style={{ opacity: 0.4, cursor: "default", display: "inline-flex", alignItems: "center" }}>暂无回传视频</span>
+                    )}
                     {safeText(it.status) === "completed" && !accepted ? (
                       <>
                         <button type="button" className="xt-btn xt-btn--primary" onClick={() => void acceptOrder(it.id)} disabled={!!actionBusy[`acceptOrder:${it.id}`]}>
