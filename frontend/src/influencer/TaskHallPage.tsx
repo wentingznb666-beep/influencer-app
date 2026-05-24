@@ -663,14 +663,21 @@ export default function TaskHallPage() {
                     {t("报名状态：")}
                     {t(applyLabel)}
                   </div>
-                  {Array.isArray(it.work_links) && it.work_links.length > 0 && (
-                    <div>
-                      {t("回传短视频：")}
-                      <a href={String(it.work_links[0])} target="_blank" rel="noreferrer">
-                        {t("查看")}
-                      </a>
-                    </div>
-                  )}
+                  {Array.isArray(it.work_links) && it.work_links.length > 0 && (() => {
+                    const raw = String(it.work_links[0] ?? "").trim();
+                    const isUrl = /^https?:\/\//i.test(raw);
+                    if (!raw) return null;
+                    return (
+                      <div>
+                        {t("回传短视频：")}
+                        {isUrl ? (
+                          <a href={raw} target="_blank" rel="noreferrer">{t("查看")}</a>
+                        ) : (
+                          <span style={{ color: "var(--xt-text-muted)", fontSize: 13 }}>{raw}</span>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {/* 验收状态：仅已完成/已验收订单显示 */}
                   {(it.order_status === "completed" || it.order_status === "accepted") && linkAcceptanceMap[oid]?.length > 0 && (
                     <div style={{ marginTop: 8, padding: 10, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
@@ -694,14 +701,19 @@ export default function TaskHallPage() {
                       ))}
                     </div>
                   )}
-                  {lastPublish ? (
-                    <div>
-                      {t("发布链接：")}
-                      <a href={lastPublish} target="_blank" rel="noreferrer">
-                        {t("查看")}
-                      </a>
-                    </div>
-                  ) : null}
+                  {lastPublish ? (() => {
+                    const isUrl = /^https?:\/\//i.test(lastPublish);
+                    return (
+                      <div>
+                        {t("发布链接：")}
+                        {isUrl ? (
+                          <a href={lastPublish} target="_blank" rel="noreferrer">{t("查看")}</a>
+                        ) : (
+                          <span style={{ color: "var(--xt-text-muted)", fontSize: 13 }}>{lastPublish}</span>
+                        )}
+                      </div>
+                    );
+                  })() : null}
                   {canSubmitProof && (
                     <div style={{ marginTop: 8 }}>
                       <input
