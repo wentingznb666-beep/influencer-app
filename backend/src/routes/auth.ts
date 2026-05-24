@@ -181,8 +181,8 @@ router.post("/refresh", (req, res: Response) => {
     }
 
     // 删除旧 token 的 exp/iat，避免 jwt.sign 冲突
-    const { exp, iat, ...cleanPayload } = payload as Record<string, unknown>;
-    const accessToken = signAccessToken(cleanPayload as JwtPayload);
+    const { exp, iat, ...rest } = payload as JwtPayload & { exp?: number; iat?: number };
+    const accessToken = signAccessToken(rest as JwtPayload);
     setAccessTokenCookie(res, accessToken);
     res.json({ accessToken });
   })().catch((e) => {
