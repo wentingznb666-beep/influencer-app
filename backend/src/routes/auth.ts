@@ -180,7 +180,9 @@ router.post("/refresh", (req, res: Response) => {
       return;
     }
 
-    const accessToken = signAccessToken(payload);
+    // 删除旧 token 的 exp/iat，避免 jwt.sign 冲突
+    const { exp, iat, ...cleanPayload } = payload as Record<string, unknown>;
+    const accessToken = signAccessToken(cleanPayload as JwtPayload);
     setAccessTokenCookie(res, accessToken);
     res.json({ accessToken });
   })().catch((e) => {
