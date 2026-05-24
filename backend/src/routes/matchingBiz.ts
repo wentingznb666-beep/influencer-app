@@ -473,10 +473,12 @@ router.get("/client/matching-orders", async (req: AuthRequest, res: Response) =>
               md.detail_json, md.attachment_urls,
               COALESCE(md.detail_json->>'cooperation_type_id','') AS cooperation_type_id,
               COALESCE(cs.phase,'none') AS coop_phase,
+              iu.username AS influencer_username, COALESCE(NULLIF(iu.display_name,), iu.username) AS influencer_name,
               COALESCE(cs.publish_links,'[]'::jsonb) AS coop_publish_links
          FROM client_market_orders mo
          LEFT JOIN matching_order_details md ON md.order_id=mo.id
          LEFT JOIN cooperation_order_states cs ON cs.order_id=mo.id
+         LEFT JOIN users iu ON iu.id=mo.influencer_id
         WHERE mo.client_id=$1 AND mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1
           AND COALESCE(md.detail_json->>'cooperation_type_id','') <> ALL($2::text[])
         ORDER BY mo.id DESC
@@ -608,6 +610,7 @@ router.get("/influencer/matching-task-hall", async (req: AuthRequest, res: Respo
               md.detail_json, md.attachment_urls,
               COALESCE(md.detail_json->>'cooperation_type_id','') AS cooperation_type_id,
               COALESCE(cs.phase,'none') AS coop_phase,
+              iu.username AS influencer_username, COALESCE(NULLIF(iu.display_name,), iu.username) AS influencer_name,
               COALESCE(cs.publish_links,'[]'::jsonb) AS coop_publish_links,
               COALESCE(app.applied_count,0) AS applied_count,
               u.username AS client_username, COALESCE(NULLIF(u.display_name,''),u.username) AS client_name
@@ -615,6 +618,7 @@ router.get("/influencer/matching-task-hall", async (req: AuthRequest, res: Respo
          JOIN users u ON u.id=mo.client_id
          LEFT JOIN matching_order_details md ON md.order_id=mo.id
          LEFT JOIN cooperation_order_states cs ON cs.order_id=mo.id
+         LEFT JOIN users iu ON iu.id=mo.influencer_id
          LEFT JOIN (
            SELECT market_order_id, COUNT(1)::int AS applied_count
              FROM market_order_applications
@@ -710,6 +714,7 @@ router.get("/influencer/my-matching-applies", async (req: AuthRequest, res: Resp
               md.detail_json, md.attachment_urls,
               COALESCE(md.detail_json->>'cooperation_type_id','') AS cooperation_type_id,
               COALESCE(cs.phase,'none') AS coop_phase,
+              iu.username AS influencer_username, COALESCE(NULLIF(iu.display_name,), iu.username) AS influencer_name,
               COALESCE(cs.publish_links,'[]'::jsonb) AS coop_publish_links,
               u.username AS client_username
          FROM market_order_applications a
@@ -717,6 +722,7 @@ router.get("/influencer/my-matching-applies", async (req: AuthRequest, res: Resp
          JOIN users u ON u.id=mo.client_id
          LEFT JOIN matching_order_details md ON md.order_id=mo.id
          LEFT JOIN cooperation_order_states cs ON cs.order_id=mo.id
+         LEFT JOIN users iu ON iu.id=mo.influencer_id
         WHERE a.influencer_id=$1 AND mo.is_deleted=0 AND COALESCE(mo.order_type,0)=1
           AND COALESCE(md.detail_json->>'cooperation_type_id','') <> ALL($2::text[])
         ORDER BY a.id DESC
