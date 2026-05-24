@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { useLanguage } from "../i18n";
 
 type WorkLinksModalProps = {
   /** 是否显示弹层 */
@@ -18,7 +17,6 @@ type WorkLinksModalProps = {
  * 订单「多条交付链接」弹窗：显示达人信息 + 链接列表 + 复制 + 打开。
  */
 export default function WorkLinksModal({ open, onClose, title = "交付链接", links, influencerName }: WorkLinksModalProps) {
-  const { lang } = useLanguage();
 
   useEffect(() => {
     if (!open) return;
@@ -65,18 +63,18 @@ export default function WorkLinksModal({ open, onClose, title = "交付链接", 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <h3 style={{ margin: 0, fontSize: 16 }}>{title}</h3>
           <button type="button" onClick={onClose} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
-            {lang === "th" ? "ปิด" : "关闭"}
+            关闭
           </button>
         </div>
 
         {influencerName ? (
           <div style={{ marginBottom: 12, padding: "8px 12px", background: "#f0fdf4", borderRadius: 8, fontSize: 14, fontWeight: 600 }}>
-            {lang === "th" ? "ครีเอเตอร์: " : "达人："}{influencerName}
+            达人：{influencerName}
           </div>
         ) : null}
 
         {links.length === 0 ? (
-          <p style={{ margin: 0, color: "#94a3b8", fontSize: 14 }}>{lang === "th" ? "ยังไม่มีลิงก์" : "暂无链接"}</p>
+          <p style={{ margin: 0, color: "#94a3b8", fontSize: 14 }}>暂无链接</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {links.map((u, i) => (
@@ -91,7 +89,7 @@ export default function WorkLinksModal({ open, onClose, title = "交付链接", 
                   onClick={() => copyText(u)}
                   style={{ padding: "4px 10px", fontSize: 12, border: "1px solid #dbe1ea", borderRadius: 6, background: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}
                 >
-                  {lang === "th" ? "คัดลอก" : "复制"}
+                  复制
                 </button>
                 <a
                   href={u}
@@ -99,7 +97,7 @@ export default function WorkLinksModal({ open, onClose, title = "交付链接", 
                   rel="noreferrer"
                   style={{ padding: "4px 10px", fontSize: 12, border: "1px solid #2563eb", borderRadius: 6, background: "#2563eb", color: "#fff", textDecoration: "none", whiteSpace: "nowrap" }}
                 >
-                  {lang === "th" ? "เปิด" : "打开"}
+                  打开
                 </a>
               </div>
             ))}
