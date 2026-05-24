@@ -91,9 +91,23 @@ export default function MatchingOrdersPage() {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
   const [actionBusy, setActionBusy] = useState<Record<string, boolean>>({});
-  const [linkAccepted, setLinkAccepted] = useState<Record<string, boolean>>({});
-  const [linkRejected, setLinkRejected] = useState<Record<string, boolean>>({});
-  const [linkPayments, setLinkPayments] = useState<Record<string, string>>({});
+  const STORAGE_ACCEPTED = "xt_link_accepted_v1";
+  const STORAGE_REJECTED = "xt_link_rejected_v1";
+  const STORAGE_PAYMENTS = "xt_link_payments_v1";
+
+  const [linkAccepted, setLinkAccepted] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_ACCEPTED) || "{}"); } catch { return {}; }
+  });
+  const [linkRejected, setLinkRejected] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_REJECTED) || "{}"); } catch { return {}; }
+  });
+  const [linkPayments, setLinkPayments] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_PAYMENTS) || "{}"); } catch { return {}; }
+  });
+
+  const doSetLinkAccepted = (p: Record<string, boolean>) => { setLinkAccepted(p); localStorage.setItem(STORAGE_ACCEPTED, JSON.stringify(p)); };
+  const doSetLinkRejected = (p: Record<string, boolean>) => { setLinkRejected(p); localStorage.setItem(STORAGE_REJECTED, JSON.stringify(p)); };
+  const doSetLinkPayments = (p: Record<string, string>) => { setLinkPayments(p); localStorage.setItem(STORAGE_PAYMENTS, JSON.stringify(p)); };
 
   const uploadPaymentScreenshot = async (orderId: number, linkKey: string, file: File) => {
     const formData = new FormData();
@@ -105,7 +119,7 @@ export default function MatchingOrdersPage() {
     });
     if (!res.ok) throw new Error("上传失败");
     const data = await res.json();
-    setLinkPayments((p) => ({ ...p, [linkKey]: data.url }));
+    doSetLinkPayments((p) => ({ ...p, [linkKey]: data.url }));
     showToastNotice("✅ 付款截图已上传", { variant: "success", placement: "top-right" });
   };
   const [detailOpen, setDetailOpen] = useState(false);
@@ -609,8 +623,8 @@ export default function MatchingOrdersPage() {
                                   <button type="button" onClick={() => navigator.clipboard.writeText(url)} style={{ padding: "2px 8px", fontSize: 11, border: "1px solid #dbe1ea", borderRadius: 4, background: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}>复制</button>
                                   {!isAccepted ? (
                                     <>
-                                      <button type="button" className="xt-btn xt-btn--primary" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => { setLinkAccepted((p:any) => ({...p, [linkKey]: true})); }}>验收通过</button>
-                                      <button type="button" className="xt-btn xt-btn--danger" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => { setLinkRejected((p:any) => ({...p, [linkKey]: true})); }}>验收驳回</button>
+                                      <button type="button" className="xt-btn xt-btn--primary" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => { doSetLinkAccepted((p:any) => ({...p, [linkKey]: true})); }}>验收通过</button>
+                                      <button type="button" className="xt-btn xt-btn--danger" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => { doSetLinkRejected((p:any) => ({...p, [linkKey]: true})); }}>验收驳回</button>
                                     </>
                                   ) : (
                                     linkPayments[linkKey] ? (
