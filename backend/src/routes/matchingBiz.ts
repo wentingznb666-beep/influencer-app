@@ -947,6 +947,34 @@ router.get("/client/matching-orders/:id/payment-profile", async (req: AuthReques
   }
 });
 
+/** 商家端上传付款截图 */
+const paymentScreenshotUpload = multer({
+  storage: multer.diskStorage({
+    destination: async (req, file, cb) => {
+      const uid = (req as AuthRequest).user!.userId;
+      const dir = path.join(getUploadsRoot(), "payments", String(uid));
+      await fs.mkdir(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, Date.now() + "-" + Math.random().toString(36).slice(2, 10) + ext);
+    },
+  }),
+  limits: { fileSize: MATCHING_UPLOAD_MAX_BYTES },
+  fileFilter: (req, file, cb) => {
+    ALLOWED_MATCHING_UPLOAD_MIME.has(file.mimetype) ? cb(null, true) : cb(new Error("图片格式仅支持 JPG/PNG/WebP"));
+  },
+});
+
+router.post("/client/matching-orders/:id/payment-screenshot", paymentScreenshotUpload.single("file"), async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN" });
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: "NO_FILE" });
+  const url = "/uploads/payments/" + req.user.userId + "/" + file.filename;
+  return res.json({ ok: true, url });
+});
+
 router.post("/client/matching-orders/:id/accept", async (req: AuthRequest, res: Response) => {
   if (req.user?.role !== "client") return res.status(403).json({ error: "FORBIDDEN", message: "无权限访问。" });
   const orderId = Number(req.params.id);
