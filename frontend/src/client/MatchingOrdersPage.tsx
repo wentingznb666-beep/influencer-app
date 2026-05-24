@@ -9,7 +9,6 @@ import {
   rejectMatchingOrderApplicant,
   selectMatchingOrderApplicant,
 } from "../clientApi";
-import WorkLinksModal from "../components/WorkLinksModal";
 import { normalizeWorkLinks } from "../utils/workLinks";
 import { showToastNotice } from "../utils/showToast";
 
@@ -91,8 +90,6 @@ export default function MatchingOrdersPage() {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
   const [actionBusy, setActionBusy] = useState<Record<string, boolean>>({});
-  const [workLinksModalOpen, setWorkLinksModalOpen] = useState(false);
-  const [workLinksModalData, setWorkLinksModalData] = useState<{ links: string[]; influencerName: string }>({ links: [], influencerName: "" });
   const [detailOpen, setDetailOpen] = useState(false);
   const [activeInfluencer, setActiveInfluencer] = useState<ApplicantRow | null>(null);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -499,20 +496,13 @@ export default function MatchingOrdersPage() {
                   </div>
                   <div className="xt-actions">
                     <button type="button" className="xt-btn xt-btn--primary" onClick={() => void openApplicants(it.id)}>报名管理</button>
-                    {workLinks.length > 0 ? (
-                      <button
-                        type="button"
-                        className="xt-btn xt-btn--outline"
-                        onClick={() => {
-                          setWorkLinksModalData({ links: workLinks, influencerName });
-                          setWorkLinksModalOpen(true);
-                        }}
-                      >
-                        查看回传视频
-                      </button>
-                    ) : (
-                      <span style={{ fontSize: 13, color: "#94a3b8" }}>暂无回传视频</span>
-                    )}
+                    <button
+                      type="button"
+                      className="xt-btn xt-btn--outline"
+                      onClick={() => void openApplicants(it.id)}
+                    >
+                      查看回传视频
+                    </button>
                     {safeText(it.status) === "completed" && !accepted ? (
                       <>
                         <button type="button" className="xt-btn xt-btn--primary" onClick={() => void acceptOrder(it.id)} disabled={!!actionBusy[`acceptOrder:${it.id}`]}>
@@ -565,7 +555,7 @@ export default function MatchingOrdersPage() {
           <div className="xt-modal">
             <div className="xt-modal-head">
               <div>
-                <h3 className="xt-modal-title">报名管理</h3>
+                <h3 className="xt-modal-title">达人报名与回传视频</h3>
                 <div className="xt-muted">{safeText(activeOrder.order_no) || "-"} ｜ {getOrderDetailField(activeOrder, "task_name") || safeText(activeOrder.title) || "-"}</div>
               </div>
               <button type="button" className="xt-close" onClick={closeApplicants}>×</button>
@@ -574,40 +564,51 @@ export default function MatchingOrdersPage() {
               {loadingApplicants ? <div style={{ color: "#64748b", padding: "10px 2px" }}>加载报名中…</div> : null}
               {!loadingApplicants && applicants.length === 0 ? <div style={{ color: "#64748b", padding: "10px 2px" }}>暂无报名达人</div> : null}
               {applicants.length > 0 ? (
-                <table className="xt-table">
-                  <thead>
-                    <tr><th className="xt-th">达人</th><th className="xt-th">状态</th><th className="xt-th" style={{ textAlign: "right" }}>操作</th></tr>
-                  </thead>
-                  <tbody>
-                    {applicants.map((a) => {
-                      const st = safeText(a.status);
-                      const canAct = st === "pending";
-                      const selectKey = `selectApplicant:${activeOrder.id}:${a.id}`;
-                      const rejectKey = `rejectApplicant:${activeOrder.id}:${a.id}`;
-                      return (
-                        <tr key={a.id}>
-                          <td className="xt-td">{safeText(a.username) || "-"}</td>
-                          <td className="xt-td" style={{ color: "#475569" }}>{st || "-"}</td>
-                          <td className="xt-td" style={{ textAlign: "right" }}>
-                            <div className="xt-actions">
-                              <button type="button" className="xt-btn xt-btn--outline" onClick={() => openInfluencerDetail(a)}>查看达人详情</button>
-                              {canAct ? (
-                                <>
-                                  <button type="button" className="xt-btn xt-btn--primary" onClick={() => void selectApplicant(a.id)} disabled={!!actionBusy[selectKey]}>
-                                    {actionBusy[selectKey] ? "处理中…" : "选中"}
-                                  </button>
-                                  <button type="button" className="xt-btn xt-btn--danger" onClick={() => void rejectApplicant(a.id)} disabled={!!actionBusy[rejectKey]}>
-                                    {actionBusy[rejectKey] ? "处理中…" : "驳回"}
-                                  </button>
-                                </>
-                              ) : null}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {applicants.map((a) => {
+                    const st = safeText(a.status);
+                    const canAct = st === "pending";
+                    const selectKey = `selectApplicant:${activeOrder.id}:${a.id}`;
+                    const rejectKey = `rejectApplicant:${activeOrder.id}:${a.id}`;
+                    const orderWorkLinks = normalizeWorkLinks(Array.isArray(activeOrder.work_links) ? activeOrder.work_links : []);
+                    return (
+                      <div key={a.id} style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, background: "#fff" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                          <div>
+                            <strong style={{ fontSize: 15 }}>{safeText(a.username) || "-"}</strong>
+                            <span style={{ marginLeft: 10, fontSize: 12, color: "#64748b" }}>状态：{st || "-"}</span>
+                          </div>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button type="button" className="xt-btn xt-btn--outline" onClick={() => openInfluencerDetail(a)}>查看详情</button>
+                            {canAct ? (
+                              <>
+                                <button type="button" className="xt-btn xt-btn--primary" onClick={() => void selectApplicant(a.id)} disabled={!!actionBusy[selectKey]}>
+                                  {actionBusy[selectKey] ? "处理中…" : "验收通过"}
+                                </button>
+                                <button type="button" className="xt-btn xt-btn--danger" onClick={() => void rejectApplicant(a.id)} disabled={!!actionBusy[rejectKey]}>
+                                  {actionBusy[rejectKey] ? "处理中…" : "验收驳回"}
+                                </button>
+                              </>
+                            ) : null}
+                          </div>
+                        </div>
+                        {orderWorkLinks.length > 0 ? (
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "8px 10px", background: "#f8fafc", borderRadius: 8 }}>
+                            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>回传视频链接：</div>
+                            {orderWorkLinks.map((url: string, idx: number) => (
+                              <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+                                <a href={url} target="_blank" rel="noreferrer" style={{ flex: 1, wordBreak: "break-all", color: "#2563eb", minWidth: 0 }}>{url}</a>
+                                <button type="button" onClick={() => navigator.clipboard.writeText(url)} style={{ padding: "2px 8px", fontSize: 11, border: "1px solid #dbe1ea", borderRadius: 4, background: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}>复制</button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: 12, color: "#94a3b8", padding: "4px 0" }}>暂无回传视频</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               ) : null}
 
               {isAccepted ? (
@@ -687,13 +688,6 @@ export default function MatchingOrdersPage() {
           </div>
         </div>
       ) : null}
-      <WorkLinksModal
-        open={workLinksModalOpen}
-        onClose={() => setWorkLinksModalOpen(false)}
-        links={workLinksModalData.links}
-        influencerName={workLinksModalData.influencerName}
-        title="回传视频"
-      />
     </div>
   );
 }
