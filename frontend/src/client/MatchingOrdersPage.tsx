@@ -628,8 +628,8 @@ export default function MatchingOrdersPage() {
                                     </>
                                   ) : (
                                     linkPayments[linkKey] ? (
-                                      <a href={linkPayments[linkKey]} target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: "4px 10px", background: "#10b981", color: "#fff", borderRadius: 6, textDecoration: "none", whiteSpace: "nowrap" }}>查看付款截图</a>
-                                      <button type="button" onClick={() => { doSetLinkPayments({...linkPayments, [linkKey]: ""}); doSetLinkAccepted({...linkAccepted, [linkKey]: false}); }} style={{ fontSize: 11, padding: "4px 8px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" }}>删除</button>
+                                      <><a href={linkPayments[linkKey]} target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: "4px 10px", background: "#10b981", color: "#fff", borderRadius: 6, textDecoration: "none", whiteSpace: "nowrap" }}>查看付款截图</a>
+                                      <button type="button" onClick={() => { doSetLinkPayments({...linkPayments, [linkKey]: ""}); doSetLinkAccepted({...linkAccepted, [linkKey]: false}); }} style={{ fontSize: 11, padding: "4px 8px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" }}>删除</button></>
                                     ) : (
                                       <label style={{ fontSize: 11, padding: "4px 10px", background: "#f97316", color: "#fff", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" }}>
                                         上传付款截图
