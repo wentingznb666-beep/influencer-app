@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import * as api from "../clientApi";
+import { useScrollLock } from "../hooks/useScrollLock";
 
 type ImportResult = {
   success: number;
@@ -48,6 +49,8 @@ export default function SkusPage() {
   const [batchImageResult, setBatchImageResult] = useState<BatchImageResult | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSkuModal, setShowSkuModal] = useState(false);
+
+  useScrollLock(showSkuModal || showImport || showBatchImages);
 
   /** 批量选择相关 */
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());

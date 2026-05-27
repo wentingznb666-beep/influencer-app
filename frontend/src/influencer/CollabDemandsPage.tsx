@@ -2,6 +2,7 @@
 import { useTranslation } from "react-i18next";
 import { createInfluencerDemand, getInfluencerPermissionStatus } from "../matchingApi";
 import { formatInfluencerPermissionStatus } from "../utils/matchingStatusText";
+import { useScrollLock } from "../hooks/useScrollLock";
 
 type PermissionStatus = "unapplied" | "pending" | "approved" | "rejected" | "disabled";
 
@@ -48,6 +49,8 @@ export default function CollabDemandsPage() {
   const [creating, setCreating] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [form, setForm] = useState<DemandFormState>(defaultForm);
+
+  useScrollLock(showSuccessModal);
 
   /** 拉取权限状态。 */
   const loadPermission = async () => {

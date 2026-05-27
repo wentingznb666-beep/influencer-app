@@ -8,6 +8,7 @@ import {
   updateInfluencerDemand,
 } from "../matchingApi";
 import { formatDemandApplyStatus, formatDemandStatus } from "../utils/matchingStatusText";
+import { useScrollLock } from "../hooks/useScrollLock";
 
 type DemandItem = {
   id: number;
@@ -69,6 +70,8 @@ export default function InfluencerMyDemandsPage() {
   const [editingDemand, setEditingDemand] = useState<DemandItem | null>(null);
   const [editForm, setEditForm] = useState<DemandEditForm | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+
+  useScrollLock(!!detailApp || !!editingDemand);
 
   /** Load my demand list. */
   const load = async () => {

@@ -7,6 +7,8 @@ import { getStoredUser } from "../authApi";
 
 import { normalizeAccountText } from "../utils/accountText";
 
+import { useScrollLock } from "../hooks/useScrollLock";
+
 
 
 type UserRole = "admin" | "employee" | "influencer" | "client";
@@ -193,6 +195,8 @@ export default function UsersPage() {
   const [resetModalPassword, setResetModalPassword] = useState("");
 
   const [showResetModalPassword, setShowResetModalPassword] = useState(false);
+
+  useScrollLock(!!resetModal);
 
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 

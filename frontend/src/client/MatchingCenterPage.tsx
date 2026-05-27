@@ -8,6 +8,7 @@ import {
   updateMatchingOrder,
   uploadMatchingOrderAssets,
 } from "../clientApi";
+import { useScrollLock } from "../hooks/useScrollLock";
 import { useAppStore } from "../stores/AppStore";
 import { MerchantInfoForm } from "../components/MerchantInfoForm";
 import { showToastNotice } from "../utils/showToast";
@@ -115,6 +116,8 @@ export default function MatchingCenterPage() {
   const [editingOrder, setEditingOrder] = useState<MatchingOrderRow | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successKind, setSuccessKind] = useState<"create" | "update">("create");
+
+  useScrollLock(showModal || !!editingOrder || showSuccessModal);
 
   const parseFirstPositiveNumber = (text: string): number | null => {
     const m = String(text || "").replace(/,/g, "").match(/(\d+(?:\.\d+)?)/);

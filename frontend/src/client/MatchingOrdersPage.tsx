@@ -12,6 +12,7 @@ import {
 import { normalizeWorkLinks } from "../utils/workLinks";
 import { showToastNotice } from "../utils/showToast";
 import { getAccessToken } from "../authApi";
+import { useScrollLock } from "../hooks/useScrollLock";
 
 type OrderRow = {
   id: number;
@@ -96,6 +97,8 @@ export default function MatchingOrdersPage() {
   const [linkAccepted, setLinkAccepted] = useState<Record<string, boolean>>({});
   const [linkRejected, setLinkRejected] = useState<Record<string, boolean>>({});
   const [linkPayments, setLinkPayments] = useState<Record<string, string>>({});
+
+  useScrollLock(activeOrderId !== null);
 
   const saveLinkState = async (orderId: number, applicantId: number, linkIdx: number, accepted: boolean, rejected: boolean, paymentUrl?: string) => {
     await fetch(`/api/matching/client/matching-orders/${orderId}/link-acceptance`, {

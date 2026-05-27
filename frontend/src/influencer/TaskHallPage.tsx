@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { applyMatchingOrder, getInfluencerMatchingTaskHall, getMyLinkAcceptance, getMyMatchingApplies, publishMatchingOrder, submitMatchingProof } from "../influencerApi";
 import { showToastNotice } from "../utils/showToast";
+import { useScrollLock } from "../hooks/useScrollLock";
 
 type TaskItem = {
   id: number;
@@ -154,6 +155,7 @@ function OrderDetailModal({
   t: (k: string) => string;
   lang: string;
 }) {
+  useScrollLock(open);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {

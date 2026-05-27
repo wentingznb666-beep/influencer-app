@@ -9,6 +9,8 @@ import * as employeeApi from "../employeeApi";
 
 import { getStoredUser } from "../authApi";
 
+import { useScrollLock } from "../hooks/useScrollLock";
+
 import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFilter";
 
 import WorkLinksModal from "../components/WorkLinksModal";
@@ -169,6 +171,8 @@ export default function MarketOrdersPage() {
   const [dateFilter, setDateFilter] = useState<DateFilterState>({ mode: "all", day: "", startDate: "", endDate: "" });
 
   const [detailOrder, setDetailOrder] = useState<MarketRow | null>(null);
+
+  useScrollLock(!!detailOrder);
 
   const [detailWorkLinksDraft, setDetailWorkLinksDraft] = useState<string[]>([]);
 

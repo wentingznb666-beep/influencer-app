@@ -8,6 +8,8 @@ import { getStoredUser } from "../authApi";
 
 import WorkLinksModal from "../components/WorkLinksModal";
 
+import { useScrollLock } from "../hooks/useScrollLock";
+
 import { normalizeWorkLinks } from "../utils/workLinks";
 
 import { normalizeSkuCodes, normalizeSkuIds, normalizeSkuImages } from "../utils/marketOrderSku";
@@ -136,6 +138,8 @@ export default function OrdersPage() {
   const [status, setStatus] = useState<"" | "open" | "claimed" | "completed" | "cancelled">("");
 
   const [detailOrder, setDetailOrder] = useState<Row | null>(null);
+
+  useScrollLock(!!detailOrder);
 
   const [detailWorkLinksDraft, setDetailWorkLinksDraft] = useState<string[]>([]);
 

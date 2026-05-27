@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useScrollLock } from "../hooks/useScrollLock";
 
 type WorkLinksModalProps = {
   /** 是否显示弹层 */
@@ -17,6 +18,7 @@ type WorkLinksModalProps = {
  * 订单「多条交付链接」弹窗：显示达人信息 + 链接列表 + 复制 + 打开。
  */
 export default function WorkLinksModal({ open, onClose, title = "交付链接", links, influencerName }: WorkLinksModalProps) {
+  useScrollLock(open);
 
   useEffect(() => {
     if (!open) return;
