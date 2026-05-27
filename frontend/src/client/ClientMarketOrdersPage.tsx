@@ -13,6 +13,8 @@ import { showToastNotice } from "../utils/showToast";
 
 import { normalizeWorkLinks } from "../utils/workLinks";
 
+import { useScrollLock } from "../hooks/useScrollLock";
+
 
 
 type MarketOrder = {
@@ -289,6 +291,14 @@ export default function ClientMarketOrdersPage() {
   const [linksModalOpen, setLinksModalOpen] = useState(false);
 
   const [linksModalLinks, setLinksModalLinks] = useState<string[]>([]);
+
+  const [detailRow, setDetailRow] = useState<
+    | { kind: "graded"; order: MarketOrder }
+    | { kind: "offline"; order: OfflineVideoOrder }
+    | null
+  >(null);
+
+  useScrollLock(!!detailRow);
 
   const hasInitLoadedRef = useRef(false);
 
@@ -1325,287 +1335,64 @@ export default function ClientMarketOrdersPage() {
           {combinedRows.map((row) => {
             if (row.kind === "graded") {
               const o = row.order;
+              const statusLabel = o.status === "open" ? "待领取" : o.status === "claimed" ? "已领取" : o.status === "completed" ? "已完成" : o.status === "cancelled" ? "已取消" : o.status;
+              const statusBg = o.status === "open" ? "#ffedd5" : o.status === "claimed" ? "#dbeafe" : o.status === "completed" ? "#dcfce7" : "#f1f5f9";
               return (
                 <div
                   key={`m-${o.id}`}
                   data-order-kind="market"
                   data-order-id={o.id}
-                  style={{ padding: compactPx(16), background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
+                  style={{ padding: compactPx(12), background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)", fontSize: compactPx(12) }}
                 >
-                  <div style={{ marginBottom: compactPx(10), padding: "6px 10px", borderRadius: compactPx(8), background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: compactPx(13) }}>
-                    订单日期：{formatDateTime(o.created_at)}
-                  </div>
-
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: compactPx(8) }}>
-                    <div>
-                      <div style={{ fontWeight: 600, display: "flex", gap: compactPx(8), alignItems: "center", flexWrap: "wrap" }}>
-                        <span>订单号：{o.order_no || `（内部ID ${o.id}）`}</span>
-                        <span style={tagStyle("graded_video")}>{typeText("graded_video")}</span>
-                      </div>
-                      {o.title && <div style={{ marginTop: compactPx(6), fontSize: compactPx(14), color: "#334155" }}>标题：{o.title}</div>}
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: compactPx(6) }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: compactPx(8), flexWrap: "wrap" }}>
+                      <span style={{ fontWeight: 600 }}>{o.order_no || `#${o.id}`}</span>
+                      <span style={tagStyle("graded_video")}>{typeText("graded_video")}</span>
+                      <span style={{ padding: "2px 8px", borderRadius: compactPx(999), fontSize: compactPx(11), display: "inline-block", background: statusBg, color: "#334155" }}>{statusLabel}</span>
                     </div>
-
-                    <div style={{ display: "flex", alignItems: "center", gap: compactPx(10), flexWrap: "wrap", justifyContent: "flex-end" }}>
-                      <div style={{ color: "#64748b", fontSize: compactPx(13) }}>视频数量/积分</div>
-                      <div style={{ fontSize: compactPx(14) }}>
-                        <div style={{ marginBottom: compactPx(4) }}>视频数量：{o.task_count || "-"} 条</div>
-                        <div>
-                          金额：
-                          <span style={{ fontWeight: 600, color: "var(--xt-accent)" }}>{marketOrderTotalRewardPoints(o)} 积分</span>
-                          <span style={{ color: "#64748b", marginLeft: compactPx(4) }}>（单套 {o.reward_points} 积分 × 视频数量：{marketOrderTaskCount(o)}）</span>
-                        </div>
-                      </div>
-
+                    <div style={{ display: "flex", alignItems: "center", gap: compactPx(8) }}>
+                      <span style={{ fontWeight: 600, color: "var(--xt-accent)" }}>{marketOrderTotalRewardPoints(o)} 积分</span>
                       {o.status === "open" && (
                         <>
-                          <button type="button" onClick={() => nav(`/client/market-orders/${o.id}/edit`)} style={{ padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}>
-                            编辑
-                          </button>
-
-                          <button type="button" onClick={() => handleDelete(o.id)} style={{ padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: "pointer" }}>
-                            删除
-                          </button>
+                          <button type="button" onClick={() => nav(`/client/market-orders/${o.id}/edit`)} style={{ padding: "4px 8px", borderRadius: compactPx(6), border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer", fontSize: compactPx(11) }}>编辑</button>
+                          <button type="button" onClick={() => handleDelete(o.id)} style={{ padding: "4px 8px", borderRadius: compactPx(6), border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: "pointer", fontSize: compactPx(11) }}>删除</button>
                         </>
                       )}
+                      <button type="button" onClick={() => setDetailRow({ kind: "graded", order: o })} style={{ padding: "4px 8px", borderRadius: compactPx(6), border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer", fontSize: compactPx(11) }}>详情</button>
                     </div>
                   </div>
-
-                  {(o.status === "claimed" || o.status === "completed" || !!o.influencer_id || !!o.influencer_username) && (
-                    <p style={{ margin: "8px 0 0", fontSize: compactPx(14), fontWeight: 600, color: "#0f766e" }}>领取达人账号昵称：{resolveClaimerText(o)}</p>
-                  )}
-
-                  <p style={{ margin: "8px 0 0", fontSize: compactPx(13), color: "#475569" }}>发布方式：{resolvePublishMethodText(o.publish_method)}</p>
-
-                  {!!resolveTikTokLink(o) && (
-                    <p style={{ margin: "8px 0 0", fontSize: compactPx(13) }}>
-                      TikTok：
-                      <a href={resolveTikTokLink(o)} target="_blank" rel="noreferrer">
-                        {resolveTikTokLink(o)}
-                      </a>
-                    </p>
-                  )}
-
-                  {!!resolvePublishLink(o) && (
-                    <p style={{ margin: "8px 0 0", fontSize: compactPx(13) }}>
-                      发布链接：
-                      <a href={resolvePublishLink(o)} target="_blank" rel="noreferrer">
-                        {resolvePublishLink(o)}
-                      </a>
-                    </p>
-                  )}
-
-                  {(Array.isArray(o.sku_codes) && o.sku_codes.length > 0) || (Array.isArray(o.sku_images) && o.sku_images.length > 0) ? (
-                    <div style={{ marginTop: compactPx(8) }}>
-                      <div style={{ fontSize: compactPx(13), color: "#475569" }}>SKU 信息</div>
-                      {Array.isArray(o.sku_codes) && o.sku_codes.length > 0 && <div style={{ marginTop: compactPx(4), fontSize: compactPx(13), color: "#334155" }}>{o.sku_codes.join("，")}</div>}
-                      {Array.isArray(o.sku_images) && o.sku_images.length > 0 && (
-                        <div style={{ marginTop: compactPx(6), display: "flex", gap: compactPx(6), flexWrap: "wrap" }}>
-                          {o.sku_images.slice(0, 6).map((url, i) => (
-                            <a key={`${o.id}-sku-${i}`} href={url} target="_blank" rel="noreferrer">
-                              <img src={url} alt={`sku-${o.id}-${i}`} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: compactPx(6), border: "1px solid #eee" }} />
-                            </a>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : null}
-
-                  <p style={{ margin: "8px 0 0", fontSize: compactPx(13), color: "#475569" }}>
-                    店铺名称：{o.client_shop_name?.trim() || "未填写"} · 对接群聊：{o.client_group_chat?.trim() || "未填写"}
-                  </p>
-
-                  <p style={{ margin: "8px 0 0", fontSize: compactPx(14) }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLinksModalLinks(normalizeWorkLinks(o.work_links));
-                        setLinksModalOpen(true);
-                      }}
-                      style={{ padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
-                    >
-                      查看链接
-                    </button>
-                  </p>
-
-                  <p style={{ margin: "8px 0 0", fontSize: compactPx(12), color: "#999" }}>{o.completed_at ? `完成：${formatDateTime(o.completed_at)}` : "完成：—"}</p>
                 </div>
               );
             }
 
-            const o = row.order;
-            const req = (o.requirements || {}) as Record<string, unknown>;
-            const shopName = String(req.client_shop_name || "").trim();
-            const groupChat = String(req.client_group_chat || "").trim();
-            const proofLinks = (Array.isArray(o.proof_links) ? o.proof_links : [])
-              .map((x: unknown) => (typeof x === "string" ? x : String((x as Record<string, unknown>)?.url || (x as Record<string, unknown>)?.link || "")).trim())
-              .filter(Boolean);
-            const publishLinks = (Array.isArray(o.publish_links) ? o.publish_links : [])
-              .map((x: unknown) => (typeof x === "string" ? x : String((x as Record<string, unknown>)?.url || (x as Record<string, unknown>)?.link || "")).trim())
-              .filter(Boolean);
-            const batches = Array.isArray(o.batch_payload) ? (o.batch_payload as Record<string, unknown>[]) : [];
-
-            const canAccept =
-              o.payment_status === "paid" &&
-              (o.type_id === "creator_review_video" ? o.phase === "published" : o.phase === "delivered");
-            const canReject = o.payment_status === "paid" && ["delivered", "published"].includes(o.phase);
-
-            return (
-              <div
-                key={`v-${o.id}`}
-                data-order-kind="video"
-                data-order-id={o.id}
-                style={{ padding: compactPx(16), background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
-              >
-                <div style={{ marginBottom: compactPx(10), padding: "6px 10px", borderRadius: compactPx(8), background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: compactPx(13) }}>
-                  订单日期：{formatDateTime(o.created_at)}
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: compactPx(8) }}>
-                  <div>
-                    <div style={{ fontWeight: 600, display: "flex", gap: compactPx(8), alignItems: "center", flexWrap: "wrap" }}>
-                      <span>订单号：VO-{o.id}</span>
+            /* --- offline order compact card --- */
+            {
+              const o = row.order;
+              const req = (o.requirements || {}) as Record<string, unknown>;
+              const statusLabel = phaseText(o);
+              const statusBg = ["rejected", "review_rejected"].includes(o.phase) ? "#fee2e2" : ["review_pending", "in_progress", "assigned", "submitted", "delivered", "published", "approved_to_publish"].includes(o.phase) ? "#dbeafe" : "#dcfce7";
+              return (
+                <div
+                  key={`v-${o.id}`}
+                  data-order-kind="video"
+                  data-order-id={o.id}
+                  style={{ padding: compactPx(12), background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)", fontSize: compactPx(12) }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: compactPx(6) }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: compactPx(8), flexWrap: "wrap" }}>
+                      <span style={{ fontWeight: 600 }}>VO-{o.id}</span>
                       <span style={tagStyle(o.type_id)}>{typeText(o.type_id)}</span>
+                      <span style={{ padding: "2px 8px", borderRadius: compactPx(999), fontSize: compactPx(11), display: "inline-block", background: statusBg, color: "#334155" }}>{statusLabel}</span>
+                      <span style={{ fontSize: compactPx(11), color: "#64748b" }}>{o.payment_status === "paid" ? "已付" : "未付"}</span>
                     </div>
-                    <div style={{ marginTop: compactPx(6), fontSize: compactPx(14), color: "#334155" }}>标题：{o.title}</div>
-                    <div style={{ marginTop: compactPx(6), fontSize: compactPx(13), color: "#475569" }}>
-                      付款：{o.payment_status === "paid" ? "已付款" : "未付款"} · 状态：{phaseText(o)}
+                    <div style={{ display: "flex", alignItems: "center", gap: compactPx(8) }}>
+                      <span style={{ fontWeight: 600, color: "var(--xt-accent)" }}>{Number(o.amount_thb || 0).toFixed(2)} THB</span>
+                      <button type="button" onClick={() => setDetailRow({ kind: "offline", order: o })} style={{ padding: "4px 8px", borderRadius: compactPx(6), border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer", fontSize: compactPx(11) }}>详情</button>
                     </div>
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: compactPx(10), flexWrap: "wrap", justifyContent: "flex-end" }}>
-                    <div style={{ color: "#64748b", fontSize: compactPx(13) }}>金额(฿)</div>
-                    <div style={{ fontSize: compactPx(14), fontWeight: 700, color: "var(--xt-accent)" }}>{Number(o.amount_thb || 0).toFixed(2)}</div>
-
-                    <button
-                      type="button"
-                      disabled={!canAccept}
-                      onClick={() => handleOfflineAccept(o.id)}
-                      style={{ padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #bbf7d0", background: "#fff", color: "#166534", cursor: canAccept ? "pointer" : "not-allowed", opacity: canAccept ? 1 : 0.5 }}
-                    >
-                      验收通过
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={!canReject}
-                      onClick={() => handleOfflineReject(o.id)}
-                      style={{ padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: canReject ? "pointer" : "not-allowed", opacity: canReject ? 1 : 0.5 }}
-                    >
-                      驳回
-                    </button>
                   </div>
                 </div>
-
-                {(shopName || groupChat) && (
-                  <p style={{ margin: "8px 0 0", fontSize: compactPx(13), color: "#475569" }}>
-                    店铺名称：{shopName || "未填写"} · 对接群聊：{groupChat || "未填写"}
-                  </p>
-                )}
-
-                {Array.isArray(proofLinks) && proofLinks.length > 0 && (
-                  <div style={{ marginTop: compactPx(8), fontSize: compactPx(13) }}>
-                    <div style={{ color: "#475569" }}>交付链接</div>
-                    <div style={{ marginTop: compactPx(4), display: "flex", flexDirection: "column", gap: compactPx(4) }}>
-                      {proofLinks.slice(0, 8).map((url, i) => (
-                        <a key={`proof-${o.id}-${i}`} href={url} target="_blank" rel="noreferrer">
-                          {url}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {Array.isArray(publishLinks) && publishLinks.length > 0 && (
-                  <div style={{ marginTop: compactPx(8), fontSize: compactPx(13) }}>
-                    <div style={{ color: "#475569" }}>发布链接</div>
-                    <div style={{ marginTop: compactPx(4), display: "flex", flexDirection: "column", gap: compactPx(4) }}>
-                      {publishLinks.slice(0, 8).map((url, i) => (
-                        <a key={`pub-${o.id}-${i}`} href={url} target="_blank" rel="noreferrer">
-                          {url}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {o.type_id === "monthly_package" && (
-                  <div style={{ marginTop: compactPx(10) }}>
-                    <div style={{ fontSize: compactPx(13), color: "#475569", marginBottom: compactPx(6) }}>批次验收 / 结算</div>
-                    {batches.length === 0 ? (
-                      <div style={{ fontSize: compactPx(13), color: "#94a3b8" }}>暂无批次（员工提交后会生成）</div>
-                    ) : (
-                      <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: compactPx(13) }}>
-                          <thead>
-                            <tr>
-                              <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>批次</th>
-                              <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>提交</th>
-                              <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>交付链接</th>
-                              <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>验收</th>
-                              <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>状态</th>
-                              <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>结算(฿)</th>
-                              <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>操作</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {batches.map((b) => {
-                              const bn = Number(b?.batch_no || 0);
-                              const status = String(b?.status || "");
-                              const canBatchAccept = o.payment_status === "paid" && status === "pending_acceptance";
-                              const canBatchSettle = o.payment_status === "paid" && status === "accepted";
-                              const links = extractBatchLinks(b);
-                              return (
-                                <tr key={`batch-${o.id}-${bn}`}>
-                                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{bn || "-"}</td>
-                                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{Number(b?.video_count || 0) || 0}</td>
-                                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>
-                                    {links.length > 0 ? (
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setLinksModalLinks(links);
-                                          setLinksModalOpen(true);
-                                        }}
-                                        style={{ padding: "4px 8px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
-                                      >
-                                        查看（{links.length}）
-                                      </button>
-                                    ) : (
-                                      <span style={{ color: "#94a3b8" }}>暂无</span>
-                                    )}
-                                  </td>
-                                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{Number(b?.accepted_count || 0) || 0}</td>
-                                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{status || "-"}</td>
-                                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>{Number(b?.settled_amount || 0).toFixed(2)}</td>
-                                  <td style={{ padding: "6px 8px", borderBottom: "1px solid #f1f5f9" }}>
-                                    <button
-                                      type="button"
-                                      disabled={!canBatchAccept}
-                                      onClick={() => handleMonthlyBatchAccept(o.id, bn)}
-                                      style={{ padding: "4px 8px", borderRadius: compactPx(8), border: "1px solid #bbf7d0", background: "#fff", color: "#166534", cursor: canBatchAccept ? "pointer" : "not-allowed", opacity: canBatchAccept ? 1 : 0.5, marginRight: compactPx(6) }}
-                                    >
-                                      验收
-                                    </button>
-                                    <button
-                                      type="button"
-                                      disabled={!canBatchSettle}
-                                      onClick={() => handleMonthlyBatchSettle(o.id, bn)}
-                                      style={{ padding: "4px 8px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff", cursor: canBatchSettle ? "pointer" : "not-allowed", opacity: canBatchSettle ? 1 : 0.5 }}
-                                    >
-                                      结算
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
+              );
+            }
           })}
 
         </div>
@@ -1615,6 +1402,178 @@ export default function ClientMarketOrdersPage() {
       {!loading && combinedRows.length === 0 && <p style={{ color: "#666" }}>暂无订单</p>}
 
       <WorkLinksModal open={linksModalOpen} onClose={() => setLinksModalOpen(false)} links={linksModalLinks} title="交付链接" />
+
+      {/* ---- 订单详情右侧抽屉 ---- */}
+      {detailRow && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "flex", justifyContent: "flex-end", zIndex: 80 }} onClick={() => setDetailRow(null)}>
+          <div
+            style={{ width: "min(560px, 100vw)", height: "100%", background: "#fff", boxShadow: "-6px 0 24px rgba(15,23,42,0.2)", padding: compactPx(20), overflowY: "auto" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: compactPx(14) }}>
+              <h3 style={{ margin: 0 }}>
+                订单详情：{detailRow.kind === "graded" ? (detailRow.order.order_no || `#${detailRow.order.id}`) : `VO-${detailRow.order.id}`}
+              </h3>
+              <button type="button" onClick={() => setDetailRow(null)} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}>
+                关闭
+              </button>
+            </div>
+
+            {detailRow.kind === "graded" ? (() => {
+              const o = detailRow.order;
+              const statusLabel = o.status === "open" ? "待领取" : o.status === "claimed" ? "已领取" : o.status === "completed" ? "已完成" : o.status === "cancelled" ? "已取消" : o.status;
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: compactPx(10), alignItems: "start", fontSize: compactPx(14) }}>
+                  <div style={{ color: "#64748b" }}>订单号</div><div>{o.order_no || `#${o.id}`}</div>
+                  <div style={{ color: "#64748b" }}>类型</div><div>① 分级视频</div>
+                  <div style={{ color: "#64748b" }}>标题</div><div>{o.title || "未命名"}</div>
+                  <div style={{ color: "#64748b" }}>状态</div><div>{statusLabel}</div>
+                  <div style={{ color: "#64748b" }}>视频数量</div><div>{o.task_count || "-"} 条</div>
+                  <div style={{ color: "#64748b" }}>金额</div>
+                  <div>
+                    <div style={{ fontWeight: 600, color: "var(--xt-accent)" }}>{marketOrderTotalRewardPoints(o)} 积分</div>
+                    <div style={{ fontSize: compactPx(12), color: "#64748b" }}>单套 {o.reward_points} 积分 × {marketOrderTaskCount(o)}</div>
+                  </div>
+                  <div style={{ color: "#64748b" }}>领取达人</div><div>{resolveClaimerText(o)}</div>
+                  <div style={{ color: "#64748b" }}>发布方式</div><div>{resolvePublishMethodText(o.publish_method)}</div>
+                  {!!resolveTikTokLink(o) && (<><div style={{ color: "#64748b" }}>TikTok</div><div><a href={resolveTikTokLink(o)} target="_blank" rel="noreferrer" style={{ wordBreak: "break-all" }}>{resolveTikTokLink(o)}</a></div></>)}
+                  {!!resolvePublishLink(o) && (<><div style={{ color: "#64748b" }}>发布链接</div><div><a href={resolvePublishLink(o)} target="_blank" rel="noreferrer" style={{ wordBreak: "break-all" }}>{resolvePublishLink(o)}</a></div></>)}
+                  <div style={{ color: "#64748b" }}>店铺名称</div><div>{o.client_shop_name?.trim() || "未填写"}</div>
+                  <div style={{ color: "#64748b" }}>对接群聊</div><div>{o.client_group_chat?.trim() || "未填写"}</div>
+                  {Array.isArray(o.sku_codes) && o.sku_codes.length > 0 && (<><div style={{ color: "#64748b" }}>SKU</div><div>{o.sku_codes.join("，")}</div></>)}
+                  {Array.isArray(o.sku_images) && o.sku_images.length > 0 && (
+                    <>
+                      <div style={{ color: "#64748b" }}>SKU图片</div>
+                      <div style={{ display: "flex", gap: compactPx(6), flexWrap: "wrap" }}>
+                        {o.sku_images.slice(0, 6).map((url, i) => (
+                          <a key={`sku-${i}`} href={url} target="_blank" rel="noreferrer">
+                            <img src={url} alt={`sku-${i}`} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: compactPx(6), border: "1px solid #eee" }} />
+                          </a>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  <div style={{ color: "#64748b" }}>交付链接</div>
+                  <div>
+                    {normalizeWorkLinks(o.work_links).length === 0 ? (
+                      <span style={{ color: "#94a3b8" }}>—</span>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", gap: compactPx(4) }}>
+                        {normalizeWorkLinks(o.work_links).map((u, i) => (
+                          <a key={i} href={u} target="_blank" rel="noreferrer" style={{ color: "#2563eb", wordBreak: "break-all", fontSize: compactPx(13) }}>{u}</a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ color: "#64748b" }}>创建时间</div><div>{formatDateTime(o.created_at)}</div>
+                  <div style={{ color: "#64748b" }}>完成时间</div><div>{o.completed_at ? formatDateTime(o.completed_at) : "—"}</div>
+                  {o.status === "open" && (
+                    <>
+                      <div />
+                      <div style={{ display: "flex", gap: compactPx(8) }}>
+                        <button type="button" onClick={() => { setDetailRow(null); nav(`/client/market-orders/${o.id}/edit`); }} style={{ padding: "6px 12px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}>编辑</button>
+                        <button type="button" onClick={() => { setDetailRow(null); handleDelete(o.id); }} style={{ padding: "6px 12px", borderRadius: compactPx(8), border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: "pointer" }}>删除</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })() : (() => {
+              const o = detailRow.order;
+              const req = (o.requirements || {}) as Record<string, unknown>;
+              const shopName = String(req.client_shop_name || "").trim();
+              const groupChat = String(req.client_group_chat || "").trim();
+              const proofLinks = (Array.isArray(o.proof_links) ? o.proof_links : [])
+                .map((x: unknown) => (typeof x === "string" ? x : String((x as Record<string, unknown>)?.url || (x as Record<string, unknown>)?.link || "")).trim())
+                .filter(Boolean);
+              const publishLinks = (Array.isArray(o.publish_links) ? o.publish_links : [])
+                .map((x: unknown) => (typeof x === "string" ? x : String((x as Record<string, unknown>)?.url || (x as Record<string, unknown>)?.link || "")).trim())
+                .filter(Boolean);
+              const batches = Array.isArray(o.batch_payload) ? (o.batch_payload as Record<string, unknown>[]) : [];
+              const canAccept = o.payment_status === "paid" && (o.type_id === "creator_review_video" ? o.phase === "published" : o.phase === "delivered");
+              const canReject = o.payment_status === "paid" && ["delivered", "published"].includes(o.phase);
+              return (
+                <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: compactPx(10), alignItems: "start", fontSize: compactPx(14) }}>
+                  <div style={{ color: "#64748b" }}>订单号</div><div>VO-{o.id}</div>
+                  <div style={{ color: "#64748b" }}>类型</div><div>{typeText(o.type_id)}</div>
+                  <div style={{ color: "#64748b" }}>标题</div><div>{o.title}</div>
+                  <div style={{ color: "#64748b" }}>状态</div><div>{phaseText(o)}</div>
+                  <div style={{ color: "#64748b" }}>付款</div><div>{o.payment_status === "paid" ? "已付款" : "未付款"}</div>
+                  <div style={{ color: "#64748b" }}>金额</div><div style={{ fontWeight: 600, color: "var(--xt-accent)" }}>{Number(o.amount_thb || 0).toFixed(2)} THB</div>
+                  {(shopName || groupChat) && (<><div style={{ color: "#64748b" }}>店铺/群聊</div><div>{shopName || "未填写"} · {groupChat || "未填写"}</div></>)}
+                  {proofLinks.length > 0 && (
+                    <>
+                      <div style={{ color: "#64748b" }}>交付链接</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: compactPx(4) }}>
+                        {proofLinks.map((url, i) => <a key={i} href={url} target="_blank" rel="noreferrer" style={{ color: "#2563eb", wordBreak: "break-all", fontSize: compactPx(13) }}>{url}</a>)}
+                      </div>
+                    </>
+                  )}
+                  {publishLinks.length > 0 && (
+                    <>
+                      <div style={{ color: "#64748b" }}>发布链接</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: compactPx(4) }}>
+                        {publishLinks.map((url, i) => <a key={i} href={url} target="_blank" rel="noreferrer" style={{ color: "#2563eb", wordBreak: "break-all", fontSize: compactPx(13) }}>{url}</a>)}
+                      </div>
+                    </>
+                  )}
+                  <div style={{ color: "#64748b" }}>创建时间</div><div>{formatDateTime(o.created_at)}</div>
+                  {o.type_id === "monthly_package" && batches.length > 0 && (
+                    <>
+                      <div style={{ color: "#64748b", alignSelf: "start" }}>批次</div>
+                      <div style={{ overflowX: "auto" }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: compactPx(13) }}>
+                          <thead>
+                            <tr>
+                              <th style={{ textAlign: "left", padding: "4px 6px", borderBottom: "1px solid #e2e8f0" }}>批次</th>
+                              <th style={{ textAlign: "left", padding: "4px 6px", borderBottom: "1px solid #e2e8f0" }}>提交</th>
+                              <th style={{ textAlign: "left", padding: "4px 6px", borderBottom: "1px solid #e2e8f0" }}>验收</th>
+                              <th style={{ textAlign: "left", padding: "4px 6px", borderBottom: "1px solid #e2e8f0" }}>状态</th>
+                              <th style={{ textAlign: "left", padding: "4px 6px", borderBottom: "1px solid #e2e8f0" }}>结算</th>
+                              <th style={{ textAlign: "left", padding: "4px 6px", borderBottom: "1px solid #e2e8f0" }}>操作</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {batches.map((b) => {
+                              const bn = Number(b?.batch_no || 0);
+                              const status = String(b?.status || "");
+                              const canBatchAccept = o.payment_status === "paid" && status === "pending_acceptance";
+                              const canBatchSettle = o.payment_status === "paid" && status === "accepted";
+                              return (
+                                <tr key={bn}>
+                                  <td style={{ padding: "4px 6px", borderBottom: "1px solid #f1f5f9" }}>{bn}</td>
+                                  <td style={{ padding: "4px 6px", borderBottom: "1px solid #f1f5f9" }}>{Number(b?.video_count || 0)}</td>
+                                  <td style={{ padding: "4px 6px", borderBottom: "1px solid #f1f5f9" }}>{Number(b?.accepted_count || 0)}</td>
+                                  <td style={{ padding: "4px 6px", borderBottom: "1px solid #f1f5f9" }}>{status}</td>
+                                  <td style={{ padding: "4px 6px", borderBottom: "1px solid #f1f5f9" }}>{Number(b?.settled_amount || 0).toFixed(2)}</td>
+                                  <td style={{ padding: "4px 6px", borderBottom: "1px solid #f1f5f9" }}>
+                                    {canBatchAccept && <button type="button" onClick={() => handleMonthlyBatchAccept(o.id, bn)} style={{ padding: "3px 6px", borderRadius: compactPx(6), border: "1px solid #bbf7d0", background: "#fff", color: "#166534", cursor: "pointer", fontSize: compactPx(11), marginRight: compactPx(4) }}>验收</button>}
+                                    {canBatchSettle && <button type="button" onClick={() => handleMonthlyBatchSettle(o.id, bn)} style={{ padding: "3px 6px", borderRadius: compactPx(6), border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer", fontSize: compactPx(11) }}>结算</button>}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+                  {(canAccept || canReject) && (
+                    <>
+                      <div />
+                      <div style={{ display: "flex", gap: compactPx(8) }}>
+                        {canAccept && <button type="button" onClick={() => { setDetailRow(null); handleOfflineAccept(o.id); }} style={{ padding: "6px 12px", borderRadius: compactPx(8), border: "1px solid #bbf7d0", background: "#fff", color: "#166534", cursor: "pointer" }}>验收通过</button>}
+                        {canReject && <button type="button" onClick={() => { setDetailRow(null); handleOfflineReject(o.id); }} style={{ padding: "6px 12px", borderRadius: compactPx(8), border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: "pointer" }}>驳回</button>}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
+
+          </div>
+        </div>
+      )}
 
     </div>
 

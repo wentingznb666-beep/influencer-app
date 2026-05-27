@@ -32,8 +32,16 @@ export default function EmployeeLayout() {
     { to: "/employee/op-logs", label: "我的操作日志", icon: "📄", group: "common" },
   ];
 
+  /** 手机端底部 Tab 栏显示的主要页面（最多 4 个）。 */
+  const tabItems: DashboardNavItem[] = [
+    { to: "/employee/graded-video-hall", label: "工作台", icon: "🧰" },
+    { to: "/employee/market-orders", label: "视频订单", icon: "🎬" },
+    { to: "/employee/points", label: "结算", icon: "🪙" },
+    { to: "/employee/op-logs", label: "日志", icon: "📄" },
+  ];
+
   return (
-    <DashboardShell roleTitle="员工端" navItems={navItems} mainMaxWidth={1000}>
+    <DashboardShell roleTitle="员工端" navItems={navItems} tabItems={tabItems} mainMaxWidth={1000}>
       <Outlet />
     </DashboardShell>
   );

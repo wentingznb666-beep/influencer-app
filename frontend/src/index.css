@@ -2519,3 +2519,228 @@ textarea {
   .xt-sidebar.is-compact { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
 }
 
+/* ================================================================
+ *  原生 App 体验：底部 Tab Bar + 安全区域 + 触摸反馈
+ * ================================================================ */
+
+/* ---- 底部 Tab Bar ---- */
+.xt-bottom-tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  display: flex;
+  align-items: stretch;
+  background: var(--xt-surface);
+  border-top: 1px solid var(--xt-border);
+  box-shadow: 0 -2px 12px rgba(15, 23, 42, 0.06);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.xt-tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 0 4px;
+  min-height: 50px;
+  text-decoration: none;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.xt-tab-item__icon {
+  font-size: 20px;
+  line-height: 1;
+  transition: transform 0.15s ease;
+}
+
+.xt-tab-item__label {
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+.xt-tab-item.is-active {
+  color: var(--xt-accent, #f97316);
+}
+
+.xt-tab-item.is-active .xt-tab-item__icon {
+  transform: scale(1.08);
+}
+
+.xt-tab-item:active {
+  opacity: 0.7;
+}
+
+.xt-tab-item--more {
+  color: #64748b;
+}
+
+/* ---- 「更多」底部抽屉 ---- */
+.xt-more-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  background: rgba(15, 23, 42, 0.4);
+  -webkit-tap-highlight-color: transparent;
+  animation: xt-fade-in 0.2s ease;
+}
+
+.xt-more-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 96;
+  max-height: 70vh;
+  background: var(--xt-surface);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -8px 32px rgba(15, 23, 42, 0.18);
+  overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  animation: xt-slide-up 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  overscroll-behavior: contain;
+}
+
+.xt-more-sheet__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--xt-border);
+  position: sticky;
+  top: 0;
+  background: var(--xt-surface);
+  z-index: 1;
+}
+
+.xt-more-sheet__group {
+  padding: 4px 0;
+}
+
+.xt-more-sheet__group-title {
+  padding: 8px 16px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+}
+
+.xt-more-sheet__group-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 12px 8px;
+}
+
+.xt-more-sheet__link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--xt-text);
+  font-size: 13px;
+  font-weight: 500;
+  background: #f8fafc;
+  border: 1px solid var(--xt-border);
+  transition: background 0.12s ease, border-color 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.xt-more-sheet__link:active {
+  background: #f1f5f9;
+}
+
+.xt-more-sheet__link.is-active {
+  background: var(--xt-accent, #f97316);
+  color: #fff;
+  border-color: var(--xt-accent, #f97316);
+}
+
+.xt-more-sheet__footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--xt-border);
+}
+
+.xt-more-sheet__logout {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #fecaca;
+  background: #fff;
+  color: #dc2626;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.xt-more-sheet__logout:active {
+  background: #fef2f2;
+}
+
+/* ---- 手机端主内容区底部 padding（为 Tab Bar 留空间）---- */
+@media (max-width: 767px) {
+  .xt-dashboard-main {
+    padding-bottom: 70px !important;
+  }
+
+  /* 顶部栏安全区域 */
+  .xt-dashboard-main + .xt-bottom-tabbar ~ * .xt-dashboard-header,
+  header[style] {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* ---- 触摸反馈 ---- */
+@media (max-width: 767px) {
+  /* 所有按钮按压态 */
+  button:not(:disabled):active,
+  .xt-inline-btn:not(:disabled):active,
+  .xt-accent-btn:not(:disabled):active {
+    transform: scale(0.97);
+    transition: transform 0.08s ease;
+  }
+
+  /* 链接按压态 */
+  a:active {
+    opacity: 0.7;
+  }
+
+  /* 防止过度回弹 */
+  .xt-dashboard-main {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 去除点击蓝框 */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ---- 动画关键帧 ---- */
+@keyframes xt-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes xt-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+

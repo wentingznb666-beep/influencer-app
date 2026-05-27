@@ -46,6 +46,14 @@ export default function InfluencerLayout() {
     { to: "/influencer/op-logs", label: "我的操作日志", menuHint: "ตรวจสอบประวัติการใช้งานบัญชี", icon: "📄", group: "common" },
   ];
 
+  /** 手机端底部 Tab 栏显示的主要页面（最多 4 个）。 */
+  const tabItems: DashboardNavItem[] = [
+    { to: "/influencer/task-hall", label: "接单", icon: "📋" },
+    { to: "/influencer/my-demands", label: "需求", icon: "📦" },
+    { to: "/influencer/profile", label: "我的", icon: "👤" },
+    { to: "/influencer/op-logs", label: "日志", icon: "📄" },
+  ];
+
   return (
     <DashboardShell
       roleTitle="达人端"
@@ -53,6 +61,7 @@ export default function InfluencerLayout() {
       headerUsernameDisplay="influencer002"
       mainClassName="xt-main-th"
       navItems={navItems}
+      tabItems={tabItems}
       mainMaxWidth={900}
     >
       <Outlet />
