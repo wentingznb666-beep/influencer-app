@@ -86,6 +86,8 @@ export const xtLayout = {
 
     background: "var(--xt-bg)",
 
+    overflow: "auto",
+
   } as CSSProperties,
 
   /** 顶栏（白底） */
@@ -109,6 +111,12 @@ export const xtLayout = {
     flexWrap: "wrap" as const,
 
     gap: 12,
+
+    position: "sticky",
+
+    top: 0,
+
+    zIndex: 30,
 
   } as CSSProperties,
 
