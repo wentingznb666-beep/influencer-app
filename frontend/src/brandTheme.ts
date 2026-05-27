@@ -110,6 +110,10 @@ export const xtLayout = {
 
     gap: 12,
 
+    position: "sticky",
+
+    top: 0,
+
     zIndex: 30,
 
   } as CSSProperties,
