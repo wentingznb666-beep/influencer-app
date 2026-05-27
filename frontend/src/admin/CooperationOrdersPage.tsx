@@ -23,6 +23,14 @@ type Row = {
   review_note?: string | null;
 };
 
+type LinkAcceptanceItem = {
+  link?: string;
+  url?: string;
+  accepted?: boolean;
+  rejected?: boolean;
+  payment_url?: string;
+};
+
 const VIDEO_ORDER_TYPE_IDS = new Set(["graded_video", "high_quality_custom_video", "monthly_package", "creator_review_video"]);
 
 function safeText(v: unknown): string {
@@ -160,7 +168,7 @@ export default function CooperationOrdersPage() {
   const [phase, setPhase] = useState("");
   const [q, setQ] = useState("");
   const focusIdRef = useRef<number>(0);
-  const [linkAcceptanceMap, setLinkAcceptanceMap] = useState<Record<number, any[]>>({});
+  const [linkAcceptanceMap, setLinkAcceptanceMap] = useState<Record<number, LinkAcceptanceItem[]>>({});
   const jumpedOnceRef = useRef(false);
   const [typeConfig, setTypeConfig] = useState<CooperationTypesConfig | null>(null);
 
@@ -240,7 +248,7 @@ export default function CooperationOrdersPage() {
   };
   /** 加载所有订单的验收/付款截图数据 */
   const loadLinkAcceptances = useCallback(async (orders: Row[]) => {
-    const map: Record<number, any[]> = {};
+    const map: Record<number, LinkAcceptanceItem[]> = {};
     const token = getAccessToken();
     await Promise.all(orders.map(async (r) => {
       try {

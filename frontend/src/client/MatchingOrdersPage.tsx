@@ -24,6 +24,8 @@ type OrderRow = {
   created_at?: string | null;
   updated_at?: string | null;
   detail_json?: unknown;
+  influencer_name?: string | null;
+  influencer_username?: string | null;
 };
 
 type ApplicantRow = {
@@ -87,7 +89,7 @@ export default function MatchingOrdersPage() {
   const [msg, setMsg] = useState<string>("");
   const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
   const [applicants, setApplicants] = useState<ApplicantRow[]>([]);
-  const [paymentInfoByOrderId, setPaymentInfoByOrderId] = useState<Record<number, any>>({});
+  const [paymentInfoByOrderId, setPaymentInfoByOrderId] = useState<Record<number, Record<string, unknown>>>({});
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
   const [actionBusy, setActionBusy] = useState<Record<string, boolean>>({});
@@ -463,19 +465,19 @@ export default function MatchingOrdersPage() {
 
       <div className="xt-toolbar">
         <input className="xt-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索：订单号 / 任务名称 / 产品名称" />
-        <select className="xt-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}>
+        <select className="xt-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "all" | "open" | "claimed" | "completed")}>
           <option value="all">全部状态</option>
           <option value="open">open（开放）</option>
           <option value="claimed">claimed（执行）</option>
           <option value="completed">completed（待验收）</option>
         </select>
-        <select className="xt-select" value={sortKey} onChange={(e) => setSortKey(e.target.value as any)}>
+        <select className="xt-select" value={sortKey} onChange={(e) => setSortKey(e.target.value as "time_desc" | "time_asc" | "amount_desc" | "amount_asc")}>
           <option value="time_desc">时间：最新优先</option>
           <option value="time_asc">时间：最早优先</option>
           <option value="amount_desc">金额：高到低</option>
           <option value="amount_asc">金额：低到高</option>
         </select>
-        <select className="xt-select" value={String(pageSize)} onChange={(e) => setPageSize(Number(e.target.value) as any)}>
+        <select className="xt-select" value={String(pageSize)} onChange={(e) => setPageSize(Number(e.target.value) as 10 | 20 | 50)}>
           <option value="10">每页 10</option>
           <option value="20">每页 20</option>
           <option value="50">每页 50</option>
@@ -499,7 +501,7 @@ export default function MatchingOrdersPage() {
           const productName = getOrderDetailField(it, "product_name");
           const coopType = getOrderDetailField(it, "cooperation_type_id");
           const workLinks = normalizeWorkLinks(Array.isArray(it.work_links) ? it.work_links : []);
-          const influencerName = (it as any).influencer_name || (it as any).influencer_username || "";
+          const influencerName = it.influencer_name || it.influencer_username || "";
           const paymentInfo = paymentInfoByOrderId[it.id] || null;
           return (
             <div key={it.id} className="xt-card">

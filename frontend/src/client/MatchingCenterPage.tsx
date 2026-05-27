@@ -43,6 +43,21 @@ type MatchingFormState = {
   reward_thb: string;
 };
 
+type MatchingOrderRow = {
+  id: number;
+  order_no?: string | null;
+  title?: string | null;
+  status?: string | null;
+  match_status?: string | null;
+  task_amount?: number | string | null;
+  work_links?: unknown;
+  created_at?: string | null;
+  updated_at?: string | null;
+  detail?: unknown;
+  detail_json?: unknown;
+  detailJson?: unknown;
+};
+
 const defaultForm: MatchingFormState = {
   task_name: "",
   task_type: "短视频",
@@ -95,9 +110,9 @@ export default function MatchingCenterPage() {
   const [showModal, setShowModal] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<MatchingOrderRow[]>([]);
   const [form, setForm] = useState<MatchingFormState>(defaultForm);
-  const [editingOrder, setEditingOrder] = useState<any | null>(null);
+  const [editingOrder, setEditingOrder] = useState<MatchingOrderRow | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successKind, setSuccessKind] = useState<"create" | "update">("create");
 
@@ -325,7 +340,7 @@ export default function MatchingCenterPage() {
     if (!Number.isFinite(n)) return "-";
     return n.toFixed(2);
   };
-  const getDetailObj = (it: any): Record<string, unknown> | null => {
+  const getDetailObj = (it: MatchingOrderRow): Record<string, unknown> | null => {
     const d = it?.detail && typeof it.detail === "object" ? (it.detail as Record<string, unknown>) : null;
     if (d) return d;
     const dj = it?.detail_json && typeof it.detail_json === "object" ? (it.detail_json as Record<string, unknown>) : null;
@@ -334,8 +349,8 @@ export default function MatchingCenterPage() {
     if (d2) return d2;
     return null;
   };
-  const getDetailText = (it: any, key: string): string => {
-    const d = getDetailObj(it) as any;
+  const getDetailText = (it: MatchingOrderRow, key: string): string => {
+    const d = getDetailObj(it);
     const v = d ? d[key] : undefined;
     return safeText(v).trim();
   };

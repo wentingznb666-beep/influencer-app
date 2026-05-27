@@ -24,6 +24,14 @@ type TaskItem = {
   coop_publish_links?: unknown;
 };
 
+type LinkAcceptanceItem = {
+  link?: string;
+  url?: string;
+  accepted?: boolean;
+  rejected?: boolean;
+  payment_url?: string;
+};
+
 /** 统一报名状态文案（中文键，供 t() 映射）。 */
 function formatApplyStatus(status: string | undefined): string {
   if (status === "pending") return "待选择";
@@ -399,7 +407,7 @@ export default function TaskHallPage() {
   const [myApplies, setMyApplies] = useState<TaskItem[]>([]);
   const [proofMap, setProofMap] = useState<Record<number, string>>({});
   const [publishMap, setPublishMap] = useState<Record<number, string>>({});
-  const [linkAcceptanceMap, setLinkAcceptanceMap] = useState<Record<number, any[]>>({});
+  const [linkAcceptanceMap, setLinkAcceptanceMap] = useState<Record<number, LinkAcceptanceItem[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
@@ -427,7 +435,7 @@ export default function TaskHallPage() {
 
   /** 加载所有已报名订单的验收状态 */
   const loadLinkAcceptance = useCallback(async (applies: TaskItem[]) => {
-    const map: Record<number, any[]> = {};
+    const map: Record<number, LinkAcceptanceItem[]> = {};
     await Promise.all(applies.map(async (it) => {
       const oid = Number(it.order_id || 0);
       if (!oid) return;
@@ -682,7 +690,7 @@ export default function TaskHallPage() {
                   {(it.order_status === "completed" || it.order_status === "accepted") && linkAcceptanceMap[oid]?.length > 0 && (
                     <div style={{ marginTop: 8, padding: 10, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
                       <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 13 }}>{t("验收状态：")}</div>
-                      {linkAcceptanceMap[oid].map((la: any, idx: number) => (
+                      {linkAcceptanceMap[oid].map((la, idx: number) => (
                         <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", fontSize: 13 }}>
                           <span>{t("回传链接")}{idx + 1}：</span>
                           {la.accepted ? (

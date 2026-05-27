@@ -1257,10 +1257,10 @@ export default function ClientOrdersHallPage() {
     const selectedTalent = String(req.selected_talent || "").trim();
     const groupChat = String(req.client_group_chat || "").trim();
     const proofLinks = (Array.isArray(o.proof_links) ? o.proof_links : [])
-      .map((x: any) => String((typeof x === "string" ? x : x?.url || x?.link || "") || "").trim())
+      .map((x: unknown) => String((typeof x === "string" ? x : (x as Record<string, unknown>)?.url || (x as Record<string, unknown>)?.link || "") || "").trim())
       .filter(Boolean);
     const publishLinks = (Array.isArray(o.publish_links) ? o.publish_links : [])
-      .map((x: any) => String((typeof x === "string" ? x : x?.url || x?.link || "") || "").trim())
+      .map((x: unknown) => String((typeof x === "string" ? x : (x as Record<string, unknown>)?.url || (x as Record<string, unknown>)?.link || "") || "").trim())
       .filter(Boolean);
     const toBatchTime = (v: unknown) => {
       if (typeof v === "number") {
@@ -1273,7 +1273,7 @@ export default function ClientOrdersHallPage() {
       return Number.isFinite(ms) ? ms : 0;
     };
     const batchListChrono = Array.isArray(o.batch_payload)
-      ? o.batch_payload.slice().sort((a: any, b: any) => {
+      ? o.batch_payload.slice().sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
           const ta = toBatchTime(a?.submitted_at ?? a?.created_at ?? a?.updated_at);
           const tb = toBatchTime(b?.submitted_at ?? b?.created_at ?? b?.updated_at);
           if (ta !== tb) return ta - tb;
@@ -1286,7 +1286,7 @@ export default function ClientOrdersHallPage() {
       const perMonthBatches = weeklyEnabled ? 4 : 1;
       return Math.max(1, months * perMonthBatches);
     })();
-    const submittedBatchCount = batchListChrono.filter((x: any) => {
+    const submittedBatchCount = batchListChrono.filter((x: Record<string, unknown>) => {
       const st = String(x?.status || "");
       if (st === "rejected") return false;
       const links = Array.isArray(x?.proof_links) ? x.proof_links : [];
@@ -1446,7 +1446,7 @@ export default function ClientOrdersHallPage() {
                       <div style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #e2e8f0", background: "#f8fafc" }}>
                         <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8 }}>{t("批次记录")}</div>
                         <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 220, overflowY: "auto" }}>
-                          {batchListChrono.map((x: any, idx: number) => {
+                          {batchListChrono.map((x: Record<string, unknown>, idx: number) => {
                             const displayNo = Number(x?.batch_no || idx + 1);
                             const vc = Number(x?.video_count || 0);
                             const st = String(x?.status || "");
@@ -1463,7 +1463,7 @@ export default function ClientOrdersHallPage() {
                                 </div>
                                 {links.length > 0 && (
                                   <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 4 }}>
-                                    {links.slice(0, 5).map((u: any, i: number) => {
+                                    {links.slice(0, 5).map((u: unknown, i: number) => {
                                       const url = String(u || "").trim();
                                       if (!url) return null;
                                       return (
@@ -1501,7 +1501,7 @@ export default function ClientOrdersHallPage() {
                             <input
                               type="number"
                               inputMode="decimal"
-                              value={(offlineMonthlyDraft[o.id]?.videoCount ?? "1") as any}
+                              value={offlineMonthlyDraft[o.id]?.videoCount ?? "1"}
                               onChange={(e) =>
                                 setOfflineMonthlyDraft((p) => ({
                                   ...p,
@@ -1688,7 +1688,7 @@ export default function ClientOrdersHallPage() {
           <OrderDateFilter value={gradedDateFilter} onChange={(next) => setGradedDateFilter(next)} />
           <select
             value={gradedSortMode}
-            onChange={(e) => setGradedSortMode(e.target.value as any)}
+            onChange={(e) => setGradedSortMode(e.target.value as "created_desc" | "created_asc" | "amount_desc" | "amount_asc" | "status_asc" | "status_desc")}
             style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
           >
             <option value="created_desc">{t("创建时间：新→旧")}</option>

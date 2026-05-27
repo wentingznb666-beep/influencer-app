@@ -864,13 +864,13 @@ export default function ClientMarketOrdersPage() {
     setError(null);
     try {
       const ret = await api.acceptClientMonthlyBatch(orderId, batchNo, { accepted_count: accepted, note });
-      const updatedBatch = (ret as any)?.batch ?? null;
+      const updatedBatch = (ret as Record<string, unknown>)?.batch ?? null;
       if (updatedBatch && typeof updatedBatch === "object") {
         setOfflineOrders((prev) =>
           prev.map((order) => {
             if (order.id !== orderId) return order;
-            const list = Array.isArray(order.batch_payload) ? (order.batch_payload as any[]) : [];
-            const next = list.map((b) => (Number(b?.batch_no || 0) === batchNo ? { ...b, ...updatedBatch } : b));
+            const list = Array.isArray(order.batch_payload) ? (order.batch_payload as Record<string, unknown>[]) : [];
+            const next = list.map((b) => (Number(b?.batch_no || 0) === batchNo ? { ...b, ...updatedBatch as Record<string, unknown> } : b));
             return { ...order, batch_payload: next };
           }),
         );
@@ -1432,16 +1432,16 @@ export default function ClientMarketOrdersPage() {
             }
 
             const o = row.order;
-            const req = (o.requirements || {}) as Record<string, any>;
+            const req = (o.requirements || {}) as Record<string, unknown>;
             const shopName = String(req.client_shop_name || "").trim();
             const groupChat = String(req.client_group_chat || "").trim();
             const proofLinks = (Array.isArray(o.proof_links) ? o.proof_links : [])
-              .map((x: any) => (typeof x === "string" ? x : String(x?.url || x?.link || "")).trim())
+              .map((x: unknown) => (typeof x === "string" ? x : String((x as Record<string, unknown>)?.url || (x as Record<string, unknown>)?.link || "")).trim())
               .filter(Boolean);
             const publishLinks = (Array.isArray(o.publish_links) ? o.publish_links : [])
-              .map((x: any) => (typeof x === "string" ? x : String(x?.url || x?.link || "")).trim())
+              .map((x: unknown) => (typeof x === "string" ? x : String((x as Record<string, unknown>)?.url || (x as Record<string, unknown>)?.link || "")).trim())
               .filter(Boolean);
-            const batches = Array.isArray(o.batch_payload) ? (o.batch_payload as any[]) : [];
+            const batches = Array.isArray(o.batch_payload) ? (o.batch_payload as Record<string, unknown>[]) : [];
 
             const canAccept =
               o.payment_status === "paid" &&

@@ -237,7 +237,7 @@ export default function UsersPage() {
       })));
 
       const merchantMap: Record<number, MerchantExtra> = {};
-      for (const m of (merchantData.list || []) as any[]) {
+      for (const m of (merchantData.list || []) as Record<string, unknown>[]) {
         const id = Number(m.client_id);
         if (!Number.isInteger(id) || id < 1) continue;
         merchantMap[id] = {
@@ -249,7 +249,7 @@ export default function UsersPage() {
       setMerchantExtraMap(merchantMap);
 
       const influencerMap: Record<number, InfluencerExtra> = {};
-      for (const inf of (influencerPermissionData.list || []) as any[]) {
+      for (const inf of (influencerPermissionData.list || []) as Record<string, unknown>[]) {
         const id = Number(inf.id);
         if (!Number.isInteger(id) || id < 1) continue;
         const bankSummary = [inf.real_name, inf.bank_name, inf.bank_branch].filter(Boolean).join(" / ") || "未填写";

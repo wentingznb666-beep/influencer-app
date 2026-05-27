@@ -443,7 +443,7 @@ export default function OrdersPage() {
 
         />
 
-        <select value={status} onChange={(e) => setStatus(e.target.value as any)} className="xt-input xt-select" style={{ minWidth: 140 }}>
+        <select value={status} onChange={(e) => setStatus(e.target.value as "" | "open" | "claimed" | "completed" | "cancelled")} className="xt-input xt-select" style={{ minWidth: 140 }}>
 
           <option value="">全部状态</option>
 
@@ -864,7 +864,7 @@ export default function OrdersPage() {
 
                   value={String(detailOrder.publish_method || "client_self_publish")}
 
-                  onChange={(e) => setDetailOrder((prev) => (prev ? { ...prev, publish_method: e.target.value as any } : prev))}
+                  onChange={(e) => setDetailOrder((prev) => (prev ? { ...prev, publish_method: e.target.value as "client_self_publish" | "influencer_publish_with_cart" } : prev))}
 
                   style={{ width: "100%", maxWidth: 360, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
 
