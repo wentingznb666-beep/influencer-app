@@ -2278,12 +2278,10 @@ textarea {
 
 
 
-/* 固定搜索框样式 */
+/* 固定搜索框样式 - 仅在特定类名下生效，避免影响其他页面 */
 .sticky-search,
 [class*="topbar"],
-[class*="search-bar"],
-div:has(> input[placeholder*="搜索"]),
-div:has(> input[placeholder*="Search"]) {
+[class*="search-bar"] {
   position: sticky !important;
   top: 0 !important;
   z-index: 10 !important;
