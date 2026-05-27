@@ -2285,7 +2285,7 @@ textarea {
 div:has(> input[placeholder*="搜索"]),
 div:has(> input[placeholder*="Search"]) {
   position: sticky !important;
-  top: 0 !important;
+  top: 70px !important;
   z-index: 10 !important;
   background: var(--xt-bg, #f5f7fa) !important;
   padding: 12px 0 !important;
