@@ -1657,7 +1657,7 @@ export default function ClientOrdersHallPage() {
 
       <div style={{ marginBottom: 16 }}>
         <h3 style={{ fontSize: 16, marginTop: 0 }}>{t("统一订单列表")}</h3>
-        <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <div className="sticky-search" style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <input
             type="text"
             value={gradedSearch}
