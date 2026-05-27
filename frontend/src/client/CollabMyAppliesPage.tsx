@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 ﻿import { useEffect, useState } from "react";
 import { getClientCollabMyApplies } from "../matchingApi";
 import { formatDemandApplyStatus, formatDemandStatus } from "../utils/matchingStatusText";
@@ -45,16 +46,16 @@ export default function CollabMyAppliesPage() {
   }, []);
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
+    <div style={{ background: "#fff", borderRadius: compactPx(16), padding: compactPx(20), boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
       <h2 style={{ marginTop: 0 }}>我的需求报名</h2>
       <p style={{ color: "#64748b", marginTop: 0 }}>查看我报名过的达人需求及最新状态。</p>
       {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
       {loading ? <p>加载中…</p> : null}
       {!loading && list.length === 0 ? <p>暂无报名记录</p> : null}
       {!loading && list.length > 0 ? (
-        <ul style={{ margin: 0, paddingLeft: 18 }}>
+        <ul style={{ margin: 0, paddingLeft: compactPx(18) }}>
           {list.map((it) => (
-            <li key={it.id} style={{ marginBottom: 10 }}>
+            <li key={it.id} style={{ marginBottom: compactPx(10) }}>
               需求#{it.demand_id}｜{it.title || "未命名"}｜达人：{it.influencer_name || it.influencer_username || "-"}｜
               报名状态：{formatDemandApplyStatus(it.status)}｜需求状态：{formatDemandStatus(it.demand_status)}
               {it.note ? `｜备注：${it.note}` : ""}

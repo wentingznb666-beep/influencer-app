@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 ﻿import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -211,32 +212,32 @@ export default function InfluencerMyDemandsPage() {
         const fans = detail.fans_level ? t(String(detail.fans_level)) : "-";
         const types = Array.isArray(detail.task_types) && detail.task_types.length ? detail.task_types.map((x: string) => t(String(x))).join("/") : "-";
         return (
-          <div key={d.id} className="xt-inf-card" style={{ padding: 14, marginBottom: 12 }}>
+          <div key={d.id} className="xt-inf-card" style={{ padding: compactPx(14), marginBottom: compactPx(12) }}>
             <div>{t("擅长领域：")}{d.title ? t(d.title) : "-"}</div>
             <div>{t("粉丝量级：")}{fans}</div>
             <div>{t("任务类型：")}{types}</div>
             <div>{t("单条报价：")}{d.expected_points ?? "-"}</div>
             <div>{t("状态：")}{t(formatDemandStatus(d.status))}</div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+            <div style={{ display: "flex", gap: compactPx(8), flexWrap: "wrap", marginTop: compactPx(8) }}>
               <button type="button" className="xt-accent-btn" onClick={() => void openApplications(d.id)}>{opened ? t("收起商家报名") : t("查看商家报名")}</button>
               {canEdit ? <button type="button" className="xt-outline-btn" onClick={() => startEdit(d)}>{t("编辑需求")}</button> : null}
             </div>
 
             {opened ? (
-              <div style={{ marginTop: 10, padding: 10, borderRadius: 8, border: "1px solid #e2e8f0", background: "#f8fafc" }}>
+              <div style={{ marginTop: compactPx(10), padding: compactPx(10), borderRadius: compactPx(8), border: "1px solid #e2e8f0", background: "#f8fafc" }}>
                 {loadingDemandId === d.id ? <p>{t("加载中…")}</p> : null}
                 {loadingDemandId !== d.id && apps.length === 0 ? <p>{t("暂无商家报名")}</p> : null}
                 {loadingDemandId !== d.id && apps.length > 0 ? (
-                  <ul style={{ margin: 0, paddingLeft: 18 }}>
+                  <ul style={{ margin: 0, paddingLeft: compactPx(18) }}>
                     {apps.map((a) => (
-                      <li key={a.id} style={{ marginBottom: 8 }}>
+                      <li key={a.id} style={{ marginBottom: compactPx(8) }}>
                         {t("商家：")}{a.client_name || a.client_username || "-"}｜{t("状态：")}{t(formatDemandApplyStatus(a.status))}
                         {a.note ? `｜${t("备注：")}${a.note}` : ""}
-                        <button type="button" className="xt-outline-btn" style={{ marginLeft: 8 }} onClick={() => setDetailApp(a)}>{t("查看订单详情")}</button>
+                        <button type="button" className="xt-outline-btn" style={{ marginLeft: compactPx(8) }} onClick={() => setDetailApp(a)}>{t("查看订单详情")}</button>
                         {canReview && a.status === "pending" ? (
                           <>
-                            <button type="button" disabled={actioningAppId === a.id} onClick={() => void reviewApplication(d.id, a.id, "select")} style={{ marginLeft: 8 }}>{t("选中商家")}</button>
-                            <button type="button" disabled={actioningAppId === a.id} onClick={() => void reviewApplication(d.id, a.id, "reject")} style={{ marginLeft: 8 }}>{t("驳回商家")}</button>
+                            <button type="button" disabled={actioningAppId === a.id} onClick={() => void reviewApplication(d.id, a.id, "select")} style={{ marginLeft: compactPx(8) }}>{t("选中商家")}</button>
+                            <button type="button" disabled={actioningAppId === a.id} onClick={() => void reviewApplication(d.id, a.id, "reject")} style={{ marginLeft: compactPx(8) }}>{t("驳回商家")}</button>
                           </>
                         ) : null}
                       </li>
@@ -251,25 +252,25 @@ export default function InfluencerMyDemandsPage() {
 
       {detailApp ? (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 1000 }} onClick={() => setDetailApp(null)}>
-          <div style={{ width: "min(640px, 92vw)", background: "#fff", borderRadius: 12, padding: 16 }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: "min(640px, 92vw)", background: "#fff", borderRadius: compactPx(12), padding: compactPx(16) }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginTop: 0 }}>{t("查看订单详情")}</h3>
-            <div style={{ display: "grid", gap: 6 }}>
+            <div style={{ display: "grid", gap: compactPx(6) }}>
               <div>{t("商店名称：")}{detailApp.merchant_shop_name || "-"}</div>
               <div>{t("销售产品类型：")}{detailApp.merchant_product_type || "-"}</div>
               <div>{t("店铺评分：")}{detailApp.merchant_shop_rating || "-"}</div>
               <div>{t("用户评价：")}{detailApp.merchant_user_reviews || "-"}</div>
               <div>{t("店铺链接：")}{detailApp.merchant_shop_link ? <a href={detailApp.merchant_shop_link} target="_blank" rel="noreferrer">{detailApp.merchant_shop_link}</a> : "-"}</div>
             </div>
-            <button type="button" className="xt-accent-btn" style={{ marginTop: 12 }} onClick={() => setDetailApp(null)}>{t("关闭")}</button>
+            <button type="button" className="xt-accent-btn" style={{ marginTop: compactPx(12) }} onClick={() => setDetailApp(null)}>{t("关闭")}</button>
           </div>
         </div>
       ) : null}
 
       {editingDemand && editForm ? (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 1100 }} onClick={() => setEditingDemand(null)}>
-          <div style={{ width: "min(720px, 94vw)", maxHeight: "90vh", overflowY: "auto", background: "#fff", borderRadius: 12, padding: 16 }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: "min(720px, 94vw)", maxHeight: "90vh", overflowY: "auto", background: "#fff", borderRadius: compactPx(12), padding: compactPx(16) }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginTop: 0 }}>{t("编辑需求")}</h3>
-            <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ display: "grid", gap: compactPx(8) }}>
               <label>{t("擅长领域")}<input value={editForm.specialty} onChange={(e) => setEditForm((f) => (f ? { ...f, specialty: e.target.value } : f))} /></label>
               <label>{t("粉丝量级")}<input value={editForm.fans_level} onChange={(e) => setEditForm((f) => (f ? { ...f, fans_level: e.target.value } : f))} /></label>
               <label>{t("任务类型（逗号分隔）")}<input value={editForm.task_types.join(",")} onChange={(e) => setEditForm((f) => (f ? { ...f, task_types: e.target.value.split(",").map((x) => x.trim()).filter(Boolean) } : f))} /></label>
@@ -281,7 +282,7 @@ export default function InfluencerMyDemandsPage() {
               <label>{t("可修改次数")}<input type="number" inputMode="decimal" value={editForm.revise_times} onChange={(e) => setEditForm((f) => (f ? { ...f, revise_times: e.target.value } : f))} /></label>
               <label>{t("自我介绍/个人优势")}<textarea rows={4} value={editForm.intro} onChange={(e) => setEditForm((f) => (f ? { ...f, intro: e.target.value } : f))} /></label>
             </div>
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 12 }}>
+            <div style={{ display: "flex", gap: compactPx(8), justifyContent: "flex-end", marginTop: compactPx(12) }}>
               <button type="button" className="xt-outline-btn" onClick={() => setEditingDemand(null)}>{t("取消")}</button>
               <button type="button" className="xt-accent-btn" disabled={savingEdit} onClick={() => void saveEdit()}>{savingEdit ? t("提交中...") : t("保存并重新提交")}</button>
             </div>

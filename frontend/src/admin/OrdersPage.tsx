@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useRef, useState } from "react";
 
 import { useSearchParams } from "react-router-dom";
@@ -443,7 +444,7 @@ export default function OrdersPage() {
 
           placeholder="搜索：订单号/标题/商家/达人（模糊）"
 
-          style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 280 }}
+          style={{ padding: "8px 12px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", minWidth: 280 }}
 
         />
 
@@ -473,7 +474,7 @@ export default function OrdersPage() {
 
           }}
 
-          style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+          style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer" }}
 
         >
 
@@ -497,7 +498,7 @@ export default function OrdersPage() {
 
           }}
 
-          style={{ padding: "8px 16px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+          style={{ padding: "8px 16px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}
 
         >
 
@@ -534,16 +535,16 @@ export default function OrdersPage() {
             </colgroup>
             <thead>
               <tr>
-                <th style={{ padding: 8, textAlign: "left" }}>订单号</th>
-                <th style={{ padding: 8, textAlign: "left" }}>商家账号/名称</th>
-                <th style={{ padding: 8, textAlign: "left" }}>领取达人</th>
-                <th style={{ padding: 8, textAlign: "left" }}>状态</th>
-                <th style={{ padding: 8, textAlign: "center" }}>视频数量/积分</th>
-                <th style={{ padding: 8, textAlign: "left" }}>订单详情</th>
-                <th style={{ padding: 8, textAlign: "left" }}>SKU信息</th>
-                <th style={{ padding: 8, textAlign: "left" }}>交付链接</th>
-                <th style={{ padding: 8, textAlign: "left" }}>创建时间</th>
-                <th style={{ padding: 8, textAlign: "left" }}>完成时间</th>
+                <th style={{ padding: compactPx(8), textAlign: "left" }}>订单号</th>
+                <th style={{ padding: compactPx(8), textAlign: "left" }}>商家账号/名称</th>
+                <th style={{ padding: compactPx(8), textAlign: "left" }}>领取达人</th>
+                <th style={{ padding: compactPx(8), textAlign: "left" }}>状态</th>
+                <th style={{ padding: compactPx(8), textAlign: "center" }}>视频数量/积分</th>
+                <th style={{ padding: compactPx(8), textAlign: "left" }}>订单详情</th>
+                <th style={{ padding: compactPx(8), textAlign: "left" }}>SKU信息</th>
+                <th style={{ padding: compactPx(8), textAlign: "left" }}>交付链接</th>
+                <th style={{ padding: compactPx(8), textAlign: "left" }}>创建时间</th>
+                <th style={{ padding: compactPx(8), textAlign: "left" }}>完成时间</th>
               </tr>
             </thead>
 
@@ -553,7 +554,7 @@ export default function OrdersPage() {
 
                 <tr key={o.id}>
 
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
+                  <td style={{ padding: compactPx(8), borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
 
                     <button
 
@@ -571,7 +572,7 @@ export default function OrdersPage() {
 
                   </td>
 
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
+                  <td style={{ padding: compactPx(8), borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
 
                     {o.client_username}
 
@@ -607,7 +608,7 @@ export default function OrdersPage() {
 
                   </td>
 
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
+                  <td style={{ padding: compactPx(8), borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
 
                     {o.influencer_username ? (
 
@@ -629,45 +630,45 @@ export default function OrdersPage() {
 
                   </td>
 
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
+                  <td style={{ padding: compactPx(8), borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
                     <StatusBadge status={statusText[o.status] ?? o.status} />
                   </td>
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top", textAlign: "center" }}>
+                  <td style={{ padding: compactPx(8), borderBottom: "1px solid #eef2f7", verticalAlign: "top", textAlign: "center" }}>
                     <div style={{ fontSize: "12px", color: "#334155" }}>
                       视频数量：{o.task_count || "-"} 条
                     </div>
                     <div style={{ fontWeight: 600, color: "var(--xt-accent)", marginTop: 2 }}>
                       金额：{o.client_pay_points * Math.max(1, Math.min(100, Number(o.task_count) || 1))} 积分
-                      <span style={{ fontWeight: 400, fontSize: "11px", color: "#64748b", marginLeft: 4 }}>
+                      <span style={{ fontWeight: 400, fontSize: "11px", color: "#64748b", marginLeft: compactPx(4) }}>
                         （单套 {o.client_pay_points} 积分 × 视频数量：{Math.max(1, Math.min(100, Number(o.task_count) || 1))}）
                       </span>
                     </div>
                     {!isEmployee && (
-                      <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: 4, borderTop: "1px dashed #e2e8f0", paddingTop: 4 }}>
+                      <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: compactPx(4), borderTop: "1px dashed #e2e8f0", paddingTop: compactPx(4) }}>
                         达人收益合计：{o.creator_reward_points * Math.max(1, Math.min(100, Number(o.task_count) || 1))} 积分
-                        <span style={{ marginLeft: 4 }}>
+                        <span style={{ marginLeft: compactPx(4) }}>
                           （单套 {o.creator_reward_points} 积分 × 视频数量：{Math.max(1, Math.min(100, Number(o.task_count) || 1))}）
                         </span>
                       </div>
                     )}
                   </td>
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
+                  <td style={{ padding: compactPx(8), borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
 
                     <div style={{ fontWeight: 600 }}>{o.title || "未命名订单"}</div>
 
-                    <div style={{ marginTop: 4, color: "#64748b", fontSize: "0.95em" }}>档位：{o.tier}</div>
+                    <div style={{ marginTop: compactPx(4), color: "#64748b", fontSize: "0.95em" }}>档位：{o.tier}</div>
 
-                    <div style={{ marginTop: 4, color: "#64748b", fontSize: "0.95em" }}>发布方式：{publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}</div>
+                    <div style={{ marginTop: compactPx(4), color: "#64748b", fontSize: "0.95em" }}>发布方式：{publishMethodText[String(o.publish_method || "client_self_publish")] || publishMethodText.client_self_publish}</div>
 
                   </td>
 
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
+                  <td style={{ padding: compactPx(8), borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
 
                     <SkuTableCell codes={o.sku_codes} />
 
                   </td>
 
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
+                  <td style={{ padding: compactPx(8), borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>
 
                     <button
 
@@ -681,7 +682,7 @@ export default function OrdersPage() {
 
                       }}
 
-                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer", whiteSpace: "normal", maxWidth: "100%" }}
+                      style={{ padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer", whiteSpace: "normal", maxWidth: "100%" }}
 
                     >
 
@@ -691,9 +692,9 @@ export default function OrdersPage() {
 
                   </td>
 
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>{formatDateTime(o.created_at)}</td>
+                  <td style={{ padding: compactPx(8), borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>{formatDateTime(o.created_at)}</td>
 
-                  <td style={{ padding: 8, borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>{formatDateTime(o.completed_at)}</td>
+                  <td style={{ padding: compactPx(8), borderBottom: "1px solid #eef2f7", verticalAlign: "top" }}>{formatDateTime(o.completed_at)}</td>
 
                 </tr>
 
@@ -703,7 +704,7 @@ export default function OrdersPage() {
 
                 <tr>
 
-                  <td colSpan={10} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
+                  <td colSpan={10} style={{ padding: compactPx(14), color: "var(--xt-text-muted)" }}>
 
                     暂无订单
 
@@ -730,17 +731,17 @@ export default function OrdersPage() {
 
           <div
 
-            style={{ width: "min(680px, 100vw)", height: "100%", background: "#fff", boxShadow: "-6px 0 24px rgba(15,23,42,0.2)", padding: 20, overflowY: "auto" }}
+            style={{ width: "min(680px, 100vw)", height: "100%", background: "#fff", boxShadow: "-6px 0 24px rgba(15,23,42,0.2)", padding: compactPx(20), overflowY: "auto" }}
 
             onClick={(e) => e.stopPropagation()}
 
           >
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: compactPx(14) }}>
 
               <h3 style={{ margin: 0 }}>订单详情：{detailOrder.order_no || `#${detailOrder.id}`}</h3>
 
-              <button type="button" onClick={() => setDetailOrder(null)} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+              <button type="button" onClick={() => setDetailOrder(null)} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}>
 
                 关闭
 
@@ -748,27 +749,27 @@ export default function OrdersPage() {
 
             </div>
 
-            <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ marginBottom: compactPx(12), display: "flex", gap: compactPx(8), flexWrap: "wrap", alignItems: "center" }}>
 
-              <button type="button" onClick={() => copyText(String(detailOrder.id), `订单ID ${detailOrder.id}`)} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+              <button type="button" onClick={() => copyText(String(detailOrder.id), `订单ID ${detailOrder.id}`)} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}>
 
                 复制订单ID
 
               </button>
 
-              <button type="button" onClick={() => copyText(detailOrder.order_no || "", `订单号 ${detailOrder.order_no || ""}`)} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+              <button type="button" onClick={() => copyText(detailOrder.order_no || "", `订单号 ${detailOrder.order_no || ""}`)} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}>
 
                 复制订单号
 
               </button>
 
-              <button type="button" onClick={() => copyText(detailOrder.client_username || "", "商家账号")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+              <button type="button" onClick={() => copyText(detailOrder.client_username || "", "商家账号")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}>
 
                 复制商家账号
 
               </button>
 
-              <button type="button" onClick={() => copyText(detailOrder.influencer_username || "", "达人账号")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+              <button type="button" onClick={() => copyText(detailOrder.influencer_username || "", "达人账号")} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}>
 
                 复制达人账号
 
@@ -780,7 +781,7 @@ export default function OrdersPage() {
 
                 onClick={() => copyText(detailWorkLinksDraft.filter((s) => s.trim()).join("\n"), "全部交付链接")}
 
-                style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+                style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}
 
               >
 
@@ -788,11 +789,11 @@ export default function OrdersPage() {
 
               </button>
 
-              {copyMsg && <span style={{ color: "#0f766e", fontSize: 13 }}>{copyMsg}</span>}
+              {copyMsg && <span style={{ color: "#0f766e", fontSize: compactPx(13) }}>{copyMsg}</span>}
 
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 10, alignItems: "start", fontSize: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: compactPx(10), alignItems: "start", fontSize: compactPx(14) }}>
 
               <div style={{ color: "#64748b" }}>订单ID</div><div>{detailOrder.id}</div>
 
@@ -812,7 +813,7 @@ export default function OrdersPage() {
 
                   placeholder="请输入商家店铺名称"
 
-                  style={{ width: "100%", maxWidth: 360, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                  style={{ width: "100%", maxWidth: compactPx(360), padding: "6px 8px", borderRadius: compactPx(8), border: "1px solid #dbe1ea" }}
 
                 />
 
@@ -830,11 +831,11 @@ export default function OrdersPage() {
 
                   placeholder="群号或链接"
 
-                  style={{ width: "100%", maxWidth: 360, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                  style={{ width: "100%", maxWidth: compactPx(360), padding: "6px 8px", borderRadius: compactPx(8), border: "1px solid #dbe1ea" }}
 
                 />
 
-                <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>
+                <div style={{ marginTop: compactPx(6), fontSize: compactPx(12), color: "#64748b" }}>
 
                   {isHttpUrl(detailOrder.client_group_chat) ? (
 
@@ -870,7 +871,7 @@ export default function OrdersPage() {
 
                   onChange={(e) => setDetailOrder((prev) => (prev ? { ...prev, publish_method: e.target.value as "client_self_publish" | "influencer_publish_with_cart" } : prev))}
 
-                  style={{ width: "100%", maxWidth: 360, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
+                  style={{ width: "100%", maxWidth: compactPx(360), padding: "6px 8px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff" }}
 
                 >
 
@@ -884,13 +885,13 @@ export default function OrdersPage() {
 
               <div style={{ color: "#64748b" }}>视频数量/积分</div>
               <div>
-                <div style={{ marginBottom: 4 }}>视频数量：{detailOrder.task_count || "-"} 条</div>
+                <div style={{ marginBottom: compactPx(4) }}>视频数量：{detailOrder.task_count || "-"} 条</div>
                 <div>
                   金额：
-                  <span style={{ fontWeight: 600, color: "var(--xt-accent)", fontSize: 16 }}>
+                  <span style={{ fontWeight: 600, color: "var(--xt-accent)", fontSize: compactPx(16) }}>
                     {detailOrder.client_pay_points * Math.max(1, Math.min(100, Number(detailOrder.task_count) || 1))} 积分
                   </span>
-                  <span style={{ marginLeft: 8, color: "#64748b" }}>
+                  <span style={{ marginLeft: compactPx(8), color: "#64748b" }}>
                     （单套 {detailOrder.client_pay_points} 积分 × 视频数量：{Math.max(1, Math.min(100, Number(detailOrder.task_count) || 1))}）
                   </span>
                 </div>
@@ -901,7 +902,7 @@ export default function OrdersPage() {
                   <div style={{ color: "#64748b" }}>达人收益合计</div>
                   <div>
                     {detailOrder.creator_reward_points * Math.max(1, Math.min(100, Number(detailOrder.task_count) || 1))} 积分
-                    <span style={{ marginLeft: 8, color: "#94a3b8" }}>
+                    <span style={{ marginLeft: compactPx(8), color: "#94a3b8" }}>
                       （单套 {detailOrder.creator_reward_points} 积分 × 视频数量：{Math.max(1, Math.min(100, Number(detailOrder.task_count) || 1))}）
                     </span>
                   </div>
@@ -925,7 +926,7 @@ export default function OrdersPage() {
 
                 {detailWorkLinksDraft.map((line, idx) => (
 
-                  <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <div key={idx} style={{ display: "flex", gap: compactPx(6), marginBottom: compactPx(8), alignItems: "center", flexWrap: "wrap" }}>
 
                     <input
 
@@ -941,7 +942,7 @@ export default function OrdersPage() {
 
                       placeholder="https://..."
 
-                      style={{ flex: 1, minWidth: 200, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                      style={{ flex: 1, minWidth: 200, padding: "6px 8px", borderRadius: compactPx(8), border: "1px solid #dbe1ea" }}
 
                     />
 
@@ -951,7 +952,7 @@ export default function OrdersPage() {
 
                       onClick={() => setDetailWorkLinksDraft((prev) => prev.filter((_, i) => i !== idx))}
 
-                      style={{ padding: "4px 8px", border: "1px solid #fecaca", borderRadius: 8, background: "#fff", cursor: "pointer", color: "#b91c1c" }}
+                      style={{ padding: "4px 8px", border: "1px solid #fecaca", borderRadius: compactPx(8), background: "#fff", cursor: "pointer", color: "#b91c1c" }}
 
                       aria-label="删除该条链接"
 
@@ -971,7 +972,7 @@ export default function OrdersPage() {
 
                   onClick={() => setDetailWorkLinksDraft((prev) => [...prev, ""])}
 
-                  style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#f8fafc", cursor: "pointer" }}
+                  style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#f8fafc", cursor: "pointer" }}
 
                 >
 
@@ -979,7 +980,7 @@ export default function OrdersPage() {
 
                 </button>
 
-                <div style={{ marginTop: 10 }}>
+                <div style={{ marginTop: compactPx(10) }}>
 
                   <button
 
@@ -993,7 +994,7 @@ export default function OrdersPage() {
 
                       padding: "8px 14px",
 
-                      borderRadius: 8,
+                      borderRadius: compactPx(8),
 
                       border: "none",
 
@@ -1025,7 +1026,7 @@ export default function OrdersPage() {
 
             </div>
 
-            <div style={{ marginTop: 14 }}>
+            <div style={{ marginTop: compactPx(14) }}>
 
               <button
 
@@ -1035,7 +1036,7 @@ export default function OrdersPage() {
 
                 disabled={savingClientInfo}
 
-                style={{ padding: "8px 14px", borderRadius: 8, border: "none", background: "var(--xt-accent)", color: "#fff", cursor: savingClientInfo ? "not-allowed" : "pointer", opacity: savingClientInfo ? 0.65 : 1 }}
+                style={{ padding: "8px 14px", borderRadius: compactPx(8), border: "none", background: "var(--xt-accent)", color: "#fff", cursor: savingClientInfo ? "not-allowed" : "pointer", opacity: savingClientInfo ? 0.65 : 1 }}
 
               >
 

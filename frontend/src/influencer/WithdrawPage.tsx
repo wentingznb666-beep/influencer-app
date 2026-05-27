@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -110,7 +111,7 @@ export default function WithdrawPage() {
   return (
     <div>
       <h2 style={{ marginTop: 0 }}>{t("申请提现")}</h2>
-      <p style={{ fontSize: 14, color: "#666" }}>
+      <p style={{ fontSize: compactPx(14), color: "#666" }}>
         {t("当前余额：")}
         <b>{balance}</b>
         {t(" 积分（1 积分 = 1 泰铢，申请后会生成管理员处理订单）")}
@@ -119,14 +120,14 @@ export default function WithdrawPage() {
       <form
         onSubmit={handleSubmit}
         style={{
-          marginBottom: 20,
-          padding: 16,
+          marginBottom: compactPx(20),
+          padding: compactPx(16),
           background: "#fff",
-          borderRadius: 8,
+          borderRadius: compactPx(8),
           boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
         }}
       >
-        <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>{t("收款姓名")}</label>
+        <label style={{ display: "block", marginBottom: compactPx(8), fontWeight: 600 }}>{t("收款姓名")}</label>
         <input
           type="text"
           value={bankAccountName}
@@ -137,10 +138,10 @@ export default function WithdrawPage() {
             maxWidth: "100%",
             padding: "8px 10px",
             boxSizing: "border-box",
-            marginBottom: 12,
+            marginBottom: compactPx(12),
           }}
         />
-        <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>{t("银行名称")}</label>
+        <label style={{ display: "block", marginBottom: compactPx(8), fontWeight: 600 }}>{t("银行名称")}</label>
         <select
           value={bankName}
           onChange={(e) => setBankName(e.target.value)}
@@ -150,7 +151,7 @@ export default function WithdrawPage() {
             maxWidth: "100%",
             padding: "8px 10px",
             boxSizing: "border-box",
-            marginBottom: 12,
+            marginBottom: compactPx(12),
           }}
         >
           <option value="">{t("请选择银行")}</option>
@@ -160,7 +161,7 @@ export default function WithdrawPage() {
             </option>
           ))}
         </select>
-        <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>{t("银行账号")}</label>
+        <label style={{ display: "block", marginBottom: compactPx(8), fontWeight: 600 }}>{t("银行账号")}</label>
         <input
           type="text"
           value={bankAccountNo}
@@ -171,16 +172,16 @@ export default function WithdrawPage() {
             maxWidth: "100%",
             padding: "8px 10px",
             boxSizing: "border-box",
-            marginBottom: 12,
+            marginBottom: compactPx(12),
           }}
         />
-        <label style={{ display: "block", marginBottom: 8, fontWeight: 600 }}>{t("提现金额（积分）")}</label>
+        <label style={{ display: "block", marginBottom: compactPx(8), fontWeight: 600 }}>{t("提现金额（积分）")}</label>
         <p
           style={{
             marginTop: 0,
-            marginBottom: 10,
+            marginBottom: compactPx(10),
             color: "#666",
-            fontSize: 13,
+            fontSize: compactPx(13),
           }}
         >
           {t("预计到账（泰铢）：")}
@@ -189,7 +190,7 @@ export default function WithdrawPage() {
         <div
           style={{
             display: "flex",
-            gap: 10,
+            gap: compactPx(10),
             alignItems: "center",
             flexWrap: "wrap",
           }}
@@ -212,7 +213,7 @@ export default function WithdrawPage() {
               background: "var(--xt-accent)",
               color: "#fff",
               border: "none",
-              borderRadius: 8,
+              borderRadius: compactPx(8),
               cursor: submitting ? "not-allowed" : "pointer",
             }}
           >
@@ -225,7 +226,7 @@ export default function WithdrawPage() {
             style={{
               padding: "8px 16px",
               border: "1px solid #ddd",
-              borderRadius: 8,
+              borderRadius: compactPx(8),
               background: "#fff",
               cursor: "pointer",
             }}
@@ -243,36 +244,36 @@ export default function WithdrawPage() {
             width: "100%",
             borderCollapse: "collapse",
             background: "#fff",
-            borderRadius: 8,
+            borderRadius: compactPx(8),
             overflow: "hidden",
             boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
           }}
         >
           <thead>
             <tr style={{ background: "#f5f5f5" }}>
-              <th style={{ padding: 10, textAlign: "left" }}>{t("申请时间")}</th>
-              <th style={{ padding: 10, textAlign: "left" }}>{t("收款姓名")}</th>
-              <th style={{ padding: 10, textAlign: "left" }}>{t("银行名称")}</th>
-              <th style={{ padding: 10, textAlign: "left" }}>{t("银行账号")}</th>
-              <th style={{ padding: 10, textAlign: "right" }}>{t("金额")}</th>
-              <th style={{ padding: 10, textAlign: "left" }}>{t("状态")}</th>
-              <th style={{ padding: 10, textAlign: "left" }}>{t("备注")}</th>
-              <th style={{ padding: 10, textAlign: "left" }}>{t("打款时间")}</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>{t("申请时间")}</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>{t("收款姓名")}</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>{t("银行名称")}</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>{t("银行账号")}</th>
+              <th style={{ padding: compactPx(10), textAlign: "right" }}>{t("金额")}</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>{t("状态")}</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>{t("备注")}</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>{t("打款时间")}</th>
             </tr>
           </thead>
           <tbody>
             {list.map((r) => (
               <tr key={r.id}>
-                <td style={{ padding: 10 }}>{r.created_at}</td>
-                <td style={{ padding: 10 }}>{r.bank_account_name || "—"}</td>
-                <td style={{ padding: 10 }}>{r.bank_name || "—"}</td>
-                <td style={{ padding: 10 }}>{r.bank_account_no || "—"}</td>
-                <td style={{ padding: 10, textAlign: "right" }}>{r.amount}</td>
-                <td style={{ padding: 10 }}>
+                <td style={{ padding: compactPx(10) }}>{r.created_at}</td>
+                <td style={{ padding: compactPx(10) }}>{r.bank_account_name || "—"}</td>
+                <td style={{ padding: compactPx(10) }}>{r.bank_name || "—"}</td>
+                <td style={{ padding: compactPx(10) }}>{r.bank_account_no || "—"}</td>
+                <td style={{ padding: compactPx(10), textAlign: "right" }}>{r.amount}</td>
+                <td style={{ padding: compactPx(10) }}>
                   {r.status === "paid" ? t("已打款") : r.status === "rejected" ? t("已驳回") : t("待处理")}
                 </td>
-                <td style={{ padding: 10 }}>{r.note || "—"}</td>
-                <td style={{ padding: 10 }}>{r.paid_at || "—"}</td>
+                <td style={{ padding: compactPx(10) }}>{r.note || "—"}</td>
+                <td style={{ padding: compactPx(10) }}>{r.paid_at || "—"}</td>
               </tr>
             ))}
           </tbody>

@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useState } from "react";
 import * as api from "../adminApi";
 
@@ -68,13 +69,13 @@ export default function AdminSkusPage() {
   return (
     <div>
       <h2 style={{ marginTop: 0 }}>SKU 列表（只读）</h2>
-      <p style={{ fontSize: 14, color: "#64748b" }}>支持按商家账号、商家ID、SKU 编码/名称精准搜索。</p>
+      <p style={{ fontSize: compactPx(14), color: "#64748b" }}>支持按商家账号、商家ID、SKU 编码/名称精准搜索。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
-      <div className="sticky-search" style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <div className="sticky-search" style={{ marginBottom: compactPx(12), display: "flex", gap: compactPx(8), alignItems: "center", flexWrap: "wrap" }}>
         <select
           value={clientId === "" ? "" : String(clientId)}
           onChange={(e) => setClientId(e.target.value ? Number(e.target.value) : "")}
-          style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 220, background: "#fff" }}
+          style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), minWidth: 220, background: "#fff" }}
         >
           <option value="">全部商家</option>
           {clientList.map((c) => (
@@ -83,8 +84,8 @@ export default function AdminSkusPage() {
             </option>
           ))}
         </select>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索商家账号/ID/SKU编码/名称" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 300 }} />
-        <button type="button" onClick={() => load(q, clientId)} style={{ padding: "8px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer" }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索商家账号/ID/SKU编码/名称" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), minWidth: 300 }} />
+        <button type="button" onClick={() => load(q, clientId)} style={{ padding: "8px 14px", border: "none", borderRadius: compactPx(8), background: "var(--xt-accent)", color: "#fff", cursor: "pointer" }}>
           搜索
         </button>
         <button
@@ -94,7 +95,7 @@ export default function AdminSkusPage() {
             setClientId("");
             load("", "");
           }}
-          style={{ padding: "8px 14px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+          style={{ padding: "8px 14px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}
         >
           清空
         </button>
@@ -102,21 +103,21 @@ export default function AdminSkusPage() {
       {loading ? (
         <p>加载中…</p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: compactPx(10) }}>
           {list.map((s) => (
-            <div key={s.id} style={{ background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-              <div style={{ fontSize: 13, color: "#64748b" }}>
+            <div key={s.id} style={{ background: "#fff", borderRadius: compactPx(10), padding: compactPx(12), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+              <div style={{ fontSize: compactPx(13), color: "#64748b" }}>
                 商家：{s.client_username}（ID:{s.client_id}）
               </div>
-              <div style={{ marginTop: 4 }}>
+              <div style={{ marginTop: compactPx(4) }}>
                 <strong>{s.sku_code}</strong>
                 {s.sku_name ? ` / ${s.sku_name}` : ""}
               </div>
               {Array.isArray(s.sku_images) && s.sku_images.length > 0 && (
-                <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ marginTop: compactPx(8), display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
                   {s.sku_images.slice(0, 8).map((url, idx) => (
                     <a key={`${s.id}-${idx}`} href={url} target="_blank" rel="noreferrer">
-                      <img src={url} alt={`admin-sku-${s.id}-${idx}`} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 6, border: "1px solid #eee" }} />
+                      <img src={url} alt={`admin-sku-${s.id}-${idx}`} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: compactPx(6), border: "1px solid #eee" }} />
                     </a>
                   ))}
                 </div>

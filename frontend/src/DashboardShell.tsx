@@ -226,6 +226,7 @@ export default function DashboardShell({
   const { isCompact } = useResponsive();
   const headerExtrasReady = useDeferredInCompact(isCompact, 280);
   const shellRef = useRef<HTMLDivElement | null>(null);
+  const sidebarScrollRef = useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = useState<SystemMessage[]>([]);
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgLoading, setMsgLoading] = useState(false);
@@ -307,15 +308,6 @@ export default function DashboardShell({
     const timer = window.setInterval(() => void loadMessages(), 20000);
     return () => window.clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    if (!isCompact || !sidebarOpen) return;
-    const origin = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = origin;
-    };
-  }, [isCompact, sidebarOpen]);
 
   /** 消息弹窗：点击空白区域直接关闭。 */
   useEffect(() => {
@@ -449,8 +441,9 @@ export default function DashboardShell({
         />
       )}
       <aside
+        ref={sidebarScrollRef}
         className={"xt-sidebar" + (isCompact ? " is-compact" : "") + (sidebarOpen ? " is-open" : "")}
-        style={xtLayout.sidebar}
+        style={{ ...xtLayout.sidebar, overflowY: "auto" }}
         aria-hidden={isCompact ? !sidebarOpen : false}
       >
         <div className="xt-sidebar-brand">

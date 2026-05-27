@@ -2502,3 +2502,20 @@ textarea {
   font-weight: 500;
 }
 
+/* ---------- 手机端UI缩放适配 ---------- */
+@media (max-width: 767px) {
+  .xt-stat-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .xt-stat-card { padding: 12px 10px; }
+  .xt-stat-card__value { font-size: 20px !important; }
+  .xt-toolbar { flex-direction: column; align-items: stretch; padding: 8px 0; }
+  .xt-search { width: 100%; }
+  .xt-page-title { font-size: 16px; }
+  .xt-page-subtitle { font-size: 12px; }
+  .xt-table-card { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .xt-table-card table { font-size: 12px; }
+  .xt-form-grid { grid-template-columns: 1fr; gap: 4px; }
+  .xt-form-grid__label { text-align: left; font-size: 12px; }
+  .xt-badge { font-size: 10px; padding: 1px 8px; }
+  .xt-sidebar.is-compact { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+}
+

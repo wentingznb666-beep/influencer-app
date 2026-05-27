@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useState, useEffect } from "react";
 import * as api from "../clientApi";
 
@@ -54,39 +55,39 @@ export default function OrdersPage() {
     <div>
       <h2 style={{ marginTop: 0 }}>样品寄送与订单跟踪</h2>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: compactPx(16) }}>
         <button
           type="button"
           onClick={() => setShowForm(!showForm)}
-          style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+          style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer" }}
         >
           {showForm ? "取消" : "新建订单/样品记录"}
         </button>
       </div>
       {showForm && (
-        <div style={{ marginBottom: 24, padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <div style={{ marginBottom: compactPx(24), padding: compactPx(16), background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
           <label>备注</label>
           <input
             type="text"
             value={formNote}
             onChange={(e) => setFormNote(e.target.value)}
             placeholder="可选"
-            style={{ display: "block", marginTop: 4, marginBottom: 12, width: "100%", maxWidth: 300, padding: "8px 10px", boxSizing: "border-box" }}
+            style={{ display: "block", marginTop: compactPx(4), marginBottom: compactPx(12), width: "100%", maxWidth: compactPx(300), padding: "8px 10px", boxSizing: "border-box" }}
           />
-          <button type="button" onClick={handleCreate} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>创建</button>
+          <button type="button" onClick={handleCreate} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer" }}>创建</button>
         </div>
       )}
       {loading ? <p>加载中…</p> : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: compactPx(12) }}>
           {list.map((o) => (
-            <div key={o.id} style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+            <div key={o.id} style={{ padding: compactPx(16), background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: compactPx(8) }}>
                 <span style={{ fontWeight: 600 }}>订单 #{o.id}</span>
                 <span style={{ color: "#666" }}>{statusText[o.status] ?? o.status}</span>
               </div>
-              {o.product_info != null && <p style={{ margin: "8px 0 0", fontSize: 14 }}>关联需求：{o.product_info}</p>}
-              {o.note && <p style={{ margin: "4px 0 0", fontSize: 13, color: "#666" }}>备注：{o.note}</p>}
-              <p style={{ margin: "4px 0 0", fontSize: 12, color: "#999" }}>创建：{o.created_at} · 更新：{o.updated_at}</p>
+              {o.product_info != null && <p style={{ margin: "8px 0 0", fontSize: compactPx(14) }}>关联需求：{o.product_info}</p>}
+              {o.note && <p style={{ margin: "4px 0 0", fontSize: compactPx(13), color: "#666" }}>备注：{o.note}</p>}
+              <p style={{ margin: "4px 0 0", fontSize: compactPx(12), color: "#999" }}>创建：{o.created_at} · 更新：{o.updated_at}</p>
             </div>
           ))}
         </div>

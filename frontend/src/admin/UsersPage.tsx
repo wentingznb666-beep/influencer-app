@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useState, type FormEvent } from "react";
 
 import * as api from "../adminApi";
@@ -92,7 +93,7 @@ function PasswordFieldWithToggle({ value, onChange, placeholder, required, visib
 
   return (
 
-    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, width: "100%" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: compactPx(8), minWidth: 0, width: "100%" }}>
 
       <input
 
@@ -108,7 +109,7 @@ function PasswordFieldWithToggle({ value, onChange, placeholder, required, visib
 
         autoComplete="new-password"
 
-        style={{ flex: 1, minWidth: 0, padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+        style={{ flex: 1, minWidth: 0, padding: "8px 10px", borderRadius: compactPx(8), border: "1px solid #ddd" }}
 
       />
 
@@ -124,7 +125,7 @@ function PasswordFieldWithToggle({ value, onChange, placeholder, required, visib
 
           padding: "8px 10px",
 
-          borderRadius: 8,
+          borderRadius: compactPx(8),
 
           border: "1px solid #dbe1ea",
 
@@ -132,7 +133,7 @@ function PasswordFieldWithToggle({ value, onChange, placeholder, required, visib
 
           cursor: "pointer",
 
-          fontSize: 13,
+          fontSize: compactPx(13),
 
           color: "var(--xt-text)",
 
@@ -519,7 +520,7 @@ export default function UsersPage() {
 
     <div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: compactPx(10), marginBottom: compactPx(4) }}>
 
         <h2 style={{ marginTop: 0, marginBottom: 0 }}>账号管理</h2>
 
@@ -533,13 +534,13 @@ export default function UsersPage() {
 
             padding: "2px 10px",
 
-            borderRadius: 999,
+            borderRadius: compactPx(999),
 
             background: pendingInfluencerCount > 0 ? "rgba(255, 152, 0, 0.15)" : "var(--xt-nav-active-bg)",
 
             color: pendingInfluencerCount > 0 ? "#b45309" : "var(--xt-text-muted)",
 
-            fontSize: 12,
+            fontSize: compactPx(12),
 
             fontWeight: 600,
 
@@ -555,7 +556,7 @@ export default function UsersPage() {
 
       {!isEmployee && (
 
-        <p style={{ fontSize: 14, color: "#64748b", marginTop: 4, marginBottom: 8 }}>
+        <p style={{ fontSize: compactPx(14), color: "#64748b", marginTop: compactPx(4), marginBottom: compactPx(8) }}>
 
           达人/商家（含商家）的积分加分与扣分请在侧边栏「积分与结算」中操作；扣分现已支持商家账号。
 
@@ -567,7 +568,7 @@ export default function UsersPage() {
 
       {successMsg && <p style={{ color: "#0a7a2a" }}>{successMsg}</p>}
 
-      <div className="sticky-search" style={{ marginBottom: 12, padding: 12, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 8 }}>
+      <div className="sticky-search" style={{ marginBottom: compactPx(12), padding: compactPx(12), background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)", display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: compactPx(8) }}>
 
         <input
 
@@ -577,11 +578,11 @@ export default function UsersPage() {
 
           onChange={(e) => setKeyword(e.target.value)}
 
-          style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+          style={{ padding: "8px 10px", borderRadius: compactPx(8), border: "1px solid #ddd" }}
 
         />
 
-        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as "" | UserRole)} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}>
+        <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as "" | UserRole)} style={{ padding: "8px 10px", borderRadius: compactPx(8), border: "1px solid #ddd", background: "#fff" }}>
 
           <option value="">全部角色</option>
 
@@ -595,7 +596,7 @@ export default function UsersPage() {
 
         </select>
 
-        <select value={disabledFilter} onChange={(e) => setDisabledFilter(e.target.value as "" | "0" | "1")} style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}>
+        <select value={disabledFilter} onChange={(e) => setDisabledFilter(e.target.value as "" | "0" | "1")} style={{ padding: "8px 10px", borderRadius: compactPx(8), border: "1px solid #ddd", background: "#fff" }}>
 
           <option value="">全部状态</option>
 
@@ -615,11 +616,11 @@ export default function UsersPage() {
 
             alignItems: "center",
 
-            gap: 8,
+            gap: compactPx(8),
 
             color: "var(--xt-text)",
 
-            fontSize: 14,
+            fontSize: compactPx(14),
 
             cursor: "pointer",
 
@@ -649,11 +650,11 @@ export default function UsersPage() {
 
           onSubmit={handleCreate}
 
-          style={{ marginBottom: 20, padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
+          style={{ marginBottom: compactPx(20), padding: compactPx(16), background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
 
         >
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8, alignItems: "stretch" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: compactPx(8), alignItems: "stretch" }}>
 
             <input
 
@@ -665,7 +666,7 @@ export default function UsersPage() {
 
               required
 
-              style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+              style={{ padding: "8px 10px", borderRadius: compactPx(8), border: "1px solid #ddd" }}
 
             />
 
@@ -691,7 +692,7 @@ export default function UsersPage() {
 
               onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as UserRole }))}
 
-              style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
+              style={{ padding: "8px 10px", borderRadius: compactPx(8), border: "1px solid #ddd", background: "#fff" }}
 
             >
 
@@ -713,7 +714,7 @@ export default function UsersPage() {
 
               onChange={(e) => setForm((f) => ({ ...f, display_name: e.target.value }))}
 
-              style={{ padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+              style={{ padding: "8px 10px", borderRadius: compactPx(8), border: "1px solid #ddd" }}
 
             />
 
@@ -725,7 +726,7 @@ export default function UsersPage() {
 
             disabled={creating}
 
-            style={{ marginTop: 10, padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: creating ? "not-allowed" : "pointer" }}
+            style={{ marginTop: compactPx(10), padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: creating ? "not-allowed" : "pointer" }}
 
           >
 
@@ -743,7 +744,7 @@ export default function UsersPage() {
 
       ) : (
 
-        <div style={{ overflowX: "auto", background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <div style={{ overflowX: "auto", background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
 
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 860 }}>
 
@@ -751,22 +752,22 @@ export default function UsersPage() {
 
               <tr>
 
-                <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>ID</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>ID</th>
 
-                <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>用户名</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>用户名</th>
 
-                <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>显示名</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>显示名</th>
 
-                <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>Line</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>Line</th>
 
-                <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>账号类型</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>账号类型</th>
 
-                <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>状态</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>状态</th>
 
-                <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>撮合/会员字段</th>
-                <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>创建时间</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>撮合/会员字段</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>创建时间</th>
 
-                <th style={{ textAlign: "left", padding: 10, borderBottom: "1px solid #eee" }}>操作</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>操作</th>
 
               </tr>
 
@@ -778,25 +779,25 @@ export default function UsersPage() {
 
                 <tr key={item.id}>
 
-                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{item.id}</td>
+                  <td style={{ padding: compactPx(10), borderBottom: "1px solid #f1f1f1" }}>{item.id}</td>
 
-                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}><span data-no-auto-translate>{item.username}</span></td>
+                  <td style={{ padding: compactPx(10), borderBottom: "1px solid #f1f1f1" }}><span data-no-auto-translate>{item.username}</span></td>
 
-                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{item.display_name || "—"}</td>
+                  <td style={{ padding: compactPx(10), borderBottom: "1px solid #f1f1f1" }}>{item.display_name || "—"}</td>
 
-                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>
+                  <td style={{ padding: compactPx(10), borderBottom: "1px solid #f1f1f1" }}>
                     {item.role === "influencer" ? (item.line_contact || "—") : "—"}
                   </td>
 
-                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{roleTextMap[item.role] ?? item.role}</td>
+                  <td style={{ padding: compactPx(10), borderBottom: "1px solid #f1f1f1" }}>{roleTextMap[item.role] ?? item.role}</td>
 
-                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1", color: item.disabled ? "#c00" : "#0a7a2a" }}>
+                  <td style={{ padding: compactPx(10), borderBottom: "1px solid #f1f1f1", color: item.disabled ? "#c00" : "#0a7a2a" }}>
 
                     {isPendingRegister(item) ? "待审核" : item.disabled ? "已禁用" : "启用中"}
 
                   </td>
 
-                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1", fontSize: 12, color: "#475569" }}>
+                  <td style={{ padding: compactPx(10), borderBottom: "1px solid #f1f1f1", fontSize: compactPx(12), color: "#475569" }}>
                     {item.role === "client" ? (
                       <>
                         会员等级：{merchantExtraMap[item.id]?.member_level ?? 0}
@@ -815,9 +816,9 @@ export default function UsersPage() {
                       "-"
                     )}
                   </td>
-                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1" }}>{item.created_at}</td>
+                  <td style={{ padding: compactPx(10), borderBottom: "1px solid #f1f1f1" }}>{item.created_at}</td>
 
-                  <td style={{ padding: 10, borderBottom: "1px solid #f1f1f1", whiteSpace: "nowrap" }}>
+                  <td style={{ padding: compactPx(10), borderBottom: "1px solid #f1f1f1", whiteSpace: "nowrap" }}>
                     {isEmployee ? (
                       isPendingRegister(item) ? (
                         <>
@@ -825,7 +826,7 @@ export default function UsersPage() {
                             type="button"
                             onClick={() => void handleReviewRegister(item, true)}
                             disabled={actionLoadingId === item.id}
-                            style={{ marginRight: 8, padding: "6px 10px", borderRadius: 6, border: "1px solid #bbf7d0", background: "#fff", color: "#166534", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
+                            style={{ marginRight: compactPx(8), padding: "6px 10px", borderRadius: compactPx(6), border: "1px solid #bbf7d0", background: "#fff", color: "#166534", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
                           >
                             审核通过
                           </button>
@@ -833,7 +834,7 @@ export default function UsersPage() {
                             type="button"
                             onClick={() => void handleReviewRegister(item, false)}
                             disabled={actionLoadingId === item.id}
-                            style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
+                            style={{ padding: "6px 10px", borderRadius: compactPx(6), border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
                           >
                             审核拒绝
                           </button>
@@ -847,7 +848,7 @@ export default function UsersPage() {
                           type="button"
                           onClick={() => openResetPasswordModal(item)}
                           disabled={actionLoadingId === item.id}
-                          style={{ marginRight: 8, padding: "6px 10px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
+                          style={{ marginRight: compactPx(8), padding: "6px 10px", borderRadius: compactPx(6), border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
                         >
                           重置密码
                         </button>
@@ -855,7 +856,7 @@ export default function UsersPage() {
                           type="button"
                           onClick={() => handleToggleDisabled(item)}
                           disabled={actionLoadingId === item.id}
-                          style={{ padding: "6px 10px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
+                          style={{ padding: "6px 10px", borderRadius: compactPx(6), border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
                         >
                           {isPendingRegister(item) ? "同意注册" : item.disabled ? "启用" : "禁用"}
                         </button>
@@ -871,7 +872,7 @@ export default function UsersPage() {
 
                 <tr>
 
-                  <td colSpan={8} style={{ padding: 14, color: "var(--xt-text-muted)" }}>
+                  <td colSpan={8} style={{ padding: compactPx(14), color: "var(--xt-text-muted)" }}>
 
                     暂无符合条件的账号
 
@@ -911,7 +912,7 @@ export default function UsersPage() {
 
             zIndex: 1000,
 
-            padding: 16,
+            padding: compactPx(16),
 
           }}
 
@@ -931,15 +932,15 @@ export default function UsersPage() {
 
               width: "100%",
 
-              maxWidth: 400,
+              maxWidth: compactPx(400),
 
               background: "#fff",
 
-              borderRadius: 8,
+              borderRadius: compactPx(8),
 
               boxShadow: "0 4px 24px rgba(0,0,0,0.12)",
 
-              padding: 20,
+              padding: compactPx(20),
 
             }}
 
@@ -947,19 +948,19 @@ export default function UsersPage() {
 
           >
 
-            <h3 id="reset-pwd-title" style={{ marginTop: 0, marginBottom: 8 }}>
+            <h3 id="reset-pwd-title" style={{ marginTop: 0, marginBottom: compactPx(8) }}>
 
               重置密码
 
             </h3>
 
-            <p style={{ margin: "0 0 12px", fontSize: 14, color: "#64748b" }}>
+            <p style={{ margin: "0 0 12px", fontSize: compactPx(14), color: "#64748b" }}>
 
               账号：<strong data-no-auto-translate>{resetModal.username}</strong>
 
             </p>
 
-            <label style={{ display: "block", marginBottom: 6, fontSize: 14, fontWeight: 600 }}>新密码</label>
+            <label style={{ display: "block", marginBottom: compactPx(6), fontSize: compactPx(14), fontWeight: 600 }}>新密码</label>
 
             <PasswordFieldWithToggle
 
@@ -975,7 +976,7 @@ export default function UsersPage() {
 
             />
 
-            <div style={{ marginTop: 18, display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <div style={{ marginTop: compactPx(18), display: "flex", justifyContent: "flex-end", gap: compactPx(8) }}>
 
               <button
 
@@ -985,7 +986,7 @@ export default function UsersPage() {
 
                 disabled={actionLoadingId === resetModal.id}
 
-                style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: actionLoadingId === resetModal.id ? "not-allowed" : "pointer" }}
+                style={{ padding: "8px 16px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff", cursor: actionLoadingId === resetModal.id ? "not-allowed" : "pointer" }}
 
               >
 
@@ -1005,7 +1006,7 @@ export default function UsersPage() {
 
                   padding: "8px 16px",
 
-                  borderRadius: 8,
+                  borderRadius: compactPx(8),
 
                   border: "none",
 

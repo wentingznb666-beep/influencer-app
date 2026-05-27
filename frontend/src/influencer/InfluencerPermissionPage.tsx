@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { applyInfluencerPermission, getInfluencerPermissionStatus } from "../matchingApi";
@@ -70,33 +71,33 @@ export default function InfluencerPermissionPage() {
         {t("当前状态：")}
         {t(renderStatus())}
       </p>
-      <ul className="xt-inf-card" style={{ margin: "0 0 16px", padding: "16px 16px 16px 28px", maxWidth: 560, lineHeight: 1.65 }}>
+      <ul className="xt-inf-card" style={{ margin: "0 0 16px", padding: "16px 16px 16px 28px", maxWidth: compactPx(560), lineHeight: 1.65 }}>
         <li>{t("开通后可发布合作需求")}</li>
         <li>{t("开通后可管理「我的需求」")}</li>
         <li>{t("开通后可查看达人接单与报价")}</li>
       </ul>
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
-      <div className="xt-inf-card" style={{ display: "grid", gap: 10, maxWidth: 520, padding: 16 }}>
+      <div className="xt-inf-card" style={{ display: "grid", gap: compactPx(10), maxWidth: compactPx(520), padding: compactPx(16) }}>
         <label style={{ fontWeight: 700 }}>{t("TikTok 账号")}</label>
         <input
           value={form.tiktok_account}
           onChange={(e) => setForm((f) => ({ ...f, tiktok_account: e.target.value }))}
           placeholder={t("TikTok账号")}
-          style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--xt-border)" }}
+          style={{ padding: "10px 12px", borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
         />
         <label style={{ fontWeight: 700 }}>{t("粉丝数")}</label>
         <input
           value={form.tiktok_fans}
           onChange={(e) => setForm((f) => ({ ...f, tiktok_fans: e.target.value }))}
           placeholder={t("粉丝数")}
-          style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--xt-border)" }}
+          style={{ padding: "10px 12px", borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
         />
         <label style={{ fontWeight: 700 }}>{t("带货类目")}</label>
         <input
           value={form.category}
           onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
           placeholder={t("带货类目")}
-          style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--xt-border)" }}
+          style={{ padding: "10px 12px", borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
         />
         <label style={{ fontWeight: 700 }}>{t("个人简介")}</label>
         <textarea
@@ -104,10 +105,10 @@ export default function InfluencerPermissionPage() {
           onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
           placeholder={t("个人简介")}
           rows={4}
-          style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--xt-border)" }}
+          style={{ padding: "10px 12px", borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
         />
       </div>
-      <button type="button" className="xt-accent-btn" onClick={() => void submit()} style={{ marginTop: 14 }}>
+      <button type="button" className="xt-accent-btn" onClick={() => void submit()} style={{ marginTop: compactPx(14) }}>
         {t("提交申请")}
       </button>
     </div>

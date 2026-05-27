@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
@@ -114,11 +115,11 @@ function statusBadgeStyle(kind: "phase" | "status" | "match", value: string) {
     display: "inline-flex",
     alignItems: "center",
     padding: "2px 10px",
-    borderRadius: 999,
+    borderRadius: compactPx(999),
     border: "1px solid rgba(148,163,184,0.35)",
     background: "rgba(148,163,184,0.12)",
     color: "#334155",
-    fontSize: 12,
+    fontSize: compactPx(12),
     fontWeight: 800,
     lineHeight: 1.6,
     whiteSpace: "nowrap",
@@ -318,12 +319,12 @@ export default function CooperationOrdersPage() {
   return (
     <div>
       <style>{`
-        .xt-coop-wrap { display:flex; flex-direction:column; gap: 12px; }
-        .xt-coop-topbar { display:flex; gap: 10px; align-items:center; flex-wrap:wrap; }
+        .xt-coop-wrap { display:flex; flex-direction:column; gap: compactPx(12)px; }
+        .xt-coop-topbar { display:flex; gap: compactPx(10)px; align-items:center; flex-wrap:wrap; }
         .xt-coop-topbar h2 { margin: 0; }
         .xt-coop-spacer { flex: 1 1 auto; }
-        .xt-coop-input { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--xt-border); min-width: 220px; background: #fff; }
-        .xt-coop-select { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--xt-border); background: #fff; }
+        .xt-coop-input { padding: compactPx(6)px 10px; border-radius: 10px; border: 1px solid var(--xt-border); min-width: 220px; background: #fff; }
+        .xt-coop-select { padding: compactPx(6)px 10px; border-radius: 10px; border: 1px solid var(--xt-border); background: #fff; }
         .xt-coop-meta { color: var(--xt-text-muted); font-size: 12px; }
         .xt-coop-table-wrap { width: 100%; max-width: 100%; overflow-x: hidden; background:#fff; border:1px solid var(--xt-border); border-radius: 12px; }
         .xt-coop-table { width:100%; max-width:100%; border-collapse: separate; border-spacing:0; table-layout: fixed; }
@@ -336,24 +337,24 @@ export default function CooperationOrdersPage() {
         .xt-coop-col-status { width: 12%; }
         .xt-coop-col-delivery { width: 10%; }
         .xt-coop-col-acceptance { width: 14%; }
-        .xt-coop-th { position: sticky; top: 0; z-index: 1; background: rgba(21,42,69,0.06); text-align:left; padding: 10px; font-size: 12px; color: #475569; font-weight: 900; border-bottom: 1px solid rgba(148,163,184,0.28); }
-        .xt-coop-td { box-sizing: border-box; padding: 10px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); vertical-align: top; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
+        .xt-coop-th { position: sticky; top: 0; z-index: 1; background: rgba(21,42,69,0.06); text-align:left; padding: compactPx(10)px; font-size: 12px; color: #475569; font-weight: 900; border-bottom: 1px solid rgba(148,163,184,0.28); }
+        .xt-coop-td { box-sizing: border-box; padding: compactPx(10)px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); vertical-align: top; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
         .xt-coop-row:hover { background: rgba(15,23,42,0.02); }
         .xt-coop-order-no { font-weight: 900; color: var(--xt-primary); }
         .xt-coop-title { color: #0f172a; font-weight: 700; }
-        .xt-coop-sub { display:flex; gap: 8px; flex-wrap:wrap; align-items:center; }
+        .xt-coop-sub { display:flex; gap: compactPx(8)px; flex-wrap:wrap; align-items:center; }
         .xt-coop-amount { text-align: right; font-weight: 900; color: var(--xt-accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
-        .xt-coop-person { display:grid; gap: 6px; color:#0f172a; min-width:0; }
-        .xt-coop-person-line { display:grid; grid-template-columns: 34px minmax(0,1fr); gap: 4px; align-items: start; min-width:0; }
+        .xt-coop-person { display:grid; gap: compactPx(6)px; color:#0f172a; min-width:0; }
+        .xt-coop-person-line { display:grid; grid-template-columns: 34px minmax(0,1fr); gap: compactPx(4)px; align-items: start; min-width:0; }
         .xt-coop-person-label { color: #475569; }
         .xt-coop-person-value { min-width:0; }
         .xt-coop-muted { color: var(--xt-text-muted); font-size: 12px; }
-        .xt-coop-links { display:grid; gap: 8px; min-width:0; }
-        .xt-coop-link-row { display:flex; gap: 6px; align-items:center; min-width:0; }
+        .xt-coop-links { display:grid; gap: compactPx(8)px; min-width:0; }
+        .xt-coop-link-row { display:flex; gap: compactPx(6)px; align-items:center; min-width:0; }
         .xt-coop-link-tag { flex: 0 0 auto; padding: 1px 6px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.35); font-size: 11px; color: #334155; background: rgba(148,163,184,0.12); }
         .xt-coop-link-url { min-width:0; color: var(--xt-primary); text-decoration: none; word-break: break-all; white-space: normal; }
         .xt-coop-link-url:hover { text-decoration: underline; }
-        .xt-coop-linkbtn { padding: 6px 10px; border-radius: 10px; border: 1px solid var(--xt-border); background: #fff; cursor: pointer; font-weight: 800; font-size: 12px; display:inline-flex; align-items:center; justify-content:center; }
+        .xt-coop-linkbtn { padding: compactPx(6)px 10px; border-radius: 10px; border: 1px solid var(--xt-border); background: #fff; cursor: pointer; font-weight: 800; font-size: 12px; display:inline-flex; align-items:center; justify-content:center; }
         .xt-coop-linkbtn[disabled] { opacity: .55; cursor: not-allowed; }
         .xt-coop-review-note { margin-top: 8px; color: #475569; font-size: 12px; line-height: 1.4; max-height: 3.6em; overflow: hidden; text-overflow: ellipsis; }
         @media (max-width: 1280px) {
@@ -414,7 +415,7 @@ export default function CooperationOrdersPage() {
           <div className="xt-coop-meta">{loading ? "加载中…" : `共 ${filteredList.length} 条`}</div>
         </div>
 
-        {error ? <p style={{ color: "#b91c1c", marginTop: 10 }}>{error}</p> : null}
+        {error ? <p style={{ color: "#b91c1c", marginTop: compactPx(10) }}>{error}</p> : null}
         
 
         <div className="xt-coop-table-wrap">
@@ -506,9 +507,9 @@ export default function CooperationOrdersPage() {
                         const acceptances = linkAcceptanceMap[r.id];
                         if (!acceptances || acceptances.length === 0) return <span className="xt-coop-muted">—</span>;
                         return (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: compactPx(6) }}>
                             {acceptances.map((la, idx) => (
-                              <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 0", fontSize: 12, flexWrap: "wrap" }}>
+                              <div key={idx} style={{ display: "flex", alignItems: "center", gap: compactPx(6), padding: "4px 0", fontSize: compactPx(12), flexWrap: "wrap" }}>
                                 <span style={{ flex: "0 0 auto", color: "#64748b" }}>回传{idx + 1}</span>
                                 {la.accepted ? (
                                   <span style={{ color: "#16a34a", fontWeight: 700, whiteSpace: "nowrap" }}>✅ 通过</span>
@@ -518,10 +519,10 @@ export default function CooperationOrdersPage() {
                                   <span style={{ color: "#94a3b8", whiteSpace: "nowrap" }}>待验收</span>
                                 )}
                                 {la.influencer_username && (
-                                  <span style={{ color: "#64748b", fontSize: 11 }}>@{la.influencer_username}</span>
+                                  <span style={{ color: "#64748b", fontSize: compactPx(11) }}>@{la.influencer_username}</span>
                                 )}
                                 {la.payment_url && (
-                                  <a href={la.payment_url} target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: "2px 8px", background: "#10b981", color: "#fff", borderRadius: 4, textDecoration: "none", whiteSpace: "nowrap" }}>
+                                  <a href={la.payment_url} target="_blank" rel="noreferrer" style={{ fontSize: compactPx(11), padding: "2px 8px", background: "#10b981", color: "#fff", borderRadius: compactPx(4), textDecoration: "none", whiteSpace: "nowrap" }}>
                                     付款截图
                                   </a>
                                 )}

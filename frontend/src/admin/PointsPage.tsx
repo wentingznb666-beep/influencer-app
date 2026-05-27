@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useState, useEffect } from "react";
 import * as api from "../adminApi";
 import { getStoredUser } from "../authApi";
@@ -142,12 +143,12 @@ export default function PointsPage() {
     <div>
       <h2 style={{ marginTop: 0 }}>积分与结算</h2>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
-      <section style={{ marginBottom: 32 }}>
+      <section style={{ marginBottom: compactPx(32) }}>
         <h3>积分汇总</h3>
         {!isEmployee && (
-          <div style={{ marginBottom: 12, padding: 12, background: "#fff", borderRadius: 8 }}>
-            <div style={{ marginBottom: 8, fontWeight: 600 }}>管理员积分调整（加分/扣分）</div>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ marginBottom: compactPx(12), padding: compactPx(12), background: "#fff", borderRadius: compactPx(8) }}>
+            <div style={{ marginBottom: compactPx(8), fontWeight: 600 }}>管理员积分调整（加分/扣分）</div>
+            <div style={{ display: "flex", gap: compactPx(8), alignItems: "center", flexWrap: "wrap" }}>
               <select value={manualMode} onChange={(e) => setManualMode(e.target.value as "add" | "deduct")} style={{ padding: "6px 8px", minWidth: 120 }}>
                 <option value="add">加分</option>
                 <option value="deduct">扣分（达人/商家）</option>
@@ -185,25 +186,25 @@ export default function PointsPage() {
                 type="button"
                 onClick={handleManualRecharge}
                 disabled={manualSubmitting}
-                style={{ padding: "6px 12px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: manualSubmitting ? "not-allowed" : "pointer" }}
+                style={{ padding: "6px 12px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: manualSubmitting ? "not-allowed" : "pointer" }}
               >
                 {manualSubmitting ? "提交中…" : manualMode === "deduct" ? "确认扣分" : "确认加分"}
               </button>
             </div>
           </div>
         )}
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ marginBottom: compactPx(8) }}>
           <label>按周统计（年-周，如 2025-12）</label>
-          <input type="text" value={week} onChange={(e) => setWeek(e.target.value)} placeholder="留空为全部" style={{ marginLeft: 8, padding: "6px 8px", width: 100 }} />
+          <input type="text" value={week} onChange={(e) => setWeek(e.target.value)} placeholder="留空为全部" style={{ marginLeft: compactPx(8), padding: "6px 8px", width: 100 }} />
         </div>
         {loading ? <p>加载中…</p> : (
-          <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 8, overflow: "hidden" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: compactPx(8), overflow: "hidden" }}>
             <thead>
               <tr style={{ background: "#f5f5f5" }}>
-                <th style={{ padding: 10, textAlign: "left" }}>用户</th>
-                <th style={{ padding: 10, textAlign: "left" }}>角色</th>
-                <th style={{ padding: 10, textAlign: "left" }}>当前余额</th>
-                {week && <th style={{ padding: 10, textAlign: "left" }}>当周增加</th>}
+                <th style={{ padding: compactPx(10), textAlign: "left" }}>用户</th>
+                <th style={{ padding: compactPx(10), textAlign: "left" }}>角色</th>
+                <th style={{ padding: compactPx(10), textAlign: "left" }}>当前余额</th>
+                {week && <th style={{ padding: compactPx(10), textAlign: "left" }}>当周增加</th>}
               </tr>
             </thead>
             <tbody>
@@ -211,10 +212,10 @@ export default function PointsPage() {
                 const weekRow = weekSummary.find((w) => w.user_id === a.user_id);
                 return (
                   <tr key={a.id}>
-                    <td style={{ padding: 10 }}><span data-no-auto-translate>{a.username}</span></td>
-                    <td style={{ padding: 10 }}>{a.role}</td>
-                    <td style={{ padding: 10 }}>{a.balance}</td>
-                    {week && <td style={{ padding: 10 }}>{weekRow?.total_added ?? 0}</td>}
+                    <td style={{ padding: compactPx(10) }}><span data-no-auto-translate>{a.username}</span></td>
+                    <td style={{ padding: compactPx(10) }}>{a.role}</td>
+                    <td style={{ padding: compactPx(10) }}>{a.balance}</td>
+                    {week && <td style={{ padding: compactPx(10) }}>{weekRow?.total_added ?? 0}</td>}
                   </tr>
                 );
               })}
@@ -225,45 +226,45 @@ export default function PointsPage() {
       </section>
       <section>
         <h3>充值订单</h3>
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ marginBottom: compactPx(8) }}>
           <label>订单状态</label>
-          <select value={rechargeStatus} onChange={(e) => setRechargeStatus(e.target.value as "pending" | "approved" | "rejected" | "all")} style={{ marginLeft: 8, padding: "6px 8px" }}>
+          <select value={rechargeStatus} onChange={(e) => setRechargeStatus(e.target.value as "pending" | "approved" | "rejected" | "all")} style={{ marginLeft: compactPx(8), padding: "6px 8px" }}>
             <option value="pending">待确认</option>
             <option value="approved">已确认</option>
             <option value="rejected">已驳回</option>
             <option value="all">全部</option>
           </select>
         </div>
-        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 8, overflow: "hidden", marginBottom: 24 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: compactPx(8), overflow: "hidden", marginBottom: compactPx(24) }}>
           <thead>
             <tr style={{ background: "#f5f5f5" }}>
-              <th style={{ padding: 10, textAlign: "left" }}>订单号</th>
-              <th style={{ padding: 10, textAlign: "left" }}>用户</th>
-              <th style={{ padding: 10, textAlign: "right" }}>金额</th>
-              <th style={{ padding: 10, textAlign: "left" }}>状态</th>
-              <th style={{ padding: 10, textAlign: "left" }}>申请时间</th>
-              <th style={{ padding: 10, textAlign: "left" }}>确认时间</th>
-              <th style={{ padding: 10, textAlign: "left" }}>备注</th>
-              <th style={{ padding: 10, textAlign: "left" }}>操作</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>订单号</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>用户</th>
+              <th style={{ padding: compactPx(10), textAlign: "right" }}>金额</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>状态</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>申请时间</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>确认时间</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>备注</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>操作</th>
             </tr>
           </thead>
           <tbody>
             {rechargeOrders.map((o) => (
               <tr key={o.id}>
-                <td style={{ padding: 10 }}>{o.order_no || `XT-待生成-${o.id}`}</td>
-                <td style={{ padding: 10 }}><span data-no-auto-translate>{o.username}</span></td>
-                <td style={{ padding: 10, textAlign: "right" }}>{o.amount}</td>
-                <td style={{ padding: 10 }}>{o.status === "approved" ? "已确认" : o.status === "rejected" ? "已驳回" : "待确认"}</td>
-                <td style={{ padding: 10 }}>{o.created_at}</td>
-                <td style={{ padding: 10 }}>{o.approved_at || "—"}</td>
-                <td style={{ padding: 10 }}>{o.note || "—"}</td>
-                <td style={{ padding: 10 }}>
+                <td style={{ padding: compactPx(10) }}>{o.order_no || `XT-待生成-${o.id}`}</td>
+                <td style={{ padding: compactPx(10) }}><span data-no-auto-translate>{o.username}</span></td>
+                <td style={{ padding: compactPx(10), textAlign: "right" }}>{o.amount}</td>
+                <td style={{ padding: compactPx(10) }}>{o.status === "approved" ? "已确认" : o.status === "rejected" ? "已驳回" : "待确认"}</td>
+                <td style={{ padding: compactPx(10) }}>{o.created_at}</td>
+                <td style={{ padding: compactPx(10) }}>{o.approved_at || "—"}</td>
+                <td style={{ padding: compactPx(10) }}>{o.note || "—"}</td>
+                <td style={{ padding: compactPx(10) }}>
                   {o.status === "pending" ? (
                     <>
-                      <button type="button" onClick={() => handleApproveRecharge(o.id)} style={{ marginRight: 8, padding: "4px 10px", background: "#34c759", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>
+                      <button type="button" onClick={() => handleApproveRecharge(o.id)} style={{ marginRight: compactPx(8), padding: "4px 10px", background: "#34c759", color: "#fff", border: "none", borderRadius: compactPx(6), cursor: "pointer" }}>
                         确认入账
                       </button>
-                      <button type="button" onClick={() => handleRejectRecharge(o.id)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer" }}>
+                      <button type="button" onClick={() => handleRejectRecharge(o.id)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: compactPx(6), cursor: "pointer" }}>
                         驳回
                       </button>
                     </>
@@ -278,28 +279,28 @@ export default function PointsPage() {
         {rechargeOrders.length === 0 && <p style={{ color: "#666" }}>暂无充值订单</p>}
 
         <h3>积分流水</h3>
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ marginBottom: compactPx(8) }}>
           <label>按用户筛选</label>
-          <input type="number" inputMode="decimal" value={ledgerUserId} onChange={(e) => setLedgerUserId(e.target.value)} placeholder="用户 ID，留空全部" style={{ marginLeft: 8, padding: "6px 8px", width: 100 }} />
+          <input type="number" inputMode="decimal" value={ledgerUserId} onChange={(e) => setLedgerUserId(e.target.value)} placeholder="用户 ID，留空全部" style={{ marginLeft: compactPx(8), padding: "6px 8px", width: 100 }} />
         </div>
-        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 8, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: compactPx(8), overflow: "hidden" }}>
           <thead>
             <tr style={{ background: "#f5f5f5" }}>
-              <th style={{ padding: 10, textAlign: "left" }}>ID</th>
-              <th style={{ padding: 10, textAlign: "left" }}>用户</th>
-              <th style={{ padding: 10, textAlign: "left" }}>金额</th>
-              <th style={{ padding: 10, textAlign: "left" }}>类型</th>
-              <th style={{ padding: 10, textAlign: "left" }}>时间</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>ID</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>用户</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>金额</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>类型</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>时间</th>
             </tr>
           </thead>
           <tbody>
             {ledger.map((l) => (
               <tr key={l.id}>
-                <td style={{ padding: 10 }}>{l.id}</td>
-                <td style={{ padding: 10 }}><span data-no-auto-translate>{l.username}</span></td>
-                <td style={{ padding: 10 }}>{l.amount > 0 ? "+" : ""}{l.amount}</td>
-                <td style={{ padding: 10 }}>{l.type}</td>
-                <td style={{ padding: 10 }}>{l.created_at}</td>
+                <td style={{ padding: compactPx(10) }}>{l.id}</td>
+                <td style={{ padding: compactPx(10) }}><span data-no-auto-translate>{l.username}</span></td>
+                <td style={{ padding: compactPx(10) }}>{l.amount > 0 ? "+" : ""}{l.amount}</td>
+                <td style={{ padding: compactPx(10) }}>{l.type}</td>
+                <td style={{ padding: compactPx(10) }}>{l.created_at}</td>
               </tr>
             ))}
           </tbody>

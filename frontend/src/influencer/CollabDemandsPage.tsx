@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 ﻿import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { createInfluencerDemand, getInfluencerPermissionStatus } from "../matchingApi";
@@ -130,7 +131,7 @@ export default function CollabDemandsPage() {
       {msg ? <p style={{ color: "#166534" }}>{msg}</p> : null}
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
 
-      <div style={{ display: "grid", gap: 8, maxWidth: 620 }}>
+      <div style={{ display: "grid", gap: compactPx(8), maxWidth: compactPx(620) }}>
         <label htmlFor="specialty">{t("擅长领域")} <span style={{ color: "#dc2626" }}>*</span></label>
         <select id="specialty" disabled={status !== "approved" || creating} value={form.specialty} onChange={(e) => setForm((f) => ({ ...f, specialty: e.target.value }))}>
           <option value="">{t("请选择")}</option>
@@ -145,7 +146,7 @@ export default function CollabDemandsPage() {
         <div>
           <span>{t("可接任务类型")} <span style={{ color: "#dc2626" }}>*</span>：</span>
           {TASK_TYPE_VALUES.map((v) => (
-            <label key={v} style={{ marginLeft: 8 }}>
+            <label key={v} style={{ marginLeft: compactPx(8) }}>
               <input type="checkbox" disabled={status !== "approved" || creating} checked={form.task_types.includes(v)} onChange={() => toggleTaskType(v)} /> {t(v)}
             </label>
           ))}
@@ -181,16 +182,16 @@ export default function CollabDemandsPage() {
         <label htmlFor="tiktok_fans">{t("粉丝数量")} <span style={{ color: "#dc2626" }}>*</span></label>
         <input id="tiktok_fans" type="number" inputMode="decimal" min={0} disabled={status !== "approved" || creating} value={form.tiktok_fans} onChange={(e) => setForm((f) => ({ ...f, tiktok_fans: e.target.value }))} />
       </div>
-      <button type="button" disabled={status !== "approved" || creating} onClick={() => void create()} style={{ marginTop: 10 }}>
+      <button type="button" disabled={status !== "approved" || creating} onClick={() => void create()} style={{ marginTop: compactPx(10) }}>
         {creating ? t("提交中...") : t("发布需求")}
       </button>
 
       {showSuccessModal ? (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 1200 }} onClick={() => setShowSuccessModal(false)}>
-          <div style={{ width: "min(360px,90vw)", background: "#fff", borderRadius: 12, padding: 16 }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ width: "min(360px,90vw)", background: "#fff", borderRadius: compactPx(12), padding: compactPx(16) }} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ marginTop: 0 }}>{t("发布成功")}</h3>
             <p style={{ color: "#475569" }}>{t("合作需求已发布，可在“我的需求”中查看并继续编辑。")}</p>
-            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <div style={{ display: "flex", gap: compactPx(8), justifyContent: "flex-end" }}>
               <button type="button" className="xt-outline-btn" onClick={() => setShowSuccessModal(false)}>{t("关闭")}</button>
               <button type="button" className="xt-accent-btn" onClick={() => setShowSuccessModal(false)}>{t("确认")}</button>
             </div>

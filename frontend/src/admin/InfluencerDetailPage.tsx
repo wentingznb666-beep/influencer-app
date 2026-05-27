@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -68,11 +69,11 @@ export default function InfluencerDetailPage() {
   );
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+    <div style={{ background: "#fff", borderRadius: compactPx(16), padding: compactPx(20), boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: compactPx(12), flexWrap: "wrap" }}>
         <div>
-          <h2 style={{ marginTop: 0, marginBottom: 4 }}>{t("达人详情")}</h2>
-          <div style={{ color: "#64748b", fontSize: 13 }}>
+          <h2 style={{ marginTop: 0, marginBottom: compactPx(4) }}>{t("达人详情")}</h2>
+          <div style={{ color: "#64748b", fontSize: compactPx(13) }}>
             {profile?.username ? <span data-no-auto-translate>{profile.username}</span> : "-"}
           </div>
         </div>
@@ -85,10 +86,10 @@ export default function InfluencerDetailPage() {
       {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
 
       {profile ? (
-        <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
-          <div style={{ padding: 14, borderRadius: 14, border: "1px solid rgba(148,163,184,0.35)", background: "#fff" }}>
+        <div style={{ marginTop: compactPx(14), display: "grid", gap: compactPx(12) }}>
+          <div style={{ padding: compactPx(14), borderRadius: compactPx(14), border: "1px solid rgba(148,163,184,0.35)", background: "#fff" }}>
             <div style={{ fontWeight: 900, color: "var(--xt-primary)" }}>{t("基础信息")}</div>
-            <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "140px minmax(0, 1fr)", rowGap: 8, columnGap: 12, fontSize: 13, lineHeight: 1.8 }}>
+            <div style={{ marginTop: compactPx(10), display: "grid", gridTemplateColumns: "140px minmax(0, 1fr)", rowGap: 8, columnGap: 12, fontSize: compactPx(13), lineHeight: 1.8 }}>
               {row("ID", profile.id)}
               {row(t("用户名"), <span data-no-auto-translate>{profile.username}</span>)}
               {row(t("显示名"), profile.display_name || "—")}
@@ -100,9 +101,9 @@ export default function InfluencerDetailPage() {
             </div>
           </div>
 
-          <div style={{ padding: 14, borderRadius: 14, border: "1px solid rgba(148,163,184,0.35)", background: "#fff" }}>
+          <div style={{ padding: compactPx(14), borderRadius: compactPx(14), border: "1px solid rgba(148,163,184,0.35)", background: "#fff" }}>
             <div style={{ fontWeight: 900, color: "var(--xt-primary)" }}>{t("达人资料")}</div>
-            <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "140px minmax(0, 1fr)", rowGap: 8, columnGap: 12, fontSize: 13, lineHeight: 1.8 }}>
+            <div style={{ marginTop: compactPx(10), display: "grid", gridTemplateColumns: "140px minmax(0, 1fr)", rowGap: 8, columnGap: 12, fontSize: compactPx(13), lineHeight: 1.8 }}>
               {row(t("TikTok 账号"), profile.tiktok_account || "—")}
               {row(t("粉丝数量"), profile.tiktok_fans || "—")}
               {row(t("擅长领域"), profile.expertise_domains?.length ? profile.expertise_domains.join("、") : "—")}
@@ -110,9 +111,9 @@ export default function InfluencerDetailPage() {
             </div>
           </div>
 
-          <div style={{ padding: 14, borderRadius: 14, border: "1px solid rgba(148,163,184,0.35)", background: "#fff" }}>
+          <div style={{ padding: compactPx(14), borderRadius: compactPx(14), border: "1px solid rgba(148,163,184,0.35)", background: "#fff" }}>
             <div style={{ fontWeight: 900, color: "var(--xt-primary)" }}>{t("收款信息")}</div>
-            <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "140px minmax(0, 1fr)", rowGap: 8, columnGap: 12, fontSize: 13, lineHeight: 1.8 }}>
+            <div style={{ marginTop: compactPx(10), display: "grid", gridTemplateColumns: "140px minmax(0, 1fr)", rowGap: 8, columnGap: 12, fontSize: compactPx(13), lineHeight: 1.8 }}>
               {row(t("姓名"), profile.real_name || "—")}
               {row(t("银行"), profile.bank_name || "—")}
               {row(t("支行"), profile.bank_branch || "—")}
@@ -120,9 +121,9 @@ export default function InfluencerDetailPage() {
             </div>
           </div>
 
-          <div style={{ padding: 14, borderRadius: 14, border: "1px solid rgba(148,163,184,0.35)", background: "#fff" }}>
+          <div style={{ padding: compactPx(14), borderRadius: compactPx(14), border: "1px solid rgba(148,163,184,0.35)", background: "#fff" }}>
             <div style={{ fontWeight: 900, color: "var(--xt-primary)" }}>{t("运营字段")}</div>
-            <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "140px minmax(0, 1fr)", rowGap: 8, columnGap: 12, fontSize: 13, lineHeight: 1.8 }}>
+            <div style={{ marginTop: compactPx(10), display: "grid", gridTemplateColumns: "140px minmax(0, 1fr)", rowGap: 8, columnGap: 12, fontSize: compactPx(13), lineHeight: 1.8 }}>
               {row(t("露脸"), profile.show_face ? t("是") : t("否"))}
               {row(t("人设标签"), profile.tags || "—")}
               {row(t("主攻平台"), profile.platforms || "—")}

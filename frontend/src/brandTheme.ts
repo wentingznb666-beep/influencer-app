@@ -48,7 +48,9 @@ export const xtLayout = {
 
     display: "flex",
 
-    minHeight: "100vh",
+    height: "100vh",
+
+    overflow: "hidden",
 
     background: "var(--xt-bg)",
 
@@ -86,6 +88,8 @@ export const xtLayout = {
 
     background: "var(--xt-bg)",
 
+    overflow: "hidden",
+
   } as CSSProperties,
 
   /** 顶栏（白底） */
@@ -117,6 +121,8 @@ export const xtLayout = {
   mainContent: {
 
     flex: 1,
+
+    overflowY: "auto",
 
     padding: "var(--xt-main-padding)",
 

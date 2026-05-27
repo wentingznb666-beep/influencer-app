@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useMemo, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import * as api from "../adminApi";
@@ -133,25 +134,25 @@ export default function InfluencersPage() {
 
       {loading ? <p>加载中…</p> : (
 
-        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 8, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: compactPx(8), overflow: "hidden" }}>
 
           <thead>
 
             <tr style={{ background: "#f5f5f5" }}>
 
-              <th style={{ padding: 10, textAlign: "left" }}>ID</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>ID</th>
 
-              <th style={{ padding: 10, textAlign: "left" }}>用户名</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>用户名</th>
 
-              <th style={{ padding: 10, textAlign: "left" }}>露脸</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>露脸</th>
 
-              <th style={{ padding: 10, textAlign: "left" }}>人设/平台</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>人设/平台</th>
 
-              <th style={{ padding: 10, textAlign: "left" }}>黑名单</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>黑名单</th>
 
-              <th style={{ padding: 10, textAlign: "left" }}>等级</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>等级</th>
 
-              <th style={{ padding: 10 }}>操作</th>
+              <th style={{ padding: compactPx(10) }}>操作</th>
 
             </tr>
 
@@ -163,31 +164,31 @@ export default function InfluencersPage() {
 
               <tr key={row.id}>
 
-                <td style={{ padding: 10 }}>{row.id}</td>
+                <td style={{ padding: compactPx(10) }}>{row.id}</td>
 
-                <td style={{ padding: 10 }}>{row.username}</td>
+                <td style={{ padding: compactPx(10) }}>{row.username}</td>
 
-                <td style={{ padding: 10 }}>{row.show_face ? "是" : "否"}</td>
+                <td style={{ padding: compactPx(10) }}>{row.show_face ? "是" : "否"}</td>
 
-                <td style={{ padding: 10 }}>{(row.tags || "") + (row.platforms ? " / " + row.platforms : "")}</td>
+                <td style={{ padding: compactPx(10) }}>{(row.tags || "") + (row.platforms ? " / " + row.platforms : "")}</td>
 
-                <td style={{ padding: 10 }}>{row.blacklisted ? "是" : "否"}</td>
+                <td style={{ padding: compactPx(10) }}>{row.blacklisted ? "是" : "否"}</td>
 
-                <td style={{ padding: 10 }}>{row.level}</td>
+                <td style={{ padding: compactPx(10) }}>{row.level}</td>
 
-                <td style={{ padding: 10 }}>
+                <td style={{ padding: compactPx(10) }}>
 
                   {editing === row.id ? (
 
-                    <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-                      <button type="button" onClick={saveProfile} style={{ padding: "4px 10px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>保存</button>
-                      <button type="button" onClick={() => setEditing(null)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>取消</button>
+                    <div style={{ display: "flex", gap: compactPx(8), justifyContent: "center", flexWrap: "wrap" }}>
+                      <button type="button" onClick={saveProfile} style={{ padding: "4px 10px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(6), cursor: "pointer" }}>保存</button>
+                      <button type="button" onClick={() => setEditing(null)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: compactPx(6), cursor: "pointer", background: "#fff" }}>取消</button>
                     </div>
                   ) : (
 
-                    <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" }}>
-                      <button type="button" onClick={() => startEdit(row)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer", background: "#fff" }}>编辑</button>
-                      <button type="button" onClick={() => nav(`${basePath}/influencers/${row.id}`)} style={{ padding: "4px 10px", border: "1px solid rgba(26,35,126,0.22)", borderRadius: 6, cursor: "pointer", background: "#fff", color: "var(--xt-primary)" }}>查看达人详情</button>
+                    <div style={{ display: "flex", gap: compactPx(8), justifyContent: "center", flexWrap: "wrap" }}>
+                      <button type="button" onClick={() => startEdit(row)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: compactPx(6), cursor: "pointer", background: "#fff" }}>编辑</button>
+                      <button type="button" onClick={() => nav(`${basePath}/influencers/${row.id}`)} style={{ padding: "4px 10px", border: "1px solid rgba(26,35,126,0.22)", borderRadius: compactPx(6), cursor: "pointer", background: "#fff", color: "var(--xt-primary)" }}>查看达人详情</button>
                     </div>
                   )}
 
@@ -205,15 +206,15 @@ export default function InfluencersPage() {
 
       {editing != null && (
 
-        <div style={{ marginTop: 24, padding: 16, background: "#fff", borderRadius: 8 }}>
+        <div style={{ marginTop: compactPx(24), padding: compactPx(16), background: "#fff", borderRadius: compactPx(8) }}>
 
           <h3>编辑达人资料</h3>
 
-          <div style={{ marginBottom: 8 }}>
+          <div style={{ marginBottom: compactPx(8) }}>
 
             <label>露脸 </label>
 
-            <select value={form.show_face} onChange={(e) => setForm((f) => ({ ...f, show_face: Number(e.target.value) }))} style={{ marginLeft: 8 }}>
+            <select value={form.show_face} onChange={(e) => setForm((f) => ({ ...f, show_face: Number(e.target.value) }))} style={{ marginLeft: compactPx(8) }}>
 
               <option value={0}>否</option>
 
@@ -223,27 +224,27 @@ export default function InfluencersPage() {
 
           </div>
 
-          <div style={{ marginBottom: 8 }}>
+          <div style={{ marginBottom: compactPx(8) }}>
 
             <label>人设标签</label>
 
-            <input type="text" value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} style={{ marginLeft: 8, width: 200, padding: "6px 8px" }} placeholder="如：宝妈/美妆" />
+            <input type="text" value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))} style={{ marginLeft: compactPx(8), width: 200, padding: "6px 8px" }} placeholder="如：宝妈/美妆" />
 
           </div>
 
-          <div style={{ marginBottom: 8 }}>
+          <div style={{ marginBottom: compactPx(8) }}>
 
             <label>主攻平台</label>
 
-            <input type="text" value={form.platforms} onChange={(e) => setForm((f) => ({ ...f, platforms: e.target.value }))} style={{ marginLeft: 8, width: 200, padding: "6px 8px" }} placeholder="抖音/小红书" />
+            <input type="text" value={form.platforms} onChange={(e) => setForm((f) => ({ ...f, platforms: e.target.value }))} style={{ marginLeft: compactPx(8), width: 200, padding: "6px 8px" }} placeholder="抖音/小红书" />
 
           </div>
 
-          <div style={{ marginBottom: 8 }}>
+          <div style={{ marginBottom: compactPx(8) }}>
 
             <label>黑名单</label>
 
-            <select value={form.blacklisted} onChange={(e) => setForm((f) => ({ ...f, blacklisted: Number(e.target.value) }))} style={{ marginLeft: 8 }}>
+            <select value={form.blacklisted} onChange={(e) => setForm((f) => ({ ...f, blacklisted: Number(e.target.value) }))} style={{ marginLeft: compactPx(8) }}>
 
               <option value={0}>否</option>
 
@@ -253,17 +254,17 @@ export default function InfluencersPage() {
 
           </div>
 
-          <div style={{ marginBottom: 8 }}>
+          <div style={{ marginBottom: compactPx(8) }}>
 
             <label>等级</label>
 
-            <input type="number" inputMode="decimal" min={1} value={form.level} onChange={(e) => setForm((f) => ({ ...f, level: Number(e.target.value) || 1 }))} style={{ marginLeft: 8, width: 60, padding: "6px 8px" }} />
+            <input type="number" inputMode="decimal" min={1} value={form.level} onChange={(e) => setForm((f) => ({ ...f, level: Number(e.target.value) || 1 }))} style={{ marginLeft: compactPx(8), width: 60, padding: "6px 8px" }} />
 
           </div>
 
-          <button type="button" onClick={() => setEditing(null)} style={{ marginRight: 8, padding: "6px 12px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer" }}>取消</button>
+          <button type="button" onClick={() => setEditing(null)} style={{ marginRight: compactPx(8), padding: "6px 12px", border: "1px solid #ddd", borderRadius: compactPx(6), cursor: "pointer" }}>取消</button>
 
-          <button type="button" onClick={saveProfile} style={{ padding: "6px 12px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>保存</button>
+          <button type="button" onClick={saveProfile} style={{ padding: "6px 12px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(6), cursor: "pointer" }}>保存</button>
 
         </div>
 

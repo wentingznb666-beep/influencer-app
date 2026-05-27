@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useMemo, useState } from "react";
 import { resolvePublicUploadUrl } from "../fetchWithAuth";
 import * as api from "../adminApi";
@@ -137,32 +138,32 @@ export default function ShowcaseContentCreatorsPage() {
   return (
     <div>
       <h2 style={{ marginTop: 0 }}>视频分级 - Content Creator（短视频拍摄）</h2>
-      <p style={{ fontSize: 14, color: "#64748b" }}>
+      <p style={{ fontSize: compactPx(14), color: "#64748b" }}>
         当前已归入视频分级板块，面向短视频拍摄接单。管理员与员工可完整维护资料；表单布局与「模特展示」一致（字段为拍摄类型、技能、视频与作品集图片）。
       </p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
-      <div className="sticky-search" style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索模特名称/介绍" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, minWidth: 260 }} />
-        <select value={status} onChange={(e) => setStatus(e.target.value as "")} style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff" }}>
+      <div className="sticky-search" style={{ marginBottom: compactPx(12), display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索模特名称/介绍" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), minWidth: 260 }} />
+        <select value={status} onChange={(e) => setStatus(e.target.value as "")} style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff" }}>
           <option value="">全部状态</option>
           <option value="enabled">已启用</option>
           <option value="disabled">已禁用</option>
         </select>
-        <button type="button" onClick={() => load()} style={{ padding: "8px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer" }}>
+        <button type="button" onClick={() => load()} style={{ padding: "8px 14px", border: "none", borderRadius: compactPx(8), background: "var(--xt-accent)", color: "#fff", cursor: "pointer" }}>
           搜索
         </button>
       </div>
 
-      <div style={{ marginBottom: 16, padding: 14, background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+      <div style={{ marginBottom: compactPx(16), padding: compactPx(14), background: "#fff", borderRadius: compactPx(10), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
         <h3 style={{ marginTop: 0 }}>{editing ? `编辑 Content Creator #${form.id}` : "新增 Content Creator"}</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: compactPx(8), alignItems: "center" }}>
           <div>模特姓名/昵称</div>
           <input
             value={form.name}
             onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
             placeholder="请输入姓名/昵称"
-            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }}
           />
           <div>文字介绍</div>
           <textarea
@@ -170,14 +171,14 @@ export default function ShowcaseContentCreatorsPage() {
             onChange={(e) => setForm((s) => ({ ...s, intro: e.target.value }))}
             rows={4}
             placeholder="请输入模特介绍"
-            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }}
           />
           <div>可承接拍摄内容类型</div>
           <input
             value={form.shoot_types_text}
             onChange={(e) => setForm((s) => ({ ...s, shoot_types_text: e.target.value }))}
             placeholder="如：开箱、剧情、口播等"
-            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }}
           />
           <div>技能</div>
           <textarea
@@ -185,17 +186,17 @@ export default function ShowcaseContentCreatorsPage() {
             onChange={(e) => setForm((s) => ({ ...s, skills_text: e.target.value }))}
             rows={2}
             placeholder="可填写多项技能或技能描述"
-            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }}
           />
           <div>云端网盘链接</div>
           <input
             value={form.video_url}
             onChange={(e) => setForm((s) => ({ ...s, video_url: e.target.value }))}
             placeholder="用于展示视频的链接"
-            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }}
           />
           <div>展示状态</div>
-          <select value={form.status} onChange={(e) => setForm((s) => ({ ...s, status: e.target.value as "enabled" | "disabled" }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff" }}>
+          <select value={form.status} onChange={(e) => setForm((s) => ({ ...s, status: e.target.value as "enabled" | "disabled" }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff" }}>
             <option value="disabled">禁用</option>
             <option value="enabled">启用</option>
           </select>
@@ -203,17 +204,17 @@ export default function ShowcaseContentCreatorsPage() {
           <div>
             <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setSelectedFiles(Array.from(e.target.files || []).slice(0, 20))} />
             {(photos.length > 0 || selectedFiles.length > 0) && (
-              <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+              <div style={{ marginTop: compactPx(8), display: "flex", gap: compactPx(8), flexWrap: "wrap", alignItems: "flex-start" }}>
                 {photos.map((url, idx) => (
-                  <div key={`old-${idx}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                    <img src={resolvePublicUploadUrl(url)} alt={`cc-old-${idx}`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
-                    <button type="button" onClick={() => removePhotoAt(idx)} style={{ padding: "4px 8px", fontSize: 12, border: "1px solid #fecaca", color: "#b91c1c", borderRadius: 6, background: "#fff", cursor: "pointer" }}>
+                  <div key={`old-${idx}`} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: compactPx(4) }}>
+                    <img src={resolvePublicUploadUrl(url)} alt={`cc-old-${idx}`} style={{ width: 64, height: 64, objectFit: "cover", borderRadius: compactPx(8), border: "1px solid #e2e8f0" }} />
+                    <button type="button" onClick={() => removePhotoAt(idx)} style={{ padding: "4px 8px", fontSize: compactPx(12), border: "1px solid #fecaca", color: "#b91c1c", borderRadius: compactPx(6), background: "#fff", cursor: "pointer" }}>
                       删除
                     </button>
                   </div>
                 ))}
                 {selectedFiles.map((file, idx) => (
-                  <span key={`new-${idx}`} style={{ fontSize: 12, color: "#334155", border: "1px solid #e2e8f0", borderRadius: 8, padding: "4px 6px" }}>
+                  <span key={`new-${idx}`} style={{ fontSize: compactPx(12), color: "#334155", border: "1px solid #e2e8f0", borderRadius: compactPx(8), padding: "4px 6px" }}>
                     {file.name}
                   </span>
                 ))}
@@ -221,7 +222,7 @@ export default function ShowcaseContentCreatorsPage() {
             )}
           </div>
         </div>
-        <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+        <div style={{ marginTop: compactPx(10), display: "flex", gap: compactPx(8) }}>
           <button
             type="button"
             onClick={save}
@@ -229,7 +230,7 @@ export default function ShowcaseContentCreatorsPage() {
             style={{
               padding: "8px 14px",
               border: "none",
-              borderRadius: 8,
+              borderRadius: compactPx(8),
               background: "var(--xt-accent)",
               color: "#fff",
               cursor: saving ? "not-allowed" : "pointer",
@@ -239,7 +240,7 @@ export default function ShowcaseContentCreatorsPage() {
             {saving ? "保存中..." : "保存"}
           </button>
           {editing && (
-            <button type="button" onClick={resetForm} style={{ padding: "8px 14px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+            <button type="button" onClick={resetForm} style={{ padding: "8px 14px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}>
               取消编辑
             </button>
           )}
@@ -249,15 +250,15 @@ export default function ShowcaseContentCreatorsPage() {
       {loading ? (
         <p>加载中…</p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: compactPx(10) }}>
           {list.map((m) => (
-            <div key={m.id} style={{ background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+            <div key={m.id} style={{ background: "#fff", borderRadius: compactPx(10), padding: compactPx(12), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: compactPx(8), flexWrap: "wrap" }}>
                 <div>
                   <strong>{m.name}</strong>
-                  <span style={{ marginLeft: 8, color: m.status === "enabled" ? "#16a34a" : "#64748b" }}>{m.status === "enabled" ? "已启用" : "已禁用"}</span>
+                  <span style={{ marginLeft: compactPx(8), color: m.status === "enabled" ? "#16a34a" : "#64748b" }}>{m.status === "enabled" ? "已启用" : "已禁用"}</span>
                 </div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
                   <button
                     type="button"
                     onClick={() => {
@@ -273,17 +274,17 @@ export default function ShowcaseContentCreatorsPage() {
                       setPhotos(m.photos || []);
                       setSelectedFiles([]);
                     }}
-                    style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+                    style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}
                   >
                     编辑
                   </button>
-                  <button type="button" onClick={() => remove(m.id)} style={{ padding: "6px 10px", border: "1px solid #fecaca", color: "#b91c1c", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+                  <button type="button" onClick={() => remove(m.id)} style={{ padding: "6px 10px", border: "1px solid #fecaca", color: "#b91c1c", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}>
                     删除
                   </button>
                 </div>
               </div>
-              <div style={{ marginTop: 8, whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
-              <div style={{ marginTop: 8, fontSize: 14, color: "#475569", display: "grid", gap: 4 }}>
+              <div style={{ marginTop: compactPx(8), whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>
+              <div style={{ marginTop: compactPx(8), fontSize: compactPx(14), color: "#475569", display: "grid", gap: compactPx(4) }}>
                 <div>
                   <span style={{ color: "#64748b" }}>可承接拍摄内容类型：</span>
                   {m.shoot_types_text?.trim() ? m.shoot_types_text : "—"}
@@ -293,7 +294,7 @@ export default function ShowcaseContentCreatorsPage() {
                   {m.skills_text?.trim() ? m.skills_text : "—"}
                 </div>
               </div>
-              <div style={{ marginTop: 8 }}>
+              <div style={{ marginTop: compactPx(8) }}>
                 视频链接：
                 {m.video_url?.trim() ? (
                   <a href={m.video_url} target="_blank" rel="noreferrer">
@@ -304,10 +305,10 @@ export default function ShowcaseContentCreatorsPage() {
                 )}
               </div>
               {Array.isArray(m.photos) && m.photos.length > 0 && (
-                <div style={{ marginTop: 8, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ marginTop: compactPx(8), display: "flex", gap: compactPx(10), flexWrap: "wrap" }}>
                   {m.photos.map((url, idx) => (
                     <a key={`${m.id}-${idx}`} href={resolvePublicUploadUrl(url)} target="_blank" rel="noreferrer">
-                      <img src={resolvePublicUploadUrl(url)} alt={`cc-${m.id}-${idx}`} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 8, border: "1px solid #e2e8f0" }} />
+                      <img src={resolvePublicUploadUrl(url)} alt={`cc-${m.id}-${idx}`} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: compactPx(8), border: "1px solid #e2e8f0" }} />
                     </a>
                   ))}
                 </div>

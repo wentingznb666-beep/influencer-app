@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useMemo, useState } from "react";
 import { getStoredUser } from "../authApi";
 import { getCooperationTypes, updateCooperationTypes, type CooperationTypesConfig } from "../matchingApi";
@@ -110,12 +111,12 @@ export default function CooperationTypesPage(props: Props) {
           disabled={readOnly}
           value={toNum(val) ?? 0}
           onChange={(e) => setGrade(who, grade, Number(e.target.value || 0))}
-          style={{ padding: "6px 8px", width: 110, borderRadius: 8, border: "1px solid var(--xt-border)" }}
+          style={{ padding: "6px 8px", width: 110, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
         />
       );
       return (
-        <div style={{ display: "grid", gap: 10 }}>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "grid", gap: compactPx(10) }}>
+          <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
             <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>1 积分 =</div>
             <input
               type="number"
@@ -130,32 +131,32 @@ export default function CooperationTypesPage(props: Props) {
                   tt.spec = s;
                 })
               }
-              style={{ padding: "6px 8px", width: 110, borderRadius: 8, border: "1px solid var(--xt-border)" }}
+              style={{ padding: "6px 8px", width: 110, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
             />
             <div>泰铢</div>
           </div>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 10, overflow: "hidden" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: compactPx(10), overflow: "hidden" }}>
               <thead>
                 <tr style={{ background: "rgba(21,42,69,0.06)" }}>
-                  <th style={{ padding: 10, textAlign: "left" }}>对象</th>
-                  <th style={{ padding: 10, textAlign: "left" }}>A</th>
-                  <th style={{ padding: 10, textAlign: "left" }}>B</th>
-                  <th style={{ padding: 10, textAlign: "left" }}>C</th>
+                  <th style={{ padding: compactPx(10), textAlign: "left" }}>对象</th>
+                  <th style={{ padding: compactPx(10), textAlign: "left" }}>A</th>
+                  <th style={{ padding: compactPx(10), textAlign: "left" }}>B</th>
+                  <th style={{ padding: compactPx(10), textAlign: "left" }}>C</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td style={{ padding: 10, borderTop: "1px solid var(--xt-border)" }}>商家结算报价（积分）</td>
-                  <td style={{ padding: 10, borderTop: "1px solid var(--xt-border)" }}>{cell("client", "A", c.A)}</td>
-                  <td style={{ padding: 10, borderTop: "1px solid var(--xt-border)" }}>{cell("client", "B", c.B)}</td>
-                  <td style={{ padding: 10, borderTop: "1px solid var(--xt-border)" }}>{cell("client", "C", c.C)}</td>
+                  <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>商家结算报价（积分）</td>
+                  <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>{cell("client", "A", c.A)}</td>
+                  <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>{cell("client", "B", c.B)}</td>
+                  <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>{cell("client", "C", c.C)}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: 10, borderTop: "1px solid var(--xt-border)" }}>兼职结算报价（积分）</td>
-                  <td style={{ padding: 10, borderTop: "1px solid var(--xt-border)" }}>{cell("part_time", "A", p.A)}</td>
-                  <td style={{ padding: 10, borderTop: "1px solid var(--xt-border)" }}>{cell("part_time", "B", p.B)}</td>
-                  <td style={{ padding: 10, borderTop: "1px solid var(--xt-border)" }}>{cell("part_time", "C", p.C)}</td>
+                  <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>兼职结算报价（积分）</td>
+                  <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>{cell("part_time", "A", p.A)}</td>
+                  <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>{cell("part_time", "B", p.B)}</td>
+                  <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>{cell("part_time", "C", p.C)}</td>
                 </tr>
               </tbody>
             </table>
@@ -169,7 +170,7 @@ export default function CooperationTypesPage(props: Props) {
       const min = toNum(range.min) ?? 4000;
       const max = toNum(range.max) ?? 5000;
       return (
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>对外报价（泰铢）</div>
           <input
             type="number"
@@ -185,7 +186,7 @@ export default function CooperationTypesPage(props: Props) {
                 tt.spec = s;
               })
             }
-            style={{ padding: "6px 8px", width: 140, borderRadius: 8, border: "1px solid var(--xt-border)" }}
+            style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
           />
           <div>—</div>
           <input
@@ -202,7 +203,7 @@ export default function CooperationTypesPage(props: Props) {
                 tt.spec = s;
               })
             }
-            style={{ padding: "6px 8px", width: 140, borderRadius: 8, border: "1px solid var(--xt-border)" }}
+            style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
           />
         </div>
       );
@@ -212,7 +213,7 @@ export default function CooperationTypesPage(props: Props) {
       const minVideos = toNum(spec.min_videos_per_month) ?? 20;
       const price = toNum(spec.merchant_price_per_video_thb) ?? 650;
       return (
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>门槛</div>
           <input
             type="number"
@@ -227,10 +228,10 @@ export default function CooperationTypesPage(props: Props) {
                 tt.spec = s;
               })
             }
-            style={{ padding: "6px 8px", width: 140, borderRadius: 8, border: "1px solid var(--xt-border)" }}
+            style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
           />
           <div>条/月</div>
-          <div style={{ fontWeight: 700, color: "var(--xt-primary)", marginLeft: 8 }}>单价</div>
+          <div style={{ fontWeight: 700, color: "var(--xt-primary)", marginLeft: compactPx(8) }}>单价</div>
           <input
             type="number"
             inputMode="decimal"
@@ -244,7 +245,7 @@ export default function CooperationTypesPage(props: Props) {
                 tt.spec = s;
               })
             }
-            style={{ padding: "6px 8px", width: 140, borderRadius: 8, border: "1px solid var(--xt-border)" }}
+            style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
           />
           <div>泰铢/条</div>
         </div>
@@ -257,8 +258,8 @@ export default function CooperationTypesPage(props: Props) {
       const max = toNum(range.max) ?? 10;
       const price = spec.merchant_price_thb;
       return (
-        <div style={{ display: "grid", gap: 10 }}>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ display: "grid", gap: compactPx(10) }}>
+          <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
             <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>产出条数</div>
             <input
               type="number"
@@ -274,7 +275,7 @@ export default function CooperationTypesPage(props: Props) {
                   tt.spec = s;
                 })
               }
-              style={{ padding: "6px 8px", width: 140, borderRadius: 8, border: "1px solid var(--xt-border)" }}
+              style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
             />
             <div>—</div>
             <input
@@ -291,11 +292,11 @@ export default function CooperationTypesPage(props: Props) {
                   tt.spec = s;
                 })
               }
-              style={{ padding: "6px 8px", width: 140, borderRadius: 8, border: "1px solid var(--xt-border)" }}
+              style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
             />
             <div>条</div>
           </div>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
             <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>报价（泰铢）</div>
             <input
               type="number"
@@ -312,9 +313,9 @@ export default function CooperationTypesPage(props: Props) {
                   tt.spec = s;
                 })
               }
-              style={{ padding: "6px 8px", width: 180, borderRadius: 8, border: "1px solid var(--xt-border)" }}
+              style={{ padding: "6px 8px", width: 180, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
             />
-            <div style={{ color: "var(--xt-text-muted)", fontSize: 13 }}>留空表示待定</div>
+            <div style={{ color: "var(--xt-text-muted)", fontSize: compactPx(13) }}>留空表示待定</div>
           </div>
         </div>
       );
@@ -327,7 +328,7 @@ export default function CooperationTypesPage(props: Props) {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: compactPx(12), alignItems: "center", flexWrap: "wrap" }}>
         <h2 style={{ margin: 0 }}>{title}</h2>
         <button type="button" onClick={() => void load()} disabled={loading} style={{ height: 36 }}>
           刷新
@@ -344,39 +345,39 @@ export default function CooperationTypesPage(props: Props) {
       {!config ? <p style={{ color: "var(--xt-text-muted)" }}>暂无配置</p> : null}
 
       {config ? (
-        <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+        <div style={{ display: "grid", gap: compactPx(12), marginTop: compactPx(14) }}>
           {config.types.map((t) => (
-            <div key={t.id} style={{ border: "1px solid var(--xt-border)", background: "#fff", borderRadius: 14, padding: 14 }}>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-                  <div style={{ fontWeight: 900, color: "var(--xt-primary)", fontSize: 16 }}>{t.name?.zh || t.id}</div>
+            <div key={t.id} style={{ border: "1px solid var(--xt-border)", background: "#fff", borderRadius: compactPx(14), padding: compactPx(14) }}>
+              <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
+                  <div style={{ fontWeight: 900, color: "var(--xt-primary)", fontSize: compactPx(16) }}>{t.name?.zh || t.id}</div>
                   <div style={{ color: "var(--xt-text-muted)" }}>{t.name?.th || ""}</div>
                 </div>
-                <div style={{ color: "var(--xt-text-muted)", fontSize: 12 }}>ID：{t.id}</div>
+                <div style={{ color: "var(--xt-text-muted)", fontSize: compactPx(12) }}>ID：{t.id}</div>
               </div>
 
-              <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
-                <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ display: "grid", gap: compactPx(10), marginTop: compactPx(12) }}>
+                <div style={{ display: "grid", gap: compactPx(8) }}>
                   <div style={{ fontWeight: 800 }}>名称</div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap" }}>
                     <input
                       disabled={readOnly}
                       value={t.name?.zh || ""}
                       onChange={(e) => updateType(t.id, (tt) => (tt.name = { ...(tt.name || { zh: "", th: "" }), zh: e.target.value }))}
                       placeholder="中文"
-                      style={{ padding: "8px 10px", minWidth: 260, borderRadius: 10, border: "1px solid var(--xt-border)" }}
+                      style={{ padding: "8px 10px", minWidth: 260, borderRadius: compactPx(10), border: "1px solid var(--xt-border)" }}
                     />
                     <input
                       disabled={readOnly}
                       value={t.name?.th || ""}
                       onChange={(e) => updateType(t.id, (tt) => (tt.name = { ...(tt.name || { zh: "", th: "" }), th: e.target.value }))}
                       placeholder="ภาษาไทย"
-                      style={{ padding: "8px 10px", minWidth: 260, borderRadius: 10, border: "1px solid var(--xt-border)" }}
+                      style={{ padding: "8px 10px", minWidth: 260, borderRadius: compactPx(10), border: "1px solid var(--xt-border)" }}
                     />
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: "grid", gap: compactPx(8) }}>
                   <div style={{ fontWeight: 800 }}>关键参数</div>
                   {renderSpec(t)}
                 </div>

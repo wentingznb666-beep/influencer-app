@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import type { ReactNode } from "react";
 
 type SkuTableCellProps = {
@@ -16,11 +17,11 @@ export function SkuTableCell({ codes }: SkuTableCellProps): ReactNode {
   const lines = codes.slice(0, maxLines);
   const rest = codes.length - lines.length;
   return (
-    <div style={{ fontSize: 13, color: "#334155", lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+    <div style={{ fontSize: compactPx(13), color: "#334155", lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
       {lines.map((line, i) => (
         <div key={i}>{line}</div>
       ))}
-      {rest > 0 && <div style={{ marginTop: 4, fontSize: 12, color: "#64748b" }}>…共 {codes.length} 项</div>}
+      {rest > 0 && <div style={{ marginTop: compactPx(4), fontSize: compactPx(12), color: "#64748b" }}>…共 {codes.length} 项</div>}
     </div>
   );
 }
@@ -42,27 +43,27 @@ export function SkuDetailBlock({ codes, ids, images }: SkuDetailBlockProps): Rea
   return (
     <div>
       {codes.length > 0 && (
-        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, color: "#334155" }}>
+        <ul style={{ margin: 0, paddingLeft: compactPx(18), fontSize: compactPx(14), color: "#334155" }}>
           {codes.map((line, i) => (
-            <li key={i} style={{ marginBottom: 6 }}>
+            <li key={i} style={{ marginBottom: compactPx(6) }}>
               {line}
             </li>
           ))}
         </ul>
       )}
       {ids.length > 0 && (
-        <div style={{ marginTop: codes.length ? 8 : 0, fontSize: 13, color: "#64748b" }}>
+        <div style={{ marginTop: codes.length ? 8 : 0, fontSize: compactPx(13), color: "#64748b" }}>
           关联 SKU ID：{ids.join("、")}
         </div>
       )}
       {images.length > 0 && (
-        <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div style={{ marginTop: compactPx(10), display: "flex", gap: compactPx(6), flexWrap: "wrap" }}>
           {images.slice(0, 12).map((url, i) => (
             <a key={i} href={url} target="_blank" rel="noreferrer">
-              <img src={url} alt="" style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 6, border: "1px solid #e2e8f0" }} />
+              <img src={url} alt="" style={{ width: 52, height: 52, objectFit: "cover", borderRadius: compactPx(6), border: "1px solid #e2e8f0" }} />
             </a>
           ))}
-          {images.length > 12 && <span style={{ fontSize: 12, color: "#64748b", alignSelf: "center" }}>…等共 {images.length} 张</span>}
+          {images.length > 12 && <span style={{ fontSize: compactPx(12), color: "#64748b", alignSelf: "center" }}>…等共 {images.length} 张</span>}
         </div>
       )}
     </div>

@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useMemo, useState } from "react";
 import * as api from "../clientApi";
 import { useScrollLock } from "../hooks/useScrollLock";
@@ -285,33 +286,33 @@ export default function SkusPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 100px)" }}>
       {/* ========== 顶部固定区域 ========== */}
-      <div style={{ position: "sticky", top: 0, zIndex: 50, background: "var(--xt-bg, #f5f5f5)", paddingBottom: 12, borderBottom: "1px solid #e2e8f0" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+      <div style={{ position: "sticky", top: 0, zIndex: 50, background: "var(--xt-bg, #f5f5f5)", paddingBottom: compactPx(12), borderBottom: "1px solid #e2e8f0" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: compactPx(12), marginBottom: compactPx(12) }}>
           <h2 style={{ margin: 0 }}>SKU 列表</h2>
           <input
             placeholder="搜索 SKU 编码或名称…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ width: 240, padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, fontSize: 13, boxSizing: "border-box" }}
+            style={{ width: 240, padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), fontSize: compactPx(13), boxSizing: "border-box" }}
           />
           <button
             type="button"
             onClick={() => { setShowSkuModal(true); setEditingId(null); setForm({ sku_code: "", sku_name: "" }); setExistingImages([]); setSelectedFiles([]); setUploadProgress(0); setUploadStageText(""); }}
-            style={{ padding: "6px 14px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 }}
+            style={{ padding: "6px 14px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer", fontSize: compactPx(14) }}
           >
             新建 SKU
           </button>
           <button
             type="button"
             onClick={() => { setShowImport(true); setImportResult(null); setImportFile(null); }}
-            style={{ padding: "6px 14px", background: "var(--xt-primary)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 }}
+            style={{ padding: "6px 14px", background: "var(--xt-primary)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer", fontSize: compactPx(14) }}
           >
             批量导入
           </button>
           <button
             type="button"
             onClick={() => { setShowBatchImages(true); setBatchImageResult(null); setBatchImageFiles([]); }}
-            style={{ padding: "6px 14px", background: "var(--xt-primary)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 }}
+            style={{ padding: "6px 14px", background: "var(--xt-primary)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer", fontSize: compactPx(14) }}
           >
             批量上传图片
           </button>
@@ -320,14 +321,14 @@ export default function SkusPage() {
       </div>
 
       {/* ========== 中间可滚动列表 ========== */}
-      <div style={{ flex: 1, overflowY: "auto", paddingTop: 12 }}>
+      <div style={{ flex: 1, overflowY: "auto", paddingTop: compactPx(12) }}>
         {loading ? (
           <p>加载中…</p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: compactPx(10) }}>
             {list.length > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, cursor: "pointer" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: compactPx(12) }}>
+                <label style={{ display: "flex", alignItems: "center", gap: compactPx(4), fontSize: compactPx(13), cursor: "pointer" }}>
                   <input
                     type="checkbox"
                     checked={selectedIds.size === list.length && list.length > 0}
@@ -337,33 +338,33 @@ export default function SkusPage() {
                   全选
                 </label>
                 {searchQuery && (
-                  <span style={{ fontSize: 13, color: "#64748b" }}>搜索 "{searchQuery}"：{filteredList.length} 条</span>
+                  <span style={{ fontSize: compactPx(13), color: "#64748b" }}>搜索 "{searchQuery}"：{filteredList.length} 条</span>
                 )}
               </div>
             )}
             {selectedIds.size > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 12px", background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca" }}>
-                <span style={{ fontWeight: 600, fontSize: 14 }}>已选 {selectedIds.size} 个</span>
+              <div style={{ display: "flex", alignItems: "center", gap: compactPx(12), padding: "8px 12px", background: "#fef2f2", borderRadius: compactPx(8), border: "1px solid #fecaca" }}>
+                <span style={{ fontWeight: 600, fontSize: compactPx(14) }}>已选 {selectedIds.size} 个</span>
                 <button
                   type="button"
                   onClick={batchDelete}
-                  style={{ padding: "6px 14px", background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13 }}
+                  style={{ padding: "6px 14px", background: "#dc2626", color: "#fff", border: "none", borderRadius: compactPx(6), cursor: "pointer", fontSize: compactPx(13) }}
                 >
                   批量删除
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedIds(new Set())}
-                  style={{ padding: "6px 14px", border: "1px solid #dbe1ea", borderRadius: 6, background: "#fff", cursor: "pointer", fontSize: 13 }}
+                  style={{ padding: "6px 14px", border: "1px solid #dbe1ea", borderRadius: compactPx(6), background: "#fff", cursor: "pointer", fontSize: compactPx(13) }}
                 >
                   取消选择
                 </button>
               </div>
             )}
             {filteredList.map((s) => (
-              <div key={s.id} style={{ background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div key={s.id} style={{ background: "#fff", borderRadius: compactPx(10), padding: compactPx(12), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: compactPx(8), flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: compactPx(8) }}>
                     <input
                       type="checkbox"
                       checked={selectedIds.has(s.id)}
@@ -375,7 +376,7 @@ export default function SkusPage() {
                       {s.sku_name ? ` / ${s.sku_name}` : ""}
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ display: "flex", gap: compactPx(8) }}>
                     <button
                       type="button"
                       onClick={() => {
@@ -387,20 +388,20 @@ export default function SkusPage() {
                         setUploadStageText("");
                         setShowSkuModal(true);
                       }}
-                      style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+                      style={{ padding: "6px 10px", border: "1px solid #ddd", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}
                     >
                       编辑
                     </button>
-                    <button type="button" onClick={() => remove(s.id)} style={{ padding: "6px 10px", border: "1px solid #fecaca", color: "#b91c1c", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+                    <button type="button" onClick={() => remove(s.id)} style={{ padding: "6px 10px", border: "1px solid #fecaca", color: "#b91c1c", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}>
                       删除
                     </button>
                   </div>
                 </div>
                 {Array.isArray(s.sku_images) && s.sku_images.length > 0 && (
-                  <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <div style={{ marginTop: compactPx(8), display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
                     {s.sku_images.slice(0, 6).map((url, idx) => (
                       <a key={`${s.id}-${idx}`} href={url} target="_blank" rel="noreferrer" style={{ display: "inline-block" }}>
-                        <img src={url} alt={`sku-${s.id}-${idx}`} style={{ width: 56, height: 56, borderRadius: 6, objectFit: "cover", border: "1px solid #eee" }} />
+                        <img src={url} alt={`sku-${s.id}-${idx}`} style={{ width: 56, height: 56, borderRadius: compactPx(6), objectFit: "cover", border: "1px solid #eee" }} />
                       </a>
                     ))}
                   </div>
@@ -428,10 +429,10 @@ export default function SkusPage() {
           }}
         >
           <div
-            style={{ background: "#fff", borderRadius: 16, padding: 24, maxWidth: 560, width: "90%", maxHeight: "85vh", overflowY: "auto" }}
+            style={{ background: "#fff", borderRadius: compactPx(16), padding: compactPx(24), maxWidth: compactPx(560), width: "90%", maxHeight: "85vh", overflowY: "auto" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: compactPx(16) }}>
               <h3 style={{ margin: 0 }}>{editingId == null ? "新建 SKU" : "编辑 SKU"}</h3>
               <button
                 type="button"
@@ -444,65 +445,65 @@ export default function SkusPage() {
                   setUploadProgress(0);
                   setUploadStageText("");
                 }}
-                style={{ width: 32, height: 32, borderRadius: 999, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: 18, lineHeight: "30px" }}
+                style={{ width: 32, height: 32, borderRadius: compactPx(999), border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: compactPx(18), lineHeight: "30px" }}
               >
                 ×
               </button>
             </div>
-            <div style={{ marginBottom: 12 }}>
+            <div style={{ marginBottom: compactPx(12) }}>
               <label>SKU 编码</label>
-              <input value={form.sku_code} onChange={(e) => setForm((f) => ({ ...f, sku_code: e.target.value }))} style={{ width: "100%", padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8, fontSize: 14, boxSizing: "border-box", marginTop: 4 }} />
+              <input value={form.sku_code} onChange={(e) => setForm((f) => ({ ...f, sku_code: e.target.value }))} style={{ width: "100%", padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), fontSize: compactPx(14), boxSizing: "border-box", marginTop: compactPx(4) }} />
             </div>
-            <div style={{ marginBottom: 12 }}>
+            <div style={{ marginBottom: compactPx(12) }}>
               <label>SKU 名称</label>
-              <input value={form.sku_name} onChange={(e) => setForm((f) => ({ ...f, sku_name: e.target.value }))} style={{ width: "100%", padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8, fontSize: 14, boxSizing: "border-box", marginTop: 4 }} />
+              <input value={form.sku_name} onChange={(e) => setForm((f) => ({ ...f, sku_name: e.target.value }))} style={{ width: "100%", padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), fontSize: compactPx(14), boxSizing: "border-box", marginTop: compactPx(4) }} />
             </div>
-            <div style={{ marginBottom: 10 }}>
+            <div style={{ marginBottom: compactPx(10) }}>
               <label>SKU 图片（jpg/png/webp，单张≤10MB）</label>
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
                 onDragLeave={() => setDragging(false)}
                 onDrop={(e) => { e.preventDefault(); setDragging(false); addFiles(Array.from(e.dataTransfer.files || [])); }}
                 style={{
-                  marginTop: 6,
+                  marginTop: compactPx(6),
                   width: "100%",
-                  borderRadius: 8,
+                  borderRadius: compactPx(8),
                   border: `1px dashed ${dragging ? "var(--xt-accent)" : "#cbd5e1"}`,
                   background: dragging ? "#fff7ed" : "#f8fafc",
-                  padding: 12,
+                  padding: compactPx(12),
                   boxSizing: "border-box",
                 }}
               >
                 <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => addFiles(Array.from(e.target.files || []))} />
-                <div style={{ marginTop: 8, fontSize: 12, color: "#64748b" }}>支持点击选择或拖拽上传</div>
+                <div style={{ marginTop: compactPx(8), fontSize: compactPx(12), color: "#64748b" }}>支持点击选择或拖拽上传</div>
               </div>
               {uploadProgress > 0 && (
-                <div style={{ marginTop: 8, fontSize: 12, color: "#475569" }}>{uploadStageText ? `${uploadStageText} · ` : ""}上传进度：{uploadProgress}%</div>
+                <div style={{ marginTop: compactPx(8), fontSize: compactPx(12), color: "#475569" }}>{uploadStageText ? `${uploadStageText} · ` : ""}上传进度：{uploadProgress}%</div>
               )}
               {(existingImages.length > 0 || localPreviewUrls.length > 0) && (
-                <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <div style={{ marginTop: compactPx(8), display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
                   {existingImages.map((url, idx) => (
                     <a key={`existing-${idx}`} href={url} target="_blank" rel="noreferrer">
-                      <img src={url} alt={`existing-${idx}`} style={{ width: 56, height: 56, borderRadius: 6, objectFit: "cover", border: "1px solid #eee" }} />
+                      <img src={url} alt={`existing-${idx}`} style={{ width: 56, height: 56, borderRadius: compactPx(6), objectFit: "cover", border: "1px solid #eee" }} />
                     </a>
                   ))}
                   {localPreviewUrls.map((url, idx) => (
                     <div key={`local-${idx}`} style={{ position: "relative", width: 56, height: 56 }}>
-                      <img src={url} alt={`local-${idx}`} style={{ width: 56, height: 56, borderRadius: 6, objectFit: "cover", border: "1px solid #eee" }} />
-                      <button type="button" onClick={() => removeSelectedFileAt(idx)} style={{ position: "absolute", top: -8, right: -8, width: 22, height: 22, borderRadius: 999, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", lineHeight: "20px" }}>×</button>
+                      <img src={url} alt={`local-${idx}`} style={{ width: 56, height: 56, borderRadius: compactPx(6), objectFit: "cover", border: "1px solid #eee" }} />
+                      <button type="button" onClick={() => removeSelectedFileAt(idx)} style={{ position: "absolute", top: -8, right: -8, width: 22, height: 22, borderRadius: compactPx(999), border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", lineHeight: "20px" }}>×</button>
                     </div>
                   ))}
                 </div>
               )}
               {selectedFiles.length > 0 && (
-                <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <button type="button" onClick={clearSelectedFiles} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>清空本次选择</button>
-                  <span style={{ fontSize: 12, color: "#64748b" }}>已选择 {selectedFiles.length} 张</span>
+                <div style={{ marginTop: compactPx(10), display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
+                  <button type="button" onClick={clearSelectedFiles} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}>清空本次选择</button>
+                  <span style={{ fontSize: compactPx(12), color: "#64748b" }}>已选择 {selectedFiles.length} 张</span>
                 </div>
               )}
             </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-              <button type="button" onClick={save} style={{ padding: "8px 20px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 }}>
+            <div style={{ display: "flex", gap: compactPx(8), marginTop: compactPx(16) }}>
+              <button type="button" onClick={save} style={{ padding: "8px 20px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer", fontSize: compactPx(14) }}>
                 {editingId == null ? "新建 SKU" : "保存修改"}
               </button>
               <button
@@ -516,7 +517,7 @@ export default function SkusPage() {
                   setUploadProgress(0);
                   setUploadStageText("");
                 }}
-                style={{ padding: "8px 20px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 14 }}
+                style={{ padding: "8px 20px", border: "1px solid #ddd", borderRadius: compactPx(8), background: "#fff", cursor: "pointer", fontSize: compactPx(14) }}
               >
                 取消
               </button>
@@ -531,15 +532,15 @@ export default function SkusPage() {
           onClick={closeImport}
         >
           <div
-            style={{ background: "#fff", borderRadius: 16, padding: 24, maxWidth: 560, width: "90%", maxHeight: "80vh", overflowY: "auto" }}
+            style={{ background: "#fff", borderRadius: compactPx(16), padding: compactPx(24), maxWidth: compactPx(560), width: "90%", maxHeight: "80vh", overflowY: "auto" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: compactPx(16) }}>
               <h3 style={{ margin: 0 }}>批量导入 SKU</h3>
               <button
                 type="button"
                 onClick={closeImport}
-                style={{ width: 32, height: 32, borderRadius: 999, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: 18, lineHeight: "30px" }}
+                style={{ width: 32, height: 32, borderRadius: compactPx(999), border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: compactPx(18), lineHeight: "30px" }}
               >
                 ×
               </button>
@@ -547,24 +548,24 @@ export default function SkusPage() {
 
             {!importResult ? (
               <>
-                <div style={{ marginBottom: 16 }}>
+                <div style={{ marginBottom: compactPx(16) }}>
                   <button
                     type="button"
                     onClick={() => api.downloadSkuImportTemplate().catch((e) => setError(e instanceof Error ? e.message : "下载失败"))}
-                    style={{ padding: "6px 14px", border: "1px solid var(--xt-accent)", color: "var(--xt-accent)", borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 14 }}
+                    style={{ padding: "6px 14px", border: "1px solid var(--xt-accent)", color: "var(--xt-accent)", borderRadius: compactPx(8), background: "#fff", cursor: "pointer", fontSize: compactPx(14) }}
                   >
                     下载导入模板
                   </button>
-                  <span style={{ marginLeft: 8, fontSize: 12, color: "#64748b" }}>请先下载模板，按格式填写后上传</span>
+                  <span style={{ marginLeft: compactPx(8), fontSize: compactPx(12), color: "#64748b" }}>请先下载模板，按格式填写后上传</span>
                 </div>
-                <div style={{ marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, color: "#64748b" }}>支持两种方式：</span>
+                <div style={{ marginBottom: compactPx(8) }}>
+                  <span style={{ fontSize: compactPx(12), color: "#64748b" }}>支持两种方式：</span>
                 </div>
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 13, color: "#475569", marginBottom: 6 }}>
+                <div style={{ marginBottom: compactPx(16) }}>
+                  <div style={{ fontSize: compactPx(13), color: "#475569", marginBottom: compactPx(6) }}>
                     方式一：直接上传 Excel 文件（导入 SKU 编码和名称，图片可嵌入单元格或放在对应行）
                   </div>
-                  <div style={{ fontSize: 13, color: "#475569", marginBottom: 6 }}>
+                  <div style={{ fontSize: compactPx(13), color: "#475569", marginBottom: compactPx(6) }}>
                     方式二：上传 ZIP 包（Excel + 图片文件夹，图片按 SKU 编码命名，如 ABC001.jpg、ABC001_2.jpg）
                   </div>
                   <input
@@ -582,9 +583,9 @@ export default function SkusPage() {
                     background: importFile && !importing ? "var(--xt-accent)" : "#94a3b8",
                     color: "#fff",
                     border: "none",
-                    borderRadius: 8,
+                    borderRadius: compactPx(8),
                     cursor: importFile && !importing ? "pointer" : "not-allowed",
-                    fontSize: 14,
+                    fontSize: compactPx(14),
                   }}
                 >
                   {importing ? "导入中…" : "开始导入"}
@@ -592,20 +593,20 @@ export default function SkusPage() {
               </>
             ) : (
               <>
-                <div style={{ marginBottom: 16, padding: 12, background: "#f0fdf4", borderRadius: 8, border: "1px solid #bbf7d0" }}>
-                  <div style={{ fontWeight: 600, marginBottom: 4 }}>导入完成</div>
+                <div style={{ marginBottom: compactPx(16), padding: compactPx(12), background: "#f0fdf4", borderRadius: compactPx(8), border: "1px solid #bbf7d0" }}>
+                  <div style={{ fontWeight: 600, marginBottom: compactPx(4) }}>导入完成</div>
                   <div>成功导入：<strong>{importResult.success}</strong> 条</div>
                   {importResult.skipped > 0 && <div>跳过重复：<strong>{importResult.skipped}</strong> 条</div>}
                   {(importResult.imagesImported ?? 0) > 0 && <div>导入图片：<strong>{importResult.imagesImported}</strong> 张</div>}
                 </div>
 
                 {importResult.errors.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ fontWeight: 600, marginBottom: 8, color: "#b91c1c" }}>
+                  <div style={{ marginBottom: compactPx(16) }}>
+                    <div style={{ fontWeight: 600, marginBottom: compactPx(8), color: "#b91c1c" }}>
                       以下 {importResult.errors.length} 条记录有问题：
                     </div>
-                    <div style={{ maxHeight: 200, overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: 8 }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <div style={{ maxHeight: 200, overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: compactPx(8) }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: compactPx(13) }}>
                         <thead>
                           <tr style={{ background: "#f8fafc" }}>
                             <th style={{ padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #e2e8f0" }}>行号</th>
@@ -629,7 +630,7 @@ export default function SkusPage() {
                         type="button"
                         onClick={() => handleImport("skip")}
                         disabled={importing}
-                        style={{ marginTop: 12, padding: "8px 20px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 }}
+                        style={{ marginTop: compactPx(12), padding: "8px 20px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer", fontSize: compactPx(14) }}
                       >
                         {importing ? "处理中…" : "跳过重复，继续导入"}
                       </button>
@@ -640,7 +641,7 @@ export default function SkusPage() {
                 <button
                   type="button"
                   onClick={closeImport}
-                  style={{ padding: "8px 20px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 14 }}
+                  style={{ padding: "8px 20px", border: "1px solid #ddd", borderRadius: compactPx(8), background: "#fff", cursor: "pointer", fontSize: compactPx(14) }}
                 >
                   关闭
                 </button>
@@ -656,15 +657,15 @@ export default function SkusPage() {
           onClick={closeBatchImages}
         >
           <div
-            style={{ background: "#fff", borderRadius: 16, padding: 24, maxWidth: 560, width: "90%", maxHeight: "80vh", overflowY: "auto" }}
+            style={{ background: "#fff", borderRadius: compactPx(16), padding: compactPx(24), maxWidth: compactPx(560), width: "90%", maxHeight: "80vh", overflowY: "auto" }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: compactPx(16) }}>
               <h3 style={{ margin: 0 }}>批量上传图片</h3>
               <button
                 type="button"
                 onClick={closeBatchImages}
-                style={{ width: 32, height: 32, borderRadius: 999, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: 18, lineHeight: "30px" }}
+                style={{ width: 32, height: 32, borderRadius: compactPx(999), border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontSize: compactPx(18), lineHeight: "30px" }}
               >
                 ×
               </button>
@@ -672,19 +673,19 @@ export default function SkusPage() {
 
             {!batchImageResult ? (
               <>
-                <div style={{ marginBottom: 16, fontSize: 13, color: "#475569" }}>
+                <div style={{ marginBottom: compactPx(16), fontSize: compactPx(13), color: "#475569" }}>
                   <p style={{ margin: "0 0 8px" }}>按 SKU 编码命名图片文件，系统会自动匹配到对应 SKU：</p>
-                  <p style={{ margin: "0 0 8px", color: "#b91c1c", fontSize: 12 }}>图片必须带扩展名（.jpg/.png/.webp），无扩展名的文件无法识别</p>
-                  <div style={{ background: "#f8fafc", padding: 10, borderRadius: 8, fontSize: 12 }}>
+                  <p style={{ margin: "0 0 8px", color: "#b91c1c", fontSize: compactPx(12) }}>图片必须带扩展名（.jpg/.png/.webp），无扩展名的文件无法识别</p>
+                  <div style={{ background: "#f8fafc", padding: compactPx(10), borderRadius: compactPx(8), fontSize: compactPx(12) }}>
                     <div>SKU001.jpg → 匹配 SKU 编码 "SKU001"，第 1 张图</div>
                     <div>SKU001_2.jpg → 匹配 SKU 编码 "SKU001"，第 2 张图</div>
                     <div>SKU002.png → 匹配 SKU 编码 "SKU002"，第 1 张图</div>
                   </div>
-                  <p style={{ margin: "8px 0 0", fontSize: 12, color: "#64748b" }}>
+                  <p style={{ margin: "8px 0 0", fontSize: compactPx(12), color: "#64748b" }}>
                     也可以把图片打成 ZIP 压缩包直接上传（图片需带扩展名 .jpg/.png/.webp）
                   </p>
                 </div>
-                <div style={{ marginBottom: 16 }}>
+                <div style={{ marginBottom: compactPx(16) }}>
                   <input
                     type="file"
                     accept=".jpg,.jpeg,.png,.webp,.zip"
@@ -692,11 +693,11 @@ export default function SkusPage() {
                     onChange={(e) => setBatchImageFiles(Array.from(e.target.files || []))}
                   />
                   {batchImageFiles.length > 0 && (
-                    <span style={{ marginLeft: 8, fontSize: 12, color: "#64748b" }}>
+                    <span style={{ marginLeft: compactPx(8), fontSize: compactPx(12), color: "#64748b" }}>
                       已选择 {batchImageFiles.length} 个文件
                     </span>
                   )}
-                  <div style={{ marginTop: 6, fontSize: 12, color: "#64748b" }}>
+                  <div style={{ marginTop: compactPx(6), fontSize: compactPx(12), color: "#64748b" }}>
                     支持直接选择多张图片，或上传一个 ZIP 压缩包（内含按编码命名的图片，需带扩展名）
                   </div>
                 </div>
@@ -709,9 +710,9 @@ export default function SkusPage() {
                     background: batchImageFiles.length > 0 && !batchImageUploading ? "var(--xt-accent)" : "#94a3b8",
                     color: "#fff",
                     border: "none",
-                    borderRadius: 8,
+                    borderRadius: compactPx(8),
                     cursor: batchImageFiles.length > 0 && !batchImageUploading ? "pointer" : "not-allowed",
-                    fontSize: 14,
+                    fontSize: compactPx(14),
                   }}
                 >
                   {batchImageUploading ? "上传中…" : "开始上传"}
@@ -719,8 +720,8 @@ export default function SkusPage() {
               </>
             ) : (
               <>
-                <div style={{ marginBottom: 16, padding: 12, background: "#f0fdf4", borderRadius: 8, border: "1px solid #bbf7d0" }}>
-                  <div style={{ fontWeight: 600, marginBottom: 4 }}>上传完成</div>
+                <div style={{ marginBottom: compactPx(16), padding: compactPx(12), background: "#f0fdf4", borderRadius: compactPx(8), border: "1px solid #bbf7d0" }}>
+                  <div style={{ fontWeight: 600, marginBottom: compactPx(4) }}>上传完成</div>
                   <div>成功保存图片：<strong>{batchImageResult.imagesSaved}</strong> 张</div>
                   {batchImageResult.matchedSkus.length > 0 && (
                     <div>匹配 SKU：{batchImageResult.matchedSkus.join("、")}</div>
@@ -728,15 +729,15 @@ export default function SkusPage() {
                 </div>
 
                 {batchImageResult.notFoundSkus.length > 0 && (
-                  <div style={{ marginBottom: 12, padding: 10, background: "#fef2f2", borderRadius: 8, border: "1px solid #fecaca", fontSize: 13 }}>
-                    <div style={{ fontWeight: 600, color: "#b91c1c", marginBottom: 4 }}>以下编码在系统中不存在，图片已跳过：</div>
+                  <div style={{ marginBottom: compactPx(12), padding: compactPx(10), background: "#fef2f2", borderRadius: compactPx(8), border: "1px solid #fecaca", fontSize: compactPx(13) }}>
+                    <div style={{ fontWeight: 600, color: "#b91c1c", marginBottom: compactPx(4) }}>以下编码在系统中不存在，图片已跳过：</div>
                     <div>{batchImageResult.notFoundSkus.join("、")}</div>
                   </div>
                 )}
 
                 {batchImageResult.unmatchedFiles.length > 0 && (
-                  <div style={{ marginBottom: 12, padding: 10, background: "#fefce8", borderRadius: 8, border: "1px solid #fde68a", fontSize: 13 }}>
-                    <div style={{ fontWeight: 600, color: "#a16207", marginBottom: 4 }}>以下文件无法识别，已跳过：</div>
+                  <div style={{ marginBottom: compactPx(12), padding: compactPx(10), background: "#fefce8", borderRadius: compactPx(8), border: "1px solid #fde68a", fontSize: compactPx(13) }}>
+                    <div style={{ fontWeight: 600, color: "#a16207", marginBottom: compactPx(4) }}>以下文件无法识别，已跳过：</div>
                     <div>{batchImageResult.unmatchedFiles.join("、")}</div>
                   </div>
                 )}
@@ -744,7 +745,7 @@ export default function SkusPage() {
                 <button
                   type="button"
                   onClick={closeBatchImages}
-                  style={{ padding: "8px 20px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 14 }}
+                  style={{ padding: "8px 20px", border: "1px solid #ddd", borderRadius: compactPx(8), background: "#fff", cursor: "pointer", fontSize: compactPx(14) }}
                 >
                   关闭
                 </button>

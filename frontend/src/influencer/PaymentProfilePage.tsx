@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -43,19 +44,19 @@ export default function PaymentProfilePage() {
   };
 
   return (
-    <div className="xt-inf-card" style={{ padding: 22, maxWidth: 520 }}>
+    <div className="xt-inf-card" style={{ padding: compactPx(22), maxWidth: compactPx(520) }}>
       <h2 className="xt-inf-page-title">{t("收款信息")}</h2>
       <p className="xt-inf-lead">{t("用于撮合任务结算的收款账户，请与实名一致。")}</p>
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
       {msg && <p style={{ color: "#166534" }}>{msg}</p>}
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 12, marginTop: 8 }}>
+      <form onSubmit={onSubmit} style={{ display: "grid", gap: compactPx(12), marginTop: compactPx(8) }}>
         <label style={{ fontWeight: 700, color: "var(--xt-primary)" }}>{t("姓名")}</label>
         <input
           value={form.real_name}
           onChange={(e) => setForm((f) => ({ ...f, real_name: e.target.value }))}
           placeholder={t("姓名")}
           required
-          style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--xt-border)" }}
+          style={{ padding: "10px 12px", borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
         />
         <label style={{ fontWeight: 700, color: "var(--xt-primary)" }}>{t("银行名称")}</label>
         <input
@@ -63,7 +64,7 @@ export default function PaymentProfilePage() {
           onChange={(e) => setForm((f) => ({ ...f, bank_name: e.target.value }))}
           placeholder={t("银行名称")}
           required
-          style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--xt-border)" }}
+          style={{ padding: "10px 12px", borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
         />
         <label style={{ fontWeight: 700, color: "var(--xt-primary)" }}>{t("银行卡号")}</label>
         <input
@@ -71,9 +72,9 @@ export default function PaymentProfilePage() {
           onChange={(e) => setForm((f) => ({ ...f, bank_card: e.target.value }))}
           placeholder={t("银行卡号")}
           required
-          style={{ padding: "10px 12px", borderRadius: 8, border: "1px solid var(--xt-border)" }}
+          style={{ padding: "10px 12px", borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
         />
-        <button type="submit" className="xt-accent-btn" style={{ marginTop: 4 }}>
+        <button type="submit" className="xt-accent-btn" style={{ marginTop: compactPx(4) }}>
           {t("保存收款信息")}
         </button>
       </form>

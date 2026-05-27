@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { useNavigate, useParams } from "react-router-dom";
@@ -253,13 +254,13 @@ export default function MarketOrderEditPage() {
 
   return (
 
-    <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 10px 24px rgba(15,23,42,0.08)", padding: 20 }}>
+    <div style={{ background: "#fff", borderRadius: compactPx(16), boxShadow: "0 10px 24px rgba(15,23,42,0.08)", padding: compactPx(20) }}>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: compactPx(12), flexWrap: "wrap" }}>
 
         <h2 style={{ margin: 0 }}>编辑发单</h2>
 
-        <button type="button" onClick={() => nav(-1)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", cursor: "pointer" }}>
+        <button type="button" onClick={() => nav(-1)} style={{ padding: "8px 12px", borderRadius: compactPx(8), border: "1px solid #ddd", background: "#fff", cursor: "pointer" }}>
 
           返回
 
@@ -275,42 +276,42 @@ export default function MarketOrderEditPage() {
 
       ) : item ? (
 
-        <form onSubmit={onSubmit} style={{ marginTop: 14 }}>
-          <div style={{ marginBottom: 14, padding: 12, background: "#f8fafc", borderRadius: 10, fontSize: 14, color: "#334155", lineHeight: 1.6 }}>
+        <form onSubmit={onSubmit} style={{ marginTop: compactPx(14) }}>
+          <div style={{ marginBottom: compactPx(14), padding: compactPx(12), background: "#f8fafc", borderRadius: compactPx(10), fontSize: compactPx(14), color: "#334155", lineHeight: 1.6 }}>
             <div>数量（套）：{resolveEditPageTaskCount(item)}</div>
             <div>单套支付积分：{item.reward_points ?? "—"}</div>
             <div>本单合计支付积分：{item.reward_points_total ?? "—"}</div>
           </div>
 
-          <div style={{ marginBottom: 10 }}>
+          <div style={{ marginBottom: compactPx(10) }}>
 
             <label>订单标题（必填，1–200 字）</label>
 
-            <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} maxLength={200} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
+            <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} maxLength={200} style={{ display: "block", marginTop: compactPx(6), width: "100%", maxWidth: compactPx(520), padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
 
           </div>
 
-          <div style={{ marginBottom: 10 }}>
+          <div style={{ marginBottom: compactPx(10) }}>
 
             <label>商家店铺名称（必填）</label>
 
-            <input value={form.client_shop_name} onChange={(e) => setForm((f) => ({ ...f, client_shop_name: e.target.value }))} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
+            <input value={form.client_shop_name} onChange={(e) => setForm((f) => ({ ...f, client_shop_name: e.target.value }))} style={{ display: "block", marginTop: compactPx(6), width: "100%", maxWidth: compactPx(520), padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
 
           </div>
 
-          <div style={{ marginBottom: 10 }}>
+          <div style={{ marginBottom: compactPx(10) }}>
 
             <label>商家对接群聊（必填）</label>
 
-            <input value={form.client_group_chat} onChange={(e) => setForm((f) => ({ ...f, client_group_chat: e.target.value }))} placeholder="群号或链接" style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
+            <input value={form.client_group_chat} onChange={(e) => setForm((f) => ({ ...f, client_group_chat: e.target.value }))} placeholder="群号或链接" style={{ display: "block", marginTop: compactPx(6), width: "100%", maxWidth: compactPx(520), padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
 
           </div>
 
-          <div style={{ marginBottom: 10 }}>
+          <div style={{ marginBottom: compactPx(10) }}>
 
             <label>订单档位</label>
 
-            <select value={form.tier} onChange={(e) => setForm((f) => ({ ...f, tier: normalizeMarketOrderTier(e.target.value) }))} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 240, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box", background: "#fff" }}>
+            <select value={form.tier} onChange={(e) => setForm((f) => ({ ...f, tier: normalizeMarketOrderTier(e.target.value) }))} style={{ display: "block", marginTop: compactPx(6), width: "100%", maxWidth: compactPx(240), padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #e2e8f0", boxSizing: "border-box", background: "#fff" }}>
 
               <option value="C">C 类</option>
 
@@ -322,7 +323,7 @@ export default function MarketOrderEditPage() {
 
           </div>
 
-          <div style={{ marginBottom: 10 }}>
+          <div style={{ marginBottom: compactPx(10) }}>
 
             <label>{"发布方式（必填）"}</label>
 
@@ -332,7 +333,7 @@ export default function MarketOrderEditPage() {
 
               onChange={(e) => setForm((f) => ({ ...f, publish_method: e.target.value as "client_self_publish" | "influencer_publish_with_cart" }))}
 
-              style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box", background: "#fff" }}
+              style={{ display: "block", marginTop: compactPx(6), width: "100%", maxWidth: compactPx(520), padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #e2e8f0", boxSizing: "border-box", background: "#fff" }}
 
             >
 
@@ -344,11 +345,11 @@ export default function MarketOrderEditPage() {
 
           </div>
 
-                    <div style={{ marginBottom: 10 }}>
+                    <div style={{ marginBottom: compactPx(10) }}>
 
             <label>
 
-              <input type="checkbox" checked={form.is_public_apply} onChange={(e) => setForm((f) => ({ ...f, is_public_apply: e.target.checked }))} style={{ marginRight: 8 }} />
+              <input type="checkbox" checked={form.is_public_apply} onChange={(e) => setForm((f) => ({ ...f, is_public_apply: e.target.checked }))} style={{ marginRight: compactPx(8) }} />
 
               公开报名（开启后达人先报名，商家后选择）
 
@@ -360,11 +361,11 @@ export default function MarketOrderEditPage() {
 
             <>
 
-              <div style={{ marginBottom: 10 }}>
+              <div style={{ marginBottom: compactPx(10) }}>
 
                 <label>配音素材下载链接（可选）</label>
 
-                <input value={form.voice_link} onChange={(e) => setForm((f) => ({ ...f, voice_link: e.target.value }))} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
+                <input value={form.voice_link} onChange={(e) => setForm((f) => ({ ...f, voice_link: e.target.value }))} style={{ display: "block", marginTop: compactPx(6), width: "100%", maxWidth: compactPx(520), padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
 
               </div>
 
@@ -372,15 +373,15 @@ export default function MarketOrderEditPage() {
 
           )}
 
-          <div style={{ marginBottom: 10 }}>
+          <div style={{ marginBottom: compactPx(10) }}>
 
             <label>TikTok 链接（可选）</label>
 
-            <input value={form.tiktok_link} onChange={(e) => setForm((f) => ({ ...f, tiktok_link: e.target.value }))} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
+            <input value={form.tiktok_link} onChange={(e) => setForm((f) => ({ ...f, tiktok_link: e.target.value }))} style={{ display: "block", marginTop: compactPx(6), width: "100%", maxWidth: compactPx(520), padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
 
           </div>
 
-          <div style={{ marginBottom: 10 }}>
+          <div style={{ marginBottom: compactPx(10) }}>
 
             <label>商品图片（多图，每行一个链接）</label>
 
@@ -394,17 +395,17 @@ export default function MarketOrderEditPage() {
 
               placeholder={"https://img1...\nhttps://img2..."}
 
-              style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }}
+              style={{ display: "block", marginTop: compactPx(6), width: "100%", maxWidth: compactPx(520), padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #e2e8f0", boxSizing: "border-box" }}
 
             />
 
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: compactPx(8), alignItems: "flex-start" }}>
             {validationErrors.length > 0 && (
               <div style={{
-                background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 14px",
-                color: "#b91c1c", fontSize: 13, lineHeight: 1.8,
+                background: "#fef2f2", border: "1px solid #fecaca", borderRadius: compactPx(8), padding: "8px 14px",
+                color: "#b91c1c", fontSize: compactPx(13), lineHeight: 1.8,
               }}>
                 {validationErrors.map((err, i) => (
                   <div key={i} style={{ whiteSpace: "nowrap" }}>• {err}</div>
@@ -416,7 +417,7 @@ export default function MarketOrderEditPage() {
               disabled={validationErrors.length > 0}
               style={{
                 padding: "10px 16px",
-                borderRadius: 10,
+                borderRadius: compactPx(10),
                 border: "none",
                 background: "var(--xt-accent)",
                 color: "#fff",

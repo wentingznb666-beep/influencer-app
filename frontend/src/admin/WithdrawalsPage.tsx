@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useState } from "react";
 import * as api from "../adminApi";
 
@@ -74,10 +75,10 @@ export default function WithdrawalsPage() {
   return (
     <div>
       <h2 style={{ marginTop: 0 }}>提现管理</h2>
-      <p style={{ fontSize: 14, color: "#666" }}>查看达人提现申请订单（1 积分 = 1 泰铢），待处理可标记已打款或驳回。</p>
+      <p style={{ fontSize: compactPx(14), color: "#666" }}>查看达人提现申请订单（1 积分 = 1 泰铢），待处理可标记已打款或驳回。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
-      <div style={{ marginBottom: 12, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ marginBottom: compactPx(12), display: "flex", gap: compactPx(8), alignItems: "center", flexWrap: "wrap" }}>
         <label>状态</label>
         <select value={status} onChange={(e) => setStatus(e.target.value as "pending" | "paid" | "rejected" | "all")} style={{ padding: "6px 10px" }}>
           <option value="pending">待处理</option>
@@ -85,7 +86,7 @@ export default function WithdrawalsPage() {
           <option value="rejected">已驳回</option>
           <option value="all">全部</option>
         </select>
-        <button type="button" onClick={load} disabled={loading} style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+        <button type="button" onClick={load} disabled={loading} style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}>
           刷新
         </button>
       </div>
@@ -93,42 +94,42 @@ export default function WithdrawalsPage() {
       {loading ? (
         <p>加载中…</p>
       ) : (
-        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 8, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: compactPx(8), overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
           <thead>
             <tr style={{ background: "#f5f5f5" }}>
-              <th style={{ padding: 10, textAlign: "left" }}>ID</th>
-              <th style={{ padding: 10, textAlign: "left" }}>达人</th>
-              <th style={{ padding: 10, textAlign: "left" }}>收款姓名</th>
-              <th style={{ padding: 10, textAlign: "left" }}>银行</th>
-              <th style={{ padding: 10, textAlign: "left" }}>银行账号</th>
-              <th style={{ padding: 10, textAlign: "right" }}>金额</th>
-              <th style={{ padding: 10, textAlign: "left" }}>状态</th>
-              <th style={{ padding: 10, textAlign: "left" }}>申请时间</th>
-              <th style={{ padding: 10, textAlign: "left" }}>打款时间</th>
-              <th style={{ padding: 10, textAlign: "left" }}>备注</th>
-              <th style={{ padding: 10 }}>操作</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>ID</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>达人</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>收款姓名</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>银行</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>银行账号</th>
+              <th style={{ padding: compactPx(10), textAlign: "right" }}>金额</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>状态</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>申请时间</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>打款时间</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>备注</th>
+              <th style={{ padding: compactPx(10) }}>操作</th>
             </tr>
           </thead>
           <tbody>
             {list.map((r) => (
               <tr key={r.id}>
-                <td style={{ padding: 10 }}>{r.id}</td>
-                <td style={{ padding: 10 }}>{r.username}（{r.user_id}）</td>
-                <td style={{ padding: 10 }}>{r.bank_account_name || "—"}</td>
-                <td style={{ padding: 10 }}>{r.bank_name || "—"}</td>
-                <td style={{ padding: 10 }}>{r.bank_account_no || "—"}</td>
-                <td style={{ padding: 10, textAlign: "right" }}>{r.amount}</td>
-                <td style={{ padding: 10 }}>{r.status === "paid" ? "已打款" : r.status === "rejected" ? "已驳回" : "待处理"}</td>
-                <td style={{ padding: 10 }}>{r.created_at}</td>
-                <td style={{ padding: 10 }}>{r.paid_at || "—"}</td>
-                <td style={{ padding: 10 }}>{r.note || "—"}</td>
-                <td style={{ padding: 10 }}>
+                <td style={{ padding: compactPx(10) }}>{r.id}</td>
+                <td style={{ padding: compactPx(10) }}>{r.username}（{r.user_id}）</td>
+                <td style={{ padding: compactPx(10) }}>{r.bank_account_name || "—"}</td>
+                <td style={{ padding: compactPx(10) }}>{r.bank_name || "—"}</td>
+                <td style={{ padding: compactPx(10) }}>{r.bank_account_no || "—"}</td>
+                <td style={{ padding: compactPx(10), textAlign: "right" }}>{r.amount}</td>
+                <td style={{ padding: compactPx(10) }}>{r.status === "paid" ? "已打款" : r.status === "rejected" ? "已驳回" : "待处理"}</td>
+                <td style={{ padding: compactPx(10) }}>{r.created_at}</td>
+                <td style={{ padding: compactPx(10) }}>{r.paid_at || "—"}</td>
+                <td style={{ padding: compactPx(10) }}>{r.note || "—"}</td>
+                <td style={{ padding: compactPx(10) }}>
                   {r.status === "pending" ? (
                     <>
-                      <button type="button" onClick={() => handlePaid(r.id)} style={{ marginRight: 8, padding: "4px 10px", background: "#34c759", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>
+                      <button type="button" onClick={() => handlePaid(r.id)} style={{ marginRight: compactPx(8), padding: "4px 10px", background: "#34c759", color: "#fff", border: "none", borderRadius: compactPx(6), cursor: "pointer" }}>
                         标记已打款
                       </button>
-                      <button type="button" onClick={() => handleReject(r.id)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer" }}>
+                      <button type="button" onClick={() => handleReject(r.id)} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: compactPx(6), cursor: "pointer" }}>
                         驳回
                       </button>
                     </>

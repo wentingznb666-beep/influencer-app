@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import * as api from "../clientApi";
@@ -70,10 +71,10 @@ export default function RequestEditPage() {
   };
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, boxShadow: "0 10px 24px rgba(15,23,42,0.08)", padding: 20 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+    <div style={{ background: "#fff", borderRadius: compactPx(16), boxShadow: "0 10px 24px rgba(15,23,42,0.08)", padding: compactPx(20) }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: compactPx(12), flexWrap: "wrap" }}>
         <h2 style={{ margin: 0 }}>编辑合作意向</h2>
-        <button type="button" onClick={() => nav(-1)} style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", cursor: "pointer" }}>
+        <button type="button" onClick={() => nav(-1)} style={{ padding: "8px 12px", borderRadius: compactPx(8), border: "1px solid #ddd", background: "#fff", cursor: "pointer" }}>
           返回
         </button>
       </div>
@@ -81,26 +82,26 @@ export default function RequestEditPage() {
       {loading ? (
         <p>加载中…</p>
       ) : item ? (
-        <form onSubmit={onSubmit} style={{ marginTop: 14 }}>
-          <div style={{ marginBottom: 10 }}>
+        <form onSubmit={onSubmit} style={{ marginTop: compactPx(14) }}>
+          <div style={{ marginBottom: compactPx(10) }}>
             <label>产品/需求说明</label>
-            <textarea value={form.product_info} onChange={(e) => setForm((f) => ({ ...f, product_info: e.target.value }))} rows={4} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 520, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
+            <textarea value={form.product_info} onChange={(e) => setForm((f) => ({ ...f, product_info: e.target.value }))} rows={4} style={{ display: "block", marginTop: compactPx(6), width: "100%", maxWidth: compactPx(520), padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
           </div>
-          <div style={{ marginBottom: 10 }}>
+          <div style={{ marginBottom: compactPx(10) }}>
             <label>目标平台</label>
-            <input value={form.target_platform} onChange={(e) => setForm((f) => ({ ...f, target_platform: e.target.value }))} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 360, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
+            <input value={form.target_platform} onChange={(e) => setForm((f) => ({ ...f, target_platform: e.target.value }))} style={{ display: "block", marginTop: compactPx(6), width: "100%", maxWidth: compactPx(360), padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
           </div>
-          <div style={{ marginBottom: 10 }}>
+          <div style={{ marginBottom: compactPx(10) }}>
             <label>预算范围</label>
-            <input value={form.budget} onChange={(e) => setForm((f) => ({ ...f, budget: e.target.value }))} style={{ display: "block", marginTop: 6, width: "100%", maxWidth: 240, padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
+            <input value={form.budget} onChange={(e) => setForm((f) => ({ ...f, budget: e.target.value }))} style={{ display: "block", marginTop: compactPx(6), width: "100%", maxWidth: compactPx(240), padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #e2e8f0", boxSizing: "border-box" }} />
           </div>
-          <div style={{ marginBottom: 12 }}>
-            <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <div style={{ marginBottom: compactPx(12) }}>
+            <label style={{ display: "inline-flex", alignItems: "center", gap: compactPx(8) }}>
               <input type="checkbox" checked={form.need_face} onChange={(e) => setForm((f) => ({ ...f, need_face: e.target.checked }))} />
               需要露脸视频
             </label>
           </div>
-          <button type="submit" style={{ padding: "10px 16px", borderRadius: 10, border: "none", background: "var(--xt-accent)", color: "#fff", cursor: "pointer", fontWeight: 700 }}>
+          <button type="submit" style={{ padding: "10px 16px", borderRadius: compactPx(10), border: "none", background: "var(--xt-accent)", color: "#fff", cursor: "pointer", fontWeight: 700 }}>
             保存
           </button>
         </form>

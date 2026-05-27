@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
 type OrderTableScrollAreaProps = {
@@ -306,7 +307,7 @@ export default function OrderTableScrollArea({ children, fitContent = false }: O
     <div ref={wrapRef} className={wrapClass}>
       {showTopRail && (!fitContent || (fitContent && isMobileViewport)) && (
         <div ref={topRef} className="xt-order-table-scroll-top" tabIndex={-1} aria-hidden>
-          <div className="xt-order-table-scroll-top-inner" style={{ width: topInnerWidth, minHeight: 8 }} />
+          <div className="xt-order-table-scroll-top-inner" style={{ width: topInnerWidth, minHeight: compactPx(8) }} />
         </div>
       )}
       <div ref={bottomRef} className={bottomClass}>

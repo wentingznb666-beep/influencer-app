@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useState, useEffect } from "react";
 import * as api from "../adminApi";
 
@@ -87,9 +88,9 @@ export default function SettlementPage() {
   return (
     <div>
       <h2 style={{ marginTop: 0 }}>结算与打款</h2>
-      <p style={{ fontSize: 14, color: "#666" }}>按周汇总已通过且过锁定期（{lockDays} 天）的投稿积分，生成记录后可导出 CSV 并标记打款状态。</p>
+      <p style={{ fontSize: compactPx(14), color: "#666" }}>按周汇总已通过且过锁定期（{lockDays} 天）的投稿积分，生成记录后可导出 CSV 并标记打款状态。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
-      <div style={{ marginBottom: 16, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+      <div style={{ marginBottom: compactPx(16), display: "flex", gap: compactPx(8), alignItems: "center", flexWrap: "wrap" }}>
         <label>选择周（周一日期）</label>
         <select value={selectedWeek} onChange={(e) => setSelectedWeek(e.target.value)} style={{ padding: "6px 10px" }}>
           <option value="">请选择</option>
@@ -97,36 +98,36 @@ export default function SettlementPage() {
             <option key={w} value={w}>{w}</option>
           ))}
         </select>
-        <button type="button" onClick={handleGenerate} disabled={generating || !selectedWeek} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: generating ? "not-allowed" : "pointer" }}>
+        <button type="button" onClick={handleGenerate} disabled={generating || !selectedWeek} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: generating ? "not-allowed" : "pointer" }}>
           {generating ? "生成中…" : "生成结算记录"}
         </button>
-        <button type="button" onClick={handleExport} disabled={!selectedWeek} style={{ padding: "8px 16px", border: "1px solid var(--xt-accent)", color: "var(--xt-accent)", borderRadius: 8, cursor: "pointer", background: "#fff" }}>
+        <button type="button" onClick={handleExport} disabled={!selectedWeek} style={{ padding: "8px 16px", border: "1px solid var(--xt-accent)", color: "var(--xt-accent)", borderRadius: compactPx(8), cursor: "pointer", background: "#fff" }}>
           导出 CSV
         </button>
       </div>
       {loading ? <p>加载中…</p> : (
-        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 8, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: compactPx(8), overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
           <thead>
             <tr style={{ background: "#f5f5f5" }}>
-              <th style={{ padding: 10, textAlign: "left" }}>用户</th>
-              <th style={{ padding: 10, textAlign: "right" }}>积分</th>
-              <th style={{ padding: 10, textAlign: "left" }}>状态</th>
-              <th style={{ padding: 10, textAlign: "left" }}>打款时间</th>
-              <th style={{ padding: 10 }}>操作</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>用户</th>
+              <th style={{ padding: compactPx(10), textAlign: "right" }}>积分</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>状态</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>打款时间</th>
+              <th style={{ padding: compactPx(10) }}>操作</th>
             </tr>
           </thead>
           <tbody>
             {list.map((r, idx) => (
               <tr key={r.user_id + "-" + idx}>
-                <td style={{ padding: 10 }}>{r.username}</td>
-                <td style={{ padding: 10, textAlign: "right" }}>{r.amount}</td>
-                <td style={{ padding: 10 }}>{r.status === "paid" ? "已打款" : r.status === "exception" ? "异常" : "待打款"}</td>
-                <td style={{ padding: 10 }}>{r.paid_at || "—"}</td>
-                <td style={{ padding: 10 }}>
+                <td style={{ padding: compactPx(10) }}>{r.username}</td>
+                <td style={{ padding: compactPx(10), textAlign: "right" }}>{r.amount}</td>
+                <td style={{ padding: compactPx(10) }}>{r.status === "paid" ? "已打款" : r.status === "exception" ? "异常" : "待打款"}</td>
+                <td style={{ padding: compactPx(10) }}>{r.paid_at || "—"}</td>
+                <td style={{ padding: compactPx(10) }}>
                   {r.status === "pending" && r.id != null && (
                     <>
-                      <button type="button" onClick={() => handleStatus(r.id as number, "paid")} style={{ marginRight: 8, padding: "4px 10px", background: "#34c759", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>标记已打款</button>
-                      <button type="button" onClick={() => handleStatus(r.id as number, "exception")} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: 6, cursor: "pointer" }}>异常</button>
+                      <button type="button" onClick={() => handleStatus(r.id as number, "paid")} style={{ marginRight: compactPx(8), padding: "4px 10px", background: "#34c759", color: "#fff", border: "none", borderRadius: compactPx(6), cursor: "pointer" }}>标记已打款</button>
+                      <button type="button" onClick={() => handleStatus(r.id as number, "exception")} style={{ padding: "4px 10px", border: "1px solid #ddd", borderRadius: compactPx(6), cursor: "pointer" }}>异常</button>
                     </>
                   )}
                 </td>

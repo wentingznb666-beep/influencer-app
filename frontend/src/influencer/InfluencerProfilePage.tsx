@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useMemo, useState } from "react";
 import { getInfluencerProfile, saveInfluencerProfile, type InfluencerProfilePayload } from "../influencerApi";
 
@@ -124,14 +125,14 @@ export default function InfluencerProfilePage() {
   const selectedDomains = useMemo(() => new Set(form.expertise_domains), [form.expertise_domains]);
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
+    <div style={{ background: "#fff", borderRadius: compactPx(16), padding: compactPx(20), boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
       <h2 style={{ marginTop: 0 }}>达人信息</h2>
-      <p style={{ color: "#64748b", marginTop: 4 }}>请先完善以下信息，系统才允许在任务大厅报名。</p>
+      <p style={{ color: "#64748b", marginTop: compactPx(4) }}>请先完善以下信息，系统才允许在任务大厅报名。</p>
       {loading ? <p>加载中...</p> : null}
       {error ? <p style={{ color: "#b91c1c" }}>{error}</p> : null}
       {msg ? <p style={{ color: "#166534" }}>{msg}</p> : null}
 
-      <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
+      <div style={{ display: "grid", gap: compactPx(12), marginTop: compactPx(12) }}>
         <label>
           TikTok账号 <span style={{ color: "#dc2626" }}>*</span>
           <input
@@ -139,7 +140,7 @@ export default function InfluencerProfilePage() {
             disabled={!editing}
             onChange={(e) => setForm((prev) => ({ ...prev, tiktok_account: e.target.value }))}
             placeholder="如 @creator001"
-            style={{ width: "100%", marginTop: 6 }}
+            style={{ width: "100%", marginTop: compactPx(6) }}
           />
         </label>
 
@@ -150,13 +151,13 @@ export default function InfluencerProfilePage() {
             disabled={!editing}
             onChange={(e) => setForm((prev) => ({ ...prev, tiktok_fans: e.target.value }))}
             placeholder="支持 10000 或 10000-20000"
-            style={{ width: "100%", marginTop: 6 }}
+            style={{ width: "100%", marginTop: compactPx(6) }}
           />
         </label>
 
         <div>
           擅长领域 <span style={{ color: "#dc2626" }}>*</span>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+          <div style={{ display: "flex", gap: compactPx(8), flexWrap: "wrap", marginTop: compactPx(8) }}>
             {DOMAIN_OPTIONS.map((domain) => {
               const checked = selectedDomains.has(domain);
               return (
@@ -174,7 +175,7 @@ export default function InfluencerProfilePage() {
                   }
                   style={{
                     padding: "6px 12px",
-                    borderRadius: 999,
+                    borderRadius: compactPx(999),
                     border: checked ? "1px solid #2563eb" : "1px solid #cbd5e1",
                     background: checked ? "#eff6ff" : "#fff",
                     color: checked ? "#1d4ed8" : "#334155",
@@ -197,7 +198,7 @@ export default function InfluencerProfilePage() {
             value={form.influencer_bio}
             onChange={(e) => setForm((prev) => ({ ...prev, influencer_bio: e.target.value }))}
             placeholder="例如：擅长剧情类短视频创作，能稳定周更..."
-            style={{ width: "100%", marginTop: 6 }}
+            style={{ width: "100%", marginTop: compactPx(6) }}
           />
         </label>
 
@@ -208,12 +209,12 @@ export default function InfluencerProfilePage() {
             disabled={!editing}
             onChange={(e) => setForm((prev) => ({ ...prev, line_contact: e.target.value }))}
             placeholder="如 line_id 或手机号（仅管理员/员工可见）"
-            style={{ width: "100%", marginTop: 6 }}
+            style={{ width: "100%", marginTop: compactPx(6) }}
           />
         </label>
       </div>
 
-      <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ marginTop: compactPx(16), display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
         <button type="button" onClick={() => void onSave()} disabled={saving || (saved && !editing)} className="xt-accent-btn">
           {saving ? "保存中..." : saved && !editing ? "保存成功" : "保存达人信息"}
         </button>

@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useState, useEffect, useMemo, useRef, type CSSProperties } from "react";
 
 import { useLocation, useNavigate } from "react-router-dom";
@@ -720,7 +721,7 @@ export default function ClientMarketOrdersPage() {
   };
 
   const tagStyle = (t: VideoOrderTypeId): CSSProperties => {
-    const base: CSSProperties = { padding: "2px 8px", borderRadius: 999, fontSize: 12, fontWeight: 700, border: "1px solid #dbe1ea" };
+    const base: CSSProperties = { padding: "2px 8px", borderRadius: compactPx(999), fontSize: compactPx(12), fontWeight: 700, border: "1px solid #dbe1ea" };
     if (t === "graded_video") return { ...base, background: "#f1f5f9", color: "#0f172a" };
     if (t === "high_quality_custom_video") return { ...base, background: "#dcfce7", color: "#166534", borderColor: "#bbf7d0" };
     if (t === "monthly_package") return { ...base, background: "#ffedd5", color: "#9a3412", borderColor: "#fed7aa" };
@@ -904,13 +905,13 @@ export default function ClientMarketOrdersPage() {
 
       <h2 style={{ marginTop: 0 }}>视频订单</h2>
 
-      <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16, lineHeight: 1.7 }}>
+      <p style={{ color: "#64748b", fontSize: compactPx(14), marginBottom: compactPx(16), lineHeight: 1.7 }}>
         本模块支持 4 类视频订单：①分级视频（A/B/C）②高质量视频③包月合作套餐④Creator带货测评。仅①分级视频会扣除积分（20/40/60，按 C/B/A），其余类型不扣积分。
       </p>
 
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
-      <div className="sticky-search" style={{ marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      <div className="sticky-search" style={{ marginBottom: compactPx(16), display: "flex", gap: compactPx(8), flexWrap: "wrap", alignItems: "center" }}>
 
         <input
 
@@ -922,11 +923,11 @@ export default function ClientMarketOrdersPage() {
 
           placeholder="搜索：订单号或标题（精准）"
 
-          style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 260 }}
+          style={{ padding: "8px 12px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", minWidth: 260 }}
 
         />
 
-        <button type="button" onClick={() => load(searchQ, dateFilter)} style={{ padding: "8px 16px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}>
+        <button type="button" onClick={() => load(searchQ, dateFilter)} style={{ padding: "8px 16px", background: "#0f766e", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer" }}>
 
           搜索
 
@@ -948,7 +949,7 @@ export default function ClientMarketOrdersPage() {
 
           }}
 
-          style={{ padding: "8px 16px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+          style={{ padding: "8px 16px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}
 
         >
 
@@ -960,7 +961,7 @@ export default function ClientMarketOrdersPage() {
 
       </div>
 
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: compactPx(16) }}>
 
         <button
 
@@ -968,7 +969,7 @@ export default function ClientMarketOrdersPage() {
 
           onClick={() => setShowForm(!showForm)}
 
-          style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+          style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer" }}
 
         >
 
@@ -980,7 +981,7 @@ export default function ClientMarketOrdersPage() {
 
       {showForm && (
 
-        <div style={{ marginBottom: 24, padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <div style={{ marginBottom: compactPx(24), padding: compactPx(16), background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
 
           <label htmlFor="title">订单标题（必填，1–200 字）</label>
 
@@ -998,7 +999,7 @@ export default function ClientMarketOrdersPage() {
 
             maxLength={200}
 
-            style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+            style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(12), width: "100%", maxWidth: compactPx(560), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd" }}
 
           />
 
@@ -1007,7 +1008,7 @@ export default function ClientMarketOrdersPage() {
             id="orderType"
             value={orderTypeId}
             onChange={(e) => setOrderTypeId(e.target.value as VideoOrderTypeId)}
-            style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
+            style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(12), width: "100%", maxWidth: compactPx(560), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd", background: "#fff" }}
           >
             <option value="graded_video">① 分级视频（A/B/C）- 扣积分</option>
             <option value="high_quality_custom_video">② 高质量视频（4000-5000฿/条）</option>
@@ -1031,11 +1032,11 @@ export default function ClientMarketOrdersPage() {
 
             maxLength={200}
 
-            style={{ display: "block", marginTop: 8, marginBottom: 4, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+            style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(4), width: "100%", maxWidth: compactPx(560), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd" }}
 
           />
 
-          {orderTypeId === "graded_video" && !clientShopName.trim() && <div style={{ marginBottom: 10, fontSize: 12, color: "#b91c1c" }}>请输入商家店铺名称</div>}
+          {orderTypeId === "graded_video" && !clientShopName.trim() && <div style={{ marginBottom: compactPx(10), fontSize: compactPx(12), color: "#b91c1c" }}>请输入商家店铺名称</div>}
 
           <label htmlFor="clientGroupChat">商家对接群聊（必填）</label>
 
@@ -1053,11 +1054,11 @@ export default function ClientMarketOrdersPage() {
 
             maxLength={2000}
 
-            style={{ display: "block", marginTop: 8, marginBottom: 4, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+            style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(4), width: "100%", maxWidth: compactPx(560), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd" }}
 
           />
 
-          {orderTypeId === "graded_video" && !clientGroupChat.trim() && <div style={{ marginBottom: 10, fontSize: 12, color: "#b91c1c" }}>请输入商家对接群聊（群号/链接）</div>}
+          {orderTypeId === "graded_video" && !clientGroupChat.trim() && <div style={{ marginBottom: compactPx(10), fontSize: compactPx(12), color: "#b91c1c" }}>请输入商家对接群聊（群号/链接）</div>}
 
           {orderTypeId === "graded_video" ? (
             <>
@@ -1066,7 +1067,7 @@ export default function ClientMarketOrdersPage() {
                 id="tier"
                 value={tier}
                 onChange={(e) => setTier(e.target.value as "C" | "B" | "A")}
-                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
+                style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(12), width: "100%", maxWidth: compactPx(240), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd", background: "#fff" }}
               >
                 <option value="C">C 类：消耗 20 积分（基础功能：背景音乐、文字贴纸）</option>
                 <option value="B">B 类：消耗 40 积分（含 C 类功能 + 场景切换 + 特效转场）</option>
@@ -1078,7 +1079,7 @@ export default function ClientMarketOrdersPage() {
                 id="publishMethod"
                 value={publishMethod}
                 onChange={(e) => setPublishMethod(e.target.value as "client_self_publish" | "influencer_publish_with_cart")}
-                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd", background: "#fff" }}
+                style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(12), width: "100%", maxWidth: compactPx(560), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd", background: "#fff" }}
               >
                 <option value="client_self_publish">视频拍完后自己发布</option>
                 <option value="influencer_publish_with_cart">达人在TikTok账号发布视频和挂在购物车</option>
@@ -1094,7 +1095,7 @@ export default function ClientMarketOrdersPage() {
                     value={voiceLink}
                     onChange={(e) => setVoiceLink(e.target.value)}
                     placeholder="https://..."
-                    style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                    style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(12), width: "100%", maxWidth: compactPx(560), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd" }}
                   />
                 </>
               )}
@@ -1108,7 +1109,7 @@ export default function ClientMarketOrdersPage() {
                 max={100}
                 value={taskCount}
                 onChange={(e) => setTaskCount(Math.max(1, Math.min(100, Number(e.target.value) || 1)))}
-                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 180, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(12), width: "100%", maxWidth: compactPx(180), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd" }}
               />
 
               <label htmlFor="tiktokLink">TikTok 链接（可选）</label>
@@ -1119,20 +1120,20 @@ export default function ClientMarketOrdersPage() {
                 value={tiktokLink}
                 onChange={(e) => setTiktokLink(e.target.value)}
                 placeholder="https://www.tiktok.com/..."
-                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(12), width: "100%", maxWidth: compactPx(560), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd" }}
               />
 
-              <div style={{ marginBottom: 12 }}>
+              <div style={{ marginBottom: compactPx(12) }}>
                 <label>SKU 信息（从 SKU 列表勾选）</label>
                 <input
                   value={skuKeyword}
                   onChange={(e) => setSkuKeyword(e.target.value)}
                   placeholder="搜索 SKU 编码/名称"
-                  style={{ display: "block", marginTop: 8, marginBottom: 8, width: "100%", maxWidth: 420, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                  style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(8), width: "100%", maxWidth: compactPx(420), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd" }}
                 />
-                <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ marginTop: compactPx(8), display: "flex", flexDirection: "column", gap: compactPx(8) }}>
                   {filteredSkuList.map((s) => (
-                    <label key={s.id} style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <label key={s.id} style={{ display: "flex", alignItems: "center", gap: compactPx(8), flexWrap: "wrap" }}>
                       <input
                         type="checkbox"
                         checked={selectedSkuIds.includes(s.id)}
@@ -1145,8 +1146,8 @@ export default function ClientMarketOrdersPage() {
                     </label>
                   ))}
 
-                  {skuList.length === 0 && <span style={{ color: "#64748b", fontSize: 13 }}>暂无 SKU，可先前往「SKU 列表」维护。</span>}
-                  {skuList.length > 0 && filteredSkuList.length === 0 && <span style={{ color: "#64748b", fontSize: 13 }}>无匹配 SKU</span>}
+                  {skuList.length === 0 && <span style={{ color: "#64748b", fontSize: compactPx(13) }}>暂无 SKU，可先前往「SKU 列表」维护。</span>}
+                  {skuList.length > 0 && filteredSkuList.length === 0 && <span style={{ color: "#64748b", fontSize: compactPx(13) }}>无匹配 SKU</span>}
                 </div>
               </div>
             </>
@@ -1160,7 +1161,7 @@ export default function ClientMarketOrdersPage() {
                     type="text"
                     value={offlineAmount}
                     onChange={(e) => setOfflineAmount(e.target.value)}
-                    style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                    style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(12), width: "100%", maxWidth: compactPx(240), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd" }}
                   />
                 </>
               )}
@@ -1176,7 +1177,7 @@ export default function ClientMarketOrdersPage() {
                     max={12}
                     value={contractMonths}
                     onChange={(e) => setContractMonths(Math.max(1, Math.min(12, Number(e.target.value) || 1)))}
-                    style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                    style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(12), width: "100%", maxWidth: compactPx(240), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd" }}
                   />
 
                   <label htmlFor="monthlyMinVideos">每月条数（≥20，必填）</label>
@@ -1188,13 +1189,13 @@ export default function ClientMarketOrdersPage() {
                     max={999}
                     value={monthlyMinVideos}
                     onChange={(e) => setMonthlyMinVideos(Math.max(0, Number(e.target.value) || 0))}
-                    style={{ display: "block", marginTop: 8, marginBottom: 6, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                    style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(6), width: "100%", maxWidth: compactPx(240), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd" }}
                   />
-                  <div style={{ marginBottom: 12, color: "#64748b", fontSize: 13 }}>
+                  <div style={{ marginBottom: compactPx(12), color: "#64748b", fontSize: compactPx(13) }}>
                     预计金额：{monthlyEstimatedAmount} ฿（650 × {monthlyEffectiveVideos} × {monthlyEffectiveMonths}）
                   </div>
 
-                  <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: compactPx(8), marginBottom: compactPx(12) }}>
                     <input type="checkbox" checked={weeklyBatchEnabled} onChange={(e) => setWeeklyBatchEnabled(e.target.checked)} />
                     按周分批验收与结算
                   </label>
@@ -1212,9 +1213,9 @@ export default function ClientMarketOrdersPage() {
                     max={10}
                     value={creatorTaskCount}
                     onChange={(e) => setCreatorTaskCount(Math.max(0, Number(e.target.value) || 0))}
-                    style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 240, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                    style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(12), width: "100%", maxWidth: compactPx(240), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd" }}
                   />
-                  <div style={{ marginBottom: 12, color: "#64748b", fontSize: 13 }}>
+                  <div style={{ marginBottom: compactPx(12), color: "#64748b", fontSize: compactPx(13) }}>
                     本单单价由平台统一配置。
                   </div>
                 </>
@@ -1235,7 +1236,7 @@ export default function ClientMarketOrdersPage() {
                 placeholder={
                   orderTypeId === "monthly_package" ? "可留空，由我方匹配" : "请输入平台内已选账号/昵称"
                 }
-                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(12), width: "100%", maxWidth: compactPx(560), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd" }}
               />
 
               <label htmlFor="offlineRequirement">需求说明（可选）</label>
@@ -1245,17 +1246,17 @@ export default function ClientMarketOrdersPage() {
                 onChange={(e) => setOfflineRequirement(e.target.value)}
                 placeholder="可填写脚本/参考视频/审核要求/修改说明等"
                 rows={4}
-                style={{ display: "block", marginTop: 8, marginBottom: 12, width: "100%", maxWidth: 560, padding: "8px 10px", boxSizing: "border-box", borderRadius: 8, border: "1px solid #ddd" }}
+                style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(12), width: "100%", maxWidth: compactPx(560), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd" }}
               />
             </>
           )}
 
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: compactPx(12), flexWrap: "wrap" }}>
 
             {validationErrors.length > 0 && (
               <div style={{
-                background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "6px 14px",
-                color: "#b91c1c", fontSize: 13, lineHeight: 1.8, whiteSpace: "nowrap",
+                background: "#fef2f2", border: "1px solid #fecaca", borderRadius: compactPx(8), padding: "6px 14px",
+                color: "#b91c1c", fontSize: compactPx(13), lineHeight: 1.8, whiteSpace: "nowrap",
               }}>
                 {validationErrors.map((err, i) => (
                   <div key={i}>• {err}</div>
@@ -1272,7 +1273,7 @@ export default function ClientMarketOrdersPage() {
                 background: "var(--xt-accent)",
                 color: "#fff",
                 border: "none",
-                borderRadius: 8,
+                borderRadius: compactPx(8),
                 cursor: !canSubmit ? "not-allowed" : "pointer",
                 opacity: !canSubmit ? 0.6 : 1,
               }}
@@ -1281,12 +1282,12 @@ export default function ClientMarketOrdersPage() {
             </button>
 
             {orderTypeId === "graded_video" ? (
-              <span style={{ fontSize: 13, color: canAfford ? "#64748b" : "#c00" }}>
+              <span style={{ fontSize: compactPx(13), color: canAfford ? "#64748b" : "#c00" }}>
                 本次将消耗 <strong>{totalConsumePoints}</strong> 积分（{consumePoints} × {taskCount}）
                 {balance != null ? `（当前余额 ${balance}）` : ""}
               </span>
             ) : (
-              <span style={{ fontSize: 13, color: "#64748b" }}>
+              <span style={{ fontSize: compactPx(13), color: "#64748b" }}>
                 {orderTypeId === "high_quality_custom_video" && `金额：${offlineAmount} ฿/条`}
                 {orderTypeId === "monthly_package" && `金额：${monthlyEstimatedAmount} ฿（650 × ${monthlyEffectiveVideos} × ${monthlyEffectiveMonths}）`}
                 {orderTypeId === "creator_review_video" && "金额：本单单价由平台统一配置"}
@@ -1299,7 +1300,7 @@ export default function ClientMarketOrdersPage() {
 
               onClick={loadBalance}
 
-              style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+              style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}
 
             >
 
@@ -1319,7 +1320,7 @@ export default function ClientMarketOrdersPage() {
 
       ) : (
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: compactPx(12) }}>
 
           {combinedRows.map((row) => {
             if (row.kind === "graded") {
@@ -1329,39 +1330,39 @@ export default function ClientMarketOrdersPage() {
                   key={`m-${o.id}`}
                   data-order-kind="market"
                   data-order-id={o.id}
-                  style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
+                  style={{ padding: compactPx(16), background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
                 >
-                  <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 8, background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: 13 }}>
+                  <div style={{ marginBottom: compactPx(10), padding: "6px 10px", borderRadius: compactPx(8), background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: compactPx(13) }}>
                     订单日期：{formatDateTime(o.created_at)}
                   </div>
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: compactPx(8) }}>
                     <div>
-                      <div style={{ fontWeight: 600, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <div style={{ fontWeight: 600, display: "flex", gap: compactPx(8), alignItems: "center", flexWrap: "wrap" }}>
                         <span>订单号：{o.order_no || `（内部ID ${o.id}）`}</span>
                         <span style={tagStyle("graded_video")}>{typeText("graded_video")}</span>
                       </div>
-                      {o.title && <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>}
+                      {o.title && <div style={{ marginTop: compactPx(6), fontSize: compactPx(14), color: "#334155" }}>标题：{o.title}</div>}
                     </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                      <div style={{ color: "#64748b", fontSize: 13 }}>视频数量/积分</div>
-                      <div style={{ fontSize: 14 }}>
-                        <div style={{ marginBottom: 4 }}>视频数量：{o.task_count || "-"} 条</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: compactPx(10), flexWrap: "wrap", justifyContent: "flex-end" }}>
+                      <div style={{ color: "#64748b", fontSize: compactPx(13) }}>视频数量/积分</div>
+                      <div style={{ fontSize: compactPx(14) }}>
+                        <div style={{ marginBottom: compactPx(4) }}>视频数量：{o.task_count || "-"} 条</div>
                         <div>
                           金额：
                           <span style={{ fontWeight: 600, color: "var(--xt-accent)" }}>{marketOrderTotalRewardPoints(o)} 积分</span>
-                          <span style={{ color: "#64748b", marginLeft: 4 }}>（单套 {o.reward_points} 积分 × 视频数量：{marketOrderTaskCount(o)}）</span>
+                          <span style={{ color: "#64748b", marginLeft: compactPx(4) }}>（单套 {o.reward_points} 积分 × 视频数量：{marketOrderTaskCount(o)}）</span>
                         </div>
                       </div>
 
                       {o.status === "open" && (
                         <>
-                          <button type="button" onClick={() => nav(`/client/market-orders/${o.id}/edit`)} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}>
+                          <button type="button" onClick={() => nav(`/client/market-orders/${o.id}/edit`)} style={{ padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}>
                             编辑
                           </button>
 
-                          <button type="button" onClick={() => handleDelete(o.id)} style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: "pointer" }}>
+                          <button type="button" onClick={() => handleDelete(o.id)} style={{ padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: "pointer" }}>
                             删除
                           </button>
                         </>
@@ -1370,13 +1371,13 @@ export default function ClientMarketOrdersPage() {
                   </div>
 
                   {(o.status === "claimed" || o.status === "completed" || !!o.influencer_id || !!o.influencer_username) && (
-                    <p style={{ margin: "8px 0 0", fontSize: 14, fontWeight: 600, color: "#0f766e" }}>领取达人账号昵称：{resolveClaimerText(o)}</p>
+                    <p style={{ margin: "8px 0 0", fontSize: compactPx(14), fontWeight: 600, color: "#0f766e" }}>领取达人账号昵称：{resolveClaimerText(o)}</p>
                   )}
 
-                  <p style={{ margin: "8px 0 0", fontSize: 13, color: "#475569" }}>发布方式：{resolvePublishMethodText(o.publish_method)}</p>
+                  <p style={{ margin: "8px 0 0", fontSize: compactPx(13), color: "#475569" }}>发布方式：{resolvePublishMethodText(o.publish_method)}</p>
 
                   {!!resolveTikTokLink(o) && (
-                    <p style={{ margin: "8px 0 0", fontSize: 13 }}>
+                    <p style={{ margin: "8px 0 0", fontSize: compactPx(13) }}>
                       TikTok：
                       <a href={resolveTikTokLink(o)} target="_blank" rel="noreferrer">
                         {resolveTikTokLink(o)}
@@ -1385,7 +1386,7 @@ export default function ClientMarketOrdersPage() {
                   )}
 
                   {!!resolvePublishLink(o) && (
-                    <p style={{ margin: "8px 0 0", fontSize: 13 }}>
+                    <p style={{ margin: "8px 0 0", fontSize: compactPx(13) }}>
                       发布链接：
                       <a href={resolvePublishLink(o)} target="_blank" rel="noreferrer">
                         {resolvePublishLink(o)}
@@ -1394,14 +1395,14 @@ export default function ClientMarketOrdersPage() {
                   )}
 
                   {(Array.isArray(o.sku_codes) && o.sku_codes.length > 0) || (Array.isArray(o.sku_images) && o.sku_images.length > 0) ? (
-                    <div style={{ marginTop: 8 }}>
-                      <div style={{ fontSize: 13, color: "#475569" }}>SKU 信息</div>
-                      {Array.isArray(o.sku_codes) && o.sku_codes.length > 0 && <div style={{ marginTop: 4, fontSize: 13, color: "#334155" }}>{o.sku_codes.join("，")}</div>}
+                    <div style={{ marginTop: compactPx(8) }}>
+                      <div style={{ fontSize: compactPx(13), color: "#475569" }}>SKU 信息</div>
+                      {Array.isArray(o.sku_codes) && o.sku_codes.length > 0 && <div style={{ marginTop: compactPx(4), fontSize: compactPx(13), color: "#334155" }}>{o.sku_codes.join("，")}</div>}
                       {Array.isArray(o.sku_images) && o.sku_images.length > 0 && (
-                        <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+                        <div style={{ marginTop: compactPx(6), display: "flex", gap: compactPx(6), flexWrap: "wrap" }}>
                           {o.sku_images.slice(0, 6).map((url, i) => (
                             <a key={`${o.id}-sku-${i}`} href={url} target="_blank" rel="noreferrer">
-                              <img src={url} alt={`sku-${o.id}-${i}`} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 6, border: "1px solid #eee" }} />
+                              <img src={url} alt={`sku-${o.id}-${i}`} style={{ width: 48, height: 48, objectFit: "cover", borderRadius: compactPx(6), border: "1px solid #eee" }} />
                             </a>
                           ))}
                         </div>
@@ -1409,24 +1410,24 @@ export default function ClientMarketOrdersPage() {
                     </div>
                   ) : null}
 
-                  <p style={{ margin: "8px 0 0", fontSize: 13, color: "#475569" }}>
+                  <p style={{ margin: "8px 0 0", fontSize: compactPx(13), color: "#475569" }}>
                     店铺名称：{o.client_shop_name?.trim() || "未填写"} · 对接群聊：{o.client_group_chat?.trim() || "未填写"}
                   </p>
 
-                  <p style={{ margin: "8px 0 0", fontSize: 14 }}>
+                  <p style={{ margin: "8px 0 0", fontSize: compactPx(14) }}>
                     <button
                       type="button"
                       onClick={() => {
                         setLinksModalLinks(normalizeWorkLinks(o.work_links));
                         setLinksModalOpen(true);
                       }}
-                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                      style={{ padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
                     >
                       查看链接
                     </button>
                   </p>
 
-                  <p style={{ margin: "8px 0 0", fontSize: 12, color: "#999" }}>{o.completed_at ? `完成：${formatDateTime(o.completed_at)}` : "完成：—"}</p>
+                  <p style={{ margin: "8px 0 0", fontSize: compactPx(12), color: "#999" }}>{o.completed_at ? `完成：${formatDateTime(o.completed_at)}` : "完成：—"}</p>
                 </div>
               );
             }
@@ -1453,33 +1454,33 @@ export default function ClientMarketOrdersPage() {
                 key={`v-${o.id}`}
                 data-order-kind="video"
                 data-order-id={o.id}
-                style={{ padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
+                style={{ padding: compactPx(16), background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
               >
-                <div style={{ marginBottom: 10, padding: "6px 10px", borderRadius: 8, background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: 13 }}>
+                <div style={{ marginBottom: compactPx(10), padding: "6px 10px", borderRadius: compactPx(8), background: "#f1f5f9", color: "#0f172a", fontWeight: 700, fontSize: compactPx(13) }}>
                   订单日期：{formatDateTime(o.created_at)}
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: compactPx(8) }}>
                   <div>
-                    <div style={{ fontWeight: 600, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <div style={{ fontWeight: 600, display: "flex", gap: compactPx(8), alignItems: "center", flexWrap: "wrap" }}>
                       <span>订单号：VO-{o.id}</span>
                       <span style={tagStyle(o.type_id)}>{typeText(o.type_id)}</span>
                     </div>
-                    <div style={{ marginTop: 6, fontSize: 14, color: "#334155" }}>标题：{o.title}</div>
-                    <div style={{ marginTop: 6, fontSize: 13, color: "#475569" }}>
+                    <div style={{ marginTop: compactPx(6), fontSize: compactPx(14), color: "#334155" }}>标题：{o.title}</div>
+                    <div style={{ marginTop: compactPx(6), fontSize: compactPx(13), color: "#475569" }}>
                       付款：{o.payment_status === "paid" ? "已付款" : "未付款"} · 状态：{phaseText(o)}
                     </div>
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                    <div style={{ color: "#64748b", fontSize: 13 }}>金额(฿)</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--xt-accent)" }}>{Number(o.amount_thb || 0).toFixed(2)}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: compactPx(10), flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <div style={{ color: "#64748b", fontSize: compactPx(13) }}>金额(฿)</div>
+                    <div style={{ fontSize: compactPx(14), fontWeight: 700, color: "var(--xt-accent)" }}>{Number(o.amount_thb || 0).toFixed(2)}</div>
 
                     <button
                       type="button"
                       disabled={!canAccept}
                       onClick={() => handleOfflineAccept(o.id)}
-                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #bbf7d0", background: "#fff", color: "#166534", cursor: canAccept ? "pointer" : "not-allowed", opacity: canAccept ? 1 : 0.5 }}
+                      style={{ padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #bbf7d0", background: "#fff", color: "#166534", cursor: canAccept ? "pointer" : "not-allowed", opacity: canAccept ? 1 : 0.5 }}
                     >
                       验收通过
                     </button>
@@ -1488,7 +1489,7 @@ export default function ClientMarketOrdersPage() {
                       type="button"
                       disabled={!canReject}
                       onClick={() => handleOfflineReject(o.id)}
-                      style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: canReject ? "pointer" : "not-allowed", opacity: canReject ? 1 : 0.5 }}
+                      style={{ padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #fecaca", background: "#fff", color: "#b91c1c", cursor: canReject ? "pointer" : "not-allowed", opacity: canReject ? 1 : 0.5 }}
                     >
                       驳回
                     </button>
@@ -1496,15 +1497,15 @@ export default function ClientMarketOrdersPage() {
                 </div>
 
                 {(shopName || groupChat) && (
-                  <p style={{ margin: "8px 0 0", fontSize: 13, color: "#475569" }}>
+                  <p style={{ margin: "8px 0 0", fontSize: compactPx(13), color: "#475569" }}>
                     店铺名称：{shopName || "未填写"} · 对接群聊：{groupChat || "未填写"}
                   </p>
                 )}
 
                 {Array.isArray(proofLinks) && proofLinks.length > 0 && (
-                  <div style={{ marginTop: 8, fontSize: 13 }}>
+                  <div style={{ marginTop: compactPx(8), fontSize: compactPx(13) }}>
                     <div style={{ color: "#475569" }}>交付链接</div>
-                    <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div style={{ marginTop: compactPx(4), display: "flex", flexDirection: "column", gap: compactPx(4) }}>
                       {proofLinks.slice(0, 8).map((url, i) => (
                         <a key={`proof-${o.id}-${i}`} href={url} target="_blank" rel="noreferrer">
                           {url}
@@ -1515,9 +1516,9 @@ export default function ClientMarketOrdersPage() {
                 )}
 
                 {Array.isArray(publishLinks) && publishLinks.length > 0 && (
-                  <div style={{ marginTop: 8, fontSize: 13 }}>
+                  <div style={{ marginTop: compactPx(8), fontSize: compactPx(13) }}>
                     <div style={{ color: "#475569" }}>发布链接</div>
-                    <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 4 }}>
+                    <div style={{ marginTop: compactPx(4), display: "flex", flexDirection: "column", gap: compactPx(4) }}>
                       {publishLinks.slice(0, 8).map((url, i) => (
                         <a key={`pub-${o.id}-${i}`} href={url} target="_blank" rel="noreferrer">
                           {url}
@@ -1528,13 +1529,13 @@ export default function ClientMarketOrdersPage() {
                 )}
 
                 {o.type_id === "monthly_package" && (
-                  <div style={{ marginTop: 10 }}>
-                    <div style={{ fontSize: 13, color: "#475569", marginBottom: 6 }}>批次验收 / 结算</div>
+                  <div style={{ marginTop: compactPx(10) }}>
+                    <div style={{ fontSize: compactPx(13), color: "#475569", marginBottom: compactPx(6) }}>批次验收 / 结算</div>
                     {batches.length === 0 ? (
-                      <div style={{ fontSize: 13, color: "#94a3b8" }}>暂无批次（员工提交后会生成）</div>
+                      <div style={{ fontSize: compactPx(13), color: "#94a3b8" }}>暂无批次（员工提交后会生成）</div>
                     ) : (
                       <div style={{ overflowX: "auto" }}>
-                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: compactPx(13) }}>
                           <thead>
                             <tr>
                               <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid #e2e8f0" }}>批次</th>
@@ -1565,7 +1566,7 @@ export default function ClientMarketOrdersPage() {
                                           setLinksModalLinks(links);
                                           setLinksModalOpen(true);
                                         }}
-                                        style={{ padding: "4px 8px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                                        style={{ padding: "4px 8px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
                                       >
                                         查看（{links.length}）
                                       </button>
@@ -1581,7 +1582,7 @@ export default function ClientMarketOrdersPage() {
                                       type="button"
                                       disabled={!canBatchAccept}
                                       onClick={() => handleMonthlyBatchAccept(o.id, bn)}
-                                      style={{ padding: "4px 8px", borderRadius: 8, border: "1px solid #bbf7d0", background: "#fff", color: "#166534", cursor: canBatchAccept ? "pointer" : "not-allowed", opacity: canBatchAccept ? 1 : 0.5, marginRight: 6 }}
+                                      style={{ padding: "4px 8px", borderRadius: compactPx(8), border: "1px solid #bbf7d0", background: "#fff", color: "#166534", cursor: canBatchAccept ? "pointer" : "not-allowed", opacity: canBatchAccept ? 1 : 0.5, marginRight: compactPx(6) }}
                                     >
                                       验收
                                     </button>
@@ -1589,7 +1590,7 @@ export default function ClientMarketOrdersPage() {
                                       type="button"
                                       disabled={!canBatchSettle}
                                       onClick={() => handleMonthlyBatchSettle(o.id, bn)}
-                                      style={{ padding: "4px 8px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: canBatchSettle ? "pointer" : "not-allowed", opacity: canBatchSettle ? 1 : 0.5 }}
+                                      style={{ padding: "4px 8px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff", cursor: canBatchSettle ? "pointer" : "not-allowed", opacity: canBatchSettle ? 1 : 0.5 }}
                                     >
                                       结算
                                     </button>
