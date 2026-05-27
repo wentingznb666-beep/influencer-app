@@ -563,7 +563,7 @@ export default function UsersPage() {
 
       {successMsg && <p style={{ color: "#0a7a2a" }}>{successMsg}</p>}
 
-      <div style={{ marginBottom: 12, padding: 12, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 8 }}>
+      <div className="sticky-search" style={{ marginBottom: 12, padding: 12, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: 8 }}>
 
         <input
 

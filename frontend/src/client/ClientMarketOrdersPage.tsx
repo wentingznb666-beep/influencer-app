@@ -910,7 +910,7 @@ export default function ClientMarketOrdersPage() {
 
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
-      <div style={{ marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      <div className="sticky-search" style={{ marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
 
         <input
 
