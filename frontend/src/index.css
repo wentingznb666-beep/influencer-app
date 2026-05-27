@@ -879,7 +879,7 @@ textarea {
 
     bottom: 0;
 
-    z-index: 20;
+    z-index: 100;
 
     width: min(76vw, 320px);
 
@@ -969,7 +969,7 @@ textarea {
 
     bottom: 0;
 
-    z-index: 20;
+    z-index: 100;
 
     width: min(84vw, 320px);
 
