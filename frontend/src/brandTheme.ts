@@ -69,6 +69,7 @@ export const xtLayout = {
     flexDirection: "column",
 
     boxShadow: "4px 0 32px rgba(30, 41, 59, 0.18)",
+    zIndex: 40,
 
   } as CSSProperties,
 

@@ -2500,3 +2500,292 @@ textarea {
   font-weight: 500;
 }
 
+
+/* ================================================================
+   方案A — UI 增强层（不影响现有样式，纯追加）
+   ================================================================ */
+
+/* ---------- 表格增强 ---------- */
+.xt-table {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+.xt-table thead tr {
+  background: rgba(37, 99, 235, 0.04);
+}
+.xt-table th {
+  color: #475569;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 14px 12px;
+  border-bottom: 2px solid var(--xt-border);
+}
+.xt-table td {
+  padding: 14px 12px;
+  font-size: 14px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+}
+.xt-table tbody tr {
+  transition: background-color 120ms ease;
+}
+.xt-table tbody tr:hover {
+  background: rgba(37, 99, 235, 0.025);
+}
+.xt-table--striped tbody tr:nth-child(even) {
+  background: rgba(248, 250, 252, 0.45);
+}
+.xt-table--striped tbody tr:nth-child(even):hover {
+  background: rgba(37, 99, 235, 0.035);
+}
+/* 表格卡片包裹增强 */
+.xt-table-card {
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+
+/* ---------- 搜索栏合并优化 ---------- */
+.xt-search-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--xt-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--xt-surface);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.xt-search-wrap:focus-within {
+  border-color: var(--xt-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+.xt-search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: none;
+  outline: none;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--xt-text);
+  background: transparent;
+}
+.xt-search-clear {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 8px 12px;
+  font-size: 18px;
+  line-height: 1;
+  transition: color 120ms ease;
+}
+.xt-search-clear:hover {
+  color: var(--xt-accent);
+}
+.xt-search-btn {
+  flex: 0 0 auto;
+  border: none;
+  background: var(--xt-primary);
+  color: #fff;
+  cursor: pointer;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  transition: background 120ms ease;
+}
+.xt-search-btn:hover {
+  background: #1d4ed8;
+}
+
+/* ---------- 吸顶导航 ---------- */
+.xt-topbar-sticky {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(248, 250, 252, 0.82);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  padding: 12px 0;
+  margin: -12px 0 16px;
+}
+
+/* ---------- 按钮增强 ---------- */
+.xt-btn {
+  min-height: 40px;
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 180ms ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.xt-btn--primary {
+  background: var(--xt-primary);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.25);
+}
+.xt-btn--primary:hover {
+  background: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  transform: translateY(-1px);
+}
+.xt-btn--primary:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+}
+.xt-btn--danger {
+  background: #ef4444;
+  color: #fff;
+}
+.xt-btn--danger:hover {
+  background: #dc2626;
+}
+.xt-btn--outline {
+  background: var(--xt-surface);
+  color: var(--xt-text);
+  border: 1px solid var(--xt-border);
+}
+.xt-btn--outline:hover {
+  border-color: var(--xt-primary);
+  color: var(--xt-primary);
+  background: #eff6ff;
+}
+.xt-btn--ghost {
+  background: transparent;
+  color: var(--xt-text-muted);
+}
+.xt-btn--ghost:hover {
+  color: var(--xt-primary);
+  background: rgba(37, 99, 235, 0.06);
+}
+/* 按钮禁用态 */
+.xt-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ---------- 空状态 ---------- */
+.xt-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--xt-text-muted);
+}
+.xt-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+.xt-empty-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #475569;
+  margin: 0 0 6px;
+}
+.xt-empty-desc {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* ---------- 加载骨架屏 ---------- */
+.xt-skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: xt-shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+@keyframes xt-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.xt-skeleton-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr 1fr;
+  gap: 12px;
+  padding: 14px 12px;
+}
+.xt-skeleton-cell {
+  height: 16px;
+}
+/* Loading spinner */
+.xt-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2.5px solid var(--xt-border);
+  border-top-color: var(--xt-primary);
+  border-radius: 50%;
+  animation: xt-spin 0.7s linear infinite;
+}
+@keyframes xt-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- 卡片增强 ---------- */
+.xt-card {
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  transition: box-shadow 180ms ease;
+}
+.xt-card:hover {
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+}
+
+/* ---------- 面包屑（预留） ---------- */
+.xt-breadcrumb {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 13px;
+  color: var(--xt-text-muted);
+  margin-bottom: 8px;
+}
+.xt-breadcrumb a {
+  color: var(--xt-text-muted);
+  text-decoration: none;
+}
+.xt-breadcrumb a:hover {
+  color: var(--xt-primary);
+}
+.xt-breadcrumb-sep {
+  color: #cbd5e1;
+}
+
+/* ---------- 顶部 Header 增强 ---------- */
+.xt-header-actions {
+  gap: 10px;
+}
+
+/* ---------- 全局过渡 ---------- */
+a, button {
+  transition: all 150ms ease;
+}
+
+/* ---------- 移动端适配增强 ---------- */
+@media (max-width: 767px) {
+  .xt-card {
+    border-radius: 10px;
+  }
+  .xt-empty {
+    padding: 32px 16px;
+  }
+  .xt-empty-icon {
+    font-size: 36px;
+  }
+}
