@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import React, { useState } from "react";
 import { useAppStore } from "../stores/AppStore";
 import { saveClientMerchantInfoTemplate } from "../clientApi";
@@ -89,16 +90,16 @@ export const MerchantInfoForm: React.FC = () => {
   };
 
   return (
-    <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12, marginBottom: 14, background: "#f8fafc" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, borderBottom: "1px solid #e2e8f0", paddingBottom: 8 }}>
+    <section style={{ border: "1px solid #e2e8f0", borderRadius: compactPx(10), padding: compactPx(12), marginBottom: compactPx(14), background: "#f8fafc" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: compactPx(16), borderBottom: "1px solid #e2e8f0", paddingBottom: compactPx(8) }}>
         <h4 style={{ margin: 0, color: "#334155" }}>商家基本信息（必填模板）</h4>
         <button 
           type="button" 
           onClick={toggleEdit}
           style={{ 
-            fontSize: 13, 
+            fontSize: compactPx(13), 
             padding: "4px 12px", 
-            borderRadius: 6, 
+            borderRadius: compactPx(6), 
             border: "1px solid var(--xt-accent)", 
             color: "var(--xt-accent)", 
             background: isEditing ? "#eff6ff" : "transparent",
@@ -110,19 +111,19 @@ export const MerchantInfoForm: React.FC = () => {
         </button>
       </div>
 
-      <div style={{ display: "grid", gap: 16 }}>
+      <div style={{ display: "grid", gap: compactPx(16) }}>
         
         {/* 商店名称 */}
         <div className="form-item">
-          <label style={{ display: "block", marginBottom: 6, fontWeight: 500, fontSize: 14 }}>
-            <span style={{ color: "#dc2626", marginRight: 4 }}>*</span>商店名称
+          <label style={{ display: "block", marginBottom: compactPx(6), fontWeight: 500, fontSize: compactPx(14) }}>
+            <span style={{ color: "#dc2626", marginRight: compactPx(4) }}>*</span>商店名称
           </label>
           <input
             disabled={!isEditing}
             style={{ 
               width: "100%", 
               padding: "8px 12px", 
-              borderRadius: 6, 
+              borderRadius: compactPx(6), 
               border: `1px solid ${errors.shop_name ? "#dc2626" : "#d1d5db"}`,
               boxSizing: "border-box",
               outline: "none",
@@ -135,20 +136,20 @@ export const MerchantInfoForm: React.FC = () => {
             onBlur={() => handleBlur("shop_name")}
             placeholder="请输入商店名称"
           />
-          {errors.shop_name && <div style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{errors.shop_name}</div>}
+          {errors.shop_name && <div style={{ color: "#dc2626", fontSize: compactPx(12), marginTop: compactPx(4) }}>{errors.shop_name}</div>}
         </div>
 
         {/* 销售产品类型 */}
         <div className="form-item">
-          <label style={{ display: "block", marginBottom: 6, fontWeight: 500, fontSize: 14 }}>
-            <span style={{ color: "#dc2626", marginRight: 4 }}>*</span>销售产品类型
+          <label style={{ display: "block", marginBottom: compactPx(6), fontWeight: 500, fontSize: compactPx(14) }}>
+            <span style={{ color: "#dc2626", marginRight: compactPx(4) }}>*</span>销售产品类型
           </label>
           <input
             disabled={!isEditing}
             style={{ 
               width: "100%", 
               padding: "8px 12px", 
-              borderRadius: 6, 
+              borderRadius: compactPx(6), 
               border: `1px solid ${errors.product_type ? "#dc2626" : "#d1d5db"}`,
               boxSizing: "border-box",
               outline: "none",
@@ -160,20 +161,20 @@ export const MerchantInfoForm: React.FC = () => {
             onBlur={() => handleBlur("product_type")}
             placeholder="例如：美妆护肤、服饰配件"
           />
-          {errors.product_type && <div style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{errors.product_type}</div>}
+          {errors.product_type && <div style={{ color: "#dc2626", fontSize: compactPx(12), marginTop: compactPx(4) }}>{errors.product_type}</div>}
         </div>
 
         {/* 销售额情况 */}
         <div className="form-item">
-          <label style={{ display: "block", marginBottom: 6, fontWeight: 500, fontSize: 14 }}>
-            <span style={{ color: "#dc2626", marginRight: 4 }}>*</span>销售额情况
+          <label style={{ display: "block", marginBottom: compactPx(6), fontWeight: 500, fontSize: compactPx(14) }}>
+            <span style={{ color: "#dc2626", marginRight: compactPx(4) }}>*</span>销售额情况
           </label>
           <input
             disabled={!isEditing}
             style={{ 
               width: "100%", 
               padding: "8px 12px", 
-              borderRadius: 6, 
+              borderRadius: compactPx(6), 
               border: `1px solid ${errors.sales_summary ? "#dc2626" : "#d1d5db"}`,
               boxSizing: "border-box",
               outline: "none",
@@ -185,20 +186,20 @@ export const MerchantInfoForm: React.FC = () => {
             onBlur={() => handleBlur("sales_summary")}
             placeholder="例如：月均 100w+ 泰铢"
           />
-          {errors.sales_summary && <div style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{errors.sales_summary}</div>}
+          {errors.sales_summary && <div style={{ color: "#dc2626", fontSize: compactPx(12), marginTop: compactPx(4) }}>{errors.sales_summary}</div>}
         </div>
 
         {/* 店铺链接 */}
         <div className="form-item">
-          <label style={{ display: "block", marginBottom: 6, fontWeight: 500, fontSize: 14 }}>
-            <span style={{ color: "#dc2626", marginRight: 4 }}>*</span>店铺链接
+          <label style={{ display: "block", marginBottom: compactPx(6), fontWeight: 500, fontSize: compactPx(14) }}>
+            <span style={{ color: "#dc2626", marginRight: compactPx(4) }}>*</span>店铺链接
           </label>
           <input
             disabled={!isEditing}
             style={{ 
               width: "100%", 
               padding: "8px 12px", 
-              borderRadius: 6, 
+              borderRadius: compactPx(6), 
               border: `1px solid ${errors.shop_link ? "#dc2626" : "#d1d5db"}`,
               boxSizing: "border-box",
               outline: "none",
@@ -212,11 +213,11 @@ export const MerchantInfoForm: React.FC = () => {
             onBlur={() => handleBlur("shop_link")}
             placeholder="https://..."
           />
-          {errors.shop_link && <div style={{ color: "#dc2626", fontSize: 12, marginTop: 4 }}>{errors.shop_link}</div>}
+          {errors.shop_link && <div style={{ color: "#dc2626", fontSize: compactPx(12), marginTop: compactPx(4) }}>{errors.shop_link}</div>}
         </div>
 
         {/* 保存按钮 */}
-        <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ marginTop: compactPx(8), display: "flex", alignItems: "center", gap: compactPx(12) }}>
           <button
             type="button"
             onClick={() => void handleSave()}
@@ -226,7 +227,7 @@ export const MerchantInfoForm: React.FC = () => {
               background: "var(--xt-accent)",
               color: "#fff",
               border: "none",
-              borderRadius: 8,
+              borderRadius: compactPx(8),
               fontWeight: 600,
               cursor: saveStatus === "saving" ? "not-allowed" : "pointer",
               transition: "all 0.2s",
@@ -239,17 +240,17 @@ export const MerchantInfoForm: React.FC = () => {
             {saveStatus === "success" && "保存成功"}
           </button>
           {saveStatus === "success" && (
-            <span style={{ color: "#10b981", fontSize: 14, fontWeight: 500 }}>
+            <span style={{ color: "#10b981", fontSize: compactPx(14), fontWeight: 500 }}>
               ✨ 信息已保存并同步，可以去发布订单了
             </span>
           )}
           {!isEditing && saveStatus === "idle" && (
-            <span style={{ color: "#64748b", fontSize: 13 }}>
+            <span style={{ color: "#64748b", fontSize: compactPx(13) }}>
               当前为查看模式，如需修改请点击右上角“编辑信息”
             </span>
           )}
           {saveError ? (
-            <span style={{ color: "#dc2626", fontSize: 13 }}>
+            <span style={{ color: "#dc2626", fontSize: compactPx(13) }}>
               {saveError}
             </span>
           ) : null}

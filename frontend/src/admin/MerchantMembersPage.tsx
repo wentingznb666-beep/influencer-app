@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 ﻿import { useEffect, useState } from "react";
 import { getAdminMerchantMembers } from "../adminApi";
 import { formatDepositStatus, formatMemberLevel } from "../utils/matchingStatusText";
@@ -28,7 +29,7 @@ export default function MerchantMembersPage() {
   }, []);
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
+    <div style={{ background: "#fff", borderRadius: compactPx(16), padding: compactPx(20), boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
       <h2 style={{ marginTop: 0 }}>商家会员与保证金</h2>
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
       <table style={{ width: "100%", borderCollapse: "collapse" }}>

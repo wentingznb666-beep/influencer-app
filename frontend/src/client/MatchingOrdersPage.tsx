@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
@@ -12,6 +13,7 @@ import {
 import { normalizeWorkLinks } from "../utils/workLinks";
 import { showToastNotice } from "../utils/showToast";
 import { getAccessToken } from "../authApi";
+import { useScrollLock } from "../hooks/useScrollLock";
 
 type OrderRow = {
   id: number;
@@ -24,6 +26,8 @@ type OrderRow = {
   created_at?: string | null;
   updated_at?: string | null;
   detail_json?: unknown;
+  influencer_name?: string | null;
+  influencer_username?: string | null;
 };
 
 type ApplicantRow = {
@@ -87,13 +91,15 @@ export default function MatchingOrdersPage() {
   const [msg, setMsg] = useState<string>("");
   const [activeOrderId, setActiveOrderId] = useState<number | null>(null);
   const [applicants, setApplicants] = useState<ApplicantRow[]>([]);
-  const [paymentInfoByOrderId, setPaymentInfoByOrderId] = useState<Record<number, any>>({});
+  const [paymentInfoByOrderId, setPaymentInfoByOrderId] = useState<Record<number, Record<string, unknown>>>({});
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [loadingApplicants, setLoadingApplicants] = useState(false);
   const [actionBusy, setActionBusy] = useState<Record<string, boolean>>({});
   const [linkAccepted, setLinkAccepted] = useState<Record<string, boolean>>({});
   const [linkRejected, setLinkRejected] = useState<Record<string, boolean>>({});
   const [linkPayments, setLinkPayments] = useState<Record<string, string>>({});
+
+  useScrollLock(activeOrderId !== null);
 
   const saveLinkState = async (orderId: number, applicantId: number, linkIdx: number, accepted: boolean, rejected: boolean, paymentUrl?: string) => {
     await fetch(`/api/matching/client/matching-orders/${orderId}/link-acceptance`, {
@@ -378,7 +384,7 @@ export default function MatchingOrdersPage() {
   }, [filteredSortedOrders, page, pageSize]);
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
+    <div style={{ background: "#fff", borderRadius: compactPx(16), padding: compactPx(20), boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
       <style>{`
         .xt-match-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; flex-wrap:wrap; }
         .xt-match-title { margin:0; color:var(--xt-primary); letter-spacing:0.02em; font-size:20px; line-height:1.25; }
@@ -427,13 +433,13 @@ export default function MatchingOrdersPage() {
         .xt-page-num { width:34px; height:34px; border-radius:10px; border:1px solid var(--xt-border); background:#fff; cursor:pointer; }
         .xt-page-num--active { background: rgba(26,35,126,0.08); border-color: rgba(26,35,126,0.28); color: var(--xt-primary); font-weight:800; }
 
-        .xt-modal-mask { position:fixed; inset:0; background: rgba(15,23,42,0.52); display:grid; place-items:center; z-index:1200; padding: 18px; }
+        .xt-modal-mask { position:fixed; inset:0; background: rgba(15,23,42,0.52); display:grid; place-items:center; z-index:1200; padding: compactPx(18)px; }
         .xt-modal { width: min(980px, 96vw); max-height: 90vh; overflow: hidden; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(15,23,42,0.30); display:flex; flex-direction:column; }
         .xt-modal-head { padding:14px 16px; border-bottom:1px solid var(--xt-border); display:flex; align-items:center; justify-content:space-between; gap:12px; }
         .xt-modal-title { margin:0; font-size:16px; font-weight:800; color:#0f172a; }
         .xt-close { width:36px; height:36px; border-radius:12px; border:1px solid var(--xt-border); background:#fff; cursor:pointer; color:#475569; font-size:18px; display:grid; place-items:center; }
         .xt-close:hover { background: rgba(239,68,68,0.10); border-color: rgba(239,68,68,0.25); color:#b91c1c; }
-        .xt-modal-body { padding: 14px 16px; overflow:auto; }
+        .xt-modal-body { padding: compactPx(14)px 16px; overflow:auto; }
         .xt-table { width:100%; border-collapse: separate; border-spacing:0; }
         .xt-th, .xt-td { padding:10px 10px; border-bottom:1px solid rgba(148,163,184,0.28); text-align:left; font-size:13px; color:#0f172a; vertical-align:middle; }
         .xt-th { color:#475569; font-weight:800; background: rgba(15,23,42,0.02); position: sticky; top: 0; z-index: 1; }
@@ -458,24 +464,24 @@ export default function MatchingOrdersPage() {
         </div>
       </div>
 
-      {error ? <p style={{ color: "#b91c1c", marginTop: 10, lineHeight: 1.8 }}>{error}</p> : null}
-      {msg ? <p style={{ color: "#166534", marginTop: 8, lineHeight: 1.8 }}>{msg}</p> : null}
+      {error ? <p style={{ color: "#b91c1c", marginTop: compactPx(10), lineHeight: 1.8 }}>{error}</p> : null}
+      {msg ? <p style={{ color: "#166534", marginTop: compactPx(8), lineHeight: 1.8 }}>{msg}</p> : null}
 
       <div className="xt-toolbar">
         <input className="xt-input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索：订单号 / 任务名称 / 产品名称" />
-        <select className="xt-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)}>
+        <select className="xt-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as "all" | "open" | "claimed" | "completed")}>
           <option value="all">全部状态</option>
           <option value="open">open（开放）</option>
           <option value="claimed">claimed（执行）</option>
           <option value="completed">completed（待验收）</option>
         </select>
-        <select className="xt-select" value={sortKey} onChange={(e) => setSortKey(e.target.value as any)}>
+        <select className="xt-select" value={sortKey} onChange={(e) => setSortKey(e.target.value as "time_desc" | "time_asc" | "amount_desc" | "amount_asc")}>
           <option value="time_desc">时间：最新优先</option>
           <option value="time_asc">时间：最早优先</option>
           <option value="amount_desc">金额：高到低</option>
           <option value="amount_asc">金额：低到高</option>
         </select>
-        <select className="xt-select" value={String(pageSize)} onChange={(e) => setPageSize(Number(e.target.value) as any)}>
+        <select className="xt-select" value={String(pageSize)} onChange={(e) => setPageSize(Number(e.target.value) as 10 | 20 | 50)}>
           <option value="10">每页 10</option>
           <option value="20">每页 20</option>
           <option value="50">每页 50</option>
@@ -486,7 +492,7 @@ export default function MatchingOrdersPage() {
 
       <div className="xt-orders">
         {pagedOrders.length === 0 && !loadingOrders ? (
-          <div style={{ padding: 16, color: "#64748b", border: "1px dashed rgba(148,163,184,0.6)", borderRadius: 14 }}>暂无符合条件的订单</div>
+          <div style={{ padding: compactPx(16), color: "#64748b", border: "1px dashed rgba(148,163,184,0.6)", borderRadius: compactPx(14) }}>暂无符合条件的订单</div>
         ) : null}
 
         {pagedOrders.map((it) => {
@@ -499,7 +505,7 @@ export default function MatchingOrdersPage() {
           const productName = getOrderDetailField(it, "product_name");
           const coopType = getOrderDetailField(it, "cooperation_type_id");
           const workLinks = normalizeWorkLinks(Array.isArray(it.work_links) ? it.work_links : []);
-          const influencerName = (it as any).influencer_name || (it as any).influencer_username || "";
+          const influencerName = it.influencer_name || it.influencer_username || "";
           const paymentInfo = paymentInfoByOrderId[it.id] || null;
           return (
             <div key={it.id} className="xt-card">
@@ -520,23 +526,23 @@ export default function MatchingOrdersPage() {
                   </div>
                   {accepted ? (
                     paymentInfo ? (
-                      <div style={{ marginTop: 12, padding: 12, border: "1px solid rgba(16,185,129,0.35)", borderRadius: 12, background: "rgba(16,185,129,0.08)" }}>
+                      <div style={{ marginTop: compactPx(12), padding: compactPx(12), border: "1px solid rgba(16,185,129,0.35)", borderRadius: compactPx(12), background: "rgba(16,185,129,0.08)" }}>
                         <div style={{ fontWeight: 800, color: "#065f46" }}>达人收款信息（请商家线下转账）</div>
-                        <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "120px 1fr", rowGap: 6, columnGap: 10, fontSize: 13, lineHeight: 1.8 }}>
+                        <div style={{ marginTop: compactPx(8), display: "grid", gridTemplateColumns: "120px 1fr", rowGap: 6, columnGap: 10, fontSize: compactPx(13), lineHeight: 1.8 }}>
                           <div style={{ color: "#047857" }}>姓名</div><div>{paymentInfo.real_name || "-"}</div>
                           <div style={{ color: "#047857" }}>银行</div><div>{paymentInfo.bank_name || "-"}</div>
                           <div style={{ color: "#047857" }}>银行卡号</div><div>{paymentInfo.bank_card || "-"}</div>
                         </div>
                       </div>
                     ) : (
-                      <div style={{ marginTop: 12, padding: 10, borderRadius: 12, border: "1px dashed rgba(148,163,184,0.55)", color: "#64748b", fontSize: 13 }}>
+                      <div style={{ marginTop: compactPx(12), padding: compactPx(10), borderRadius: compactPx(12), border: "1px dashed rgba(148,163,184,0.55)", color: "#64748b", fontSize: compactPx(13) }}>
                         已验收：收款信息未加载，点击右侧“查看收款信息”获取。
                       </div>
                     )
                   ) : null}
                 </div>
                 <div className="xt-right">
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: compactPx(8) }}>
                     <div className="xt-amount"><strong>{amount.toFixed(0)}</strong><span>฿</span></div>
                     <span className="xt-badge" style={{ background: badge.bg, color: badge.text, borderColor: badge.border }}>{statusText(statusKey)}</span>
                   </div>
@@ -590,7 +596,7 @@ export default function MatchingOrdersPage() {
             return <button key={p} type="button" className={`xt-page-num ${p === page ? "xt-page-num--active" : ""}`} onClick={() => setPage(p)}>{p}</button>;
           })}
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: compactPx(8) }}>
           <button type="button" className="xt-page-btn" disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>上一页</button>
           <button type="button" className="xt-page-btn" disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>下一页</button>
         </div>
@@ -610,42 +616,42 @@ export default function MatchingOrdersPage() {
               {loadingApplicants ? <div style={{ color: "#64748b", padding: "10px 2px" }}>加载报名中…</div> : null}
               {!loadingApplicants && applicants.length === 0 ? <div style={{ color: "#64748b", padding: "10px 2px" }}>暂无报名达人</div> : null}
               {applicants.length > 0 ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: compactPx(14) }}>
                   {applicants.map((a) => {
                     const st = safeText(a.status);
                     const orderWorkLinks = normalizeWorkLinks(Array.isArray(activeOrder.work_links) ? activeOrder.work_links : []);
                     return (
-                      <div key={a.id} style={{ border: "1px solid #e2e8f0", borderRadius: 12, padding: 14, background: "#fff" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <div key={a.id} style={{ border: "1px solid #e2e8f0", borderRadius: compactPx(12), padding: compactPx(14), background: "#fff" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: compactPx(10) }}>
                           <div>
-                            <strong style={{ fontSize: 15 }}>{safeText(a.username) || "-"}</strong>
-                            <span style={{ marginLeft: 10, fontSize: 12, color: "#64748b" }}>状态：{st || "-"}</span>
+                            <strong style={{ fontSize: compactPx(15) }}>{safeText(a.username) || "-"}</strong>
+                            <span style={{ marginLeft: compactPx(10), fontSize: compactPx(12), color: "#64748b" }}>状态：{st || "-"}</span>
                           </div>
                           <button type="button" className="xt-btn xt-btn--outline" onClick={() => openInfluencerDetail(a)}>查看详情</button>
                         </div>
                         {orderWorkLinks.length > 0 ? (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                            <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>回传视频链接：</div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: compactPx(8) }}>
+                            <div style={{ fontSize: compactPx(12), color: "#64748b", fontWeight: 600 }}>回传视频链接：</div>
                             {orderWorkLinks.map((url: string, idx: number) => {
                               const linkKey = `${activeOrder.id}-${a.id}-${idx}`;
                               const isAccepted = !!actionBusy[`acceptLink:${linkKey}`] || !!linkAccepted[linkKey];
                               const isRejected = !!linkRejected[linkKey];
                               if (isRejected) return null;
                               return (
-                                <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: isAccepted ? "#f0fdf4" : "#f8fafc", borderRadius: 8, border: `1px solid ${isAccepted ? "#86efac" : "#e2e8f0"}` }}>
-                                  <a href={url} target="_blank" rel="noreferrer" style={{ flex: 1, fontSize: 13, wordBreak: "break-all", color: "#2563eb", minWidth: 0 }}>{url}</a>
-                                  <button type="button" onClick={() => navigator.clipboard.writeText(url)} style={{ padding: "2px 8px", fontSize: 11, border: "1px solid #dbe1ea", borderRadius: 4, background: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}>复制</button>
+                                <div key={idx} style={{ display: "flex", alignItems: "center", gap: compactPx(8), padding: "6px 10px", background: isAccepted ? "#f0fdf4" : "#f8fafc", borderRadius: compactPx(8), border: `1px solid ${isAccepted ? "#86efac" : "#e2e8f0"}` }}>
+                                  <a href={url} target="_blank" rel="noreferrer" style={{ flex: 1, fontSize: compactPx(13), wordBreak: "break-all", color: "#2563eb", minWidth: 0 }}>{url}</a>
+                                  <button type="button" onClick={() => navigator.clipboard.writeText(url)} style={{ padding: "2px 8px", fontSize: compactPx(11), border: "1px solid #dbe1ea", borderRadius: compactPx(4), background: "#fff", cursor: "pointer", whiteSpace: "nowrap" }}>复制</button>
                                   {!isAccepted ? (
                                     <>
-                                      <button type="button" className="xt-btn xt-btn--primary" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => { setLinkAccepted((p) => ({...p, [linkKey]: true})); saveLinkState(activeOrder.id, a.id, idx, true, false); }}>验收通过</button>
-                                      <button type="button" className="xt-btn xt-btn--danger" style={{ fontSize: 11, padding: "4px 10px" }} onClick={() => { setLinkRejected((p) => ({...p, [linkKey]: true})); saveLinkState(activeOrder.id, a.id, idx, false, true); }}>验收驳回</button>
+                                      <button type="button" className="xt-btn xt-btn--primary" style={{ fontSize: compactPx(11), padding: "4px 10px" }} onClick={() => { setLinkAccepted((p) => ({...p, [linkKey]: true})); saveLinkState(activeOrder.id, a.id, idx, true, false); }}>验收通过</button>
+                                      <button type="button" className="xt-btn xt-btn--danger" style={{ fontSize: compactPx(11), padding: "4px 10px" }} onClick={() => { setLinkRejected((p) => ({...p, [linkKey]: true})); saveLinkState(activeOrder.id, a.id, idx, false, true); }}>验收驳回</button>
                                     </>
                                   ) : (
                                     linkPayments[linkKey] ? (
-                                      <><a href={linkPayments[linkKey]} target="_blank" rel="noreferrer" style={{ fontSize: 11, padding: "4px 10px", background: "#10b981", color: "#fff", borderRadius: 6, textDecoration: "none", whiteSpace: "nowrap" }}>查看付款截图</a>
-                                      <button type="button" onClick={() => { setLinkPayments((p) => ({...p, [linkKey]: ""})); setLinkAccepted((p) => ({...p, [linkKey]: false})); saveLinkState(activeOrder.id, a.id, idx, false, false, ""); }} style={{ fontSize: 11, padding: "4px 8px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" }}>删除</button></>
+                                      <><a href={linkPayments[linkKey]} target="_blank" rel="noreferrer" style={{ fontSize: compactPx(11), padding: "4px 10px", background: "#10b981", color: "#fff", borderRadius: compactPx(6), textDecoration: "none", whiteSpace: "nowrap" }}>查看付款截图</a>
+                                      <button type="button" onClick={() => { setLinkPayments((p) => ({...p, [linkKey]: ""})); setLinkAccepted((p) => ({...p, [linkKey]: false})); saveLinkState(activeOrder.id, a.id, idx, false, false, ""); }} style={{ fontSize: compactPx(11), padding: "4px 8px", background: "#ef4444", color: "#fff", border: "none", borderRadius: compactPx(6), cursor: "pointer", whiteSpace: "nowrap" }}>删除</button></>
                                     ) : (
-                                      <label style={{ fontSize: 11, padding: "4px 10px", background: "#f97316", color: "#fff", borderRadius: 6, cursor: "pointer", whiteSpace: "nowrap" }}>
+                                      <label style={{ fontSize: compactPx(11), padding: "4px 10px", background: "#f97316", color: "#fff", borderRadius: compactPx(6), cursor: "pointer", whiteSpace: "nowrap" }}>
                                         上传付款截图
                                         <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadPaymentScreenshot(activeOrder.id, linkKey, f); }} />
                                       </label>
@@ -656,7 +662,7 @@ export default function MatchingOrdersPage() {
                             })}
                           </div>
                         ) : (
-                          <div style={{ fontSize: 12, color: "#94a3b8", padding: "4px 0" }}>暂无回传视频</div>
+                          <div style={{ fontSize: compactPx(12), color: "#94a3b8", padding: "4px 0" }}>暂无回传视频</div>
                         )}
                       </div>
                     );
@@ -665,7 +671,7 @@ export default function MatchingOrdersPage() {
               ) : null}
 
               {isAccepted ? (
-                <div style={{ marginTop: 14, display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                <div style={{ marginTop: compactPx(14), display: "flex", justifyContent: "flex-end", gap: compactPx(8) }}>
                   <button
                     type="button"
                     className="xt-btn xt-btn--outline"
@@ -682,9 +688,9 @@ export default function MatchingOrdersPage() {
               ) : null}
 
               {activePaymentInfo ? (
-                <div style={{ marginTop: 14, padding: 12, border: "1px solid rgba(16,185,129,0.35)", borderRadius: 12, background: "rgba(16,185,129,0.08)" }}>
+                <div style={{ marginTop: compactPx(14), padding: compactPx(12), border: "1px solid rgba(16,185,129,0.35)", borderRadius: compactPx(12), background: "rgba(16,185,129,0.08)" }}>
                   <div style={{ fontWeight: 800, color: "#065f46" }}>达人收款信息（请商家线下转账）</div>
-                  <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "120px 1fr", rowGap: 6, columnGap: 10, fontSize: 13, lineHeight: 1.8 }}>
+                  <div style={{ marginTop: compactPx(8), display: "grid", gridTemplateColumns: "120px 1fr", rowGap: 6, columnGap: 10, fontSize: compactPx(13), lineHeight: 1.8 }}>
                     <div style={{ color: "#047857" }}>姓名</div><div>{activePaymentInfo.real_name || "-"}</div>
                     <div style={{ color: "#047857" }}>银行</div><div>{activePaymentInfo.bank_name || "-"}</div>
                     <div style={{ color: "#047857" }}>银行卡号</div><div>{activePaymentInfo.bank_card || "-"}</div>
@@ -709,9 +715,9 @@ export default function MatchingOrdersPage() {
             <div className="xt-modal-body">
               {!paymentModalInfo ? <div style={{ color: "#64748b", padding: "10px 2px" }}>暂无收款信息，请达人先在【收款信息】中填写。</div> : null}
               {paymentModalInfo ? (
-                <div style={{ padding: 12, border: "1px solid rgba(16,185,129,0.35)", borderRadius: 12, background: "rgba(16,185,129,0.08)" }}>
+                <div style={{ padding: compactPx(12), border: "1px solid rgba(16,185,129,0.35)", borderRadius: compactPx(12), background: "rgba(16,185,129,0.08)" }}>
                   <div style={{ fontWeight: 800, color: "#065f46" }}>达人收款信息（请商家线下转账）</div>
-                  <div style={{ marginTop: 8, display: "grid", gridTemplateColumns: "120px 1fr", rowGap: 6, columnGap: 10, fontSize: 13, lineHeight: 1.8 }}>
+                  <div style={{ marginTop: compactPx(8), display: "grid", gridTemplateColumns: "120px 1fr", rowGap: 6, columnGap: 10, fontSize: compactPx(13), lineHeight: 1.8 }}>
                     <div style={{ color: "#047857" }}>姓名</div><div>{paymentModalInfo.real_name || "-"}</div>
                     <div style={{ color: "#047857" }}>银行</div><div>{paymentModalInfo.bank_name || "-"}</div>
                     <div style={{ color: "#047857" }}>银行卡号</div><div>{paymentModalInfo.bank_card || "-"}</div>
@@ -731,7 +737,7 @@ export default function MatchingOrdersPage() {
               <button type="button" className="xt-close" onClick={() => setDetailOpen(false)}>×</button>
             </div>
             <div className="xt-modal-body">
-              <div style={{ padding: 12, borderRadius: 10, background: "#f8fafc", border: "1px solid #e2e8f0", display: "grid", gap: 8 }}>
+              <div style={{ padding: compactPx(12), borderRadius: compactPx(10), background: "#f8fafc", border: "1px solid #e2e8f0", display: "grid", gap: compactPx(8) }}>
                 <div><strong>TikTok账号：</strong>{safeText(activeInfluencer.tiktok_account) || "-"}</div>
                 <div><strong>粉丝数量：</strong>{safeText(activeInfluencer.tiktok_fans) || "-"}</div>
                 <div><strong>擅长领域：</strong>{influencerDomains}</div>

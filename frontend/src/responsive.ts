@@ -3,6 +3,19 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 
 export type Breakpoint = "mobile" | "tablet" | "desktop";
 
+export const COMPACT_BREAKPOINT = 768;
+export const TABLET_BREAKPOINT = 1024;
+export const MOBILE_SCALE = 0.88;
+export const TABLET_SCALE = 0.94;
+
+export function compactPx(px: number): number {
+  if (typeof window === "undefined") return px;
+  const w = window.innerWidth;
+  if (w < COMPACT_BREAKPOINT) return Math.round(px * MOBILE_SCALE);
+  if (w <= TABLET_BREAKPOINT) return Math.round(px * TABLET_SCALE);
+  return px;
+}
+
 
 
 /**

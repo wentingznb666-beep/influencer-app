@@ -22,6 +22,14 @@ const CLIENT_NAV: DashboardNavItem[] = [
   { to: "/client/op-logs", label: "我的操作日志", icon: "📄", group: "common" },
 ];
 
+/** 手机端底部 Tab 栏显示的主要页面（最多 4 个）。 */
+const CLIENT_TAB_ITEMS: DashboardNavItem[] = [
+  { to: "/client/market-orders", label: "视频订单", icon: "🎬" },
+  { to: "/client/matching-orders", label: "撮合订单", icon: "🤝" },
+  { to: "/client/points", label: "充值", icon: "🪙" },
+  { to: "/client/member-center", label: "会员", icon: "👑" },
+];
+
 /**
  * Merchant layout with navigation and balance header.
  */
@@ -83,6 +91,7 @@ export default function ClientLayout() {
     <DashboardShell
       roleTitle="商家端"
       navItems={CLIENT_NAV}
+      tabItems={CLIENT_TAB_ITEMS}
       mainMaxWidth={1200}
       logoutVariant="danger"
       headerExtra={

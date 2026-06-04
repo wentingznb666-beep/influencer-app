@@ -187,6 +187,8 @@ type DashboardShellProps = {
   roleTitle: string;
   /** 侧栏菜单项 */
   navItems: DashboardNavItem[];
+  /** 手机端底部 Tab 栏显示的主要页面（最多 4 个）。不传则不显示底部 Tab。 */
+  tabItems?: DashboardNavItem[];
   /** 主内容区最大宽度（像素） */
   mainMaxWidth?: number;
   /** 顶栏右侧额外内容（如余额、刷新） */
@@ -209,6 +211,7 @@ type DashboardShellProps = {
 export default function DashboardShell({
   roleTitle,
   navItems,
+  tabItems,
   mainMaxWidth = 1000,
   headerExtra,
   logoutVariant = "outline",
@@ -223,9 +226,11 @@ export default function DashboardShell({
   const user = getStoredUser();
   const [logoutHover, setLogoutHover] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [moreSheetOpen, setMoreSheetOpen] = useState(false);
   const { isCompact } = useResponsive();
   const headerExtrasReady = useDeferredInCompact(isCompact, 280);
   const shellRef = useRef<HTMLDivElement | null>(null);
+  const sidebarScrollRef = useRef<HTMLDivElement | null>(null);
   const [messages, setMessages] = useState<SystemMessage[]>([]);
   const [msgOpen, setMsgOpen] = useState(false);
   const [msgLoading, setMsgLoading] = useState(false);
@@ -236,6 +241,19 @@ export default function DashboardShell({
   const { expandedGroups, setExpandedGroups, toggleExpandedGroup } = useAppStore();
 
   const groupedNav = useMemo(() => bucketGroupedNavItems(navItems), [navItems]);
+
+  /** 当前页面标题（匹配到的导航项 label）。 */
+  const currentPageTitle = useMemo(() => {
+    const path = location.pathname;
+    for (const it of navItems) {
+      if (isNavItemActiveForPath(path, it)) return it.label;
+    }
+    return roleTitle;
+  }, [location.pathname, navItems, roleTitle]);
+
+  /** 是否使用底部 Tab Bar（有 tabItems 且为手机端）。 */
+  const useBottomTabs = isCompact && !!tabItems && tabItems.length > 0;
+
   /** Expand the active group when the route matches it. */
   const prevPathRef = useRef(location.pathname);
 
@@ -307,15 +325,6 @@ export default function DashboardShell({
     const timer = window.setInterval(() => void loadMessages(), 20000);
     return () => window.clearInterval(timer);
   }, []);
-
-  useEffect(() => {
-    if (!isCompact || !sidebarOpen) return;
-    const origin = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = origin;
-    };
-  }, [isCompact, sidebarOpen]);
 
   /** 消息弹窗：点击空白区域直接关闭。 */
   useEffect(() => {
@@ -440,7 +449,8 @@ export default function DashboardShell({
 
   return (
     <div ref={shellRef} style={xtLayout.dashboardShell}>
-      {isCompact && sidebarOpen && (
+      {/* 手机端底部 Tab 模式：不渲染 sidebar；否则正常渲染 */}
+      {!useBottomTabs && isCompact && sidebarOpen && (
         <button
           type="button"
           aria-label="关闭菜单遮罩"
@@ -448,9 +458,11 @@ export default function DashboardShell({
           onClick={() => setSidebarOpen(false)}
         />
       )}
+      {!useBottomTabs && (
       <aside
+        ref={sidebarScrollRef}
         className={"xt-sidebar" + (isCompact ? " is-compact" : "") + (sidebarOpen ? " is-open" : "")}
-        style={xtLayout.sidebar}
+        style={{ ...xtLayout.sidebar, overflowY: "auto" }}
         aria-hidden={isCompact ? !sidebarOpen : false}
       >
         <div className="xt-sidebar-brand">
@@ -495,6 +507,7 @@ export default function DashboardShell({
           {groupedNav.loose.length > 0 ? groupedNav.loose.map((item) => renderNavLink(item)) : null}
         </nav>
       </aside>
+      )}
       <div style={xtLayout.mainColumn}>
         <header style={dashboardHeaderStyle}>
           <div
@@ -507,7 +520,7 @@ export default function DashboardShell({
               minWidth: 0,
             }}
           >
-            {isCompact && (
+            {isCompact && !useBottomTabs && (
               <button
                 type="button"
                 aria-label={sidebarOpen ? "收起导航菜单" : "展开导航菜单"}
@@ -518,7 +531,10 @@ export default function DashboardShell({
                 {sidebarOpen ? "✕" : "☰"}
               </button>
             )}
-            {shellVariant === "influencer" ? (
+            {useBottomTabs && (
+              <span style={{ fontSize: 16, fontWeight: 600, color: "var(--xt-primary)" }}>{normalizeAccountText(currentPageTitle)}</span>
+            )}
+            {shellVariant === "influencer" && !useBottomTabs ? (
               <>
                 <span className="xt-header-sysname">达人分发</span>
                 <span data-no-auto-translate className="xt-header-username" style={{ color: "var(--xt-text-muted)", fontWeight: 600 }}>
@@ -670,10 +686,11 @@ export default function DashboardShell({
                 </div>
               )}
             </div>
-            {shellVariant !== "influencer" ? (
+            {shellVariant !== "influencer" && !useBottomTabs ? (
               <span data-no-auto-translate style={{ color: "var(--xt-text-muted)" }}>{normalizeUsername(user?.username)}</span>
             ) : null}
-            {shellVariant !== "influencer" ? <DeferredBlock ready={headerExtrasReady}>{headerExtra}</DeferredBlock> : null}
+            {shellVariant !== "influencer" && !useBottomTabs ? <DeferredBlock ready={headerExtrasReady}>{headerExtra}</DeferredBlock> : null}
+            {!useBottomTabs && (
             <button
               type="button"
               onClick={handleLogout}
@@ -683,6 +700,7 @@ export default function DashboardShell({
             >
               退出
             </button>
+            )}
           </div>
         </header>
         <main
@@ -692,6 +710,103 @@ export default function DashboardShell({
           {children}
         </main>
       </div>
+
+      {/* ---- 手机端底部 Tab Bar ---- */}
+      {useBottomTabs && (
+        <nav className="xt-bottom-tabbar" role="navigation" aria-label="主导航">
+          {tabItems!.map((item) => {
+            const target = resolveNavTarget(item);
+            const active = isNavItemActiveForPath(location.pathname, item);
+            return (
+              <NavLink
+                key={item.to}
+                to={target}
+                className={"xt-tab-item" + (active ? " is-active" : "")}
+                onClick={() => { setMoreSheetOpen(false); }}
+                onMouseEnter={() => item.preload?.()}
+              >
+                <span className="xt-tab-item__icon">{item.icon || "📄"}</span>
+                <span className="xt-tab-item__label">{normalizeAccountText(item.label)}</span>
+              </NavLink>
+            );
+          })}
+          <button
+            type="button"
+            className="xt-tab-item xt-tab-item--more"
+            onClick={() => setMoreSheetOpen((v) => !v)}
+          >
+            <span className="xt-tab-item__icon">⋯</span>
+            <span className="xt-tab-item__label">更多</span>
+          </button>
+        </nav>
+      )}
+
+      {/* ---- 「更多」底部抽屉 ---- */}
+      {moreSheetOpen && (
+        <div className="xt-more-sheet-overlay" onClick={() => setMoreSheetOpen(false)}>
+          <div className="xt-more-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="xt-more-sheet__header">
+              <span style={{ fontWeight: 600, fontSize: 15 }}>全部功能</span>
+              <button type="button" onClick={() => setMoreSheetOpen(false)} style={{ padding: "4px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: 13 }}>关闭</button>
+            </div>
+            {GROUP_ORDER.map((gid) => {
+              const items = groupedNav.groups[gid];
+              if (items.length === 0) return null;
+              return (
+                <div key={gid} className="xt-more-sheet__group">
+                  <div className="xt-more-sheet__group-title">{GROUP_META[gid].icon} {GROUP_META[gid].label}</div>
+                  <div className="xt-more-sheet__group-items">
+                    {items.map((item) => {
+                      const target = resolveNavTarget(item);
+                      const active = isNavItemActiveForPath(location.pathname, item);
+                      return (
+                        <NavLink
+                          key={item.to}
+                          to={target}
+                          className={"xt-more-sheet__link" + (active ? " is-active" : "")}
+                          onClick={() => setMoreSheetOpen(false)}
+                        >
+                          {item.icon ? <span style={{ marginRight: 6 }}>{item.icon}</span> : null}
+                          {normalizeAccountText(item.label)}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+            {groupedNav.loose.length > 0 && (
+              <div className="xt-more-sheet__group">
+                <div className="xt-more-sheet__group-items">
+                  {groupedNav.loose.map((item) => {
+                    const target = resolveNavTarget(item);
+                    return (
+                      <NavLink
+                        key={item.to}
+                        to={target}
+                        className="xt-more-sheet__link"
+                        onClick={() => setMoreSheetOpen(false)}
+                      >
+                        {item.icon ? <span style={{ marginRight: 6 }}>{item.icon}</span> : null}
+                        {normalizeAccountText(item.label)}
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            <div className="xt-more-sheet__footer">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="xt-more-sheet__logout"
+              >
+                退出登录
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

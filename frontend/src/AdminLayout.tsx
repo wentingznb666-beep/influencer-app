@@ -24,6 +24,14 @@ const BASE_ADMIN_NAV: DashboardNavItem[] = [
   { to: "/admin/op-logs", label: "我的操作日志", icon: "📄", group: "common" },
 ];
 
+/** 手机端底部 Tab 栏显示的主要页面（最多 4 个）。 */
+const ADMIN_TAB_ITEMS: DashboardNavItem[] = [
+  { to: "/admin/profit", label: "利润", icon: "📊" },
+  { to: "/admin/influencers", label: "达人", icon: "👥" },
+  { to: "/admin/market-orders", label: "视频订单", icon: "🎬" },
+  { to: "/admin/points", label: "结算", icon: "🪙" },
+];
+
 /**
  * Admin layout wrapper and navigation container.
  */
@@ -36,7 +44,7 @@ export default function AdminLayout() {
   }, [setRole]);
 
   return (
-    <DashboardShell roleTitle="管理员端" navItems={BASE_ADMIN_NAV} mainMaxWidth={1000}>
+    <DashboardShell roleTitle="管理员端" navItems={BASE_ADMIN_NAV} tabItems={ADMIN_TAB_ITEMS} mainMaxWidth={1000}>
       <Outlet />
     </DashboardShell>
   );

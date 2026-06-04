@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -37,7 +38,7 @@ export default function OrderDateFilter({ value, onChange }: OrderDateFilterProp
   }, [value, t]);
 
   return (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+    <div style={{ display: "flex", gap: compactPx(8), flexWrap: "wrap", alignItems: "center" }}>
       <select
         value={value.mode}
         onChange={(e) =>
@@ -46,7 +47,7 @@ export default function OrderDateFilter({ value, onChange }: OrderDateFilterProp
             mode: e.target.value as DateFilterMode,
           })
         }
-        style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", minWidth: 120 }}
+        style={{ padding: "8px 12px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff", minWidth: 120 }}
       >
         <option value="all">{t("全部日期")}</option>
         <option value="day">{t("按某一天")}</option>
@@ -57,7 +58,7 @@ export default function OrderDateFilter({ value, onChange }: OrderDateFilterProp
           type="date"
           value={value.day}
           onChange={(e) => onChange({ ...value, day: e.target.value })}
-          style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
+          style={{ padding: "8px 12px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff" }}
         />
       )}
       {value.mode === "range" && (
@@ -66,18 +67,18 @@ export default function OrderDateFilter({ value, onChange }: OrderDateFilterProp
             type="date"
             value={value.startDate}
             onChange={(e) => onChange({ ...value, startDate: e.target.value })}
-            style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
+            style={{ padding: "8px 12px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff" }}
           />
           <span style={{ color: "#64748b" }}>{t("至")}</span>
           <input
             type="date"
             value={value.endDate}
             onChange={(e) => onChange({ ...value, endDate: e.target.value })}
-            style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
+            style={{ padding: "8px 12px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff" }}
           />
         </>
       )}
-      <span style={{ fontSize: 12, color: "#64748b" }}>{summary}</span>
+      <span style={{ fontSize: compactPx(12), color: "#64748b" }}>{summary}</span>
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useState, useEffect } from "react";
 import * as api from "../adminApi";
 
@@ -50,10 +51,10 @@ export default function RiskPage() {
     <div>
       <h2 style={{ marginTop: 0 }}>防删巡检与风控</h2>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
-      <section style={{ marginBottom: 32 }}>
+      <section style={{ marginBottom: compactPx(32) }}>
         <h3>手动巡检</h3>
-        <p style={{ fontSize: 14, color: "#666" }}>输入投稿 ID，检测作品链接是否可访问。锁定期内若检测到删除将自动扣分并记违规，满 3 次违规将列入黑名单。</p>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
+        <p style={{ fontSize: compactPx(14), color: "#666" }}>输入投稿 ID，检测作品链接是否可访问。锁定期内若检测到删除将自动扣分并记违规，满 3 次违规将列入黑名单。</p>
+        <div style={{ display: "flex", gap: compactPx(8), alignItems: "center", marginTop: compactPx(8) }}>
           <input
             type="number"
             inputMode="decimal"
@@ -62,7 +63,7 @@ export default function RiskPage() {
             onChange={(e) => setCheckSubId(e.target.value)}
             style={{ width: 100, padding: "6px 10px" }}
           />
-          <button type="button" onClick={handleTriggerCheck} disabled={checking} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: checking ? "not-allowed" : "pointer" }}>
+          <button type="button" onClick={handleTriggerCheck} disabled={checking} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: checking ? "not-allowed" : "pointer" }}>
             {checking ? "检查中…" : "检测链接"}
           </button>
         </div>
@@ -71,26 +72,26 @@ export default function RiskPage() {
         <p>加载中…</p>
       ) : (
         <>
-          <section style={{ marginBottom: 32 }}>
+          <section style={{ marginBottom: compactPx(32) }}>
             <h3>告警列表（疑似删除/异常）</h3>
-            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 8, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: compactPx(8), overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
               <thead>
                 <tr style={{ background: "#f5f5f5" }}>
-                  <th style={{ padding: 10, textAlign: "left" }}>投稿ID</th>
-                  <th style={{ padding: 10, textAlign: "left" }}>结果</th>
-                  <th style={{ padding: 10, textAlign: "left" }}>达人</th>
-                  <th style={{ padding: 10, textAlign: "left" }}>检测时间</th>
-                  <th style={{ padding: 10, textAlign: "left" }}>备注</th>
+                  <th style={{ padding: compactPx(10), textAlign: "left" }}>投稿ID</th>
+                  <th style={{ padding: compactPx(10), textAlign: "left" }}>结果</th>
+                  <th style={{ padding: compactPx(10), textAlign: "left" }}>达人</th>
+                  <th style={{ padding: compactPx(10), textAlign: "left" }}>检测时间</th>
+                  <th style={{ padding: compactPx(10), textAlign: "left" }}>备注</th>
                 </tr>
               </thead>
               <tbody>
                 {alerts.map((a) => (
                   <tr key={a.id}>
-                    <td style={{ padding: 10 }}>{a.submission_id}</td>
-                    <td style={{ padding: 10 }}>{a.check_result === "deleted" ? "已删除" : "异常"}</td>
-                    <td style={{ padding: 10 }}>{a.username}</td>
-                    <td style={{ padding: 10 }}>{a.checked_at}</td>
-                    <td style={{ padding: 10 }}>{a.note || "—"}</td>
+                    <td style={{ padding: compactPx(10) }}>{a.submission_id}</td>
+                    <td style={{ padding: compactPx(10) }}>{a.check_result === "deleted" ? "已删除" : "异常"}</td>
+                    <td style={{ padding: compactPx(10) }}>{a.username}</td>
+                    <td style={{ padding: compactPx(10) }}>{a.checked_at}</td>
+                    <td style={{ padding: compactPx(10) }}>{a.note || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -99,20 +100,20 @@ export default function RiskPage() {
           </section>
           <section>
             <h3>违规记录</h3>
-            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 8, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: compactPx(8), overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
               <thead>
                 <tr style={{ background: "#f5f5f5" }}>
-                  <th style={{ padding: 10, textAlign: "left" }}>达人</th>
-                  <th style={{ padding: 10, textAlign: "left" }}>原因</th>
-                  <th style={{ padding: 10, textAlign: "left" }}>时间</th>
+                  <th style={{ padding: compactPx(10), textAlign: "left" }}>达人</th>
+                  <th style={{ padding: compactPx(10), textAlign: "left" }}>原因</th>
+                  <th style={{ padding: compactPx(10), textAlign: "left" }}>时间</th>
                 </tr>
               </thead>
               <tbody>
                 {violations.map((v) => (
                   <tr key={v.id}>
-                    <td style={{ padding: 10 }}>{v.username}</td>
-                    <td style={{ padding: 10 }}>{v.reason}</td>
-                    <td style={{ padding: 10 }}>{v.created_at}</td>
+                    <td style={{ padding: compactPx(10) }}>{v.username}</td>
+                    <td style={{ padding: compactPx(10) }}>{v.reason}</td>
+                    <td style={{ padding: compactPx(10) }}>{v.created_at}</td>
                   </tr>
                 ))}
               </tbody>

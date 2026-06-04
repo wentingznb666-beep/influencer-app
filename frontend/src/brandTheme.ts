@@ -48,7 +48,9 @@ export const xtLayout = {
 
     display: "flex",
 
-    minHeight: "100vh",
+    height: "100vh",
+
+    overflow: "hidden",
 
     background: "var(--xt-bg)",
 
@@ -69,7 +71,6 @@ export const xtLayout = {
     flexDirection: "column",
 
     boxShadow: "4px 0 32px rgba(30, 41, 59, 0.18)",
-    zIndex: 40,
 
   } as CSSProperties,
 
@@ -87,7 +88,7 @@ export const xtLayout = {
 
     background: "var(--xt-bg)",
 
-    overflow: "auto",
+    overflow: "hidden",
 
   } as CSSProperties,
 
@@ -113,12 +114,6 @@ export const xtLayout = {
 
     gap: 12,
 
-    position: "sticky",
-
-    top: 0,
-
-    zIndex: 30,
-
   } as CSSProperties,
 
   /** 主内容区内边距（与卡片、表格留白） */
@@ -126,6 +121,8 @@ export const xtLayout = {
   mainContent: {
 
     flex: 1,
+
+    overflowY: "auto",
 
     padding: "var(--xt-main-padding)",
 

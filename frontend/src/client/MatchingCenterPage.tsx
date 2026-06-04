@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -8,6 +9,7 @@ import {
   updateMatchingOrder,
   uploadMatchingOrderAssets,
 } from "../clientApi";
+import { useScrollLock } from "../hooks/useScrollLock";
 import { useAppStore } from "../stores/AppStore";
 import { MerchantInfoForm } from "../components/MerchantInfoForm";
 import { showToastNotice } from "../utils/showToast";
@@ -41,6 +43,21 @@ type MatchingFormState = {
   violation_action: "取消佣金并拉黑" | "取消合作" | "警告";
   unit_commission: string;
   reward_thb: string;
+};
+
+type MatchingOrderRow = {
+  id: number;
+  order_no?: string | null;
+  title?: string | null;
+  status?: string | null;
+  match_status?: string | null;
+  task_amount?: number | string | null;
+  work_links?: unknown;
+  created_at?: string | null;
+  updated_at?: string | null;
+  detail?: unknown;
+  detail_json?: unknown;
+  detailJson?: unknown;
 };
 
 const defaultForm: MatchingFormState = {
@@ -95,11 +112,13 @@ export default function MatchingCenterPage() {
   const [showModal, setShowModal] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadedUrls, setUploadedUrls] = useState<string[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<MatchingOrderRow[]>([]);
   const [form, setForm] = useState<MatchingFormState>(defaultForm);
-  const [editingOrder, setEditingOrder] = useState<any | null>(null);
+  const [editingOrder, setEditingOrder] = useState<MatchingOrderRow | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successKind, setSuccessKind] = useState<"create" | "update">("create");
+
+  useScrollLock(showModal || !!editingOrder || showSuccessModal);
 
   const parseFirstPositiveNumber = (text: string): number | null => {
     const m = String(text || "").replace(/,/g, "").match(/(\d+(?:\.\d+)?)/);
@@ -325,7 +344,7 @@ export default function MatchingCenterPage() {
     if (!Number.isFinite(n)) return "-";
     return n.toFixed(2);
   };
-  const getDetailObj = (it: any): Record<string, unknown> | null => {
+  const getDetailObj = (it: MatchingOrderRow): Record<string, unknown> | null => {
     const d = it?.detail && typeof it.detail === "object" ? (it.detail as Record<string, unknown>) : null;
     if (d) return d;
     const dj = it?.detail_json && typeof it.detail_json === "object" ? (it.detail_json as Record<string, unknown>) : null;
@@ -334,8 +353,8 @@ export default function MatchingCenterPage() {
     if (d2) return d2;
     return null;
   };
-  const getDetailText = (it: any, key: string): string => {
-    const d = getDetailObj(it) as any;
+  const getDetailText = (it: MatchingOrderRow, key: string): string => {
+    const d = getDetailObj(it);
     const v = d ? d[key] : undefined;
     return safeText(v).trim();
   };
@@ -359,13 +378,13 @@ export default function MatchingCenterPage() {
   };
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
+    <div style={{ background: "#fff", borderRadius: compactPx(16), padding: compactPx(20), boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
       <style>{`
-        .xt-mc-list { display: grid; gap: 10px; }
-        .xt-mc-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; background: #fff; display:flex; justify-content:space-between; gap: 12px; align-items:flex-start; }
+        .xt-mc-list { display: grid; gap: compactPx(10)px; }
+        .xt-mc-card { border: 1px solid #e2e8f0; border-radius: 12px; padding: compactPx(12)px; background: #fff; display:flex; justify-content:space-between; gap: compactPx(12)px; align-items:flex-start; }
         .xt-mc-main { min-width: 0; flex: 1 1 auto; }
         .xt-mc-no { font-weight: 900; color: var(--xt-primary); }
-        .xt-mc-grid { margin-top: 8px; display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 6px 10px; align-items:start; }
+        .xt-mc-grid { margin-top: 8px; display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: compactPx(6)px 10px; align-items:start; }
         .xt-mc-label { color: #64748b; font-size: 13px; white-space: nowrap; }
         .xt-mc-val { color: #0f172a; font-size: 13px; overflow-wrap: anywhere; word-break: break-word; }
         .xt-mc-amount { font-variant-numeric: tabular-nums; font-weight: 900; color: var(--xt-accent); }
@@ -375,7 +394,7 @@ export default function MatchingCenterPage() {
           .xt-mc-grid { grid-template-columns: 76px minmax(0, 1fr); }
         }
       `}</style>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: compactPx(12) }}>
         <h2 style={{ margin: 0 }}>撮合中心</h2>
         <button type="button" onClick={() => setShowModal(true)} style={{ height: 38, fontWeight: 700 }}>
           发布撮合订单
@@ -385,9 +404,9 @@ export default function MatchingCenterPage() {
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
       {msg && <p style={{ color: "#166534" }}>{msg}</p>}
 
-      <div style={{ marginTop: 14 }}>
-        <h3 style={{ marginBottom: 8 }}>已发布撮合订单</h3>
-        <p style={{ marginTop: 0, marginBottom: 10, color: "#64748b", fontSize: 13 }}>
+      <div style={{ marginTop: compactPx(14) }}>
+        <h3 style={{ marginBottom: compactPx(8) }}>已发布撮合订单</h3>
+        <p style={{ marginTop: 0, marginBottom: compactPx(10), color: "#64748b", fontSize: compactPx(13) }}>
           点击“编辑”可查看并修改当前订单；订单状态会根据认领与交付流程自动更新。
         </p>
         {orders.length === 0 ? <p style={{ color: "#64748b" }}>暂无订单</p> : null}
@@ -457,13 +476,13 @@ export default function MatchingCenterPage() {
               }}
               style={{ 
                 padding: "6px 14px", 
-                borderRadius: 6, 
+                borderRadius: compactPx(6), 
                 border: "1px solid var(--xt-accent)", 
                 background: "transparent", 
                 color: "var(--xt-accent)", 
                 cursor: "pointer",
                 fontWeight: 500,
-                fontSize: 13
+                fontSize: compactPx(13)
               }}
             >
               编辑
@@ -476,7 +495,7 @@ export default function MatchingCenterPage() {
 
       {showModal ? (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 1000 }}>
-          <div style={{ position: "relative", width: "min(920px, 94vw)", maxHeight: "90vh", overflowY: "auto", background: "#fff", borderRadius: 16, padding: 16 }}>
+          <div style={{ position: "relative", width: "min(920px, 94vw)", maxHeight: "90vh", overflowY: "auto", background: "#fff", borderRadius: compactPx(16), padding: compactPx(16) }}>
             <button 
               type="button" 
               onClick={closeModal}
@@ -493,7 +512,7 @@ export default function MatchingCenterPage() {
                 display: "flex", 
                 alignItems: "center", 
                 justifyContent: "center",
-                fontSize: 18,
+                fontSize: compactPx(18),
                 color: "#64748b",
                 zIndex: 10,
                 transition: "all 0.2s"
@@ -503,16 +522,16 @@ export default function MatchingCenterPage() {
             >
               ×
             </button>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingRight: 40 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingRight: compactPx(40) }}>
               <h3 style={{ margin: 0 }}>发布撮合订单</h3>
             </div>
 
-            <form onSubmit={onCreate} style={{ display: "grid", gap: 14, marginTop: 12 }}>
+            <form onSubmit={onCreate} style={{ display: "grid", gap: compactPx(14), marginTop: compactPx(12) }}>
               <MerchantInfoForm />
 
-              <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+              <section style={{ border: "1px solid #e2e8f0", borderRadius: compactPx(10), padding: compactPx(12) }}>
                 <h4 style={{ marginTop: 0 }}>1. 任务基础信息</h4>
-                <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: "grid", gap: compactPx(8) }}>
                   <label htmlFor="task_name">任务名称 <span style={{ color: "#dc2626" }}>*</span></label>
                   <input id="task_name" value={form.task_name} onChange={(e) => setField("task_name", e.target.value)} />
 
@@ -552,9 +571,9 @@ export default function MatchingCenterPage() {
                 </div>
               </section>
 
-              <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+              <section style={{ border: "1px solid #e2e8f0", borderRadius: compactPx(10), padding: compactPx(12) }}>
                 <h4 style={{ marginTop: 0 }}>2. 合作内容要求</h4>
-                <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: "grid", gap: compactPx(8) }}>
                   <label htmlFor="product_name">推广产品/品牌名称 <span style={{ color: "#dc2626" }}>*</span></label>
                   <input id="product_name" value={form.product_name} onChange={(e) => setField("product_name", e.target.value)} />
 
@@ -575,7 +594,7 @@ export default function MatchingCenterPage() {
                   <div>
                     <span>必须包含元素 <span style={{ color: "#dc2626" }}>*</span>：</span>
                     {["产品出镜", "口播", "字幕", "话题标签"].map((v) => (
-                      <label key={v} style={{ marginLeft: 8 }}>
+                      <label key={v} style={{ marginLeft: compactPx(8) }}>
                         <input type="checkbox" checked={form.must_elements.includes(v)} onChange={() => toggleMustElement(v)} /> {v}
                       </label>
                     ))}
@@ -586,9 +605,9 @@ export default function MatchingCenterPage() {
                 </div>
               </section>
 
-              <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+              <section style={{ border: "1px solid #e2e8f0", borderRadius: compactPx(10), padding: compactPx(12) }}>
                 <h4 style={{ marginTop: 0 }}>3. 样品与发货</h4>
-                <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: "grid", gap: compactPx(8) }}>
                   <label htmlFor="provide_sample">是否提供样品</label>
                   <select id="provide_sample" value={form.provide_sample} onChange={(e) => setField("provide_sample", e.target.value as "是" | "否")}>
                     <option value="是">是</option><option value="否">否</option>
@@ -613,9 +632,9 @@ export default function MatchingCenterPage() {
                 </div>
               </section>
 
-              <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+              <section style={{ border: "1px solid #e2e8f0", borderRadius: compactPx(10), padding: compactPx(12) }}>
                 <h4 style={{ marginTop: 0 }}>4. 验收标准</h4>
-                <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: "grid", gap: compactPx(8) }}>
                   <label><input type="checkbox" checked={form.standard_publish_on_time} onChange={(e) => setField("standard_publish_on_time", e.target.checked)} /> 内容必须按时发布</label>
                   <label><input type="checkbox" checked={form.standard_clear_no_violation} onChange={(e) => setField("standard_clear_no_violation", e.target.checked)} /> 画面清晰无水印无违规</label>
 
@@ -624,7 +643,7 @@ export default function MatchingCenterPage() {
                   <datalist id="keep_days_options">
                     <option value="永久（ถาวร）" />
                   </datalist>
-                  <div style={{ color: "#64748b", fontSize: 12, lineHeight: 1.5 }}>可输入数字天数，或选择：永久（ถาวร）</div>
+                  <div style={{ color: "#64748b", fontSize: compactPx(12), lineHeight: 1.5 }}>可输入数字天数，或选择：永久（ถาวร）</div>
 
                   <label htmlFor="revise_times">允许修改次数</label>
                   <input
@@ -641,9 +660,9 @@ export default function MatchingCenterPage() {
                 </div>
               </section>
 
-              <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+              <section style={{ border: "1px solid #e2e8f0", borderRadius: compactPx(10), padding: compactPx(12) }}>
                 <h4 style={{ marginTop: 0 }}>5. 版权与规则</h4>
-                <div style={{ display: "grid", gap: 8 }}>
+                <div style={{ display: "grid", gap: compactPx(8) }}>
                   <label><input type="checkbox" checked={form.rights_granted} onChange={(e) => setField("rights_granted", e.target.checked)} /> 商家拥有使用权、剪辑权、宣传使用权</label>
                   <label><input type="checkbox" checked={form.no_cheat} onChange={(e) => setField("no_cheat", e.target.checked)} /> 达人不得抄袭搬运刷数据</label>
 
@@ -665,31 +684,31 @@ export default function MatchingCenterPage() {
                 </div>
               </section>
 
-              <section style={{ border: "1px solid #e2e8f0", borderRadius: 10, padding: 12 }}>
+              <section style={{ border: "1px solid #e2e8f0", borderRadius: compactPx(10), padding: compactPx(12) }}>
                 <h4 style={{ marginTop: 0 }}>附件上传</h4>
                 <input type="file" multiple accept="image/*,video/*" onChange={(e) => setUploadFiles(Array.from(e.target.files || []))} />
-                <div style={{ marginTop: 8 }}>
+                <div style={{ marginTop: compactPx(8) }}>
                   <button type="button" onClick={() => void doUpload()} disabled={uploading}>{uploading ? "上传中..." : "上传文件"}</button>
                 </div>
 
                 {previews.length > 0 ? (
-                  <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
+                  <div style={{ display: "grid", gap: compactPx(8), marginTop: compactPx(10) }}>
                     {previews.map((url) => (
-                      <div key={url} style={{ border: "1px solid #e2e8f0", borderRadius: 8, padding: 8 }}>
-                        <div style={{ marginBottom: 6 }}><a href={url} target="_blank" rel="noreferrer">查看文件</a></div>
-                        {isImageUrl(url) ? <img src={url} alt="attachment" style={{ maxWidth: 240, maxHeight: 160, borderRadius: 6 }} /> : null}
-                        {isVideoUrl(url) ? <video src={url} controls style={{ maxWidth: 320, maxHeight: 180, borderRadius: 6 }} /> : null}
+                      <div key={url} style={{ border: "1px solid #e2e8f0", borderRadius: compactPx(8), padding: compactPx(8) }}>
+                        <div style={{ marginBottom: compactPx(6) }}><a href={url} target="_blank" rel="noreferrer">查看文件</a></div>
+                        {isImageUrl(url) ? <img src={url} alt="attachment" style={{ maxWidth: compactPx(240), maxHeight: 160, borderRadius: compactPx(6) }} /> : null}
+                        {isVideoUrl(url) ? <video src={url} controls style={{ maxWidth: compactPx(320), maxHeight: 180, borderRadius: compactPx(6) }} /> : null}
                       </div>
                     ))}
                   </div>
                 ) : null}
               </section>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-start" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: compactPx(8), alignItems: "flex-start" }}>
                 {validationErrors.length > 0 && (
                   <div style={{
-                    background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, padding: "8px 14px",
-                    color: "#b91c1c", fontSize: 13, lineHeight: 1.8, maxWidth: 400,
+                    background: "#fef2f2", border: "1px solid #fecaca", borderRadius: compactPx(8), padding: "8px 14px",
+                    color: "#b91c1c", fontSize: compactPx(13), lineHeight: 1.8, maxWidth: compactPx(400),
                   }}>
                     {validationErrors.map((err, i) => (
                       <div key={i} style={{ whiteSpace: "nowrap" }}>• {err}</div>
@@ -706,7 +725,7 @@ export default function MatchingCenterPage() {
                     color: "#fff",
                     cursor: validationErrors.length > 0 ? "not-allowed" : "pointer",
                     border: "none",
-                    borderRadius: 8,
+                    borderRadius: compactPx(8),
                     opacity: validationErrors.length > 0 ? 0.6 : 1,
                   }}
                 >
@@ -720,10 +739,10 @@ export default function MatchingCenterPage() {
 
       {showSuccessModal ? (
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 2000 }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: "32px 40px", textAlign: "center", minWidth: 280 }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>✨</div>
-            <div style={{ fontSize: 18, fontWeight: 600, color: "#1e293b", marginBottom: 8 }}>{successKind === "update" ? "保存成功" : "发布成功"}</div>
-            <div style={{ fontSize: 14, color: "#64748b", marginBottom: 24 }}>
+          <div style={{ background: "#fff", borderRadius: compactPx(16), padding: "32px 40px", textAlign: "center", minWidth: 280 }}>
+            <div style={{ fontSize: compactPx(48), marginBottom: compactPx(12) }}>✨</div>
+            <div style={{ fontSize: compactPx(18), fontWeight: 600, color: "#1e293b", marginBottom: compactPx(8) }}>{successKind === "update" ? "保存成功" : "发布成功"}</div>
+            <div style={{ fontSize: compactPx(14), color: "#64748b", marginBottom: compactPx(24) }}>
               {successKind === "update" ? "撮合订单已保存" : "撮合订单已提交，请耐心等待"}
             </div>
             <button 
@@ -731,13 +750,13 @@ export default function MatchingCenterPage() {
               onClick={() => setShowSuccessModal(false)}
               style={{ 
                 padding: "10px 32px", 
-                borderRadius: 8, 
+                borderRadius: compactPx(8), 
                 border: "none", 
                 background: "var(--xt-accent)", 
                 color: "#fff", 
                 fontWeight: 600, 
                 cursor: "pointer",
-                fontSize: 14
+                fontSize: compactPx(14)
               }}
             >
               确定

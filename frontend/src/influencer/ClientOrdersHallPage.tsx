@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { Fragment, useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
@@ -218,11 +219,11 @@ function renderTierStandards(tier: string, t: TFunction) {
 
     return (
 
-      <div style={{ marginTop: 8, fontSize: 13, color: "#334155" }}>
+      <div style={{ marginTop: compactPx(8), fontSize: compactPx(13), color: "#334155" }}>
 
         <div style={{ fontWeight: 700 }}>{t("制作标准")}</div>
 
-        <div style={{ marginTop: 4 }}>
+        <div style={{ marginTop: compactPx(4) }}>
 
           <strong>{t("包含配音要求")}</strong>
 
@@ -238,11 +239,11 @@ function renderTierStandards(tier: string, t: TFunction) {
 
     return (
 
-      <div style={{ marginTop: 8, fontSize: 13, color: "#334155" }}>
+      <div style={{ marginTop: compactPx(8), fontSize: compactPx(13), color: "#334155" }}>
 
         <div style={{ fontWeight: 700 }}>{t("制作标准")}</div>
 
-        <div style={{ marginTop: 4 }}>{t("包含场景切换 + 特效转场")}</div>
+        <div style={{ marginTop: compactPx(4) }}>{t("包含场景切换 + 特效转场")}</div>
 
       </div>
 
@@ -252,11 +253,11 @@ function renderTierStandards(tier: string, t: TFunction) {
 
   return (
 
-    <div style={{ marginTop: 8, fontSize: 13, color: "#334155" }}>
+    <div style={{ marginTop: compactPx(8), fontSize: compactPx(13), color: "#334155" }}>
 
       <div style={{ fontWeight: 700 }}>{t("制作标准")}</div>
 
-      <div style={{ marginTop: 4 }}>{t("基础功能：背景音乐、文字贴纸")}</div>
+      <div style={{ marginTop: compactPx(4) }}>{t("基础功能：背景音乐、文字贴纸")}</div>
 
     </div>
 
@@ -295,7 +296,7 @@ const GRADED_TIER_BENEFITS: Record<GradedTier, { points: number; th: string; zh:
 
 function tierBadgeStyle(tierOrValue: unknown): CSSProperties {
   const tier = normalizeGradedTier(tierOrValue);
-  const base: CSSProperties = { padding: "2px 8px", borderRadius: 999, fontSize: 12, fontWeight: 900, border: "1px solid transparent" };
+  const base: CSSProperties = { padding: "2px 8px", borderRadius: compactPx(999), fontSize: compactPx(12), fontWeight: 900, border: "1px solid transparent" };
   if (tier === "A") return { ...base, background: "rgba(239,68,68,0.12)", color: "#b91c1c", borderColor: "rgba(239,68,68,0.35)" };
   if (tier === "B") return { ...base, background: "rgba(245,158,11,0.14)", color: "#b45309", borderColor: "rgba(245,158,11,0.40)" };
   return { ...base, background: "rgba(59,130,246,0.12)", color: "#1d4ed8", borderColor: "rgba(59,130,246,0.35)" };
@@ -305,14 +306,14 @@ function renderGradedTierBenefit(tierOrValue: unknown, t: TFunction): ReactNode 
   const tier = normalizeGradedTier(tierOrValue);
   const item = GRADED_TIER_BENEFITS[tier];
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: compactPx(4) }}>
+      <div style={{ display: "flex", gap: compactPx(8), alignItems: "center", flexWrap: "wrap" }}>
         <span style={tierBadgeStyle(tier)}>
           {t("档位")} {tier}
         </span>
         <span style={{ fontWeight: 800, color: "#0f172a" }}>{item.th}</span>
       </div>
-      <div style={{ fontSize: 12, color: "#64748b", lineHeight: 1.6 }}>
+      <div style={{ fontSize: compactPx(12), color: "#64748b", lineHeight: 1.6 }}>
         {item.zh} / {item.en}
       </div>
     </div>
@@ -333,11 +334,11 @@ function renderVoiceEntry(o: { tier: string; voice_link?: string | null; voice_n
 
       style={{
 
-        marginTop: 10,
+        marginTop: compactPx(10),
 
-        padding: 12,
+        padding: compactPx(12),
 
-        borderRadius: 10,
+        borderRadius: compactPx(10),
 
         border: "1px solid rgba(224,112,32,0.35)",
 
@@ -351,7 +352,7 @@ function renderVoiceEntry(o: { tier: string; voice_link?: string | null; voice_n
 
       {link ? (
 
-        <div style={{ marginTop: 6, fontSize: 14 }}>
+        <div style={{ marginTop: compactPx(6), fontSize: compactPx(14) }}>
 
           <a href={link} target="_blank" rel="noreferrer" style={{ color: "var(--xt-accent)", fontWeight: 700 }}>
 
@@ -363,17 +364,17 @@ function renderVoiceEntry(o: { tier: string; voice_link?: string | null; voice_n
 
       ) : (
 
-        <div style={{ marginTop: 6, fontSize: 13, color: "#64748b" }}>{t("（未提供配音素材下载链接）")}</div>
+        <div style={{ marginTop: compactPx(6), fontSize: compactPx(13), color: "#64748b" }}>{t("（未提供配音素材下载链接）")}</div>
 
       )}
 
       {note ? (
 
-        <div style={{ marginTop: 8, fontSize: 13, color: "#334155", whiteSpace: "pre-wrap" }}>{note}</div>
+        <div style={{ marginTop: compactPx(8), fontSize: compactPx(13), color: "#334155", whiteSpace: "pre-wrap" }}>{note}</div>
 
       ) : (
 
-        <div style={{ marginTop: 8, fontSize: 13, color: "#64748b" }}>{t("（未提供配音要求备注）")}</div>
+        <div style={{ marginTop: compactPx(8), fontSize: compactPx(13), color: "#64748b" }}>{t("（未提供配音要求备注）")}</div>
 
       )}
 
@@ -389,21 +390,21 @@ function renderSkuInfo(o: { id: number; sku_codes?: string[] | null; sku_images?
 
   return (
 
-    <div style={{ marginTop: 8 }}>
+    <div style={{ marginTop: compactPx(8) }}>
 
-      <div style={{ fontSize: 13, color: "#475569" }}>{t("SKU 信息")}</div>
+      <div style={{ fontSize: compactPx(13), color: "#475569" }}>{t("SKU 信息")}</div>
 
-      {Array.isArray(o.sku_codes) && o.sku_codes.length > 0 && <div style={{ marginTop: 4, fontSize: 13, color: "#334155" }}>{o.sku_codes.join("，")}</div>}
+      {Array.isArray(o.sku_codes) && o.sku_codes.length > 0 && <div style={{ marginTop: compactPx(4), fontSize: compactPx(13), color: "#334155" }}>{o.sku_codes.join("，")}</div>}
 
       {Array.isArray(o.sku_images) && o.sku_images.length > 0 && (
 
-        <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
+        <div style={{ marginTop: compactPx(6), display: "flex", gap: compactPx(6), flexWrap: "wrap" }}>
 
           {o.sku_images.slice(0, 6).map((url, idx) => (
 
             <a key={`${o.id}-sku-${idx}`} href={url} target="_blank" rel="noreferrer">
 
-              <img src={url} alt={`sku-${o.id}-${idx}`} style={{ width: 48, height: 48, borderRadius: 6, objectFit: "cover", border: "1px solid #eee" }} />
+              <img src={url} alt={`sku-${o.id}-${idx}`} style={{ width: 48, height: 48, borderRadius: compactPx(6), objectFit: "cover", border: "1px solid #eee" }} />
 
             </a>
 
@@ -521,7 +522,7 @@ export default function ClientOrdersHallPage() {
   );
 
   function typeBadgeStyle(kind: "graded" | "hq" | "monthly" | "review"): CSSProperties {
-    const base: CSSProperties = { padding: "2px 8px", borderRadius: 999, fontSize: 12, fontWeight: 800, border: "1px solid #dbe1ea" };
+    const base: CSSProperties = { padding: "2px 8px", borderRadius: compactPx(999), fontSize: compactPx(12), fontWeight: 800, border: "1px solid #dbe1ea" };
     if (kind === "graded") return { ...base, background: "#f1f5f9", color: "#0f172a" };
     if (kind === "hq") return { ...base, background: "#dcfce7", color: "#166534", borderColor: "#bbf7d0" };
     if (kind === "monthly") return { ...base, background: "#ffedd5", color: "#9a3412", borderColor: "#fed7aa" };
@@ -891,8 +892,8 @@ export default function ClientOrdersHallPage() {
   function statusBadgeStyle(status: string): CSSProperties {
     const base: CSSProperties = {
       padding: "2px 8px",
-      borderRadius: 999,
-      fontSize: 12,
+      borderRadius: compactPx(999),
+      fontSize: compactPx(12),
       fontWeight: 800,
       border: "1px solid #dbe1ea",
       background: "#f8fafc",
@@ -974,10 +975,10 @@ export default function ClientOrdersHallPage() {
       gridTemplateColumns: "112px minmax(0,1fr)",
       gap: "6px 10px",
       alignItems: "start",
-      marginTop: 8,
+      marginTop: compactPx(8),
     };
-    const detailLabelStyle: CSSProperties = { color: "#64748b", fontSize: 13, lineHeight: 1.5 };
-    const detailValueStyle: CSSProperties = { fontSize: 13, color: "#0f172a", lineHeight: 1.5, wordBreak: "break-word", whiteSpace: "pre-wrap" };
+    const detailLabelStyle: CSSProperties = { color: "#64748b", fontSize: compactPx(13), lineHeight: 1.5 };
+    const detailValueStyle: CSSProperties = { fontSize: compactPx(13), color: "#0f172a", lineHeight: 1.5, wordBreak: "break-word", whiteSpace: "pre-wrap" };
 
     const renderDetailRows = (rows: Array<{ label: string; value: ReactNode }>) => (
       <div style={detailGridStyle}>
@@ -1007,10 +1008,10 @@ export default function ClientOrdersHallPage() {
                 {t("视频数量：")}
                 {o.task_count || "-"} {t("条")}
               </span>
-              <span style={{ marginLeft: 10, fontWeight: 700, color: "var(--xt-accent)" }}>
+              <span style={{ marginLeft: compactPx(10), fontWeight: 700, color: "var(--xt-accent)" }}>
                 {hallMarketOrderTotalPoints(o)} {t("积分")}
               </span>
-              <span style={{ marginLeft: 6, color: "#64748b" }}>
+              <span style={{ marginLeft: compactPx(6), color: "#64748b" }}>
                 ({t("单套")} {o.reward_points} {t("积分")} x {hallMarketOrderTaskCount(o)})
               </span>
             </>
@@ -1027,10 +1028,10 @@ export default function ClientOrdersHallPage() {
         <div
           key={`${o._source}-${o._list_kind}-${o.id}`}
           data-order-id={o.id}
-          style={{ padding: 12, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", width: "100%", boxSizing: "border-box", overflow: "hidden" }}
+          style={{ padding: compactPx(12), background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)", width: "100%", boxSizing: "border-box", overflow: "hidden" }}
         >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 8 }}>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: compactPx(8), marginBottom: compactPx(8) }}>
+            <div style={{ display: "flex", gap: compactPx(8), alignItems: "center", flexWrap: "wrap" }}>
               <span style={{ fontWeight: 800, color: "#0f172a" }}>
                 {t("订单号：")}
                 {o.order_no || `#${o.id}`}
@@ -1041,7 +1042,7 @@ export default function ClientOrdersHallPage() {
                 {t("档位")} {tier} · {GRADED_TIER_BENEFITS[tier].points}
                 {t("积分")}
               </span>
-              <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 12, fontWeight: 800, border: "1px solid #dbe1ea", background: "#f1f5f9", color: "#0f172a" }}>
+              <span style={{ padding: "2px 8px", borderRadius: compactPx(999), fontSize: compactPx(12), fontWeight: 800, border: "1px solid #dbe1ea", background: "#f1f5f9", color: "#0f172a" }}>
                 {t("订单日期：")}
                 {formatDateTime(o.created_at)}
               </span>
@@ -1061,49 +1062,49 @@ export default function ClientOrdersHallPage() {
             <button
               type="button"
               onClick={() => handleClaim(o.id)}
-              style={{ marginTop: 10, padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+              style={{ marginTop: compactPx(10), padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer" }}
             >
               {t("领取")}
             </button>
           ) : (
             <>
-              <p style={{ marginTop: 8, marginBottom: 0, fontSize: 14 }}>
+              <p style={{ marginTop: compactPx(8), marginBottom: 0, fontSize: compactPx(14) }}>
                 <button
                   type="button"
                   onClick={() => {
                     setLinksModalLinks(o.work_links);
                     setLinksModalOpen(true);
                   }}
-                  style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                  style={{ padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
                 >
                   {t("查看链接")}
                 </button>
               </p>
 
               {String(o.publish_link || "").trim() ? (
-                <p style={{ marginTop: 6, marginBottom: 0, fontSize: 14 }}>
+                <p style={{ marginTop: compactPx(6), marginBottom: 0, fontSize: compactPx(14) }}>
                   {t("发布链接：")}
-                  <a href={String(o.publish_link)} target="_blank" rel="noreferrer" style={{ marginLeft: 6 }}>
+                  <a href={String(o.publish_link)} target="_blank" rel="noreferrer" style={{ marginLeft: compactPx(6) }}>
                     {t("查看")}
                   </a>
                 </p>
               ) : null}
 
               {String(o.publish_method || "") === "influencer_publish_with_cart" && o.status === "completed" && !String(o.publish_link || "").trim() ? (
-                <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <div style={{ marginTop: compactPx(10), display: "flex", gap: compactPx(8), flexWrap: "wrap", alignItems: "center" }}>
                   <input
                     type="url"
                     inputMode="url"
                     value={publishDraft[o.id] || ""}
                     onChange={(e) => setPublishDraft((p) => ({ ...p, [o.id]: e.target.value }))}
                     placeholder={t("发布链接（TikTok/TAP）")}
-                    style={{ flex: 1, minWidth: 0, maxWidth: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+                    style={{ flex: 1, minWidth: 0, maxWidth: "100%", padding: "8px 10px", borderRadius: compactPx(8), border: "1px solid #ddd" }}
                   />
                   <button
                     type="button"
                     disabled={!!publishing[o.id]}
                     onClick={() => void submitPublishLink(o.id)}
-                    style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: publishing[o.id] ? "not-allowed" : "pointer" }}
+                    style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: publishing[o.id] ? "not-allowed" : "pointer" }}
                   >
                     {publishing[o.id] ? t("提交中...") : t("提交发布链接")}
                   </button>
@@ -1111,9 +1112,9 @@ export default function ClientOrdersHallPage() {
               ) : null}
 
               {o.status === "completed" && influencerEditId === o.id && (
-                <div style={{ marginTop: 10 }}>
+                <div style={{ marginTop: compactPx(10) }}>
                   {influencerEditDraft.map((line, idx) => (
-                    <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <div key={idx} style={{ display: "flex", gap: compactPx(6), marginBottom: compactPx(8), alignItems: "center", flexWrap: "wrap" }}>
                       <input
                         value={line}
                         onChange={(e) => {
@@ -1121,12 +1122,12 @@ export default function ClientOrdersHallPage() {
                           setInfluencerEditDraft((prev) => prev.map((p, i) => (i === idx ? v : p)));
                         }}
                         placeholder="https://..."
-                        style={{ flex: 1, minWidth: 0, maxWidth: "100%", padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                        style={{ flex: 1, minWidth: 0, maxWidth: "100%", padding: "6px 8px", borderRadius: compactPx(8), border: "1px solid #dbe1ea" }}
                       />
                       <button
                         type="button"
                         onClick={() => setInfluencerEditDraft((prev) => prev.filter((_, i) => i !== idx))}
-                        style={{ padding: "4px 8px", border: "1px solid #fecaca", borderRadius: 8, background: "#fff", cursor: "pointer", color: "#b91c1c" }}
+                        style={{ padding: "4px 8px", border: "1px solid #fecaca", borderRadius: compactPx(8), background: "#fff", cursor: "pointer", color: "#b91c1c" }}
                       >
                         ×
                       </button>
@@ -1136,12 +1137,12 @@ export default function ClientOrdersHallPage() {
                   <button
                     type="button"
                     onClick={() => setInfluencerEditDraft((prev) => [...prev, ""])}
-                    style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#f8fafc", cursor: "pointer" }}
+                    style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#f8fafc", cursor: "pointer" }}
                   >
                     {t("+ 新增链接")}
                   </button>
 
-                  <div style={{ marginTop: 8 }}>
+                  <div style={{ marginTop: compactPx(8) }}>
                     <button
                       type="button"
                       onClick={() => saveInfluencerWorkLinks(o.id)}
@@ -1151,9 +1152,9 @@ export default function ClientOrdersHallPage() {
                         background: "var(--xt-accent)",
                         color: "#fff",
                         border: "none",
-                        borderRadius: 8,
+                        borderRadius: compactPx(8),
                         cursor: savingInfluencerLinks ? "not-allowed" : "pointer",
-                        marginRight: 8,
+                        marginRight: compactPx(8),
                       }}
                     >
                       {savingInfluencerLinks ? t("保存中...") : t("保存链接")}
@@ -1161,7 +1162,7 @@ export default function ClientOrdersHallPage() {
                     <button
                       type="button"
                       onClick={() => setInfluencerEditId(null)}
-                      style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer" }}
+                      style={{ padding: "8px 16px", border: "1px solid #ddd", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}
                     >
                       {t("取消")}
                     </button>
@@ -1177,18 +1178,18 @@ export default function ClientOrdersHallPage() {
                     const base = o.work_links.length ? [...o.work_links] : [""];
                     setInfluencerEditDraft(base.length ? base : [""]);
                   }}
-                  style={{ marginTop: 8, padding: "6px 12px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
+                  style={{ marginTop: compactPx(8), padding: "6px 12px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff", cursor: "pointer" }}
                 >
                   {t("编辑交付链接")}
                 </button>
               )}
 
               {o.status === "claimed" && (
-                <div style={{ marginTop: 12 }}>
+                <div style={{ marginTop: compactPx(12) }}>
                   {completeId === o.id ? (
                     <div>
                       {workLinkRows.map((line, idx) => (
-                        <div key={idx} style={{ display: "flex", gap: 6, marginBottom: 8, alignItems: "center", flexWrap: "wrap" }}>
+                        <div key={idx} style={{ display: "flex", gap: compactPx(6), marginBottom: compactPx(8), alignItems: "center", flexWrap: "wrap" }}>
                           <input
                             type="url"
                             inputMode="url"
@@ -1198,12 +1199,12 @@ export default function ClientOrdersHallPage() {
                               setWorkLinkRows((prev) => prev.map((p, i) => (i === idx ? v : p)));
                             }}
                             placeholder="https://..."
-                            style={{ flex: 1, minWidth: 0, maxWidth: "100%", padding: "8px 10px", borderRadius: 8, border: "1px solid #ddd" }}
+                            style={{ flex: 1, minWidth: 0, maxWidth: "100%", padding: "8px 10px", borderRadius: compactPx(8), border: "1px solid #ddd" }}
                           />
                           <button
                             type="button"
                             onClick={() => setWorkLinkRows((prev) => prev.filter((_, i) => i !== idx))}
-                            style={{ padding: "4px 8px", border: "1px solid #fecaca", borderRadius: 8, background: "#fff", cursor: "pointer", color: "#b91c1c" }}
+                            style={{ padding: "4px 8px", border: "1px solid #fecaca", borderRadius: compactPx(8), background: "#fff", cursor: "pointer", color: "#b91c1c" }}
                           >
                             ×
                           </button>
@@ -1212,11 +1213,11 @@ export default function ClientOrdersHallPage() {
                       <button
                         type="button"
                         onClick={() => setWorkLinkRows((prev) => [...prev, ""])}
-                        style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#f8fafc", cursor: "pointer", marginBottom: 8 }}
+                        style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#f8fafc", cursor: "pointer", marginBottom: compactPx(8) }}
                       >
                         {t("+ 新增链接")}
                       </button>
-                      <button type="button" onClick={handleComplete} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", marginTop: 8 }}>
+                      <button type="button" onClick={handleComplete} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer", marginTop: compactPx(8) }}>
                         {t("确认提交")}
                       </button>
                       <button
@@ -1225,7 +1226,7 @@ export default function ClientOrdersHallPage() {
                           setCompleteId(null);
                           setWorkLinkRows([""]);
                         }}
-                        style={{ marginLeft: 8, padding: "8px 16px", border: "1px solid #ddd", borderRadius: 8, background: "#fff", cursor: "pointer", marginTop: 8 }}
+                        style={{ marginLeft: compactPx(8), padding: "8px 16px", border: "1px solid #ddd", borderRadius: compactPx(8), background: "#fff", cursor: "pointer", marginTop: compactPx(8) }}
                       >
                         {t("取消")}
                       </button>
@@ -1238,7 +1239,7 @@ export default function ClientOrdersHallPage() {
                         setWorkLinkRows([""]);
                         setInfluencerEditId(null);
                       }}
-                      style={{ padding: "8px 16px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+                      style={{ padding: "8px 16px", background: "#0f766e", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer" }}
                     >
                       {t("完成并上传链接")}
                     </button>
@@ -1257,10 +1258,10 @@ export default function ClientOrdersHallPage() {
     const selectedTalent = String(req.selected_talent || "").trim();
     const groupChat = String(req.client_group_chat || "").trim();
     const proofLinks = (Array.isArray(o.proof_links) ? o.proof_links : [])
-      .map((x: any) => String((typeof x === "string" ? x : x?.url || x?.link || "") || "").trim())
+      .map((x: unknown) => String((typeof x === "string" ? x : (x as Record<string, unknown>)?.url || (x as Record<string, unknown>)?.link || "") || "").trim())
       .filter(Boolean);
     const publishLinks = (Array.isArray(o.publish_links) ? o.publish_links : [])
-      .map((x: any) => String((typeof x === "string" ? x : x?.url || x?.link || "") || "").trim())
+      .map((x: unknown) => String((typeof x === "string" ? x : (x as Record<string, unknown>)?.url || (x as Record<string, unknown>)?.link || "") || "").trim())
       .filter(Boolean);
     const toBatchTime = (v: unknown) => {
       if (typeof v === "number") {
@@ -1273,7 +1274,7 @@ export default function ClientOrdersHallPage() {
       return Number.isFinite(ms) ? ms : 0;
     };
     const batchListChrono = Array.isArray(o.batch_payload)
-      ? o.batch_payload.slice().sort((a: any, b: any) => {
+      ? o.batch_payload.slice().sort((a: Record<string, unknown>, b: Record<string, unknown>) => {
           const ta = toBatchTime(a?.submitted_at ?? a?.created_at ?? a?.updated_at);
           const tb = toBatchTime(b?.submitted_at ?? b?.created_at ?? b?.updated_at);
           if (ta !== tb) return ta - tb;
@@ -1286,7 +1287,7 @@ export default function ClientOrdersHallPage() {
       const perMonthBatches = weeklyEnabled ? 4 : 1;
       return Math.max(1, months * perMonthBatches);
     })();
-    const submittedBatchCount = batchListChrono.filter((x: any) => {
+    const submittedBatchCount = batchListChrono.filter((x: Record<string, unknown>) => {
       const st = String(x?.status || "");
       if (st === "rejected") return false;
       const links = Array.isArray(x?.proof_links) ? x.proof_links : [];
@@ -1349,32 +1350,32 @@ export default function ClientOrdersHallPage() {
       <div
         key={`${o._source}-${o._list_kind}-${o.id}`}
         data-order-id={o.id}
-        style={{ padding: 12, background: "#fff", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", width: "100%", boxSizing: "border-box", overflow: "hidden" }}
+        style={{ padding: compactPx(12), background: "#fff", borderRadius: compactPx(10), boxShadow: "0 1px 3px rgba(0,0,0,0.08)", width: "100%", boxSizing: "border-box", overflow: "hidden" }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "flex-start" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: compactPx(12), flexWrap: "wrap", alignItems: "flex-start" }}>
           <div style={{ flex: "1 1 520px", minWidth: 0, maxWidth: "100%" }}>
-            <div style={{ fontWeight: 800, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ fontWeight: 800, display: "flex", gap: compactPx(8), alignItems: "center", flexWrap: "wrap" }}>
               <span>VO-{o.id}</span>
               {o.type_id === "high_quality_custom_video" && <span style={typeBadgeStyle("hq")}>{offlineTypeText[o.type_id]}</span>}
               {o.type_id === "monthly_package" && <span style={typeBadgeStyle("monthly")}>{offlineTypeText[o.type_id]}</span>}
               {o.type_id === "creator_review_video" && <span style={typeBadgeStyle("review")}>{offlineTypeText[o.type_id]}</span>}
               <span style={statusBadgeStyle(o._list_kind === "open" ? "open" : "claimed")}>{o._list_kind === "open" ? t("待接单") : offlinePhaseText[o.phase]}</span>
-              <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 12, fontWeight: 800, border: "1px solid #dbe1ea", background: "#f1f5f9", color: "#0f172a" }}>
+              <span style={{ padding: "2px 8px", borderRadius: compactPx(999), fontSize: compactPx(12), fontWeight: 800, border: "1px solid #dbe1ea", background: "#f1f5f9", color: "#0f172a" }}>
                 {t("订单日期：")}
                 {formatDateTime(o.created_at)}
               </span>
             </div>
-            <div style={{ marginTop: 6, fontSize: 12, color: "#64748b", lineHeight: 1.5, wordBreak: "break-word", whiteSpace: "pre-wrap" }}>{offlineTypeSummary}</div>
+            <div style={{ marginTop: compactPx(6), fontSize: compactPx(12), color: "#64748b", lineHeight: 1.5, wordBreak: "break-word", whiteSpace: "pre-wrap" }}>{offlineTypeSummary}</div>
 
             {renderDetailRows(offlineDetails)}
 
-            {offlineActionError[o.id] && <div style={{ marginTop: 8, color: "#b91c1c", fontSize: 13, fontWeight: 700 }}>{offlineActionError[o.id]}</div>}
-            {offlineActionOk[o.id] && <div style={{ marginTop: 8, color: "#166534", fontSize: 13, fontWeight: 700 }}>{offlineActionOk[o.id]}</div>}
+            {offlineActionError[o.id] && <div style={{ marginTop: compactPx(8), color: "#b91c1c", fontSize: compactPx(13), fontWeight: 700 }}>{offlineActionError[o.id]}</div>}
+            {offlineActionOk[o.id] && <div style={{ marginTop: compactPx(8), color: "#166534", fontSize: compactPx(13), fontWeight: 700 }}>{offlineActionOk[o.id]}</div>}
 
             {proofLinks.length > 0 && (
-              <div style={{ marginTop: 10, fontSize: 13, color: "#334155" }}>
-                <div style={{ fontWeight: 800, marginBottom: 4 }}>{t("交付链接")}</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ marginTop: compactPx(10), fontSize: compactPx(13), color: "#334155" }}>
+                <div style={{ fontWeight: 800, marginBottom: compactPx(4) }}>{t("交付链接")}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: compactPx(4) }}>
                   {proofLinks.slice(0, 20).map((url: string, idx: number) => (
                     <a key={`${o.id}-proof-${idx}`} href={url} target="_blank" rel="noreferrer" style={{ color: "var(--xt-accent)", wordBreak: "break-all" }}>
                       {url}
@@ -1385,9 +1386,9 @@ export default function ClientOrdersHallPage() {
             )}
 
             {publishLinks.length > 0 && (
-              <div style={{ marginTop: 10, fontSize: 13, color: "#334155" }}>
-                <div style={{ fontWeight: 800, marginBottom: 4 }}>{t("发布链接")}</div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ marginTop: compactPx(10), fontSize: compactPx(13), color: "#334155" }}>
+                <div style={{ fontWeight: 800, marginBottom: compactPx(4) }}>{t("发布链接")}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: compactPx(4) }}>
                   {publishLinks.slice(0, 20).map((url: string, idx: number) => (
                     <a key={`${o.id}-publish-${idx}`} href={url} target="_blank" rel="noreferrer" style={{ color: "var(--xt-accent)", wordBreak: "break-all" }}>
                       {url}
@@ -1398,12 +1399,12 @@ export default function ClientOrdersHallPage() {
             )}
           </div>
 
-          <div style={{ flex: "1 1 320px", minWidth: 0, maxWidth: "100%", display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
+          <div style={{ flex: "1 1 320px", minWidth: 0, maxWidth: "100%", display: "flex", flexDirection: "column", gap: compactPx(8), alignItems: "stretch" }}>
             {o._list_kind === "open" ? (
               <button
                 type="button"
                 onClick={() => void handleOfflineClaim(o.id)}
-                style={{ alignSelf: "flex-end", padding: "6px 12px", background: "#0f766e", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+                style={{ alignSelf: "flex-end", padding: "6px 12px", background: "#0f766e", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer" }}
               >
                 {t("接单")}
               </button>
@@ -1417,7 +1418,7 @@ export default function ClientOrdersHallPage() {
                     style={{
                       alignSelf: "flex-end",
                       padding: "6px 10px",
-                      borderRadius: 8,
+                      borderRadius: compactPx(8),
                       border: "1px solid #f59e0b",
                       background: "#fff7ed",
                       color: "#9a3412",
@@ -1430,23 +1431,23 @@ export default function ClientOrdersHallPage() {
                 )}
 
                 {o.type_id === "monthly_package" ? (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                      <div style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff" }}>
-                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 2 }}>{t("已交付批次：")}</div>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>{submittedBatchCount}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: compactPx(8), alignItems: "stretch" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: compactPx(8) }}>
+                      <div style={{ padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #e2e8f0", background: "#fff" }}>
+                        <div style={{ fontSize: compactPx(12), color: "#64748b", marginBottom: 2 }}>{t("已交付批次：")}</div>
+                        <div style={{ fontSize: compactPx(16), fontWeight: 800, color: "#0f172a" }}>{submittedBatchCount}</div>
                       </div>
-                      <div style={{ padding: "8px 10px", borderRadius: 10, border: "1px solid #e2e8f0", background: "#fff" }}>
-                        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 2 }}>{t("应交付批次：")}</div>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: "#0f172a" }}>{expectedBatchCount}</div>
+                      <div style={{ padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #e2e8f0", background: "#fff" }}>
+                        <div style={{ fontSize: compactPx(12), color: "#64748b", marginBottom: 2 }}>{t("应交付批次：")}</div>
+                        <div style={{ fontSize: compactPx(16), fontWeight: 800, color: "#0f172a" }}>{expectedBatchCount}</div>
                       </div>
                     </div>
 
                     {batchListChrono.length > 0 && (
-                      <div style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid #e2e8f0", background: "#f8fafc" }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 8 }}>{t("批次记录")}</div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 220, overflowY: "auto" }}>
-                          {batchListChrono.map((x: any, idx: number) => {
+                      <div style={{ width: "100%", padding: compactPx(10), borderRadius: compactPx(10), border: "1px solid #e2e8f0", background: "#f8fafc" }}>
+                        <div style={{ fontSize: compactPx(13), fontWeight: 800, color: "#0f172a", marginBottom: compactPx(8) }}>{t("批次记录")}</div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: compactPx(8), maxHeight: 220, overflowY: "auto" }}>
+                          {batchListChrono.map((x: Record<string, unknown>, idx: number) => {
                             const displayNo = Number(x?.batch_no || idx + 1);
                             const vc = Number(x?.video_count || 0);
                             const st = String(x?.status || "");
@@ -1455,15 +1456,15 @@ export default function ClientOrdersHallPage() {
                             const batchStatusText =
                               st === "pending_acceptance" ? t("待验收") : st === "accepted" ? t("已验收") : st === "settled" ? t("已结算") : st || t("未知");
                             return (
-                              <div key={`${o.id}-batch-${displayNo}`} style={{ fontSize: 12, color: "#334155" }}>
+                              <div key={`${o.id}-batch-${displayNo}`} style={{ fontSize: compactPx(12), color: "#334155" }}>
                                 <div style={{ fontWeight: 700, lineHeight: 1.5 }}>
                                   {t("批次")} {displayNo}
                                   {t("：")} {batchStatusText} ｜ {t("数量")}：{Number.isFinite(vc) && vc > 0 ? vc : "-"}
                                   {submittedAt ? <span style={{ color: "#64748b", fontWeight: 500 }}> ｜ {submittedAt}</span> : null}
                                 </div>
                                 {links.length > 0 && (
-                                  <div style={{ marginTop: 4, display: "flex", flexDirection: "column", gap: 4 }}>
-                                    {links.slice(0, 5).map((u: any, i: number) => {
+                                  <div style={{ marginTop: compactPx(4), display: "flex", flexDirection: "column", gap: compactPx(4) }}>
+                                    {links.slice(0, 5).map((u: unknown, i: number) => {
                                       const url = String(u || "").trim();
                                       if (!url) return null;
                                       return (
@@ -1487,28 +1488,28 @@ export default function ClientOrdersHallPage() {
                       </div>
                     )}
 
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 10, flexWrap: "wrap" }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, flex: "1 1 220px", minWidth: 0 }}>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: compactPx(10), flexWrap: "wrap" }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: compactPx(8), flex: "1 1 220px", minWidth: 0 }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: compactPx(4), fontSize: compactPx(12), color: "#64748b" }}>
                           <span>{t("批次号")}</span>
-                          <div style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#f8fafc", color: "#0f172a", fontWeight: 800 }}>
+                          <div style={{ width: "100%", padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#f8fafc", color: "#0f172a", fontWeight: 800 }}>
                             {nextBatchNo}
                           </div>
                         </div>
                         {!allSubmitted && (
-                          <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b" }}>
+                          <label style={{ display: "flex", flexDirection: "column", gap: compactPx(4), fontSize: compactPx(12), color: "#64748b" }}>
                             <span>{t("本次交付数量")}</span>
                             <input
                               type="number"
                               inputMode="decimal"
-                              value={(offlineMonthlyDraft[o.id]?.videoCount ?? "1") as any}
+                              value={offlineMonthlyDraft[o.id]?.videoCount ?? "1"}
                               onChange={(e) =>
                                 setOfflineMonthlyDraft((p) => ({
                                   ...p,
                                   [o.id]: { ...(p[o.id] || { batchNo: "1", videoCount: "1", urls: "" }), videoCount: e.target.value },
                                 }))
                               }
-                              style={{ width: "100%", padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea" }}
+                              style={{ width: "100%", padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #dbe1ea" }}
                               placeholder={t("数量")}
                               min={1}
                             />
@@ -1517,7 +1518,7 @@ export default function ClientOrdersHallPage() {
                       </div>
 
                       {allSubmitted && (
-                        <span style={{ padding: "2px 10px", borderRadius: 999, fontSize: 12, fontWeight: 800, border: "1px solid rgba(22,163,74,0.35)", background: "rgba(22,163,74,0.10)", color: "#166534", whiteSpace: "nowrap" }}>
+                        <span style={{ padding: "2px 10px", borderRadius: compactPx(999), fontSize: compactPx(12), fontWeight: 800, border: "1px solid rgba(22,163,74,0.35)", background: "rgba(22,163,74,0.10)", color: "#166534", whiteSpace: "nowrap" }}>
                           {t("已全部提交")}
                         </span>
                       )}
@@ -1525,7 +1526,7 @@ export default function ClientOrdersHallPage() {
 
                     {!allSubmitted && (
                       <>
-                        <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b" }}>
+                        <label style={{ display: "flex", flexDirection: "column", gap: compactPx(4), fontSize: compactPx(12), color: "#64748b" }}>
                           <span>{t("交付链接（多条用换行分隔）")}</span>
                           <textarea
                             value={offlineMonthlyDraft[o.id]?.urls ?? ""}
@@ -1537,7 +1538,7 @@ export default function ClientOrdersHallPage() {
                             }
                             placeholder={t("交付链接（多条用换行分隔）")}
                             rows={3}
-                            style={{ width: "100%", padding: "8px 10px", borderRadius: 10, border: "1px solid #dbe1ea", resize: "vertical", boxSizing: "border-box" }}
+                            style={{ width: "100%", padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #dbe1ea", resize: "vertical", boxSizing: "border-box" }}
                           />
                         </label>
                         <button
@@ -1547,7 +1548,7 @@ export default function ClientOrdersHallPage() {
                           style={{
                             alignSelf: "flex-end",
                             padding: "6px 10px",
-                            borderRadius: 8,
+                            borderRadius: compactPx(8),
                             border: "1px solid #dbe1ea",
                             background: o.payment_status !== "paid" ? "#f8fafc" : "#fff",
                             cursor: o.payment_status !== "paid" ? "not-allowed" : "pointer",
@@ -1560,16 +1561,16 @@ export default function ClientOrdersHallPage() {
                     )}
                   </div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: compactPx(8), alignItems: "stretch" }}>
                     {(o.phase === "assigned" || o.phase === "in_progress" || o.phase === "review_rejected") && (
-                      <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12, color: "#64748b" }}>
+                      <label style={{ display: "flex", flexDirection: "column", gap: compactPx(4), fontSize: compactPx(12), color: "#64748b" }}>
                         <span>{t("交付链接（多条用换行分隔）")}</span>
                         <textarea
                           value={offlineDraftUrls[o.id] ?? ""}
                           onChange={(e) => setOfflineDraftUrls((p) => ({ ...p, [o.id]: e.target.value }))}
                           placeholder={t("交付链接（多条用换行分隔）")}
                           rows={3}
-                          style={{ width: "100%", padding: "8px 10px", borderRadius: 10, border: "1px solid #dbe1ea", resize: "vertical", boxSizing: "border-box" }}
+                          style={{ width: "100%", padding: "8px 10px", borderRadius: compactPx(10), border: "1px solid #dbe1ea", resize: "vertical", boxSizing: "border-box" }}
                         />
                       </label>
                     )}
@@ -1580,7 +1581,7 @@ export default function ClientOrdersHallPage() {
                       style={{
                         alignSelf: "flex-end",
                         padding: "6px 10px",
-                        borderRadius: 8,
+                        borderRadius: compactPx(8),
                         border: "1px solid #dbe1ea",
                         background: !["assigned", "in_progress", "review_rejected"].includes(o.phase) ? "#f8fafc" : "#fff",
                         cursor: !["assigned", "in_progress", "review_rejected"].includes(o.phase) ? "not-allowed" : "pointer",
@@ -1593,13 +1594,13 @@ export default function ClientOrdersHallPage() {
                 )}
 
                 {o.type_id === "creator_review_video" && o.phase === "approved_to_publish" && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "stretch" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: compactPx(8), alignItems: "stretch" }}>
                     <input
                       type="text"
                       value={offlinePublishDraft[o.id] ?? ""}
                       onChange={(e) => setOfflinePublishDraft((p) => ({ ...p, [o.id]: e.target.value }))}
                       placeholder={t("发布链接")}
-                      style={{ width: "100%", padding: "6px 10px", borderRadius: 10, border: "1px solid #dbe1ea", boxSizing: "border-box" }}
+                      style={{ width: "100%", padding: "6px 10px", borderRadius: compactPx(10), border: "1px solid #dbe1ea", boxSizing: "border-box" }}
                     />
                     <button
                       type="button"
@@ -1608,7 +1609,7 @@ export default function ClientOrdersHallPage() {
                       style={{
                         alignSelf: "flex-end",
                         padding: "6px 10px",
-                        borderRadius: 8,
+                        borderRadius: compactPx(8),
                         border: "1px solid #dbe1ea",
                         background: "#fff",
                         cursor: "pointer",
@@ -1647,7 +1648,7 @@ export default function ClientOrdersHallPage() {
 
       <h2 style={{ marginTop: 0 }}>{t("视频分级工作台")}</h2>
 
-      <p style={{ color: "#64748b", fontSize: 14, marginBottom: 16 }}>
+      <p style={{ color: "#64748b", fontSize: compactPx(14), marginBottom: compactPx(16) }}>
 
         {t("统一查看并处理类型1/2/3/4订单。")}
 
@@ -1655,15 +1656,15 @@ export default function ClientOrdersHallPage() {
 
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
-      <div style={{ marginBottom: 16 }}>
-        <h3 style={{ fontSize: 16, marginTop: 0 }}>{t("统一订单列表")}</h3>
-        <div style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ marginBottom: compactPx(16) }}>
+        <h3 style={{ fontSize: compactPx(16), marginTop: 0 }}>{t("统一订单列表")}</h3>
+        <div className="sticky-search" style={{ marginBottom: compactPx(12), display: "flex", gap: compactPx(8), flexWrap: "wrap", alignItems: "center" }}>
           <input
             type="text"
             value={gradedSearch}
             onChange={(e) => setGradedSearch(e.target.value)}
             placeholder={t("关键词：订单号/标题/商家（模糊）")}
-            style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #dbe1ea", minWidth: 240 }}
+            style={{ padding: "8px 12px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", minWidth: 240 }}
           />
           <select
             value={gradedStatusFilter}
@@ -1671,7 +1672,7 @@ export default function ClientOrdersHallPage() {
               const next = (e.target.value as UnifiedStatusFilter) || "";
               setGradedStatusFilter(next);
             }}
-            style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
+            style={{ padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff" }}
           >
             <option value="">{t("全部状态")}</option>
             <option value="open">{t("待领取（类型1）")}</option>
@@ -1688,8 +1689,8 @@ export default function ClientOrdersHallPage() {
           <OrderDateFilter value={gradedDateFilter} onChange={(next) => setGradedDateFilter(next)} />
           <select
             value={gradedSortMode}
-            onChange={(e) => setGradedSortMode(e.target.value as any)}
-            style={{ padding: "6px 10px", borderRadius: 8, border: "1px solid #dbe1ea", background: "#fff" }}
+            onChange={(e) => setGradedSortMode(e.target.value as "created_desc" | "created_asc" | "amount_desc" | "amount_asc" | "status_asc" | "status_desc")}
+            style={{ padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid #dbe1ea", background: "#fff" }}
           >
             <option value="created_desc">{t("创建时间：新→旧")}</option>
             <option value="created_asc">{t("创建时间：旧→新")}</option>
@@ -1701,7 +1702,7 @@ export default function ClientOrdersHallPage() {
           <button
             type="button"
             onClick={() => load()}
-            style={{ padding: "6px 14px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer" }}
+            style={{ padding: "6px 14px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer" }}
           >
             {t("刷新")}
           </button>
@@ -1710,15 +1711,15 @@ export default function ClientOrdersHallPage() {
         {loading ? (
           <p>{t("加载中…")}</p>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: compactPx(12) }}>
             {gradedFilteredSorted.map((o) => renderUnifiedOrderCard(o))}
 
             {gradedFilteredSorted.length === 0 && (
-              <div className="xt-inf-empty xt-inf-card" style={{ marginTop: 8 }}>
+              <div className="xt-inf-empty xt-inf-card" style={{ marginTop: compactPx(8) }}>
                 <div className="xt-inf-empty-icon" aria-hidden>
                   📋
                 </div>
-                <div style={{ fontWeight: 700, marginBottom: 8 }}>{t("暂无匹配订单，可调整筛选条件或刷新列表")}</div>
+                <div style={{ fontWeight: 700, marginBottom: compactPx(8) }}>{t("暂无匹配订单，可调整筛选条件或刷新列表")}</div>
                 <button type="button" className="xt-accent-btn" onClick={() => load()}>
                   {t("刷新列表")}
                 </button>

@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as api from "../adminApi";
 import { normalizeAccountText } from "../utils/accountText";
@@ -134,48 +135,48 @@ export default function ProfitPage() {
   return (
     <div>
       <h2 style={{ marginTop: 0 }}>利润统计</h2>
-      <p style={{ color: "#64748b", fontSize: 14 }}>
+      <p style={{ color: "#64748b", fontSize: compactPx(14) }}>
         按月自动统计，支持自定义时间区间与账号排除，排除账号不参与利润核算与列表展示。
       </p>
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
 
-      <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", padding: 14, marginBottom: 14 }}>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ background: "#fff", borderRadius: compactPx(12), boxShadow: "0 1px 3px rgba(0,0,0,0.08)", padding: compactPx(14), marginBottom: compactPx(14) }}>
+        <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
           <label>
             月份
-            <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} style={{ marginLeft: 8, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }} />
+            <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} style={{ marginLeft: compactPx(8), padding: "6px 8px", borderRadius: compactPx(8), border: "1px solid #dbe1ea" }} />
           </label>
-          <button type="button" onClick={() => loadSummary({ month })} style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "var(--xt-accent)", color: "#fff", cursor: "pointer" }}>
+          <button type="button" onClick={() => loadSummary({ month })} style={{ padding: "7px 12px", borderRadius: compactPx(8), border: "none", background: "var(--xt-accent)", color: "#fff", cursor: "pointer" }}>
             按月统计
           </button>
         </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginTop: 10 }}>
+        <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center", marginTop: compactPx(10) }}>
           <label>
             开始
-            <input type="date" value={start} onChange={(e) => setStart(e.target.value)} style={{ marginLeft: 8, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }} />
+            <input type="date" value={start} onChange={(e) => setStart(e.target.value)} style={{ marginLeft: compactPx(8), padding: "6px 8px", borderRadius: compactPx(8), border: "1px solid #dbe1ea" }} />
           </label>
           <label>
             结束
-            <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} style={{ marginLeft: 8, padding: "6px 8px", borderRadius: 8, border: "1px solid #dbe1ea" }} />
+            <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} style={{ marginLeft: compactPx(8), padding: "6px 8px", borderRadius: compactPx(8), border: "1px solid #dbe1ea" }} />
           </label>
-          <button type="button" onClick={() => loadSummary({ start, end })} style={{ padding: "7px 12px", borderRadius: 8, border: "none", background: "#0f766e", color: "#fff", cursor: "pointer" }}>
+          <button type="button" onClick={() => loadSummary({ start, end })} style={{ padding: "7px 12px", borderRadius: compactPx(8), border: "none", background: "#0f766e", color: "#fff", cursor: "pointer" }}>
             区间统计
           </button>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(160px, 1fr))", gap: 10, marginBottom: 14 }}>
-        <div style={{ background: "#fff", borderRadius: 12, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>订单数：<strong>{summary.total_orders}</strong></div>
-        <div style={{ background: "#fff", borderRadius: 12, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>商家支付：<strong>{summary.total_client_pay}</strong></div>
-        <div style={{ background: "#fff", borderRadius: 12, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>达人收益：<strong>{summary.total_creator_reward}</strong></div>
-        <div style={{ background: "#fff", borderRadius: 12, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>平台利润：<strong>{summary.total_profit}</strong></div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(160px, 1fr))", gap: compactPx(10), marginBottom: compactPx(14) }}>
+        <div style={{ background: "#fff", borderRadius: compactPx(12), padding: compactPx(12), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>订单数：<strong>{summary.total_orders}</strong></div>
+        <div style={{ background: "#fff", borderRadius: compactPx(12), padding: compactPx(12), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>商家支付：<strong>{summary.total_client_pay}</strong></div>
+        <div style={{ background: "#fff", borderRadius: compactPx(12), padding: compactPx(12), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>达人收益：<strong>{summary.total_creator_reward}</strong></div>
+        <div style={{ background: "#fff", borderRadius: compactPx(12), padding: compactPx(12), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>平台利润：<strong>{summary.total_profit}</strong></div>
       </div>
 
-      <div style={{ background: "#fff", borderRadius: 12, padding: 14, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginBottom: 14 }}>
-        <div style={{ marginBottom: 8, fontWeight: 600 }}>排除账号（{exclusionHint}）</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+      <div style={{ background: "#fff", borderRadius: compactPx(12), padding: compactPx(14), boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginBottom: compactPx(14) }}>
+        <div style={{ marginBottom: compactPx(8), fontWeight: 600 }}>排除账号（{exclusionHint}）</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: compactPx(10) }}>
           {allUsers.map((u) => (
-            <label key={u.id} style={{ minWidth: 220, display: "flex", alignItems: "center", gap: 8 }}>
+            <label key={u.id} style={{ minWidth: 220, display: "flex", alignItems: "center", gap: compactPx(8) }}>
               <input
                 type="checkbox"
                 checked={excludedIds.includes(u.id)}
@@ -191,17 +192,17 @@ export default function ProfitPage() {
           type="button"
           onClick={saveExclusions}
           disabled={saving}
-          style={{ marginTop: 10, padding: "7px 12px", borderRadius: 8, border: "none", background: "var(--xt-accent)", color: "#fff", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}
+          style={{ marginTop: compactPx(10), padding: "7px 12px", borderRadius: compactPx(8), border: "none", background: "var(--xt-accent)", color: "#fff", cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.6 : 1 }}
         >
           {saving ? "保存中..." : "保存排除配置"}
         </button>
       </div>
 
-      <div style={{ background: "#fff", borderRadius: 12, padding: 14, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginBottom: 14 }}>
-        <div style={{ marginBottom: 8, fontWeight: 600 }}>按月利润走势</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ background: "#fff", borderRadius: compactPx(12), padding: compactPx(14), boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginBottom: compactPx(14) }}>
+        <div style={{ marginBottom: compactPx(8), fontWeight: 600 }}>按月利润走势</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: compactPx(6) }}>
           {monthly.map((m) => (
-            <div key={m.month} style={{ fontSize: 14 }}>
+            <div key={m.month} style={{ fontSize: compactPx(14) }}>
               {m.month}：订单 {m.total_orders}，利润 {m.total_profit}
             </div>
           ))}
@@ -209,36 +210,36 @@ export default function ProfitPage() {
         </div>
       </div>
 
-      <div style={{ overflowX: "auto", background: "#fff", borderRadius: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+      <div style={{ overflowX: "auto", background: "#fff", borderRadius: compactPx(12), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1100 }}>
           <thead>
             <tr style={{ background: "#f5f5f5" }}>
-              <th style={{ padding: 10, textAlign: "left" }}>订单号</th>
-              <th style={{ padding: 10, textAlign: "left" }}>完成时间</th>
-              <th style={{ padding: 10, textAlign: "left" }}>商家</th>
-              <th style={{ padding: 10, textAlign: "left" }}>达人</th>
-              <th style={{ padding: 10, textAlign: "left" }}>数量</th>
-              <th style={{ padding: 10, textAlign: "left" }}>商家支付（合计）</th>
-              <th style={{ padding: 10, textAlign: "left" }}>达人收益（合计）</th>
-              <th style={{ padding: 10, textAlign: "left" }}>平台利润</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>订单号</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>完成时间</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>商家</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>达人</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>数量</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>商家支付（合计）</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>达人收益（合计）</th>
+              <th style={{ padding: compactPx(10), textAlign: "left" }}>平台利润</th>
             </tr>
           </thead>
           <tbody>
             {list.map((r) => (
               <tr key={r.id}>
-                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.order_no || `#${r.id}`}</td>
-                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>{formatDateTime(r.completed_at)}</td>
-                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}><span data-no-auto-translate>{r.client_username}</span></td>
-                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.influencer_username || "—"}</td>
-                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.task_count}</td>
-                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.client_pay_points}</td>
-                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7" }}>{r.creator_reward_points}</td>
-                <td style={{ padding: 10, borderBottom: "1px solid #eef2f7", fontWeight: 700 }}>{r.platform_profit_points}</td>
+                <td style={{ padding: compactPx(10), borderBottom: "1px solid #eef2f7" }}>{r.order_no || `#${r.id}`}</td>
+                <td style={{ padding: compactPx(10), borderBottom: "1px solid #eef2f7", whiteSpace: "nowrap" }}>{formatDateTime(r.completed_at)}</td>
+                <td style={{ padding: compactPx(10), borderBottom: "1px solid #eef2f7" }}><span data-no-auto-translate>{r.client_username}</span></td>
+                <td style={{ padding: compactPx(10), borderBottom: "1px solid #eef2f7" }}>{r.influencer_username || "—"}</td>
+                <td style={{ padding: compactPx(10), borderBottom: "1px solid #eef2f7" }}>{r.task_count}</td>
+                <td style={{ padding: compactPx(10), borderBottom: "1px solid #eef2f7" }}>{r.client_pay_points}</td>
+                <td style={{ padding: compactPx(10), borderBottom: "1px solid #eef2f7" }}>{r.creator_reward_points}</td>
+                <td style={{ padding: compactPx(10), borderBottom: "1px solid #eef2f7", fontWeight: 700 }}>{r.platform_profit_points}</td>
               </tr>
             ))}
             {!loading && list.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ padding: 14, color: "#64748b" }}>暂无数据</td>
+                <td colSpan={8} style={{ padding: compactPx(14), color: "#64748b" }}>暂无数据</td>
               </tr>
             )}
           </tbody>

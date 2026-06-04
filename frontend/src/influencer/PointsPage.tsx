@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import * as api from "../influencerApi";
@@ -62,34 +63,34 @@ export default function PointsPage() {
         <p>{t("加载中…")}</p>
       ) : (
         <>
-          <div style={{ display: "flex", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
-            <div className="xt-inf-card" style={{ padding: 18, minWidth: 168, flex: "1 1 160px" }}>
-              <div style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>{t("总积分")}</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "var(--xt-accent)", marginTop: 6 }}>{balance}</div>
+          <div style={{ display: "flex", gap: compactPx(16), marginBottom: compactPx(24), flexWrap: "wrap" }}>
+            <div className="xt-inf-card" style={{ padding: compactPx(18), minWidth: 168, flex: "1 1 160px" }}>
+              <div style={{ fontSize: compactPx(13), color: "var(--xt-text-muted)" }}>{t("总积分")}</div>
+              <div style={{ fontSize: compactPx(28), fontWeight: 800, color: "var(--xt-accent)", marginTop: compactPx(6) }}>{balance}</div>
             </div>
-            <div className="xt-inf-card" style={{ padding: 18, minWidth: 168, flex: "1 1 160px" }}>
-              <div style={{ fontSize: 13, color: "var(--xt-text-muted)" }}>{t("本周已获得")}</div>
-              <div style={{ fontSize: 28, fontWeight: 800, color: "var(--xt-primary)", marginTop: 6 }}>{weekPending}</div>
+            <div className="xt-inf-card" style={{ padding: compactPx(18), minWidth: 168, flex: "1 1 160px" }}>
+              <div style={{ fontSize: compactPx(13), color: "var(--xt-text-muted)" }}>{t("本周已获得")}</div>
+              <div style={{ fontSize: compactPx(28), fontWeight: 800, color: "var(--xt-primary)", marginTop: compactPx(6) }}>{weekPending}</div>
             </div>
           </div>
-          <h3 style={{ fontSize: 16, marginBottom: 10 }}>{t("最近流水")}</h3>
+          <h3 style={{ fontSize: compactPx(16), marginBottom: compactPx(10) }}>{t("最近流水")}</h3>
           <div style={{ overflowX: "auto" }} className="xt-inf-card">
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
               <thead>
                 <tr style={{ background: "#f8fafc" }}>
-                  <th style={{ padding: 12, textAlign: "left", fontWeight: 700 }}>{t("时间")}</th>
-                  <th style={{ padding: 12, textAlign: "left", fontWeight: 700 }}>{t("类型")}</th>
-                  <th style={{ padding: 12, textAlign: "right", fontWeight: 700 }}>{t("积分")}</th>
+                  <th style={{ padding: compactPx(12), textAlign: "left", fontWeight: 700 }}>{t("时间")}</th>
+                  <th style={{ padding: compactPx(12), textAlign: "left", fontWeight: 700 }}>{t("类型")}</th>
+                  <th style={{ padding: compactPx(12), textAlign: "right", fontWeight: 700 }}>{t("积分")}</th>
                 </tr>
               </thead>
               <tbody>
                 {ledger.map((l) => (
                   <tr key={l.id} style={{ borderTop: "1px solid var(--xt-border)" }}>
-                    <td style={{ padding: 12, color: "#475569" }}>{l.created_at}</td>
-                    <td style={{ padding: 12 }}>{t(ledgerTypeLabel(l.type))}</td>
+                    <td style={{ padding: compactPx(12), color: "#475569" }}>{l.created_at}</td>
+                    <td style={{ padding: compactPx(12) }}>{t(ledgerTypeLabel(l.type))}</td>
                     <td
                       style={{
-                        padding: 12,
+                        padding: compactPx(12),
                         textAlign: "right",
                         fontWeight: 700,
                         color: l.amount >= 0 ? "#15803d" : "#b91c1c",

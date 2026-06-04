@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { getAdminInfluencerPermissions, reviewAdminInfluencerPermission, toggleAdminInfluencerPermission } from "../matchingApi";
@@ -137,7 +138,7 @@ export default function InfluencerPermissionsPage() {
   };
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: isMobile ? 12 : 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
+    <div style={{ background: "#fff", borderRadius: compactPx(16), padding: isMobile ? 12 : 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
       <h2 style={{ marginTop: 0 }}>达人撮合权限审核</h2>
       {msg && <p style={{ margin: "8px 0 12px", color: "#334155" }}>{msg}</p>}
 
@@ -158,13 +159,13 @@ export default function InfluencerPermissionsPage() {
           font-size: 13px;
           color: #0f172a;
           background: rgba(15, 23, 42, 0.04);
-          padding: 10px 12px;
+          padding: compactPx(10)px 12px;
           border-bottom: 1px solid #e2e8f0;
           white-space: nowrap;
           min-width: 0;
         }
         .xt-perm-table tbody td {
-          padding: 10px 12px;
+          padding: compactPx(10)px 12px;
           border-bottom: 1px solid #f1f5f9;
           vertical-align: top;
           color: #0f172a;
@@ -180,7 +181,7 @@ export default function InfluencerPermissionsPage() {
         }
         .xt-perm-actions {
           display: flex;
-          gap: 6px;
+          gap: compactPx(6)px;
           flex-wrap: wrap;
         }
         .xt-perm-actions > * {
@@ -237,19 +238,19 @@ export default function InfluencerPermissionsPage() {
         }
         .xt-perm-cards {
           display: grid;
-          gap: 10px;
+          gap: compactPx(10)px;
         }
         .xt-perm-card {
           border: 1px solid #e2e8f0;
           border-radius: 12px;
-          padding: 12px;
+          padding: compactPx(12)px;
           background: #fff;
         }
         .xt-perm-card-top {
           display: flex;
           align-items: flex-start;
           justify-content: space-between;
-          gap: 10px;
+          gap: compactPx(10)px;
           margin-bottom: 8px;
         }
         .xt-perm-card-title {
@@ -260,12 +261,12 @@ export default function InfluencerPermissionsPage() {
         }
         .xt-perm-card-rows {
           display: grid;
-          gap: 6px;
+          gap: compactPx(6)px;
         }
         .xt-perm-card-row {
           display: grid;
           grid-template-columns: 84px 1fr;
-          gap: 8px;
+          gap: compactPx(8)px;
           align-items: start;
           font-size: 13px;
         }
@@ -281,7 +282,7 @@ export default function InfluencerPermissionsPage() {
           margin-top: 10px;
         }
         .xt-perm-card-actions .xt-perm-actions {
-          gap: 8px;
+          gap: compactPx(8)px;
         }
         .xt-perm-card-actions .xt-perm-btn {
           flex: 1 1 auto;
@@ -289,7 +290,7 @@ export default function InfluencerPermissionsPage() {
         }
         @media (max-width: 480px) {
           .xt-perm-card {
-            padding: 10px;
+            padding: compactPx(10)px;
           }
           .xt-perm-card-row {
             grid-template-columns: 72px 1fr;

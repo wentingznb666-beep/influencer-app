@@ -1,3 +1,4 @@
+import { compactPx } from "../responsive";
 import { useState, useEffect, type FormEvent } from "react";
 import * as api from "../clientApi";
 
@@ -52,18 +53,18 @@ export default function ClientPointsPage() {
   return (
     <div>
       <h2 style={{ marginTop: 0 }}>积分充值</h2>
-      <p style={{ fontSize: 14, color: "#666" }}>1 积分 = 1 泰铢。提交充值订单后，需管理员确认后才会到账。</p>
+      <p style={{ fontSize: compactPx(14), color: "#666" }}>1 积分 = 1 泰铢。提交充值订单后，需管理员确认后才会到账。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       {loading ? (
         <p>加载中…</p>
       ) : (
         <>
-          <div style={{ marginBottom: 24 }}>
-            <span style={{ fontSize: 14, color: "#666" }}>当前余额：</span>
-            <span style={{ fontSize: 24, fontWeight: 600 }}>{balance}</span>
-            <span style={{ marginLeft: 4, color: "#666" }}>积分</span>
+          <div style={{ marginBottom: compactPx(24) }}>
+            <span style={{ fontSize: compactPx(14), color: "#666" }}>当前余额：</span>
+            <span style={{ fontSize: compactPx(24), fontWeight: 600 }}>{balance}</span>
+            <span style={{ marginLeft: compactPx(4), color: "#666" }}>积分</span>
           </div>
-          <form onSubmit={handleRecharge} style={{ marginBottom: 24, padding: 16, background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+          <form onSubmit={handleRecharge} style={{ marginBottom: compactPx(24), padding: compactPx(16), background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
             <label>充值积分（提交订单）</label>
             <input
               type="number"
@@ -73,52 +74,52 @@ export default function ClientPointsPage() {
               value={rechargeAmount}
               onChange={(e) => setRechargeAmount(e.target.value)}
               required
-              style={{ display: "block", marginTop: 4, marginBottom: 12, width: 120, padding: "8px 10px", boxSizing: "border-box" }}
+              style={{ display: "block", marginTop: compactPx(4), marginBottom: compactPx(12), width: 120, padding: "8px 10px", boxSizing: "border-box" }}
             />
-            <button type="submit" disabled={recharging} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: 8, cursor: recharging ? "not-allowed" : "pointer" }}>
+            <button type="submit" disabled={recharging} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: recharging ? "not-allowed" : "pointer" }}>
               {recharging ? "提交中…" : "提交充值订单"}
             </button>
           </form>
           <h3>充值订单</h3>
-          <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 8, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginBottom: 20 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: compactPx(8), overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginBottom: compactPx(20) }}>
             <thead>
               <tr style={{ background: "#f5f5f5" }}>
-                <th style={{ padding: 10, textAlign: "left" }}>订单号</th>
-                <th style={{ padding: 10, textAlign: "left" }}>申请时间</th>
-                <th style={{ padding: 10, textAlign: "right" }}>金额</th>
-                <th style={{ padding: 10, textAlign: "left" }}>状态</th>
-                <th style={{ padding: 10, textAlign: "left" }}>备注</th>
-                <th style={{ padding: 10, textAlign: "left" }}>确认时间</th>
+                <th style={{ padding: compactPx(10), textAlign: "left" }}>订单号</th>
+                <th style={{ padding: compactPx(10), textAlign: "left" }}>申请时间</th>
+                <th style={{ padding: compactPx(10), textAlign: "right" }}>金额</th>
+                <th style={{ padding: compactPx(10), textAlign: "left" }}>状态</th>
+                <th style={{ padding: compactPx(10), textAlign: "left" }}>备注</th>
+                <th style={{ padding: compactPx(10), textAlign: "left" }}>确认时间</th>
               </tr>
             </thead>
             <tbody>
               {rechargeOrders.map((o) => (
                 <tr key={o.id}>
-                  <td style={{ padding: 10 }}>{o.order_no || `XT-待生成-${o.id}`}</td>
-                  <td style={{ padding: 10 }}>{o.created_at}</td>
-                  <td style={{ padding: 10, textAlign: "right" }}>{o.amount}</td>
-                  <td style={{ padding: 10 }}>{o.status === "approved" ? "已确认" : o.status === "rejected" ? "已驳回" : "待确认"}</td>
-                  <td style={{ padding: 10 }}>{o.note || "—"}</td>
-                  <td style={{ padding: 10 }}>{o.approved_at || "—"}</td>
+                  <td style={{ padding: compactPx(10) }}>{o.order_no || `XT-待生成-${o.id}`}</td>
+                  <td style={{ padding: compactPx(10) }}>{o.created_at}</td>
+                  <td style={{ padding: compactPx(10), textAlign: "right" }}>{o.amount}</td>
+                  <td style={{ padding: compactPx(10) }}>{o.status === "approved" ? "已确认" : o.status === "rejected" ? "已驳回" : "待确认"}</td>
+                  <td style={{ padding: compactPx(10) }}>{o.note || "—"}</td>
+                  <td style={{ padding: compactPx(10) }}>{o.approved_at || "—"}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           {rechargeOrders.length === 0 && <p style={{ color: "#666" }}>暂无充值订单</p>}
           <h3>最近流水</h3>
-          <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: 8, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: compactPx(8), overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
             <thead>
               <tr style={{ background: "#f5f5f5" }}>
-                <th style={{ padding: 10, textAlign: "left" }}>时间</th>
-                <th style={{ padding: 10, textAlign: "left" }}>类型</th>
-                <th style={{ padding: 10, textAlign: "right" }}>金额</th>
+                <th style={{ padding: compactPx(10), textAlign: "left" }}>时间</th>
+                <th style={{ padding: compactPx(10), textAlign: "left" }}>类型</th>
+                <th style={{ padding: compactPx(10), textAlign: "right" }}>金额</th>
               </tr>
             </thead>
             <tbody>
               {ledger.map((l) => (
                 <tr key={l.id}>
-                  <td style={{ padding: 10 }}>{l.created_at}</td>
-                  <td style={{ padding: 10 }}>
+                  <td style={{ padding: compactPx(10) }}>{l.created_at}</td>
+                  <td style={{ padding: compactPx(10) }}>
                     {l.type === "client_recharge_approved"
                       ? "充值已确认"
                       : l.type === "admin_manual_recharge"
@@ -127,7 +128,7 @@ export default function ClientPointsPage() {
                       ? "管理员扣分"
                       : l.type}
                   </td>
-                  <td style={{ padding: 10, textAlign: "right" }}>{l.amount > 0 ? "+" : ""}{l.amount}</td>
+                  <td style={{ padding: compactPx(10), textAlign: "right" }}>{l.amount > 0 ? "+" : ""}{l.amount}</td>
                 </tr>
               ))}
             </tbody>

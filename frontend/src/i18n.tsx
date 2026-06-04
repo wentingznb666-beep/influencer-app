@@ -454,7 +454,7 @@ function UiAutoTranslator({ lang }: { lang: Lang }) {
           // ignore
         }
       };
-      iframe.addEventListener("load", bind);
+      iframe.addEventListener("load", bind, { once: true });
       if (iframe.contentDocument?.readyState === "complete") bind();
     };
 

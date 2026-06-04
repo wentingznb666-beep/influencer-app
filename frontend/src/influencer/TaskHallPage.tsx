@@ -1,8 +1,10 @@
+import { compactPx } from "../responsive";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { applyMatchingOrder, getInfluencerMatchingTaskHall, getMyLinkAcceptance, getMyMatchingApplies, publishMatchingOrder, submitMatchingProof } from "../influencerApi";
 import { showToastNotice } from "../utils/showToast";
+import { useScrollLock } from "../hooks/useScrollLock";
 
 type TaskItem = {
   id: number;
@@ -22,6 +24,14 @@ type TaskItem = {
   cooperation_type_id?: unknown;
   coop_phase?: unknown;
   coop_publish_links?: unknown;
+};
+
+type LinkAcceptanceItem = {
+  link?: string;
+  url?: string;
+  accepted?: boolean;
+  rejected?: boolean;
+  payment_url?: string;
 };
 
 /** 统一报名状态文案（中文键，供 t() 映射）。 */
@@ -146,6 +156,7 @@ function OrderDetailModal({
   t: (k: string) => string;
   lang: string;
 }) {
+  useScrollLock(open);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -174,16 +185,16 @@ function OrderDetailModal({
         alignItems: "center",
         justifyContent: "center",
         zIndex: 100,
-        padding: 16,
+        padding: compactPx(16),
       }}
       onClick={onClose}
     >
       <div
         style={{
           background: "#fff",
-          borderRadius: 12,
+          borderRadius: compactPx(12),
           boxShadow: "0 10px 40px rgba(15,23,42,0.2)",
-          maxWidth: 860,
+          maxWidth: compactPx(860),
           width: "100%",
           maxHeight: "80vh",
           overflow: "hidden",
@@ -194,27 +205,27 @@ function OrderDetailModal({
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderBottom: "1px solid #eef2f7" }}>
           <div style={{ fontWeight: 900, color: "var(--xt-primary)" }}>{t("订单详情")}</div>
-          <button type="button" onClick={onClose} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" }}>
+          <button type="button" onClick={onClose} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}>
             {t("关闭")}
           </button>
         </div>
 
-        <div style={{ padding: 16, overflow: "auto" }}>
-          <div className="xt-inf-card" style={{ padding: 14, border: "1px solid var(--xt-border)", borderRadius: 12 }}>
-            <div style={{ fontWeight: 900, fontSize: 16, color: "var(--xt-primary)" }}>{title}</div>
-            <div style={{ marginTop: 6, color: "#475569", fontSize: 13 }}>
+        <div style={{ padding: compactPx(16), overflow: "auto" }}>
+          <div className="xt-inf-card" style={{ padding: compactPx(14), border: "1px solid var(--xt-border)", borderRadius: compactPx(12) }}>
+            <div style={{ fontWeight: 900, fontSize: compactPx(16), color: "var(--xt-primary)" }}>{title}</div>
+            <div style={{ marginTop: compactPx(6), color: "#475569", fontSize: compactPx(13) }}>
               {t("订单编号")}：{orderNo} ｜ {t("预估收益")}：{estimatedEarningsText(item, lang)}
             </div>
-            <div style={{ marginTop: 6, color: "#64748b", fontSize: 12 }}>{t("最终收益根据视频互动数据结算")}</div>
-            <div style={{ marginTop: 6, color: "#475569", fontSize: 13 }}>
+            <div style={{ marginTop: compactPx(6), color: "#64748b", fontSize: compactPx(12) }}>{t("最终收益根据视频互动数据结算")}</div>
+            <div style={{ marginTop: compactPx(6), color: "#475569", fontSize: compactPx(13) }}>
               {t("招募人数")}：{recruitTotal(item) || "-"} ｜ {t("已报名人数")}：{appliedCount(item)}
             </div>
           </div>
 
-          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-            <div className="xt-inf-card" style={{ padding: 14 }}>
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("商家基础信息")}</div>
-              <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+          <div style={{ marginTop: compactPx(12), display: "grid", gap: compactPx(10) }}>
+            <div className="xt-inf-card" style={{ padding: compactPx(14) }}>
+              <div style={{ fontWeight: 900, marginBottom: compactPx(8) }}>{t("商家基础信息")}</div>
+              <div style={{ display: "grid", gap: compactPx(6), fontSize: compactPx(14) }}>
                 <div>
                   {t("商家")}：{item?.client_name || item?.client_username || "-"}
                 </div>
@@ -240,9 +251,9 @@ function OrderDetailModal({
               </div>
             </div>
 
-            <div className="xt-inf-card" style={{ padding: 14 }}>
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("任务基础信息")}</div>
-              <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+            <div className="xt-inf-card" style={{ padding: compactPx(14) }}>
+              <div style={{ fontWeight: 900, marginBottom: compactPx(8) }}>{t("任务基础信息")}</div>
+              <div style={{ display: "grid", gap: compactPx(6), fontSize: compactPx(14) }}>
                 <div>
                   {t("任务名称")}：{detailText(item, "task_name") || title}
                 </div>
@@ -264,9 +275,9 @@ function OrderDetailModal({
               </div>
             </div>
 
-            <div className="xt-inf-card" style={{ padding: 14 }}>
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("合作内容要求")}</div>
-              <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+            <div className="xt-inf-card" style={{ padding: compactPx(14) }}>
+              <div style={{ fontWeight: 900, marginBottom: compactPx(8) }}>{t("合作内容要求")}</div>
+              <div style={{ display: "grid", gap: compactPx(6), fontSize: compactPx(14) }}>
                 <div>
                   {t("推广产品/品牌")}：{detailText(item, "product_name") || "-"}
                 </div>
@@ -285,9 +296,9 @@ function OrderDetailModal({
                 <div>
                   {t("必须包含元素")}：
                   {arrayText(item, "must_elements").length ? (
-                    <span style={{ marginLeft: 6 }}>{arrayText(item, "must_elements").join(" / ")}</span>
+                    <span style={{ marginLeft: compactPx(6) }}>{arrayText(item, "must_elements").join(" / ")}</span>
                   ) : (
-                    <span style={{ marginLeft: 6 }}>-</span>
+                    <span style={{ marginLeft: compactPx(6) }}>-</span>
                   )}
                 </div>
                 <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
@@ -296,9 +307,9 @@ function OrderDetailModal({
               </div>
             </div>
 
-            <div className="xt-inf-card" style={{ padding: 14 }}>
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("样品说明")}</div>
-              <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+            <div className="xt-inf-card" style={{ padding: compactPx(14) }}>
+              <div style={{ fontWeight: 900, marginBottom: compactPx(8) }}>{t("样品说明")}</div>
+              <div style={{ display: "grid", gap: compactPx(6), fontSize: compactPx(14) }}>
                 <div>
                   {t("是否提供样品")}：{String(detailValue(item, "provide_sample") ?? "-")}
                 </div>
@@ -314,9 +325,9 @@ function OrderDetailModal({
               </div>
             </div>
 
-            <div className="xt-inf-card" style={{ padding: 14 }}>
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("发货与验收标准")}</div>
-              <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+            <div className="xt-inf-card" style={{ padding: compactPx(14) }}>
+              <div style={{ fontWeight: 900, marginBottom: compactPx(8) }}>{t("发货与验收标准")}</div>
+              <div style={{ display: "grid", gap: compactPx(6), fontSize: compactPx(14) }}>
                 <div>
                   {t("准时发布")}：{String(detailValue(item, "standard_publish_on_time") ?? "-")}
                 </div>
@@ -335,9 +346,9 @@ function OrderDetailModal({
               </div>
             </div>
 
-            <div className="xt-inf-card" style={{ padding: 14 }}>
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("平台规则 / 版权协议")}</div>
-              <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+            <div className="xt-inf-card" style={{ padding: compactPx(14) }}>
+              <div style={{ fontWeight: 900, marginBottom: compactPx(8) }}>{t("平台规则 / 版权协议")}</div>
+              <div style={{ display: "grid", gap: compactPx(6), fontSize: compactPx(14) }}>
                 <div>
                   {t("授权可用于推广")}：{String(detailValue(item, "rights_granted") ?? "-")}
                 </div>
@@ -350,25 +361,25 @@ function OrderDetailModal({
               </div>
             </div>
 
-            <div className="xt-inf-card" style={{ padding: 14 }}>
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("结算信息")}</div>
-              <div style={{ display: "grid", gap: 6, fontSize: 14 }}>
+            <div className="xt-inf-card" style={{ padding: compactPx(14) }}>
+              <div style={{ fontWeight: 900, marginBottom: compactPx(8) }}>{t("结算信息")}</div>
+              <div style={{ display: "grid", gap: compactPx(6), fontSize: compactPx(14) }}>
                 <div>
                   {t("单条佣金")}：{detailText(item, "unit_commission") || "-"}
                 </div>
               </div>
             </div>
 
-            <div className="xt-inf-card" style={{ padding: 14 }}>
-              <div style={{ fontWeight: 900, marginBottom: 8 }}>{t("附件")}</div>
+            <div className="xt-inf-card" style={{ padding: compactPx(14) }}>
+              <div style={{ fontWeight: 900, marginBottom: compactPx(8) }}>{t("附件")}</div>
               {attachments(item).length ? (
-                <div style={{ display: "grid", gap: 10 }}>
+                <div style={{ display: "grid", gap: compactPx(10) }}>
                   {attachments(item).map((url, idx) => (
-                    <div key={`${idx}-${url.slice(0, 24)}`} style={{ border: "1px solid #eef2f7", borderRadius: 12, padding: 10, background: "#fff" }}>
+                    <div key={`${idx}-${url.slice(0, 24)}`} style={{ border: "1px solid #eef2f7", borderRadius: compactPx(12), padding: compactPx(10), background: "#fff" }}>
                       {isImageUrl(url) ? (
-                        <img src={url} alt="" style={{ width: "100%", maxHeight: 360, objectFit: "contain", borderRadius: 10, background: "#f8fafc" }} />
+                        <img src={url} alt="" style={{ width: "100%", maxHeight: 360, objectFit: "contain", borderRadius: compactPx(10), background: "#f8fafc" }} />
                       ) : isVideoUrl(url) ? (
-                        <video src={url} controls style={{ width: "100%", maxHeight: 420, borderRadius: 10, background: "#000" }} />
+                        <video src={url} controls style={{ width: "100%", maxHeight: 420, borderRadius: compactPx(10), background: "#000" }} />
                       ) : (
                         <a href={url} target="_blank" rel="noreferrer">
                           {url}
@@ -399,7 +410,7 @@ export default function TaskHallPage() {
   const [myApplies, setMyApplies] = useState<TaskItem[]>([]);
   const [proofMap, setProofMap] = useState<Record<number, string>>({});
   const [publishMap, setPublishMap] = useState<Record<number, string>>({});
-  const [linkAcceptanceMap, setLinkAcceptanceMap] = useState<Record<number, any[]>>({});
+  const [linkAcceptanceMap, setLinkAcceptanceMap] = useState<Record<number, LinkAcceptanceItem[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
@@ -427,7 +438,7 @@ export default function TaskHallPage() {
 
   /** 加载所有已报名订单的验收状态 */
   const loadLinkAcceptance = useCallback(async (applies: TaskItem[]) => {
-    const map: Record<number, any[]> = {};
+    const map: Record<number, LinkAcceptanceItem[]> = {};
     await Promise.all(applies.map(async (it) => {
       const oid = Number(it.order_id || 0);
       if (!oid) return;
@@ -531,14 +542,14 @@ export default function TaskHallPage() {
       <p className="xt-inf-lead">{t("浏览可报名任务或查看已报名进度；收益与状态以卡片内展示为准。")}</p>
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
       {msg && <p style={{ color: "#166534" }}>{msg}</p>}
-      <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: compactPx(8), marginBottom: compactPx(12), flexWrap: "wrap", alignItems: "center" }}>
         <button
           type="button"
           onClick={() => setTab("available")}
           disabled={tab === "available"}
           style={{
             padding: "8px 14px",
-            borderRadius: 8,
+            borderRadius: compactPx(8),
             border: "1px solid var(--xt-border)",
             background: tab === "available" ? "rgba(21,42,69,0.08)" : "#fff",
             fontWeight: 700,
@@ -552,7 +563,7 @@ export default function TaskHallPage() {
           disabled={tab === "applied"}
           style={{
             padding: "8px 14px",
-            borderRadius: 8,
+            borderRadius: compactPx(8),
             border: "1px solid var(--xt-border)",
             background: tab === "applied" ? "rgba(21,42,69,0.08)" : "#fff",
             fontWeight: 700,
@@ -576,14 +587,14 @@ export default function TaskHallPage() {
               <div>{t("暂无可报名任务")}</div>
             </div>
           ) : null}
-          <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ display: "grid", gap: compactPx(10) }}>
             {list.map((item) => (
-              <div key={item.id} className="xt-inf-card" data-order-id={item.id} style={{ padding: 14, borderLeft: "4px solid #16a34a" }}>
-                <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: 15 }}>
+              <div key={item.id} className="xt-inf-card" data-order-id={item.id} style={{ padding: compactPx(14), borderLeft: "4px solid #16a34a" }}>
+                <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: compactPx(15) }}>
                   {t("预估收益：")}
                   {estimatedEarningsText(item, i18n.language)}
                 </div>
-                <div style={{ fontWeight: 600, marginTop: 6 }}>
+                <div style={{ fontWeight: 600, marginTop: compactPx(6) }}>
                   {t("订单号：")}
                   {item.order_no || `#${item.id}`}
                 </div>
@@ -595,8 +606,8 @@ export default function TaskHallPage() {
                   {t("商家：")}
                   {item.client_name || item.client_username || "-"}
                 </div>
-                <div style={{ marginTop: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                  <button type="button" onClick={() => (setActiveOrder(item), setDetailOpen(true))} style={{ padding: "8px 12px", borderRadius: 10, border: "1px solid var(--xt-border)", background: "#fff", fontWeight: 800 }}>
+                <div style={{ marginTop: compactPx(10), display: "flex", gap: compactPx(8), flexWrap: "wrap", alignItems: "center" }}>
+                  <button type="button" onClick={() => (setActiveOrder(item), setDetailOpen(true))} style={{ padding: "8px 12px", borderRadius: compactPx(10), border: "1px solid var(--xt-border)", background: "#fff", fontWeight: 800 }}>
                     {t("查看详情")}
                   </button>
                   <div style={{ position: "relative" }}>
@@ -629,7 +640,7 @@ export default function TaskHallPage() {
               <div>{t("暂无报名记录")}</div>
             </div>
           ) : null}
-          <div style={{ display: "grid", gap: 10 }}>
+          <div style={{ display: "grid", gap: compactPx(10) }}>
             {appliedList.map((it) => {
               const oid = Number(it.order_id || 0);
               const canSubmitProof = it.apply_status === "selected" && it.order_status === "claimed" && oid > 0;
@@ -645,13 +656,13 @@ export default function TaskHallPage() {
                   key={it.id}
                   className="xt-inf-card"
                   data-order-id={oid > 0 ? oid : it.id}
-                  style={{ padding: 14, borderLeft: `4px solid ${appliedAccentBorder(it.order_status)}` }}
+                  style={{ padding: compactPx(14), borderLeft: `4px solid ${appliedAccentBorder(it.order_status)}` }}
                 >
-                  <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: 15 }}>
+                  <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: compactPx(15) }}>
                     {t("任务状态：")}
                     {t(orderLabel)}
                   </div>
-                  <div style={{ fontWeight: 600, marginTop: 6 }}>
+                  <div style={{ fontWeight: 600, marginTop: compactPx(6) }}>
                     {t("订单号：")}
                     {it.order_no || "-"}
                   </div>
@@ -673,17 +684,17 @@ export default function TaskHallPage() {
                         {isUrl ? (
                           <a href={raw} target="_blank" rel="noreferrer">{t("查看")}</a>
                         ) : (
-                          <span style={{ color: "var(--xt-text-muted)", fontSize: 13 }}>{raw}</span>
+                          <span style={{ color: "var(--xt-text-muted)", fontSize: compactPx(13) }}>{raw}</span>
                         )}
                       </div>
                     );
                   })()}
                   {/* 验收状态：仅已完成/已验收订单显示 */}
                   {(it.order_status === "completed" || it.order_status === "accepted") && linkAcceptanceMap[oid]?.length > 0 && (
-                    <div style={{ marginTop: 8, padding: 10, background: "#f8fafc", borderRadius: 8, border: "1px solid #e2e8f0" }}>
-                      <div style={{ fontWeight: 700, marginBottom: 6, fontSize: 13 }}>{t("验收状态：")}</div>
-                      {linkAcceptanceMap[oid].map((la: any, idx: number) => (
-                        <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 0", fontSize: 13 }}>
+                    <div style={{ marginTop: compactPx(8), padding: compactPx(10), background: "#f8fafc", borderRadius: compactPx(8), border: "1px solid #e2e8f0" }}>
+                      <div style={{ fontWeight: 700, marginBottom: compactPx(6), fontSize: compactPx(13) }}>{t("验收状态：")}</div>
+                      {linkAcceptanceMap[oid].map((la, idx: number) => (
+                        <div key={idx} style={{ display: "flex", alignItems: "center", gap: compactPx(8), padding: "4px 0", fontSize: compactPx(13) }}>
                           <span>{t("回传链接")}{idx + 1}：</span>
                           {la.accepted ? (
                             <span style={{ color: "#16a34a", fontWeight: 700 }}>✅ {t("已通过")}</span>
@@ -693,7 +704,7 @@ export default function TaskHallPage() {
                             <span style={{ color: "#64748b" }}>{t("待验收")}</span>
                           )}
                           {la.payment_url && (
-                            <a href={la.payment_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#10b981", textDecoration: "underline" }}>
+                            <a href={la.payment_url} target="_blank" rel="noreferrer" style={{ fontSize: compactPx(12), color: "#10b981", textDecoration: "underline" }}>
                               {t("查看付款截图")}
                             </a>
                           )}
@@ -709,18 +720,18 @@ export default function TaskHallPage() {
                         {isUrl ? (
                           <a href={lastPublish} target="_blank" rel="noreferrer">{t("查看")}</a>
                         ) : (
-                          <span style={{ color: "var(--xt-text-muted)", fontSize: 13 }}>{lastPublish}</span>
+                          <span style={{ color: "var(--xt-text-muted)", fontSize: compactPx(13) }}>{lastPublish}</span>
                         )}
                       </div>
                     );
                   })() : null}
                   {canSubmitProof && (
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: compactPx(8) }}>
                       <input
                         value={proofMap[oid] || ""}
                         onChange={(e) => setProofMap((m) => ({ ...m, [oid]: e.target.value }))}
                         placeholder={t("回传短视频链接")}
-                        style={{ marginRight: 6, width: 300, maxWidth: "100%" }}
+                        style={{ marginRight: compactPx(6), width: 300, maxWidth: "100%" }}
                       />
                       <button type="button" className="xt-accent-btn" onClick={() => void submitProof(oid)}>
                         {t("提交完成凭证")}
@@ -728,12 +739,12 @@ export default function TaskHallPage() {
                     </div>
                   )}
                   {canSubmitPublish && (
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: compactPx(8) }}>
                       <input
                         value={publishMap[oid] || ""}
                         onChange={(e) => setPublishMap((m) => ({ ...m, [oid]: e.target.value }))}
                         placeholder={t("发布链接（TikTok/TAP）")}
-                        style={{ marginRight: 6, width: 300, maxWidth: "100%" }}
+                        style={{ marginRight: compactPx(6), width: 300, maxWidth: "100%" }}
                       />
                       <button type="button" className="xt-accent-btn" onClick={() => void submitPublish(oid)}>
                         {t("提交发布链接")}
