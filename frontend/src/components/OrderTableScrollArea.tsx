@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { compactPx } from "../responsive";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 

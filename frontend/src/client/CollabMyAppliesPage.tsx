@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { compactPx } from "../responsive";
 ﻿import { useEffect, useState } from "react";
 import { getClientCollabMyApplies } from "../matchingApi";

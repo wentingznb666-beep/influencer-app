@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { compactPx } from "../responsive";
 import { useEffect } from "react";
 import { useScrollLock } from "../hooks/useScrollLock";

@@ -1,4 +1,5 @@
 /** 通用状态标签组件，自动匹配颜色方案 */
+import { useTranslation } from 'react-i18next';
 import type { CSSProperties } from "react";
 
 type BadgeVariant = "success" | "warning" | "danger" | "info" | "neutral";

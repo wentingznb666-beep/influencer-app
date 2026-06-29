@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { compactPx } from "../responsive";
 import { useState, useEffect } from "react";
 import * as api from "../adminApi";
