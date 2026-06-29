@@ -79,7 +79,7 @@ export default function InfluencerPermissionsPage() {
     onChange();
     if (typeof mq.addEventListener === "function") mq.addEventListener("change", onChange);
     else mq.addListener(onChange);
-    load().catch((e) => setMsg(e instanceof Error ? e.message : "加载失败"));
+    load().catch((e) => setMsg(e instanceof Error ? e.message : t("加载失败")));
     return () => {
       if (typeof mq.removeEventListener === "function") mq.removeEventListener("change", onChange);
       else mq.removeListener(onChange);
@@ -113,9 +113,9 @@ export default function InfluencerPermissionsPage() {
     try {
       await reviewAdminInfluencerPermission(id, action);
       await load();
-      setMsg(action === "approve" ? "已通过" : "已驳回");
+      setMsg(action === "approve" ? t("已通过") : t("已驳回"));
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "审核失败");
+      setMsg(e instanceof Error ? e.message : t("审核失败"));
     } finally {
       setBusyKey(k, false);
     }
@@ -130,9 +130,9 @@ export default function InfluencerPermissionsPage() {
     try {
       await toggleAdminInfluencerPermission(id, enabled);
       await load();
-      setMsg(enabled ? "已开启权限" : "已禁用权限");
+      setMsg(enabled ? t("已开启权限") : t("已禁用权限"));
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : "操作失败");
+      setMsg(e instanceof Error ? e.message : t("操作失败"));
     } finally {
       setBusyKey(k, false);
     }
@@ -349,7 +349,7 @@ export default function InfluencerPermissionsPage() {
                       disabled={Boolean(busy[`review:${it.id}:approve`])}
                       onClick={() => void review(it.id, "approve")}
                     >
-                      {busy[`review:${it.id}:approve`] ? "通过中…" : "通过"}
+                      {busy[`review:${it.id}:approve`] ? t("通过中…") : "通过"}
                     </button>
                     <button
                       type="button"
@@ -359,7 +359,7 @@ export default function InfluencerPermissionsPage() {
                       disabled={Boolean(busy[`review:${it.id}:reject`])}
                       onClick={() => void review(it.id, "reject")}
                     >
-                      {busy[`review:${it.id}:reject`] ? "驳回中…" : "驳回"}
+                      {busy[`review:${it.id}:reject`] ? t("驳回中…") : "驳回"}
                     </button>
                     <button
                       type="button"
@@ -369,7 +369,7 @@ export default function InfluencerPermissionsPage() {
                       disabled={Boolean(busy[`toggle:${it.id}:on`])}
                       onClick={() => void toggle(it.id, true)}
                     >
-                      {busy[`toggle:${it.id}:on`] ? "开启中…" : "开启"}
+                      {busy[`toggle:${it.id}:on`] ? t("开启中…") : "开启"}
                     </button>
                     <button
                       type="button"
@@ -379,7 +379,7 @@ export default function InfluencerPermissionsPage() {
                       disabled={Boolean(busy[`toggle:${it.id}:off`])}
                       onClick={() => void toggle(it.id, false)}
                     >
-                      {busy[`toggle:${it.id}:off`] ? "禁用中…" : "禁用"}
+                      {busy[`toggle:${it.id}:off`] ? t("禁用中…") : "禁用"}
                     </button>
                   </div>
                 </div>
@@ -433,7 +433,7 @@ export default function InfluencerPermissionsPage() {
                         disabled={Boolean(busy[`review:${it.id}:approve`])}
                         onClick={() => void review(it.id, "approve")}
                       >
-                        {busy[`review:${it.id}:approve`] ? "通过中…" : "通过"}
+                        {busy[`review:${it.id}:approve`] ? t("通过中…") : "通过"}
                       </button>
                       <button
                         type="button"
@@ -443,7 +443,7 @@ export default function InfluencerPermissionsPage() {
                         disabled={Boolean(busy[`review:${it.id}:reject`])}
                         onClick={() => void review(it.id, "reject")}
                       >
-                        {busy[`review:${it.id}:reject`] ? "驳回中…" : "驳回"}
+                        {busy[`review:${it.id}:reject`] ? t("驳回中…") : "驳回"}
                       </button>
                       <button
                         type="button"
@@ -453,7 +453,7 @@ export default function InfluencerPermissionsPage() {
                         disabled={Boolean(busy[`toggle:${it.id}:on`])}
                         onClick={() => void toggle(it.id, true)}
                       >
-                        {busy[`toggle:${it.id}:on`] ? "开启中…" : "开启"}
+                        {busy[`toggle:${it.id}:on`] ? t("开启中…") : "开启"}
                       </button>
                       <button
                         type="button"
@@ -463,7 +463,7 @@ export default function InfluencerPermissionsPage() {
                         disabled={Boolean(busy[`toggle:${it.id}:off`])}
                         onClick={() => void toggle(it.id, false)}
                       >
-                        {busy[`toggle:${it.id}:off`] ? "禁用中…" : "禁用"}
+                        {busy[`toggle:${it.id}:off`] ? t("禁用中…") : "禁用"}
                       </button>
                     </div>
                   </td>

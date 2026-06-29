@@ -36,7 +36,7 @@ export default function CollabMyAppliesPage() {
       const data = await getClientCollabMyApplies();
       setList(Array.isArray(data?.list) ? (data.list as MyApplyItem[]) : []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
     } finally {
       setLoading(false);
     }

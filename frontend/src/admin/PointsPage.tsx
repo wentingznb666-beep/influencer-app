@@ -36,7 +36,7 @@ export default function PointsPage() {
       setAccounts((data.accounts || []).map((a: Account) => ({ ...a, username: normalizeAccountText(a.username) })));
       setWeekSummary((data.weekSummary || []).map((w: WeekRow) => ({ ...w, username: normalizeAccountText(w.username) })));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
     }
   };
 
@@ -45,7 +45,7 @@ export default function PointsPage() {
       const data = await api.getPointsLedger({ user_id: ledgerUserId ? Number(ledgerUserId) : undefined, limit: 50 });
       setLedger((data.list || []).map((l: LedgerRow) => ({ ...l, username: normalizeAccountText(l.username) })));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "流水加载失败");
+      setError(e instanceof Error ? e.message : t("流水加载失败"));
     }
   };
 
@@ -54,7 +54,7 @@ export default function PointsPage() {
       const data = await api.getRechargeOrders({ status: rechargeStatus === "all" ? undefined : rechargeStatus, limit: 200 });
       setRechargeOrders((data.list || []).map((o: RechargeOrderRow) => ({ ...o, username: normalizeAccountText(o.username) })));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "充值订单加载失败");
+      setError(e instanceof Error ? e.message : t("充值订单加载失败"));
     }
   };
 
@@ -89,7 +89,7 @@ export default function PointsPage() {
       await api.updateRechargeOrder(id, { status: "rejected", note });
       loadRechargeOrders();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败");
+      setError(e instanceof Error ? e.message : t("操作失败"));
     }
   };
 
@@ -98,17 +98,17 @@ export default function PointsPage() {
    */
   const handleManualRecharge = async () => {
     if (isEmployee) {
-      setError("员工无直接充值权限。");
+      setError(t("员工无直接充值权限。"));
       return;
     }
     const uid = Number(manualUserId);
     const amt = Number(manualAmount);
     if (!Number.isInteger(uid) || uid < 1) {
-      setError("请选择有效的充值对象。");
+      setError(t("请选择有效的充值对象。"));
       return;
     }
     if (!Number.isInteger(amt) || amt < 1) {
-      setError("请输入有效充值积分（整数且大于 0）。");
+      setError(t("请输入有效充值积分（整数且大于 0）。"));
       return;
     }
     setError(null);
@@ -120,7 +120,7 @@ export default function PointsPage() {
       loadSummary();
       loadLedger();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "充值失败");
+      setError(e instanceof Error ? e.message : t("充值失败"));
     } finally {
       setManualSubmitting(false);
     }
@@ -176,7 +176,7 @@ export default function PointsPage() {
                 ) : (
                   displayRechargeTargets.map((u) => (
                     <option key={u.user_id} value={u.user_id}>
-                      {u.username}（{u.role === "influencer" ? "达人" : "商家"} / ID:{u.user_id}）
+                      {u.username}（{u.role === "influencer" ? t("达人") : "商家"} / ID:{u.user_id}）
                     </option>
                   ))
                 )}
@@ -189,7 +189,7 @@ export default function PointsPage() {
                 disabled={manualSubmitting}
                 style={{ padding: "6px 12px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: manualSubmitting ? "not-allowed" : "pointer" }}
               >
-                {manualSubmitting ? "提交中…" : manualMode === "deduct" ? "确认扣分" : "确认加分"}
+                {manualSubmitting ? t("提交中…") : manualMode === "deduct" ? t("确认扣分") : "确认加分"}
               </button>
             </div>
           </div>
@@ -255,7 +255,7 @@ export default function PointsPage() {
                 <td style={{ padding: compactPx(10) }}>{o.order_no || `XT-待生成-${o.id}`}</td>
                 <td style={{ padding: compactPx(10) }}><span data-no-auto-translate>{o.username}</span></td>
                 <td style={{ padding: compactPx(10), textAlign: "right" }}>{o.amount}</td>
-                <td style={{ padding: compactPx(10) }}>{o.status === "approved" ? "已确认" : o.status === "rejected" ? "已驳回" : "待确认"}</td>
+                <td style={{ padding: compactPx(10) }}>{o.status === "approved" ? t("已确认") : o.status === "rejected" ? t("已驳回") : "待确认"}</td>
                 <td style={{ padding: compactPx(10) }}>{o.created_at}</td>
                 <td style={{ padding: compactPx(10) }}>{o.approved_at || "—"}</td>
                 <td style={{ padding: compactPx(10) }}>{o.note || "—"}</td>

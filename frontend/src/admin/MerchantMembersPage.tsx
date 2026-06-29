@@ -26,7 +26,7 @@ export default function MerchantMembersPage() {
   };
 
   useEffect(() => {
-    load().catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
+    load().catch((e) => setError(e instanceof Error ? e.message : t("加载失败")));
   }, []);
 
   return (

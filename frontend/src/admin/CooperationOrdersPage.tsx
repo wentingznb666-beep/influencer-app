@@ -242,7 +242,7 @@ export default function CooperationOrdersPage() {
       });
       setList(Array.isArray(ret?.list) ? (ret.list as Row[]) : []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
     } finally {
       setLoading(false);
     }
@@ -412,7 +412,7 @@ export default function CooperationOrdersPage() {
             <option value="delivered">已交付</option>
             <option value="completed">已完成</option>
           </select>
-          <div className="xt-coop-meta">{loading ? "加载中…" : `共 ${filteredList.length} 条`}</div>
+          <div className="xt-coop-meta">{loading ? t("加载中…") : `共 ${filteredList.length} 条`}</div>
         </div>
 
         {error ? <p style={{ color: "#b91c1c", marginTop: compactPx(10) }}>{error}</p> : null}

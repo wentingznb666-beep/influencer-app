@@ -148,7 +148,7 @@ export default function MatchingCenterPage() {
   };
 
   useEffect(() => {
-    void Promise.all([loadOrders(), syncMerchantTemplateFromServer()]).catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
+    void Promise.all([loadOrders(), syncMerchantTemplateFromServer()]).catch((e) => setError(e instanceof Error ? e.message : t("加载失败")));
   }, []);
 
   /** 字段通用更新器。 */
@@ -199,7 +199,7 @@ export default function MatchingCenterPage() {
   /** 上传图片/视频附件。 */
   const doUpload = async () => {
     if (!uploadFiles.length) {
-      setError("请先选择文件");
+      setError(t("请先选择文件"));
       return;
     }
     setUploading(true);
@@ -210,9 +210,9 @@ export default function MatchingCenterPage() {
       const urls = Array.isArray(ret?.urls) ? ret.urls : [];
       setUploadedUrls((prev) => [...prev, ...urls]);
       setUploadFiles([]);
-      setMsg("上传成功");
+      setMsg(t("上传成功"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "上传失败");
+      setError(e instanceof Error ? e.message : t("上传失败"));
     } finally {
       setUploading(false);
     }
@@ -246,7 +246,7 @@ export default function MatchingCenterPage() {
       ["shop_link", merchantTemplate.shop_link],
     ].find(([, value]) => !String(value || "").trim());
     if (requiredTemplateError) {
-      setError("请先在“商家基本信息（必填模板）”中补全并保存所有必填项");
+      setError(t("请先在“商家基本信息（必填模板）”中补全并保存所有必填项"));
       return;
     }
 
@@ -326,9 +326,9 @@ export default function MatchingCenterPage() {
       setSuccessKind(nextSuccessKind);
       closeModal();
       setShowSuccessModal(true);
-      showToastNotice(nextSuccessKind === "update" ? "保存成功" : "发布成功", { variant: "success", placement: "top-right" });
+      showToastNotice(nextSuccessKind === "update" ? t("保存成功") : "发布成功", { variant: "success", placement: "top-right" });
     } catch (err) {
-      const actionText = editingOrder ? "保存失败" : "发布失败";
+      const actionText = editingOrder ? t("保存失败") : "发布失败";
       setError(err instanceof Error ? err.message : actionText);
     } finally {
       setPublishing(false);
@@ -454,10 +454,10 @@ export default function MatchingCenterPage() {
                     copy_requirement: typeof d.copy_requirement === "string" ? d.copy_requirement : "",
                     must_elements: Array.isArray(d.must_elements) ? d.must_elements as string[] : [],
                     forbidden_content: typeof d.forbidden_content === "string" ? d.forbidden_content : "",
-                    provide_sample: (d.provide_sample === "是") ? "是" : "否",
+                    provide_sample: (d.provide_sample === "是") ? t("是") : "否",
                     sample_count: typeof d.sample_count === "number" ? String(d.sample_count) : "",
-                    sample_recycle: (d.sample_recycle === "是") ? "是" : "否",
-                    freight_side: (d.freight_side === "达人承担") ? "达人承担" : "商家承担",
+                    sample_recycle: (d.sample_recycle === "是") ? t("是") : "否",
+                    freight_side: (d.freight_side === "达人承担") ? t("达人承担") : "商家承担",
                     standard_publish_on_time: Boolean(d.standard_publish_on_time),
                     standard_clear_no_violation: Boolean(d.standard_clear_no_violation),
                     keep_days: typeof d.keep_days === "number" ? String(d.keep_days) : typeof d.keep_days === "string" ? d.keep_days : "",
@@ -688,7 +688,7 @@ export default function MatchingCenterPage() {
                 <h4 style={{ marginTop: 0 }}>附件上传</h4>
                 <input type="file" multiple accept="image/*,video/*" onChange={(e) => setUploadFiles(Array.from(e.target.files || []))} />
                 <div style={{ marginTop: compactPx(8) }}>
-                  <button type="button" onClick={() => void doUpload()} disabled={uploading}>{uploading ? "上传中..." : "上传文件"}</button>
+                  <button type="button" onClick={() => void doUpload()} disabled={uploading}>{uploading ? t("上传中...") : "上传文件"}</button>
                 </div>
 
                 {previews.length > 0 ? (
@@ -729,7 +729,7 @@ export default function MatchingCenterPage() {
                     opacity: validationErrors.length > 0 ? 0.6 : 1,
                   }}
                 >
-                  {publishing ? "提交中..." : (editingOrder ? "确认保存" : "确认发布")}
+                  {publishing ? t("提交中...") : (editingOrder ? t("确认保存") : t("确认发布"))}
                 </button>
               </div>
             </form>
@@ -741,9 +741,9 @@ export default function MatchingCenterPage() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", display: "grid", placeItems: "center", zIndex: 2000 }}>
           <div style={{ background: "#fff", borderRadius: compactPx(16), padding: "32px 40px", textAlign: "center", minWidth: 280 }}>
             <div style={{ fontSize: compactPx(48), marginBottom: compactPx(12) }}>✨</div>
-            <div style={{ fontSize: compactPx(18), fontWeight: 600, color: "#1e293b", marginBottom: compactPx(8) }}>{successKind === "update" ? "保存成功" : "发布成功"}</div>
+            <div style={{ fontSize: compactPx(18), fontWeight: 600, color: "#1e293b", marginBottom: compactPx(8) }}>{successKind === "update" ? t("保存成功") : "发布成功"}</div>
             <div style={{ fontSize: compactPx(14), color: "#64748b", marginBottom: compactPx(24) }}>
-              {successKind === "update" ? "撮合订单已保存" : "撮合订单已提交，请耐心等待"}
+              {successKind === "update" ? t("撮合订单已保存") : "撮合订单已提交，请耐心等待"}
             </div>
             <button 
               type="button" 

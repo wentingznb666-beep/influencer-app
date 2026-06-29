@@ -56,7 +56,7 @@ export default function OrdersPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
 
     } finally {
 
@@ -124,7 +124,7 @@ export default function OrdersPage() {
 
         >
 
-          {showForm ? "取消" : "新建订单/样品记录"}
+          {showForm ? t("取消") : "新建订单/样品记录"}
 
         </button>
 

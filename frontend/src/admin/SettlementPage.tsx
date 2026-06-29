@@ -42,7 +42,7 @@ export default function SettlementPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
 
     }
 
@@ -66,7 +66,7 @@ export default function SettlementPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
 
     } finally {
 
@@ -110,7 +110,7 @@ export default function SettlementPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "生成失败");
+      setError(e instanceof Error ? e.message : t("生成失败"));
 
     } finally {
 
@@ -146,7 +146,7 @@ export default function SettlementPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "导出失败");
+      setError(e instanceof Error ? e.message : t("导出失败"));
 
     }
 
@@ -200,7 +200,7 @@ export default function SettlementPage() {
 
         <button type="button" onClick={handleGenerate} disabled={generating || !selectedWeek} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: generating ? "not-allowed" : "pointer" }}>
 
-          {generating ? "生成中…" : "生成结算记录"}
+          {generating ? t("生成中…") : "生成结算记录"}
 
         </button>
 
@@ -244,7 +244,7 @@ export default function SettlementPage() {
 
                 <td style={{ padding: compactPx(10), textAlign: "right" }}>{r.amount}</td>
 
-                <td style={{ padding: compactPx(10) }}>{r.status === "paid" ? "已打款" : r.status === "exception" ? "异常" : "待打款"}</td>
+                <td style={{ padding: compactPx(10) }}>{r.status === "paid" ? t("已打款") : r.status === "exception" ? t("异常") : "待打款"}</td>
 
                 <td style={{ padding: compactPx(10) }}>{r.paid_at || "—"}</td>
 

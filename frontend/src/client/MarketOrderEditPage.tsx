@@ -129,7 +129,7 @@ export default function MarketOrderEditPage() {
 
     if (!Number.isInteger(orderId) || orderId < 1) {
 
-      setError("无效的订单 ID。");
+      setError(t("无效的订单 ID。"));
 
       setLoading(false);
 
@@ -177,7 +177,7 @@ export default function MarketOrderEditPage() {
 
     })()
 
-      .catch((e) => setError(e instanceof Error ? e.message : "加载失败"))
+      .catch((e) => setError(e instanceof Error ? e.message : t("加载失败")))
 
       .finally(() => setLoading(false));
 
@@ -205,7 +205,7 @@ export default function MarketOrderEditPage() {
     }
 
     if (!(form.publish_method === "client_self_publish" || form.publish_method === "influencer_publish_with_cart")) {
-      setError("请选择发布方式");
+      setError(t("请选择发布方式"));
       return;
     }
 

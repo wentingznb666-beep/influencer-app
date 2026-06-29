@@ -22,7 +22,7 @@ export default function RequestsPage() {
       const data = await api.getRequests();
       setList(data.list || []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
     } finally {
       setLoading(false);
     }
@@ -46,7 +46,7 @@ export default function RequestsPage() {
       setShowForm(false);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "提交失败");
+      setError(err instanceof Error ? err.message : t("提交失败"));
     }
   };
 
@@ -56,7 +56,7 @@ export default function RequestsPage() {
    * 软删除：弹出确认框，确认后调用删除接口并刷新列表。
    */
   const handleDelete = async (id: number) => {
-    const ok = window.confirm("确认删除该合作意向？删除后将不再展示（软删除）。");
+    const ok = window.confirm(t("确认删除该合作意向？删除后将不再展示（软删除）。"));
     if (!ok) return;
     setError(null);
     try {
@@ -96,7 +96,7 @@ export default function RequestsPage() {
             fontWeight: 600,
           }}
         >
-          {showForm ? "取消" : "提交合作意向"}
+          {showForm ? t("取消") : "提交合作意向"}
         </button>
       </div>
       {showForm && (
@@ -165,7 +165,7 @@ export default function RequestsPage() {
                 </div>
               </div>
               <p style={{ margin: "8px 0 0", fontSize: compactPx(14) }}>{r.product_info || "—"}</p>
-              <p style={{ margin: "4px 0 0", fontSize: compactPx(13), color: "#666" }}>平台：{r.target_platform || "—"} · 预算：{r.budget || "—"} · {r.need_face ? "露脸" : "讲解"}</p>
+              <p style={{ margin: "4px 0 0", fontSize: compactPx(13), color: "#666" }}>平台：{r.target_platform || "—"} · 预算：{r.budget || "—"} · {r.need_face ? t("露脸") : "讲解"}</p>
               <p style={{ margin: "4px 0 0", fontSize: compactPx(12), color: "#999" }}>{r.created_at}</p>
             </div>
           ))}

@@ -339,7 +339,7 @@ export default function MarketOrdersPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
 
     } finally {
 
@@ -552,7 +552,7 @@ export default function MarketOrdersPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "保存失败");
+      setError(e instanceof Error ? e.message : t("保存失败"));
 
     } finally {
 
@@ -580,7 +580,7 @@ export default function MarketOrdersPage() {
 
     if (!shopName) {
 
-      setError("请输入商家店铺名称");
+      setError(t("请输入商家店铺名称"));
 
       return;
 
@@ -588,7 +588,7 @@ export default function MarketOrdersPage() {
 
     if (!groupChat) {
 
-      setError("请输入商家对接群聊（群号/链接）");
+      setError(t("请输入商家对接群聊（群号/链接）"));
 
       return;
 
@@ -610,7 +610,7 @@ export default function MarketOrdersPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "更新失败");
+      setError(e instanceof Error ? e.message : t("更新失败"));
 
     } finally {
 

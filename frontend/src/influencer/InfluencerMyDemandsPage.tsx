@@ -148,7 +148,7 @@ export default function InfluencerMyDemandsPage() {
       task_types: Array.isArray(detail.task_types) ? detail.task_types.map((x: unknown) => String(x || "")).filter(Boolean) : ["短视频"],
       categories_can_do: String(detail.categories_can_do || ""),
       categories_not_do: String(detail.categories_not_do || ""),
-      need_sample: detail.need_sample === "否" ? "否" : "是",
+      need_sample: detail.need_sample === "否" ? t("否") : "是",
       unit_price: String(d.expected_points ?? ""),
       delivery_days: String(detail.delivery_days || "3"),
       revise_times: String(detail.revise_times || "2"),

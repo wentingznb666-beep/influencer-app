@@ -46,7 +46,7 @@ export default function InfluencerDetailPage() {
 
   useEffect(() => {
     if (!Number.isInteger(userId) || userId < 1) {
-      setError("无效的达人ID");
+      setError(t("无效的达人ID"));
       setLoading(false);
       return;
     }
@@ -57,7 +57,7 @@ export default function InfluencerDetailPage() {
       const p = ret?.profile as InfluencerDetail | null;
       setProfile(p);
     })()
-      .catch((e) => setError(e instanceof Error ? e.message : "加载失败"))
+      .catch((e) => setError(e instanceof Error ? e.message : t("加载失败")))
       .finally(() => setLoading(false));
   }, [userId]);
 

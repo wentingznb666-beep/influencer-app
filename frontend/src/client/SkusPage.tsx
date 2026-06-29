@@ -80,7 +80,7 @@ export default function SkusPage() {
       setSelectedIds(new Set());
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "批量删除失败");
+      setError(e instanceof Error ? e.message : t("批量删除失败"));
     }
   };
 
@@ -94,7 +94,7 @@ export default function SkusPage() {
       const data = await api.getSkus();
       setList((data.list || []) as SkuRow[]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
     } finally {
       setLoading(false);
     }
@@ -198,7 +198,7 @@ export default function SkusPage() {
   const save = async () => {
     const code = form.sku_code.trim();
     if (!code) {
-      setError("请填写 SKU 编码。");
+      setError(t("请填写 SKU 编码。"));
       return;
     }
     setError(null);
@@ -232,7 +232,7 @@ export default function SkusPage() {
    * 删除 SKU（软删）。
    */
   const remove = async (id: number) => {
-    if (!window.confirm("确认删除该 SKU？")) return;
+    if (!window.confirm(t("确认删除该 SKU？"))) return;
     setError(null);
     try {
       await api.deleteSku(id);
@@ -251,7 +251,7 @@ export default function SkusPage() {
       setImportResult(result);
       if (result.success > 0) load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "导入失败");
+      setError(e instanceof Error ? e.message : t("导入失败"));
     } finally {
       setImporting(false);
     }
@@ -434,7 +434,7 @@ export default function SkusPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: compactPx(16) }}>
-              <h3 style={{ margin: 0 }}>{editingId == null ? "新建 SKU" : "编辑 SKU"}</h3>
+              <h3 style={{ margin: 0 }}>{editingId == null ? t("新建 SKU") : "编辑 SKU"}</h3>
               <button
                 type="button"
                 onClick={() => {
@@ -505,7 +505,7 @@ export default function SkusPage() {
             </div>
             <div style={{ display: "flex", gap: compactPx(8), marginTop: compactPx(16) }}>
               <button type="button" onClick={save} style={{ padding: "8px 20px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer", fontSize: compactPx(14) }}>
-                {editingId == null ? "新建 SKU" : "保存修改"}
+                {editingId == null ? t("新建 SKU") : "保存修改"}
               </button>
               <button
                 type="button"
@@ -552,7 +552,7 @@ export default function SkusPage() {
                 <div style={{ marginBottom: compactPx(16) }}>
                   <button
                     type="button"
-                    onClick={() => api.downloadSkuImportTemplate().catch((e) => setError(e instanceof Error ? e.message : "下载失败"))}
+                    onClick={() => api.downloadSkuImportTemplate().catch((e) => setError(e instanceof Error ? e.message : t("下载失败")))}
                     style={{ padding: "6px 14px", border: "1px solid var(--xt-accent)", color: "var(--xt-accent)", borderRadius: compactPx(8), background: "#fff", cursor: "pointer", fontSize: compactPx(14) }}
                   >
                     下载导入模板
@@ -589,7 +589,7 @@ export default function SkusPage() {
                     fontSize: compactPx(14),
                   }}
                 >
-                  {importing ? "导入中…" : "开始导入"}
+                  {importing ? t("导入中…") : "开始导入"}
                 </button>
               </>
             ) : (
@@ -633,7 +633,7 @@ export default function SkusPage() {
                         disabled={importing}
                         style={{ marginTop: compactPx(12), padding: "8px 20px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer", fontSize: compactPx(14) }}
                       >
-                        {importing ? "处理中…" : "跳过重复，继续导入"}
+                        {importing ? t("处理中…") : "跳过重复，继续导入"}
                       </button>
                     )}
                   </div>
@@ -716,7 +716,7 @@ export default function SkusPage() {
                     fontSize: compactPx(14),
                   }}
                 >
-                  {batchImageUploading ? "上传中…" : "开始上传"}
+                  {batchImageUploading ? t("上传中…") : "开始上传"}
                 </button>
               </>
             ) : (

@@ -375,20 +375,20 @@ export default function ClientMarketOrdersPage() {
         });
         setMarketOrders(filtered.map((r) => ({ ...r, work_links: normalizeWorkLinks(r.work_links) })));
       } else {
-        errors.push(marketRes.reason instanceof Error ? marketRes.reason.message : "分级订单加载失败");
+        errors.push(marketRes.reason instanceof Error ? marketRes.reason.message : t("分级订单加载失败"));
       }
 
       if (offlineRes.status === "fulfilled") {
         setOfflineOrders((offlineRes.value.list || []) as OfflineVideoOrder[]);
       } else {
-        errors.push(offlineRes.reason instanceof Error ? offlineRes.reason.message : "视频订单加载失败");
+        errors.push(offlineRes.reason instanceof Error ? offlineRes.reason.message : t("视频订单加载失败"));
       }
 
       if (errors.length) setError(errors.join("；"));
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
 
     } finally {
 
@@ -609,7 +609,7 @@ export default function ClientMarketOrdersPage() {
 
     if (!titleText || titleText.length > 200) {
 
-      setError("请填写订单标题（1–200 字）。");
+      setError(t("请填写订单标题（1–200 字）。"));
 
       return;
 
@@ -618,12 +618,12 @@ export default function ClientMarketOrdersPage() {
     try {
       if (orderTypeId === "graded_video") {
         if (!clientShopName.trim()) {
-          setError("请输入商家店铺名称");
+          setError(t("请输入商家店铺名称"));
           return;
         }
 
         if (!clientGroupChat.trim()) {
-          setError("请输入商家对接群聊（群号/链接）");
+          setError(t("请输入商家对接群聊（群号/链接）"));
           return;
         }
 
@@ -653,11 +653,11 @@ export default function ClientMarketOrdersPage() {
         });
       } else {
         if (!clientShopName.trim()) {
-          setError("请输入商家店铺名称");
+          setError(t("请输入商家店铺名称"));
           return;
         }
         if (!clientGroupChat.trim()) {
-          setError("请输入商家对接群聊（群号/链接）");
+          setError(t("请输入商家对接群聊（群号/链接）"));
           return;
         }
         const req: Record<string, unknown> = {
@@ -669,7 +669,7 @@ export default function ClientMarketOrdersPage() {
 
         if (orderTypeId === "high_quality_custom_video") {
           if (!offlineTalent.trim()) {
-            setError("请填写或选择优质 Influencer");
+            setError(t("请填写或选择优质 Influencer"));
             return;
           }
           req.price_range = "4000-5000";
@@ -677,11 +677,11 @@ export default function ClientMarketOrdersPage() {
 
         if (orderTypeId === "monthly_package") {
           if (!Number.isFinite(monthlyEffectiveMonths) || monthlyEffectiveMonths < 1) {
-            setError("合作周期（月）至少为 1");
+            setError(t("合作周期（月）至少为 1"));
             return;
           }
           if (monthlyEffectiveVideos < 20) {
-            setError("包月合作每月不少于 20 条");
+            setError(t("包月合作每月不少于 20 条"));
             return;
           }
           req.contract_months = monthlyEffectiveMonths;
@@ -692,11 +692,11 @@ export default function ClientMarketOrdersPage() {
 
         if (orderTypeId === "creator_review_video") {
           if (creatorTaskCount < 8 || creatorTaskCount > 10) {
-            setError("测评视频任务条数需为 8-10 条");
+            setError(t("测评视频任务条数需为 8-10 条"));
             return;
           }
           if (!offlineTalent.trim()) {
-            setError("请填写或选择 Creator 账号");
+            setError(t("请填写或选择 Creator 账号"));
             return;
           }
           req.task_count = Math.floor(creatorTaskCount);
@@ -838,7 +838,7 @@ export default function ClientMarketOrdersPage() {
 
   const handleDelete = async (id: number) => {
 
-    const ok = window.confirm("确认删除该订单？仅“待领取”状态可删除。");
+    const ok = window.confirm(t("确认删除该订单？仅“待领取”状态可删除。"));
 
     if (!ok) return;
 
@@ -1000,7 +1000,7 @@ export default function ClientMarketOrdersPage() {
 
         >
 
-          {showForm ? "取消" : "发布新订单"}
+          {showForm ? t("取消") : "发布新订单"}
 
         </button>
 
@@ -1261,7 +1261,7 @@ export default function ClientMarketOrdersPage() {
                 value={offlineTalent}
                 onChange={(e) => setOfflineTalent(e.target.value)}
                 placeholder={
-                  orderTypeId === "monthly_package" ? "可留空，由我方匹配" : "请输入平台内已选账号/昵称"
+                  orderTypeId === "monthly_package" ? t("可留空，由我方匹配") : "请输入平台内已选账号/昵称"
                 }
                 style={{ display: "block", marginTop: compactPx(8), marginBottom: compactPx(12), width: "100%", maxWidth: compactPx(560), padding: "8px 10px", boxSizing: "border-box", borderRadius: compactPx(8), border: "1px solid #ddd" }}
               />
@@ -1349,7 +1349,7 @@ export default function ClientMarketOrdersPage() {
           {combinedRows.map((row) => {
             if (row.kind === "graded") {
               const o = row.order;
-              const statusLabel = o.status === "open" ? "待领取" : o.status === "claimed" ? "已领取" : o.status === "completed" ? "已完成" : o.status === "cancelled" ? "已取消" : o.status;
+              const statusLabel = o.status === "open" ? t("待领取") : o.status === "claimed" ? t("已领取") : o.status === "completed" ? t("已完成") : o.status === "cancelled" ? t("已取消") : o.status;
               const statusBg = o.status === "open" ? "#ffedd5" : o.status === "claimed" ? "#dbeafe" : o.status === "completed" ? "#dcfce7" : "#f1f5f9";
               return (
                 <div
@@ -1397,7 +1397,7 @@ export default function ClientMarketOrdersPage() {
                       <span style={{ fontWeight: 600 }}>VO-{o.id}</span>
                       <span style={tagStyle(o.type_id)}>{typeText(o.type_id)}</span>
                       <span style={{ padding: "2px 8px", borderRadius: compactPx(999), fontSize: compactPx(11), display: "inline-block", background: statusBg, color: "#334155" }}>{statusLabel}</span>
-                      <span style={{ fontSize: compactPx(11), color: "#64748b" }}>{o.payment_status === "paid" ? "已付" : "未付"}</span>
+                      <span style={{ fontSize: compactPx(11), color: "#64748b" }}>{o.payment_status === "paid" ? t("已付") : "未付"}</span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: compactPx(8) }}>
                       <span style={{ fontWeight: 600, color: "var(--xt-accent)" }}>{Number(o.amount_thb || 0).toFixed(2)} THB</span>
@@ -1435,7 +1435,7 @@ export default function ClientMarketOrdersPage() {
 
             {detailRow.kind === "graded" ? (() => {
               const o = detailRow.order;
-              const statusLabel = o.status === "open" ? "待领取" : o.status === "claimed" ? "已领取" : o.status === "completed" ? "已完成" : o.status === "cancelled" ? "已取消" : o.status;
+              const statusLabel = o.status === "open" ? t("待领取") : o.status === "claimed" ? t("已领取") : o.status === "completed" ? t("已完成") : o.status === "cancelled" ? t("已取消") : o.status;
               return (
                 <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: compactPx(10), alignItems: "start", fontSize: compactPx(14) }}>
                   <div style={{ color: "#64748b" }}>订单号</div><div>{o.order_no || `#${o.id}`}</div>
@@ -1512,7 +1512,7 @@ export default function ClientMarketOrdersPage() {
                   <div style={{ color: "#64748b" }}>类型</div><div>{typeText(o.type_id)}</div>
                   <div style={{ color: "#64748b" }}>标题</div><div>{o.title}</div>
                   <div style={{ color: "#64748b" }}>状态</div><div>{phaseText(o)}</div>
-                  <div style={{ color: "#64748b" }}>付款</div><div>{o.payment_status === "paid" ? "已付款" : "未付款"}</div>
+                  <div style={{ color: "#64748b" }}>付款</div><div>{o.payment_status === "paid" ? t("已付款") : "未付款"}</div>
                   <div style={{ color: "#64748b" }}>金额</div><div style={{ fontWeight: 600, color: "var(--xt-accent)" }}>{Number(o.amount_thb || 0).toFixed(2)} THB</div>
                   {(shopName || groupChat) && (<><div style={{ color: "#64748b" }}>店铺/群聊</div><div>{shopName || "未填写"} · {groupChat || "未填写"}</div></>)}
                   {proofLinks.length > 0 && (

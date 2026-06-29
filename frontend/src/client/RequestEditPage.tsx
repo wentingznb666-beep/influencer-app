@@ -58,7 +58,7 @@ export default function RequestEditPage() {
 
     if (!Number.isInteger(reqId) || reqId < 1) {
 
-      setError("无效的需求 ID。");
+      setError(t("无效的需求 ID。"));
 
       setLoading(false);
 
@@ -94,7 +94,7 @@ export default function RequestEditPage() {
 
     })()
 
-      .catch((e) => setError(e instanceof Error ? e.message : "加载失败"))
+      .catch((e) => setError(e instanceof Error ? e.message : t("加载失败")))
 
       .finally(() => setLoading(false));
 

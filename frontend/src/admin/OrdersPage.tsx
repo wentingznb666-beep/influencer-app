@@ -204,7 +204,7 @@ export default function OrdersPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
 
     } finally {
 
@@ -394,7 +394,7 @@ export default function OrdersPage() {
 
     if (!shopName) {
 
-      setError("请输入商家店铺名称");
+      setError(t("请输入商家店铺名称"));
 
       return;
 
@@ -402,7 +402,7 @@ export default function OrdersPage() {
 
     if (!groupChat) {
 
-      setError("请输入商家对接群聊（群号/链接）");
+      setError(t("请输入商家对接群聊（群号/链接）"));
 
       return;
 
@@ -1025,7 +1025,7 @@ export default function OrdersPage() {
 
                   >
 
-                    {savingWorkLinks ? "保存中..." : "保存交付链接"}
+                    {savingWorkLinks ? t("保存中...") : "保存交付链接"}
 
                   </button>
 
@@ -1055,7 +1055,7 @@ export default function OrdersPage() {
 
               >
 
-                {savingClientInfo ? "保存中..." : "保存商家信息"}
+                {savingClientInfo ? t("保存中...") : "保存商家信息"}
 
               </button>
 

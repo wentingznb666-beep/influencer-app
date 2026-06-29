@@ -77,7 +77,7 @@ export const MerchantInfoForm: React.FC = () => {
       window.setTimeout(() => setSaveStatus("idle"), 2000);
     } catch (e) {
       setSaveStatus("idle");
-      setSaveError(e instanceof Error ? e.message : "保存失败，请稍后重试");
+      setSaveError(e instanceof Error ? e.message : t("保存失败，请稍后重试"));
       setIsEditing(true);
     }
   };
@@ -107,7 +107,7 @@ export const MerchantInfoForm: React.FC = () => {
             fontWeight: 500
           }}
         >
-          {isEditing ? "取消编辑" : "编辑信息"}
+          {isEditing ? t("取消编辑") : "编辑信息"}
         </button>
       </div>
 

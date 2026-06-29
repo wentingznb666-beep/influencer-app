@@ -52,7 +52,7 @@ export default function ShowcaseInfluencersPage() {
       const data = await api.getAdminShowcaseInfluencers({ q: q.trim() || undefined, status: status || undefined });
       setList((data.list || []) as Row[]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
     } finally {
       setLoading(false);
     }
@@ -89,7 +89,7 @@ export default function ShowcaseInfluencersPage() {
   /** 新增或更新一条 Influencer 记录。 */
   const save = async () => {
     if (!form.name.trim()) {
-      setError("请输入模特姓名/昵称");
+      setError(t("请输入模特姓名/昵称"));
       return;
     }
     setSaving(true);
@@ -97,7 +97,7 @@ export default function ShowcaseInfluencersPage() {
     try {
       const nextPhotos = await uploadSelected();
       if (nextPhotos.length === 0) {
-        setError("请至少上传一张模特照片");
+        setError(t("请至少上传一张模特照片"));
         setSaving(false);
         return;
       }
@@ -128,7 +128,7 @@ export default function ShowcaseInfluencersPage() {
 
   /** 软删除指定 Influencer。 */
   const remove = async (id: number) => {
-    if (!window.confirm("确认删除该 Influencer 资料？")) return;
+    if (!window.confirm(t("确认删除该 Influencer 资料？"))) return;
     setError(null);
     try {
       await api.deleteAdminShowcaseInfluencer(id);
@@ -260,7 +260,7 @@ export default function ShowcaseInfluencersPage() {
               opacity: saving ? 0.7 : 1,
             }}
           >
-            {saving ? "保存中..." : "保存"}
+            {saving ? t("保存中...") : "保存"}
           </button>
           {editing && (
             <button type="button" onClick={resetForm} style={{ padding: "8px 14px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff", cursor: "pointer" }}>
@@ -279,7 +279,7 @@ export default function ShowcaseInfluencersPage() {
               <div style={{ display: "flex", justifyContent: "space-between", gap: compactPx(8), flexWrap: "wrap" }}>
                 <div>
                   <strong>{m.name}</strong>
-                  <span style={{ marginLeft: compactPx(8), color: m.status === "enabled" ? "#16a34a" : "#64748b" }}>{m.status === "enabled" ? "已启用" : "已禁用"}</span>
+                  <span style={{ marginLeft: compactPx(8), color: m.status === "enabled" ? "#16a34a" : "#64748b" }}>{m.status === "enabled" ? t("已启用") : "已禁用"}</span>
                 </div>
                 <div style={{ display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
                   <button

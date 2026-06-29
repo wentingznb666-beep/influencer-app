@@ -141,7 +141,7 @@ function PasswordFieldWithToggle({ value, onChange, placeholder, required, visib
 
       >
 
-        {visible ? "隐藏" : "显示"}
+        {visible ? t("隐藏") : "显示"}
 
       </button>
 
@@ -268,7 +268,7 @@ export default function UsersPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
 
     } finally {
 
@@ -298,7 +298,7 @@ export default function UsersPage() {
 
     if (isEmployee) {
 
-      setError("员工无创建账号权限。");
+      setError(t("员工无创建账号权限。"));
 
       return;
 
@@ -330,7 +330,7 @@ export default function UsersPage() {
 
     } catch (err) {
 
-      setError(err instanceof Error ? err.message : "创建失败");
+      setError(err instanceof Error ? err.message : t("创建失败"));
 
     } finally {
 
@@ -352,7 +352,7 @@ export default function UsersPage() {
 
     if (isEmployee) {
 
-      setError("员工无账号编辑权限。");
+      setError(t("员工无账号编辑权限。"));
 
       return;
 
@@ -404,7 +404,7 @@ export default function UsersPage() {
 
     if (pwd.length < 6) {
 
-      setError("新密码至少 6 位。");
+      setError(t("新密码至少 6 位。"));
 
       return;
 
@@ -426,7 +426,7 @@ export default function UsersPage() {
 
     } catch (err) {
 
-      setError(err instanceof Error ? err.message : "重置密码失败");
+      setError(err instanceof Error ? err.message : t("重置密码失败"));
 
     } finally {
 
@@ -448,7 +448,7 @@ export default function UsersPage() {
 
     if (isEmployee) {
 
-      setError("员工无账号编辑权限。");
+      setError(t("员工无账号编辑权限。"));
 
       return;
 
@@ -466,7 +466,7 @@ export default function UsersPage() {
 
     } catch (err) {
 
-      setError(err instanceof Error ? err.message : "更新状态失败");
+      setError(err instanceof Error ? err.message : t("更新状态失败"));
 
     } finally {
 
@@ -481,7 +481,7 @@ export default function UsersPage() {
   const handleReviewRegister = async (item: UserItem, approved: boolean) => {
     if (!isEmployee) return;
     if (!isPendingRegister(item)) {
-      setError("仅支持审核待审核的商家/达人账号。");
+      setError(t("仅支持审核待审核的商家/达人账号。"));
       return;
     }
     setError(null);
@@ -490,10 +490,10 @@ export default function UsersPage() {
     try {
       await api.updateUserStatus(item.id, !approved);
       await load();
-      setSuccessMsg(approved ? "已审核通过，可登录使用。" : "已审核拒绝，该账号仍为禁用状态。");
+      setSuccessMsg(approved ? t("已审核通过，可登录使用。") : t("已审核拒绝，该账号仍为禁用状态。"));
       window.setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "更新状态失败");
+      setError(err instanceof Error ? err.message : t("更新状态失败"));
     } finally {
       setActionLoadingId(null);
     }
@@ -731,7 +731,7 @@ export default function UsersPage() {
 
           >
 
-            {creating ? "开通中…" : "开通账号"}
+            {creating ? t("开通中…") : "开通账号"}
 
           </button>
 
@@ -794,7 +794,7 @@ export default function UsersPage() {
 
                   <td style={{ padding: compactPx(10), borderBottom: "1px solid #f1f1f1", color: item.disabled ? "#c00" : "#0a7a2a" }}>
 
-                    {isPendingRegister(item) ? "待审核" : item.disabled ? "已禁用" : "启用中"}
+                    {isPendingRegister(item) ? t("待审核") : item.disabled ? t("已禁用") : "启用中"}
 
                   </td>
 
@@ -859,7 +859,7 @@ export default function UsersPage() {
                           disabled={actionLoadingId === item.id}
                           style={{ padding: "6px 10px", borderRadius: compactPx(6), border: "1px solid #ddd", background: "#fff", cursor: actionLoadingId === item.id ? "not-allowed" : "pointer" }}
                         >
-                          {isPendingRegister(item) ? "同意注册" : item.disabled ? "启用" : "禁用"}
+                          {isPendingRegister(item) ? t("同意注册") : item.disabled ? t("启用") : "禁用"}
                         </button>
                       </>
                     )}
@@ -1021,7 +1021,7 @@ export default function UsersPage() {
 
               >
 
-                {actionLoadingId === resetModal.id ? "提交中…" : "确定"}
+                {actionLoadingId === resetModal.id ? t("提交中…") : "确定"}
 
               </button>
 

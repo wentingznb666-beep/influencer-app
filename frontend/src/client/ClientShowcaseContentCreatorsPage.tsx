@@ -38,7 +38,7 @@ export default function ClientShowcaseContentCreatorsPage() {
       setList((allRes.list || []) as Row[]);
       setMyList((myRes.list || []) as Row[]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
     } finally {
       setLoading(false);
     }
@@ -144,7 +144,7 @@ export default function ClientShowcaseContentCreatorsPage() {
                         cursor: "pointer",
                       }}
                     >
-                      {selected ? "取消预约" : "预约合作"}
+                      {selected ? t("取消预约") : "预约合作"}
                     </button>
                   </div>
                   <div style={{ marginTop: compactPx(8), whiteSpace: "pre-wrap", color: "#334155" }}>{m.intro || "暂无介绍"}</div>

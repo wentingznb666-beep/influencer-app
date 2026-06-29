@@ -44,7 +44,7 @@ export default function RiskPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
 
     } finally {
 
@@ -84,7 +84,7 @@ export default function RiskPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "检查失败");
+      setError(e instanceof Error ? e.message : t("检查失败"));
 
     } finally {
 
@@ -126,7 +126,7 @@ export default function RiskPage() {
 
           <button type="button" onClick={handleTriggerCheck} disabled={checking} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: checking ? "not-allowed" : "pointer" }}>
 
-            {checking ? "检查中…" : "检测链接"}
+            {checking ? t("检查中…") : "检测链接"}
 
           </button>
 
@@ -174,7 +174,7 @@ export default function RiskPage() {
 
                     <td style={{ padding: compactPx(10) }}>{a.submission_id}</td>
 
-                    <td style={{ padding: compactPx(10) }}>{a.check_result === "deleted" ? "已删除" : "异常"}</td>
+                    <td style={{ padding: compactPx(10) }}>{a.check_result === "deleted" ? t("已删除") : "异常"}</td>
 
                     <td style={{ padding: compactPx(10) }}>{a.username}</td>
 

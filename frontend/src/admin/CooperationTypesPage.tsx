@@ -45,7 +45,7 @@ export default function CooperationTypesPage(props: Props) {
       const ret = await getCooperationTypes();
       setConfig(ret.config);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
     } finally {
       setLoading(false);
     }
@@ -336,7 +336,7 @@ export default function CooperationTypesPage(props: Props) {
         </button>
         {!readOnly && (
           <button type="button" onClick={() => void save()} disabled={saving || !config} style={{ height: 36, fontWeight: 700 }}>
-            {saving ? "保存中…" : "保存配置"}
+            {saving ? t("保存中…") : "保存配置"}
           </button>
         )}
       </div>

@@ -176,7 +176,7 @@ export default function MatchingOrdersPage() {
   };
 
   useEffect(() => {
-    loadAll().catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
+    loadAll().catch((e) => setError(e instanceof Error ? e.message : t("加载失败")));
   }, []);
 
   useEffect(() => {
@@ -195,7 +195,7 @@ export default function MatchingOrdersPage() {
       await loadApplicants(orderId);
       await loadLinkStates(orderId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "加载报名失败");
+      setError(err instanceof Error ? err.message : t("加载报名失败"));
     }
   };
 
@@ -218,9 +218,9 @@ export default function MatchingOrdersPage() {
     try {
       await selectMatchingOrderApplicant(activeOrderId, appId);
       await Promise.all([loadAll(), loadApplicants(activeOrderId)]);
-      setMsg("已选中达人");
+      setMsg(t("已选中达人"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "操作失败");
+      setError(err instanceof Error ? err.message : t("操作失败"));
     } finally {
       setBusy(key, false);
     }
@@ -235,9 +235,9 @@ export default function MatchingOrdersPage() {
     try {
       await rejectMatchingOrderApplicant(activeOrderId, appId);
       await loadApplicants(activeOrderId);
-      setMsg("已驳回报名");
+      setMsg(t("已驳回报名"));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "操作失败");
+      setError(err instanceof Error ? err.message : t("操作失败"));
     } finally {
       setBusy(key, false);
     }
@@ -256,10 +256,10 @@ export default function MatchingOrdersPage() {
         return next;
       });
       await loadAll();
-      setMsg("已驳回，任务退回执行中");
+      setMsg(t("已驳回，任务退回执行中"));
       showToastNotice("❌ 驳回成功", { variant: "error", placement: "top-right", durationMs: 4200, closable: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "驳回失败");
+      setError(err instanceof Error ? err.message : t("驳回失败"));
       showToastNotice("❌ 驳回失败", { variant: "error", placement: "top-right", durationMs: 4200, closable: true });
     } finally {
       setBusy(key, false);
@@ -276,12 +276,12 @@ export default function MatchingOrdersPage() {
       const profile = ret?.payment_profile || null;
       setPaymentInfoByOrderId((prev) => ({ ...prev, [orderId]: profile }));
       await loadAll();
-      setMsg("验收通过，已展示收款信息");
+      setMsg(t("验收通过，已展示收款信息"));
       showToastNotice("✅ 验收成功", { variant: "success", placement: "top-right", durationMs: 4200, closable: true });
       setPaymentModalOrderId(orderId);
       setPaymentModalOpen(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "验收失败");
+      setError(err instanceof Error ? err.message : t("验收失败"));
       showToastNotice("❌ 验收失败", { variant: "error", placement: "top-right", durationMs: 4200, closable: true });
     } finally {
       setBusy(key, false);
@@ -488,7 +488,7 @@ export default function MatchingOrdersPage() {
           <option value="50">每页 50</option>
         </select>
         <div className="xt-toolbar-spacer" />
-        <span className="xt-muted">{loadingOrders ? "加载中…" : `共 ${filteredSortedOrders.length} 条`}</span>
+        <span className="xt-muted">{loadingOrders ? t("加载中…") : `共 ${filteredSortedOrders.length} 条`}</span>
       </div>
 
       <div className="xt-orders">
@@ -559,10 +559,10 @@ export default function MatchingOrdersPage() {
                     {safeText(it.status) === "completed" && !accepted ? (
                       <>
                         <button type="button" className="xt-btn xt-btn--primary" onClick={() => void acceptOrder(it.id)} disabled={!!actionBusy[`acceptOrder:${it.id}`]}>
-                          {actionBusy[`acceptOrder:${it.id}`] ? "验收中…" : "验收通过"}
+                          {actionBusy[`acceptOrder:${it.id}`] ? t("验收中…") : "验收通过"}
                         </button>
                         <button type="button" className="xt-btn xt-btn--danger" onClick={() => void rejectOrder(it.id)} disabled={!!actionBusy[`rejectOrder:${it.id}`]}>
-                          {actionBusy[`rejectOrder:${it.id}`] ? "处理中…" : "验收驳回"}
+                          {actionBusy[`rejectOrder:${it.id}`] ? t("处理中…") : "验收驳回"}
                         </button>
                       </>
                     ) : null}
@@ -577,7 +577,7 @@ export default function MatchingOrdersPage() {
                         }}
                         disabled={!!actionBusy[`paymentProfile:${it.id}`]}
                       >
-                        {actionBusy[`paymentProfile:${it.id}`] ? "加载中…" : "查看收款信息"}
+                        {actionBusy[`paymentProfile:${it.id}`] ? t("加载中…") : "查看收款信息"}
                       </button>
                     ) : null}
                   </div>
@@ -683,7 +683,7 @@ export default function MatchingOrdersPage() {
                     }}
                     disabled={!!actionBusy[`paymentProfile:${activeOrder.id}`]}
                   >
-                    {actionBusy[`paymentProfile:${activeOrder.id}`] ? "加载中…" : "查看收款信息"}
+                    {actionBusy[`paymentProfile:${activeOrder.id}`] ? t("加载中…") : "查看收款信息"}
                   </button>
                 </div>
               ) : null}

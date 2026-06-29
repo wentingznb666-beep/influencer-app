@@ -33,7 +33,7 @@ export default function MemberCenterPage() {
       setProfile(data?.profile || null);
       setLogs(Array.isArray(data?.logs) ? data.logs : []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
     }
   };
 
@@ -48,7 +48,7 @@ export default function MemberCenterPage() {
     try {
       await purchaseClientMember(level, 1);
       await load();
-      setMsg("会员开通成功");
+      setMsg(t("会员开通成功"));
     } catch (e) {
       setError(e instanceof Error ? e.message : t("操作失败"));
     }
@@ -61,9 +61,9 @@ export default function MemberCenterPage() {
     try {
       await topupClientDeposit(1000);
       await load();
-      setMsg("保证金充值成功");
+      setMsg(t("保证金充值成功"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "充值失败");
+      setError(e instanceof Error ? e.message : t("充值失败"));
     }
   };
 

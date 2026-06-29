@@ -186,7 +186,7 @@ export default function ProfitPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
 
     } finally {
 
@@ -214,7 +214,7 @@ export default function ProfitPage() {
 
       } catch (e) {
 
-        setError(e instanceof Error ? e.message : "加载失败");
+        setError(e instanceof Error ? e.message : t("加载失败"));
 
       } finally {
 
@@ -388,7 +388,7 @@ export default function ProfitPage() {
 
         >
 
-          {saving ? "保存中..." : "保存排除配置"}
+          {saving ? t("保存中...") : "保存排除配置"}
 
         </button>
 

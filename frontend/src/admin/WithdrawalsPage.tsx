@@ -37,7 +37,7 @@ export default function WithdrawalsPage() {
       const data = await api.getWithdrawals({ status: status === "all" ? undefined : status, limit: 200 });
       setList(data.list ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
     } finally {
       setLoading(false);
     }
@@ -69,7 +69,7 @@ export default function WithdrawalsPage() {
       await api.updateWithdrawal(id, { status: "rejected", note });
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败");
+      setError(e instanceof Error ? e.message : t("操作失败"));
     }
   };
 
@@ -120,7 +120,7 @@ export default function WithdrawalsPage() {
                 <td style={{ padding: compactPx(10) }}>{r.bank_name || "—"}</td>
                 <td style={{ padding: compactPx(10) }}>{r.bank_account_no || "—"}</td>
                 <td style={{ padding: compactPx(10), textAlign: "right" }}>{r.amount}</td>
-                <td style={{ padding: compactPx(10) }}>{r.status === "paid" ? "已打款" : r.status === "rejected" ? "已驳回" : "待处理"}</td>
+                <td style={{ padding: compactPx(10) }}>{r.status === "paid" ? t("已打款") : r.status === "rejected" ? t("已驳回") : "待处理"}</td>
                 <td style={{ padding: compactPx(10) }}>{r.created_at}</td>
                 <td style={{ padding: compactPx(10) }}>{r.paid_at || "—"}</td>
                 <td style={{ padding: compactPx(10) }}>{r.note || "—"}</td>

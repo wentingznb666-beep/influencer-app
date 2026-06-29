@@ -45,7 +45,7 @@ export default function InfluencersPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
 
     } finally {
 
@@ -169,11 +169,11 @@ export default function InfluencersPage() {
 
                 <td style={{ padding: compactPx(10) }}>{row.username}</td>
 
-                <td style={{ padding: compactPx(10) }}>{row.show_face ? "是" : "否"}</td>
+                <td style={{ padding: compactPx(10) }}>{row.show_face ? t("是") : "否"}</td>
 
                 <td style={{ padding: compactPx(10) }}>{(row.tags || "") + (row.platforms ? " / " + row.platforms : "")}</td>
 
-                <td style={{ padding: compactPx(10) }}>{row.blacklisted ? "是" : "否"}</td>
+                <td style={{ padding: compactPx(10) }}>{row.blacklisted ? t("是") : "否"}</td>
 
                 <td style={{ padding: compactPx(10) }}>{row.level}</td>
 

@@ -48,7 +48,7 @@ export default function ClientPointsPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "加载失败");
+      setError(e instanceof Error ? e.message : t("加载失败"));
 
     } finally {
 
@@ -90,7 +90,7 @@ export default function ClientPointsPage() {
 
     } catch (err) {
 
-      setError(err instanceof Error ? err.message : "充值失败");
+      setError(err instanceof Error ? err.message : t("充值失败"));
 
     } finally {
 
@@ -150,7 +150,7 @@ export default function ClientPointsPage() {
 
             <button type="submit" disabled={recharging} style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: recharging ? "not-allowed" : "pointer" }}>
 
-              {recharging ? "提交中…" : "提交充值订单"}
+              {recharging ? t("提交中…") : "提交充值订单"}
 
             </button>
 
@@ -192,7 +192,7 @@ export default function ClientPointsPage() {
 
                   <td style={{ padding: compactPx(10), textAlign: "right" }}>{o.amount}</td>
 
-                  <td style={{ padding: compactPx(10) }}>{o.status === "approved" ? "已确认" : o.status === "rejected" ? "已驳回" : "待确认"}</td>
+                  <td style={{ padding: compactPx(10) }}>{o.status === "approved" ? t("已确认") : o.status === "rejected" ? t("已驳回") : "待确认"}</td>
 
                   <td style={{ padding: compactPx(10) }}>{o.note || "—"}</td>
 
