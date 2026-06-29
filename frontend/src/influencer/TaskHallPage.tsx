@@ -645,7 +645,7 @@ export default function TaskHallPage() {
                   {t("订单号：")}
                   {item.order_no || `#${item.id}`}
                 </div>
-                <div style={{ wordBreak: "break-word" }}>
+                <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {t("任务名称：")}
                   {item.title ? t(item.title) : t("未命名")}
                 </div>
@@ -713,7 +713,7 @@ export default function TaskHallPage() {
                     {t("订单号：")}
                     {it.order_no || "-"}
                   </div>
-                  <div style={{ wordBreak: "break-word" }}>
+                  <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {t("任务名称：")}
                     {it.title ? t(it.title) : t("未命名")}
                   </div>
