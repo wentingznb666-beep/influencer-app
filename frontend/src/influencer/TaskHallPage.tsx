@@ -644,59 +644,64 @@ export default function TaskHallPage() {
           <div style={{ display: "grid", gap: compactPx(10) }}>
             {filteredList.map((item) => {
               const isExpanded = expandedCards.has(item.id);
+              const title = item.title ? t(item.title) : t("未命名");
+              const merchant = item.client_name || item.client_username || "-";
               return (
-              <div key={item.id} className="xt-inf-card" data-order-id={item.id} style={{ padding: 0, borderLeft: "4px solid #16a34a", overflow: "hidden" }}>
-                {/* 紧凑摘要行 */}
-                <div
-                  onClick={() => toggleCard(item.id)}
-                  style={{ padding: `${compactPx(12)}px ${compactPx(14)}px`, display: "flex", alignItems: "center", gap: compactPx(10), cursor: "pointer", userSelect: "none" }}
-                >
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    width: compactPx(20), height: compactPx(20), borderRadius: "50%",
-                    background: "var(--xt-accent)", color: "#fff", fontSize: compactPx(11),
-                    fontWeight: 700, flexShrink: 0, transition: "transform 0.2s",
-                    transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                  }}>▼</span>
-                  <span style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: compactPx(15), flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {item.title ? t(item.title) : t("未命名")}
+              <div key={item.id} className="xt-inf-card" data-order-id={item.id} style={{ padding: compactPx(14), borderLeft: "4px solid #16a34a", cursor: "pointer" }} onClick={() => toggleCard(item.id)}>
+                {/* 第一行：订单号 + 商家 */}
+                <div style={{ display: "flex", gap: compactPx(12), flexWrap: "wrap", alignItems: "baseline", marginBottom: compactPx(4) }}>
+                  <span style={{ fontWeight: 600, color: "#334155", fontSize: compactPx(12) }}>
+                    {item.order_no || `#${item.id}`}
                   </span>
-                  <span style={{ fontWeight: 700, color: "var(--xt-accent)", fontSize: compactPx(15), whiteSpace: "nowrap" }}>
+                  <span style={{ color: "#94a3b8", fontSize: compactPx(12) }}>
+                    {merchant}
+                  </span>
+                </div>
+
+                {/* 第二行：标题（截断）+ 收益 */}
+                <div style={{ display: "flex", alignItems: "center", gap: compactPx(10) }}>
+                  <span style={{
+                    fontWeight: 700, color: "var(--xt-primary)", fontSize: compactPx(15),
+                    flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }}>
+                    {title}
+                  </span>
+                  <span style={{ fontWeight: 800, color: "var(--xt-accent)", fontSize: compactPx(15), whiteSpace: "nowrap", flexShrink: 0 }}>
                     {estimatedEarningsText(item, i18n.language)}
                   </span>
                 </div>
 
-                {/* 展开详情区 */}
-                {isExpanded && (
-                  <div style={{ padding: `0 ${compactPx(14)}px ${compactPx(14)}px`, borderTop: "1px solid var(--xt-border)", background: "#fafbfc" }}>
-                    <div style={{ display: "grid", gap: compactPx(6), paddingTop: compactPx(10), fontSize: compactPx(13), color: "#475569" }}>
-                      <div style={{ display: "flex", gap: compactPx(4) }}>
-                        <span style={{ color: "#94a3b8", flexShrink: 0 }}>{t("订单号")}：</span>
-                        <span style={{ fontWeight: 600, color: "#334155" }}>{item.order_no || `#${item.id}`}</span>
-                      </div>
-                      <div style={{ display: "flex", gap: compactPx(4) }}>
-                        <span style={{ color: "#94a3b8", flexShrink: 0 }}>{t("商家")}：</span>
-                        <span>{item.client_name || item.client_username || "-"}</span>
-                      </div>
-                      <div style={{ display: "flex", gap: compactPx(4) }}>
-                        <span style={{ color: "#94a3b8", flexShrink: 0 }}>{t("招募")}：</span>
-                        <span>{recruitTotal(item) || "-"} / {appliedCount(item)}{t("人已报")}</span>
-                      </div>
-                    </div>
+                {/* 第三行：招募数 + 操作 */}
+                <div style={{ display: "flex", alignItems: "center", gap: compactPx(10), marginTop: compactPx(6) }}>
+                  <span style={{ fontSize: compactPx(12), color: "#94a3b8" }}>
+                    {recruitTotal(item) || "-"}{t("人招募")} · {appliedCount(item)}{t("人已报")}
+                  </span>
+                  <span style={{
+                    fontSize: compactPx(10), color: "var(--xt-accent)", fontWeight: 600,
+                    transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                  }}>
+                    {isExpanded ? "▲" : "▼"} {isExpanded ? t("收起") : t("展开")}
+                  </span>
+                  <div style={{ marginLeft: "auto", display: "flex", gap: compactPx(8) }} onClick={(e) => e.stopPropagation()}>
+                    <button type="button" onClick={() => (setActiveOrder(item), setDetailOpen(true))}
+                      style={{ padding: "4px 10px", borderRadius: compactPx(6), border: "1px solid var(--xt-border)", background: "#fff", fontWeight: 600, fontSize: compactPx(12), cursor: "pointer" }}>
+                      📋
+                    </button>
+                    <button type="button" className="xt-accent-btn" disabled={isRecruitFull(item)} onClick={() => void apply(item)}
+                      style={{ opacity: isRecruitFull(item) ? 0.6 : 1, fontSize: compactPx(12), padding: "4px 12px" }}>
+                      {t("报名")}
+                    </button>
+                  </div>
+                </div>
 
-                    <div style={{ marginTop: compactPx(10), display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); setActiveOrder(item); setDetailOpen(true); }} style={{ padding: "6px 12px", borderRadius: compactPx(8), border: "1px solid var(--xt-border)", background: "#fff", fontWeight: 700, fontSize: compactPx(13), cursor: "pointer" }}>
-                        📋 {t("查看详情")}
-                      </button>
-                      <div style={{ position: "relative" }}>
-                        <button type="button" className="xt-accent-btn" disabled={isRecruitFull(item)} onClick={(e) => { e.stopPropagation(); void apply(item); }} style={{ opacity: isRecruitFull(item) ? 0.6 : 1, fontSize: compactPx(13), padding: "6px 14px" }}>
-                          🚀 {t("一键报名")}
-                        </button>
-                        {isRecruitFull(item) ? (
-                          <button type="button" onClick={(e) => { e.stopPropagation(); toastRecruitFull(t); }} style={{ position: "absolute", inset: 0, cursor: "not-allowed", background: "transparent", border: "none" }} />
-                        ) : null}
-                      </div>
-                    </div>
+                {/* 展开：完整内容 */}
+                {isExpanded && (
+                  <div onClick={(e) => e.stopPropagation()} style={{ marginTop: compactPx(10), padding: compactPx(12), background: "#f8fafc", borderRadius: compactPx(10), border: "1px solid #eef2f7", fontSize: compactPx(13), color: "#475569", lineHeight: 1.6 }}>
+                    {item.title && String(item.title).length > 0 && (
+                      <div style={{ marginBottom: compactPx(4) }}><span style={{ color: "#94a3b8" }}>{t("任务名称")}：</span>{title}</div>
+                    )}
+                    <div style={{ marginBottom: compactPx(4) }}><span style={{ color: "#94a3b8" }}>{t("商家")}：</span>{merchant}</div>
+                    <div><span style={{ color: "#94a3b8" }}>{t("预估收益")}：</span>{estimatedEarningsText(item, i18n.language)}</div>
                   </div>
                 )}
               </div>
