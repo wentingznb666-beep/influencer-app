@@ -62,7 +62,7 @@ export default function InfluencerLayout() {
       mainClassName="xt-main-th"
       navItems={navItems}
       tabItems={tabItems}
-      mainMaxWidth={960}
+      mainMaxWidth={900}
     >
       <Outlet />
     </DashboardShell>
