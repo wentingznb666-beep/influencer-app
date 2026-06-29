@@ -236,6 +236,7 @@ function marketOrderTotalRewardPoints(o: MarketOrder): number {
  */
 
 export default function ClientMarketOrdersPage() {
+  const { t } = useTranslation();
 
   const nav = useNavigate();
   const location = useLocation();
@@ -733,7 +734,7 @@ export default function ClientMarketOrdersPage() {
       loadBalance();
       load(searchQ, dateFilter);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "创建失败");
+      setError(e instanceof Error ? e.message : t("创建失败"));
     }
 
   };
@@ -851,7 +852,7 @@ export default function ClientMarketOrdersPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "删除失败");
+      setError(e instanceof Error ? e.message : t("删除失败"));
 
     }
 
@@ -919,7 +920,7 @@ export default function ClientMarketOrdersPage() {
       await api.settleClientMonthlyBatch(orderId, batchNo, { settled_amount: amt });
       load(searchQ, dateFilter);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败");
+      setError(e instanceof Error ? e.message : t("操作失败"));
     }
   };
 

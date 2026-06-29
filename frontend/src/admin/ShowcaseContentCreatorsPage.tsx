@@ -21,6 +21,7 @@ type Row = {
  * 表单与列表卡片的栅格、间距、图片区与「模特展示」一致；字段仍为拍摄类型、技能、视频与作品集。
  */
 export default function ShowcaseContentCreatorsPage() {
+  const { t } = useTranslation();
   const [list, setList] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -115,7 +116,7 @@ export default function ShowcaseContentCreatorsPage() {
       resetForm();
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "保存失败");
+      setError(e instanceof Error ? e.message : t("保存失败"));
     } finally {
       setSaving(false);
     }
@@ -130,7 +131,7 @@ export default function ShowcaseContentCreatorsPage() {
       await load();
       if (form.id === id) resetForm();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "删除失败");
+      setError(e instanceof Error ? e.message : t("删除失败"));
     }
   };
 

@@ -160,6 +160,7 @@ function PasswordFieldWithToggle({ value, onChange, placeholder, required, visib
  */
 
 export default function UsersPage() {
+  const { t } = useTranslation();
 
   const user = getStoredUser();
 

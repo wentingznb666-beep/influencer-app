@@ -22,6 +22,7 @@ type Row = {
  * UI 布局、栅格、间距、列表卡片与「模特展示」模块保持一致，仅业务标题与接口不同。
  */
 export default function ShowcaseInfluencersPage() {
+  const { t } = useTranslation();
   const [list, setList] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -119,7 +120,7 @@ export default function ShowcaseInfluencersPage() {
       resetForm();
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "保存失败");
+      setError(e instanceof Error ? e.message : t("保存失败"));
     } finally {
       setSaving(false);
     }
@@ -134,7 +135,7 @@ export default function ShowcaseInfluencersPage() {
       await load();
       if (form.id === id) resetForm();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "删除失败");
+      setError(e instanceof Error ? e.message : t("删除失败"));
     }
   };
 

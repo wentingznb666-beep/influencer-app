@@ -21,6 +21,7 @@ type WithdrawalRow = {
  * 管理员端提现管理：查看提现申请并标记打款/驳回（策略 A：打款时扣减积分）。
  */
 export default function WithdrawalsPage() {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<"pending" | "paid" | "rejected" | "all">("pending");
   const [list, setList] = useState<WithdrawalRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +56,7 @@ export default function WithdrawalsPage() {
       await api.updateWithdrawal(id, { status: "paid", note });
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败");
+      setError(e instanceof Error ? e.message : t("操作失败"));
     }
   };
 

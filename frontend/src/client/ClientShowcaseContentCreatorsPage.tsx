@@ -19,6 +19,7 @@ type Row = {
  * 商家端 Content Creator 展示：仅浏览与预约；卡片排版与「模特展示」一致。
  */
 export default function ClientShowcaseContentCreatorsPage() {
+  const { t } = useTranslation();
   const [list, setList] = useState<Row[]>([]);
   const [myList, setMyList] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +55,7 @@ export default function ClientShowcaseContentCreatorsPage() {
       await api.updateShowcaseContentCreatorSelection(id, !selected);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败");
+      setError(e instanceof Error ? e.message : t("操作失败"));
     }
   };
 

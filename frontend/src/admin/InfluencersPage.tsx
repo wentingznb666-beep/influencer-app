@@ -10,6 +10,7 @@ type Influencer = { id: number; username: string; display_name: string | null; c
 
 
 export default function InfluencersPage() {
+  const { t } = useTranslation();
 
   const nav = useNavigate();
   const location = useLocation();
@@ -114,7 +115,7 @@ export default function InfluencersPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "更新失败");
+      setError(e instanceof Error ? e.message : t("更新失败"));
 
     }
 

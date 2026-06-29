@@ -122,6 +122,7 @@ function isHttpUrl(value?: string | null): boolean {
  */
 
 export default function OrdersPage() {
+  const { t } = useTranslation();
 
   const user = getStoredUser();
 
@@ -365,7 +366,7 @@ export default function OrdersPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "保存失败");
+      setError(e instanceof Error ? e.message : t("保存失败"));
 
     } finally {
 
@@ -423,7 +424,7 @@ export default function OrdersPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "更新失败");
+      setError(e instanceof Error ? e.message : t("更新失败"));
 
     } finally {
 

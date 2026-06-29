@@ -18,6 +18,7 @@ type ClientOption = { id: number; username: string };
  * 管理员/员工 SKU 列表：只读查看与搜索。
  */
 export default function AdminSkusPage() {
+  const { t } = useTranslation();
   const [list, setList] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -10,6 +10,7 @@ type LedgerRow = { id: number; account_id: number; amount: number; type: string;
 type RechargeOrderRow = { id: number; order_no: string | null; user_id: number; username: string; amount: number; status: "pending" | "approved" | "rejected"; note: string | null; created_at: string; updated_at: string; approved_at: string | null };
 
 export default function PointsPage() {
+  const { t } = useTranslation();
   const user = getStoredUser();
   const isEmployee = user?.role === "employee";
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -78,7 +79,7 @@ export default function PointsPage() {
       loadSummary();
       loadLedger();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败");
+      setError(e instanceof Error ? e.message : t("操作失败"));
     }
   };
 

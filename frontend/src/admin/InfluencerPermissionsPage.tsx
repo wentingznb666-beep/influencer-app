@@ -19,6 +19,7 @@ type InfluencerPermissionRow = {
 
 /** 管理端达人撮合权限审核页。 */
 export default function InfluencerPermissionsPage() {
+  const { t } = useTranslation();
   const location = useLocation();
   const [list, setList] = useState<InfluencerPermissionRow[]>([]);
   const [msg, setMsg] = useState<string>("");

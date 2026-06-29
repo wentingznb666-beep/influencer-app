@@ -76,6 +76,7 @@ function normalizeMarketOrderTier(value: unknown): "A" | "B" | "C" {
  */
 
 export default function MarketOrderEditPage() {
+  const { t } = useTranslation();
 
   const { id } = useParams();
 
@@ -244,7 +245,7 @@ export default function MarketOrderEditPage() {
 
     } catch (e) {
 
-      setError(e instanceof Error ? e.message : "保存失败");
+      setError(e instanceof Error ? e.message : t("保存失败"));
 
     }
 

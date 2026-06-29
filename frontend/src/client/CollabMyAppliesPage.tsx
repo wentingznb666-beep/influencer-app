@@ -23,6 +23,7 @@ type MyApplyItem = {
 
 /** 商家端：查看自己在模式二的报名记录与状态。 */
 export default function CollabMyAppliesPage() {
+  const { t } = useTranslation();
   const [list, setList] = useState<MyApplyItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>("");

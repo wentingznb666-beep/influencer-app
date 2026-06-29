@@ -15,6 +15,7 @@ type MerchantMember = {
 
 /** 管理端商家会员与保证金总览。 */
 export default function MerchantMembersPage() {
+  const { t } = useTranslation();
   const [list, setList] = useState<MerchantMember[]>([]);
   const [error, setError] = useState<string>("");
 

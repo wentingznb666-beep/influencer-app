@@ -85,6 +85,7 @@ function statusText(status: string): string {
 }
 
 export default function MatchingOrdersPage() {
+  const { t } = useTranslation();
   const location = useLocation();
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [error, setError] = useState<string | null>(null);

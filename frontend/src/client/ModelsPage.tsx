@@ -17,6 +17,7 @@ type ModelRow = {
  * 商家端模特展示页：浏览、筛选并选择长期合作模特。
  */
 export default function ClientModelsPage() {
+  const { t } = useTranslation();
   const [list, setList] = useState<ModelRow[]>([]);
   const [myList, setMyList] = useState<ModelRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +55,7 @@ export default function ClientModelsPage() {
       await api.updateModelCooperation(modelId, !selected);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败");
+      setError(e instanceof Error ? e.message : t("操作失败"));
     }
   };
 

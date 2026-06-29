@@ -28,6 +28,7 @@ function ensureRecord(parent: Record<string, unknown>, key: string): Record<stri
 }
 
 export default function CooperationTypesPage(props: Props) {
+  const { t } = useTranslation();
   const user = getStoredUser();
   const isAdmin = user?.role === "admin";
   const readOnly = props.readOnly ?? !isAdmin;
@@ -79,7 +80,7 @@ export default function CooperationTypesPage(props: Props) {
       await updateCooperationTypes(config);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "保存失败");
+      setError(e instanceof Error ? e.message : t("保存失败"));
     } finally {
       setSaving(false);
     }

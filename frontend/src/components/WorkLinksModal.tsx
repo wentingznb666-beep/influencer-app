@@ -19,6 +19,7 @@ type WorkLinksModalProps = {
  * 订单「多条交付链接」弹窗：显示达人信息 + 链接列表 + 复制 + 打开。
  */
 export default function WorkLinksModal({ open, onClose, title = "交付链接", links, influencerName }: WorkLinksModalProps) {
+  const { t } = useTranslation();
   useScrollLock(open);
 
   useEffect(() => {

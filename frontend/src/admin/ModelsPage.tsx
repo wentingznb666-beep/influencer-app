@@ -49,6 +49,7 @@ function parseUploaderUserIdFromPhotoUrl(url: string): number | null {
  * 管理员/员工模特展示管理页。
  */
 export default function ModelsPage() {
+  const { t } = useTranslation();
   const user = getStoredUser();
   const isAdmin = user?.role === "admin";
   const isEmployee = user?.role === "employee";
@@ -184,7 +185,7 @@ export default function ModelsPage() {
       resetForm();
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "保存失败");
+      setError(e instanceof Error ? e.message : t("保存失败"));
     } finally {
       setSaving(false);
     }
@@ -212,7 +213,7 @@ export default function ModelsPage() {
       await api.reviewAdminModelStatus(id, action);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "审核失败");
+      setError(e instanceof Error ? e.message : t("审核失败"));
     }
   };
 
@@ -226,7 +227,7 @@ export default function ModelsPage() {
       await api.deleteAdminModel(id);
       await load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "删除失败");
+      setError(e instanceof Error ? e.message : t("删除失败"));
     }
   };
 

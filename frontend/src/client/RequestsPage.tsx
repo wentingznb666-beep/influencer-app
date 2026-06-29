@@ -6,6 +6,7 @@ import * as api from "../clientApi";
 type Request = { id: number; product_info: string | null; target_platform: string | null; budget: string | null; need_face: number; status: string; created_at: string };
 
 export default function RequestsPage() {
+  const { t } = useTranslation();
   const nav = useNavigate();
   const [list, setList] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +50,7 @@ export default function RequestsPage() {
     }
   };
 
-  const statusText: Record<string, string> = { draft: "草稿", submitted: "已提交", processing: "处理中", done: "已完成" };
+  const statusText: Record<string, string> = { draft: t("草稿"), submitted: "已提交", processing: "处理中", done: t("已完成") };
 
   /**
    * 软删除：弹出确认框，确认后调用删除接口并刷新列表。
@@ -62,7 +63,7 @@ export default function RequestsPage() {
       await api.deleteRequest(id);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "删除失败");
+      setError(e instanceof Error ? e.message : t("删除失败"));
     }
   };
 

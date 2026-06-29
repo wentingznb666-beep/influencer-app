@@ -19,6 +19,7 @@ type DepositLog = {
 
 /** 商家端会员中心：仅会员与保证金。 */
 export default function MemberCenterPage() {
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<ClientMemberProfile | null>(null);
   const [logs, setLogs] = useState<DepositLog[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +50,7 @@ export default function MemberCenterPage() {
       await load();
       setMsg("会员开通成功");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "操作失败");
+      setError(e instanceof Error ? e.message : t("操作失败"));
     }
   };
 

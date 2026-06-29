@@ -42,6 +42,7 @@ export default function StatusBadge({
   status: string;
   style?: CSSProperties;
 }) {
+  const { t } = useTranslation();
   const variant = getStatusVariant(status);
   return (
     <span className={VARIANT_CLASS[variant]} style={style}>

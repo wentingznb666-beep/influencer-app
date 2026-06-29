@@ -1,5 +1,6 @@
 import { compactPx } from "../responsive";
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { MerchantInfoForm } from "../components/MerchantInfoForm";
 
@@ -12,7 +13,7 @@ const MerchantTemplatePage: React.FC = () => {
     <div style={{ padding: compactPx(20) }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: compactPx(20) }}>
         <div>
-          <h2 style={{ margin: 0 }}>商家信息模板</h2>
+          <h2 style={{ margin: 0 }}>{t("商家信息模板")}</h2>
           <p style={{ color: "#64748b", marginTop: compactPx(8) }}>
             请完善您的商家基本信息。完善后，发布撮合订单时将自动引用此模板数据。
           </p>

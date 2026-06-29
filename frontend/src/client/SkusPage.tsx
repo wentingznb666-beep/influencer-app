@@ -30,6 +30,7 @@ type SkuRow = {
  * 商家端 SKU 列表：新增、编辑、删除 SKU 及图片。
  */
 export default function SkusPage() {
+  const { t } = useTranslation();
   const [list, setList] = useState<SkuRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -221,7 +222,7 @@ export default function SkusPage() {
       setShowSkuModal(false);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "保存失败");
+      setError(e instanceof Error ? e.message : t("保存失败"));
       setUploadProgress(0);
       setUploadStageText("");
     }
@@ -237,7 +238,7 @@ export default function SkusPage() {
       await api.deleteSku(id);
       load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "删除失败");
+      setError(e instanceof Error ? e.message : t("删除失败"));
     }
   };
 
@@ -271,7 +272,7 @@ export default function SkusPage() {
       setBatchImageResult(result);
       if (result.imagesSaved > 0) load();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "上传失败");
+      setError(e instanceof Error ? e.message : t("上传失败"));
     } finally {
       setBatchImageUploading(false);
     }

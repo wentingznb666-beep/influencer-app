@@ -11,6 +11,7 @@ type LoadingSpinnerProps = {
  * 通用加载旋转指示器，替代纯文字「加载中…」。
  */
 export default function LoadingSpinner({ text = "加载中…", size = "normal" }: LoadingSpinnerProps) {
+  const { t } = useTranslation();
   const dim = size === "small" ? compactPx(16) : compactPx(24);
   const border = size === "small" ? 2 : 3;
   return (
