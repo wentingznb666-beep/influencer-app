@@ -491,6 +491,14 @@ export default function DashboardShell({
             </div>
           ) : null}
         </div>
+        {shellVariant === "influencer" ? (
+          <div style={{ padding: "0 8px 6px" }}>
+            <NavLink to="/influencer/dashboard" className={({ isActive }) => "xt-sidebar-link" + (shellVariant === "influencer" ? " xt-sidebar-link--inf" : "") + (isActive ? " is-active" : "")} onClick={handleNavClick} style={{ borderRadius: 8 }}>
+              <span className="xt-sidebar-link__ic" aria-hidden>🏠</span>
+              <span className="xt-sidebar-link__txt">{lang === "th" ? "หน้าแรก" : "首页"}</span>
+            </NavLink>
+          </div>
+        ) : null}
         <nav className="xt-sidebar-nav">
           {GROUP_ORDER.map((gid) => {
             const items = groupedNav.groups[gid];

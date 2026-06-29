@@ -37,7 +37,6 @@ export default function InfluencerLayout() {
   const matchLocked = permissionStatus !== "approved";
 
   const navItems: DashboardNavItem[] = [
-    { to: "/influencer/dashboard", label: "首页", menuHint: "ภาพรวมบัญชีและทางลัด", icon: "🏠", group: "common" },
     { to: "/influencer/task-hall", label: "任务大厅", menuHint: "สมัครงานจับคู่และติดตามสถานะ", icon: "📋", group: "match" },
     { to: "/influencer/payment-profile", label: "收款信息", menuHint: "ตั้งค่าบัญชีรับเงินสำหรับการโอน", icon: "💳", group: "match" },
     { to: "/influencer/profile", label: "达人信息", menuHint: "完善账号与擅长领域后才可报名", icon: "👤", group: "match" },
