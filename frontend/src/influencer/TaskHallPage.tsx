@@ -658,11 +658,11 @@ export default function TaskHallPage() {
                   </span>
                 </div>
 
-                {/* 第二行：标题（截断）+ 收益 */}
-                <div style={{ display: "flex", alignItems: "center", gap: compactPx(10) }}>
+                {/* 第二行：标题 + 收益 */}
+                <div style={{ display: "flex", alignItems: "flex-start", gap: compactPx(10) }}>
                   <span style={{
                     fontWeight: 700, color: "var(--xt-primary)", fontSize: compactPx(15),
-                    flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    flex: 1, minWidth: 0, wordBreak: "break-word", lineHeight: 1.4,
                   }}>
                     {title}
                   </span>
