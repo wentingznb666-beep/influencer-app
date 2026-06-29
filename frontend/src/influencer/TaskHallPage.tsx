@@ -545,6 +545,13 @@ export default function TaskHallPage() {
     { key: "monthly_package", label: "包月合作套餐", thLabel: "แพ็กเกจรายเดือน" },
   ];
   const [taskCategory, setTaskCategory] = useState(CATEGORY_ALL);
+  // 记录哪些卡片展开了详情
+  const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
+  const toggleCard = (id: number) => setExpandedCards(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
 
   const filteredList = useMemo(() => {
     if (taskCategory === CATEGORY_ALL) return list;
@@ -635,44 +642,66 @@ export default function TaskHallPage() {
             </div>
           ) : null}
           <div style={{ display: "grid", gap: compactPx(10) }}>
-            {filteredList.map((item) => (
-              <div key={item.id} className="xt-inf-card" data-order-id={item.id} style={{ padding: compactPx(14), borderLeft: "4px solid #16a34a" }}>
-                <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: compactPx(15) }}>
-                  {t("预估收益：")}
-                  {estimatedEarningsText(item, i18n.language)}
+            {filteredList.map((item) => {
+              const isExpanded = expandedCards.has(item.id);
+              return (
+              <div key={item.id} className="xt-inf-card" data-order-id={item.id} style={{ padding: 0, borderLeft: "4px solid #16a34a", overflow: "hidden" }}>
+                {/* 紧凑摘要行 */}
+                <div
+                  onClick={() => toggleCard(item.id)}
+                  style={{ padding: `${compactPx(12)}px ${compactPx(14)}px`, display: "flex", alignItems: "center", gap: compactPx(10), cursor: "pointer", userSelect: "none" }}
+                >
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    width: compactPx(20), height: compactPx(20), borderRadius: "50%",
+                    background: "var(--xt-accent)", color: "#fff", fontSize: compactPx(11),
+                    fontWeight: 700, flexShrink: 0, transition: "transform 0.2s",
+                    transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                  }}>▼</span>
+                  <span style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: compactPx(15), flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {item.title ? t(item.title) : t("未命名")}
+                  </span>
+                  <span style={{ fontWeight: 700, color: "var(--xt-accent)", fontSize: compactPx(15), whiteSpace: "nowrap" }}>
+                    {estimatedEarningsText(item, i18n.language)}
+                  </span>
                 </div>
-                <div style={{ fontWeight: 600, marginTop: compactPx(6) }}>
-                  {t("订单号：")}
-                  {item.order_no || `#${item.id}`}
-                </div>
-                <div>
-                  {t("任务名称：")}
-                  {item.title ? t(item.title) : t("未命名")}
-                </div>
-                <div>
-                  {t("商家：")}
-                  {item.client_name || item.client_username || "-"}
-                </div>
-                <div style={{ marginTop: compactPx(10), display: "flex", gap: compactPx(8), flexWrap: "wrap", alignItems: "center" }}>
-                  <button type="button" onClick={() => (setActiveOrder(item), setDetailOpen(true))} style={{ padding: "8px 12px", borderRadius: compactPx(10), border: "1px solid var(--xt-border)", background: "#fff", fontWeight: 800 }}>
-                    {t("查看详情")}
-                  </button>
-                  <div style={{ position: "relative" }}>
-                    <button type="button" className="xt-accent-btn" disabled={isRecruitFull(item)} onClick={() => void apply(item)} style={{ opacity: isRecruitFull(item) ? 0.6 : 1 }}>
-                      {t("一键报名")}
-                    </button>
-                    {isRecruitFull(item) ? (
-                      <button
-                        type="button"
-                        aria-label={t("招募数量已满")}
-                        onClick={() => toastRecruitFull(t)}
-                        style={{ position: "absolute", inset: 0, cursor: "not-allowed", background: "transparent", border: "none" }}
-                      />
-                    ) : null}
+
+                {/* 展开详情区 */}
+                {isExpanded && (
+                  <div style={{ padding: `0 ${compactPx(14)}px ${compactPx(14)}px`, borderTop: "1px solid var(--xt-border)", background: "#fafbfc" }}>
+                    <div style={{ display: "grid", gap: compactPx(6), paddingTop: compactPx(10), fontSize: compactPx(13), color: "#475569" }}>
+                      <div style={{ display: "flex", gap: compactPx(4) }}>
+                        <span style={{ color: "#94a3b8", flexShrink: 0 }}>{t("订单号")}：</span>
+                        <span style={{ fontWeight: 600, color: "#334155" }}>{item.order_no || `#${item.id}`}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: compactPx(4) }}>
+                        <span style={{ color: "#94a3b8", flexShrink: 0 }}>{t("商家")}：</span>
+                        <span>{item.client_name || item.client_username || "-"}</span>
+                      </div>
+                      <div style={{ display: "flex", gap: compactPx(4) }}>
+                        <span style={{ color: "#94a3b8", flexShrink: 0 }}>{t("招募")}：</span>
+                        <span>{recruitTotal(item) || "-"} / {appliedCount(item)}{t("人已报")}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ marginTop: compactPx(10), display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setActiveOrder(item); setDetailOpen(true); }} style={{ padding: "6px 12px", borderRadius: compactPx(8), border: "1px solid var(--xt-border)", background: "#fff", fontWeight: 700, fontSize: compactPx(13), cursor: "pointer" }}>
+                        📋 {t("查看详情")}
+                      </button>
+                      <div style={{ position: "relative" }}>
+                        <button type="button" className="xt-accent-btn" disabled={isRecruitFull(item)} onClick={(e) => { e.stopPropagation(); void apply(item); }} style={{ opacity: isRecruitFull(item) ? 0.6 : 1, fontSize: compactPx(13), padding: "6px 14px" }}>
+                          🚀 {t("一键报名")}
+                        </button>
+                        {isRecruitFull(item) ? (
+                          <button type="button" onClick={(e) => { e.stopPropagation(); toastRecruitFull(t); }} style={{ position: "absolute", inset: 0, cursor: "not-allowed", background: "transparent", border: "none" }} />
+                        ) : null}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
@@ -698,104 +727,129 @@ export default function TaskHallPage() {
               const canSubmitPublish = it.apply_status === "selected" && it.order_status === "completed" && oid > 0 && coopType === "creator_review_video" && coopPhase === "approved_to_publish";
               const orderLabel = formatOrderStatus(it.order_status);
               const applyLabel = formatApplyStatus(it.apply_status);
+              const isExpanded = expandedCards.has(it.id);
+              const statusColor = appliedAccentBorder(it.order_status);
               return (
                 <div
                   key={it.id}
                   className="xt-inf-card"
                   data-order-id={oid > 0 ? oid : it.id}
-                  style={{ padding: compactPx(14), borderLeft: `4px solid ${appliedAccentBorder(it.order_status)}` }}
+                  style={{ padding: 0, borderLeft: `4px solid ${statusColor}`, overflow: "hidden" }}
                 >
-                  <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: compactPx(15) }}>
-                    {t("任务状态：")}
-                    {t(orderLabel)}
+                  {/* 紧凑摘要行 */}
+                  <div
+                    onClick={() => toggleCard(it.id)}
+                    style={{ padding: `${compactPx(12)}px ${compactPx(14)}px`, display: "flex", alignItems: "center", gap: compactPx(10), cursor: "pointer", userSelect: "none" }}
+                  >
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      width: compactPx(20), height: compactPx(20), borderRadius: "50%",
+                      background: statusColor, color: "#fff", fontSize: compactPx(11),
+                      fontWeight: 700, flexShrink: 0, transition: "transform 0.2s",
+                      transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                    }}>▼</span>
+                    <span style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: compactPx(15), flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {it.title ? t(it.title) : t("未命名")}
+                    </span>
+                    <span style={{
+                      display: "inline-block", padding: "2px 8px", borderRadius: compactPx(10),
+                      fontSize: compactPx(11), fontWeight: 700, whiteSpace: "nowrap",
+                      background: orderLabel === "已完成" || orderLabel === "已验收" ? "#dcfce7" : orderLabel === "进行中" ? "#fef3c7" : "#f1f5f9",
+                      color: orderLabel === "已完成" || orderLabel === "已验收" ? "#166534" : orderLabel === "进行中" ? "#92400e" : "#64748b",
+                    }}>
+                      {t(orderLabel)} · {t(applyLabel)}
+                    </span>
                   </div>
-                  <div style={{ fontWeight: 600, marginTop: compactPx(6) }}>
-                    {t("订单号：")}
-                    {it.order_no || "-"}
-                  </div>
-                  <div>
-                    {t("任务名称：")}
-                    {it.title ? t(it.title) : t("未命名")}
-                  </div>
-                  <div>
-                    {t("报名状态：")}
-                    {t(applyLabel)}
-                  </div>
-                  {Array.isArray(it.work_links) && it.work_links.length > 0 && (() => {
-                    const raw = String(it.work_links[0] ?? "").trim();
-                    const isUrl = /^https?:\/\//i.test(raw);
-                    if (!raw) return null;
-                    return (
-                      <div>
-                        {t("回传短视频：")}
-                        {isUrl ? (
-                          <a href={raw} target="_blank" rel="noreferrer">{t("查看")}</a>
-                        ) : (
-                          <span style={{ color: "var(--xt-text-muted)", fontSize: compactPx(13) }}>{raw}</span>
-                        )}
-                      </div>
-                    );
-                  })()}
-                  {/* 验收状态：仅已完成/已验收订单显示 */}
-                  {(it.order_status === "completed" || it.order_status === "accepted") && linkAcceptanceMap[oid]?.length > 0 && (
-                    <div style={{ marginTop: compactPx(8), padding: compactPx(10), background: "#f8fafc", borderRadius: compactPx(8), border: "1px solid #e2e8f0" }}>
-                      <div style={{ fontWeight: 700, marginBottom: compactPx(6), fontSize: compactPx(13) }}>{t("验收状态：")}</div>
-                      {linkAcceptanceMap[oid].map((la, idx: number) => (
-                        <div key={idx} style={{ display: "flex", alignItems: "center", gap: compactPx(8), padding: "4px 0", fontSize: compactPx(13) }}>
-                          <span>{t("回传链接")}{idx + 1}：</span>
-                          {la.accepted ? (
-                            <span style={{ color: "#16a34a", fontWeight: 700 }}>✅ {t("已通过")}</span>
-                          ) : la.rejected ? (
-                            <span style={{ color: "#dc2626", fontWeight: 700 }}>❌ {t("已驳回")}</span>
-                          ) : (
-                            <span style={{ color: "#64748b" }}>{t("待验收")}</span>
-                          )}
-                          {la.payment_url && (
-                            <a href={la.payment_url} target="_blank" rel="noreferrer" style={{ fontSize: compactPx(12), color: "#10b981", textDecoration: "underline" }}>
-                              {t("查看付款截图")}
-                            </a>
-                          )}
+
+                  {/* 展开详情区 */}
+                  {isExpanded && (
+                    <div style={{ padding: `0 ${compactPx(14)}px ${compactPx(14)}px`, borderTop: "1px solid var(--xt-border)", background: "#fafbfc" }}>
+                      <div style={{ display: "grid", gap: compactPx(6), paddingTop: compactPx(10), fontSize: compactPx(13), color: "#475569" }}>
+                        <div style={{ display: "flex", gap: compactPx(4) }}>
+                          <span style={{ color: "#94a3b8", flexShrink: 0 }}>{t("订单号")}：</span>
+                          <span style={{ fontWeight: 600, color: "#334155" }}>{it.order_no || "-"}</span>
                         </div>
-                      ))}
-                    </div>
-                  )}
-                  {lastPublish ? (() => {
-                    const isUrl = /^https?:\/\//i.test(lastPublish);
-                    return (
-                      <div>
-                        {t("发布链接：")}
-                        {isUrl ? (
-                          <a href={lastPublish} target="_blank" rel="noreferrer">{t("查看")}</a>
-                        ) : (
-                          <span style={{ color: "var(--xt-text-muted)", fontSize: compactPx(13) }}>{lastPublish}</span>
-                        )}
                       </div>
-                    );
-                  })() : null}
-                  {canSubmitProof && (
-                    <div style={{ marginTop: compactPx(8) }}>
-                      <input
-                        value={proofMap[oid] || ""}
-                        onChange={(e) => setProofMap((m) => ({ ...m, [oid]: e.target.value }))}
-                        placeholder={t("回传短视频链接")}
-                        style={{ marginRight: compactPx(6), width: 300, maxWidth: "100%" }}
-                      />
-                      <button type="button" className="xt-accent-btn" onClick={() => void submitProof(oid)}>
-                        {t("提交完成凭证")}
-                      </button>
-                    </div>
-                  )}
-                  {canSubmitPublish && (
-                    <div style={{ marginTop: compactPx(8) }}>
-                      <input
-                        value={publishMap[oid] || ""}
-                        onChange={(e) => setPublishMap((m) => ({ ...m, [oid]: e.target.value }))}
-                        placeholder={t("发布链接（TikTok/TAP）")}
-                        style={{ marginRight: compactPx(6), width: 300, maxWidth: "100%" }}
-                      />
-                      <button type="button" className="xt-accent-btn" onClick={() => void submitPublish(oid)}>
-                        {t("提交发布链接")}
-                      </button>
+
+                      {Array.isArray(it.work_links) && it.work_links.length > 0 && (() => {
+                        const raw = String(it.work_links[0] ?? "").trim();
+                        const isUrl = /^https?:\/\//i.test(raw);
+                        if (!raw) return null;
+                        return (
+                          <div style={{ marginTop: compactPx(6), display: "flex", gap: compactPx(4), fontSize: compactPx(13) }}>
+                            <span style={{ color: "#94a3b8", flexShrink: 0 }}>{t("回传短视频")}：</span>
+                            {isUrl ? (
+                              <a href={raw} target="_blank" rel="noreferrer" style={{ color: "var(--xt-accent)" }}>{t("查看")}</a>
+                            ) : (
+                              <span style={{ color: "var(--xt-text-muted)" }}>{raw}</span>
+                            )}
+                          </div>
+                        );
+                      })()}
+
+                      {(it.order_status === "completed" || it.order_status === "accepted") && linkAcceptanceMap[oid]?.length > 0 && (
+                        <div style={{ marginTop: compactPx(8), padding: compactPx(10), background: "#f0fdf4", borderRadius: compactPx(8), border: "1px solid #bbf7d0" }}>
+                          <div style={{ fontWeight: 700, marginBottom: compactPx(4), fontSize: compactPx(12) }}>{t("验收状态")}</div>
+                          {linkAcceptanceMap[oid].map((la, idx: number) => (
+                            <div key={idx} style={{ display: "flex", alignItems: "center", gap: compactPx(6), padding: "2px 0", fontSize: compactPx(12) }}>
+                              <span style={{ color: "#94a3b8" }}>{idx + 1}.</span>
+                              {la.accepted ? (
+                                <span style={{ color: "#16a34a", fontWeight: 700 }}>✅ {t("已通过")}</span>
+                              ) : la.rejected ? (
+                                <span style={{ color: "#dc2626", fontWeight: 700 }}>❌ {t("已驳回")}</span>
+                              ) : (
+                                <span style={{ color: "#64748b" }}>{t("待验收")}</span>
+                              )}
+                              {la.payment_url && (
+                                <a href={la.payment_url} target="_blank" rel="noreferrer" style={{ fontSize: compactPx(11), color: "#10b981", textDecoration: "underline", marginLeft: "auto" }}>
+                                  💰 {t("付款截图")}
+                                </a>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {lastPublish ? (() => {
+                        const isUrl = /^https?:\/\//i.test(lastPublish);
+                        return (
+                          <div style={{ marginTop: compactPx(6), display: "flex", gap: compactPx(4), fontSize: compactPx(13) }}>
+                            <span style={{ color: "#94a3b8", flexShrink: 0 }}>{t("发布链接")}：</span>
+                            {isUrl ? (
+                              <a href={lastPublish} target="_blank" rel="noreferrer" style={{ color: "var(--xt-accent)" }}>{t("查看")}</a>
+                            ) : (
+                              <span style={{ color: "var(--xt-text-muted)" }}>{lastPublish}</span>
+                            )}
+                          </div>
+                        );
+                      })() : null}
+
+                      {canSubmitProof && (
+                        <div style={{ marginTop: compactPx(10), display: "flex", gap: compactPx(6), alignItems: "center" }}>
+                          <input
+                            value={proofMap[oid] || ""}
+                            onChange={(e) => setProofMap((m) => ({ ...m, [oid]: e.target.value }))}
+                            placeholder={t("回传短视频链接")}
+                            style={{ flex: 1, padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid var(--xt-border)", fontSize: compactPx(13) }}
+                          />
+                          <button type="button" className="xt-accent-btn" onClick={() => void submitProof(oid)} style={{ fontSize: compactPx(12), padding: "6px 12px", whiteSpace: "nowrap" }}>
+                            {t("提交完成凭证")}
+                          </button>
+                        </div>
+                      )}
+                      {canSubmitPublish && (
+                        <div style={{ marginTop: compactPx(8), display: "flex", gap: compactPx(6), alignItems: "center" }}>
+                          <input
+                            value={publishMap[oid] || ""}
+                            onChange={(e) => setPublishMap((m) => ({ ...m, [oid]: e.target.value }))}
+                            placeholder={t("发布链接（TikTok/TAP）")}
+                            style={{ flex: 1, padding: "6px 10px", borderRadius: compactPx(8), border: "1px solid var(--xt-border)", fontSize: compactPx(13) }}
+                          />
+                          <button type="button" className="xt-accent-btn" onClick={() => void submitPublish(oid)} style={{ fontSize: compactPx(12), padding: "6px 12px", whiteSpace: "nowrap" }}>
+                            {t("提交发布链接")}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
