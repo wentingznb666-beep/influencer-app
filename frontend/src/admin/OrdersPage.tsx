@@ -1,5 +1,5 @@
 import { compactPx } from "../responsive";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useSearchParams } from "react-router-dom";
 

@@ -1,5 +1,5 @@
 import { compactPx } from "../responsive";
-import { useCallback, useState, useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { useState, useEffect, useMemo, useRef, type CSSProperties } from "react";
 
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -436,7 +436,7 @@ export default function ClientMarketOrdersPage() {
   useAutoRefresh({
     fetchCount: async () => {
       try {
-        const data = await api.getClientMarketOrders();
+        const data = await api.getMarketOrders();
         return ((data.list || []) as unknown[]).length;
       } catch {
         return 0;

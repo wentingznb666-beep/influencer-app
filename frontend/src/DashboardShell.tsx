@@ -471,7 +471,7 @@ export default function DashboardShell({
       <aside
         ref={sidebarScrollRef}
         className={"xt-sidebar" + (isCompact ? " is-compact" : "") + (sidebarOpen ? " is-open" : "")}
-        style={isCompact ? { overflowY: "auto" as const } : { ...xtLayout.sidebar, overflowY: "auto" as const }}
+        style={isCompact ? { overflowY: "auto" as React.CSSProperties["overflowY"] } : { ...xtLayout.sidebar, overflowY: "auto" as React.CSSProperties["overflowY"] }}
         aria-hidden={isCompact ? !sidebarOpen : false}
       >
         <div className="xt-sidebar-brand">

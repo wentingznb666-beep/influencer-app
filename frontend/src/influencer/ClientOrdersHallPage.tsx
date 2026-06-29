@@ -1,5 +1,5 @@
 import { compactPx } from "../responsive";
-import { Fragment, useCallback, useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useLocation } from "react-router-dom";

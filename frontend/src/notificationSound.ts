@@ -4,10 +4,26 @@
  */
 
 let audioCtx: AudioContext | null = null;
+let _audioApiUnsupported = false;
 
-function getAudioContext(): AudioContext {
+function getAudioContext(): AudioContext | null {
+  if (_audioApiUnsupported) return null;
   if (!audioCtx) {
-    audioCtx = new AudioContext();
+    try {
+      audioCtx = new AudioContext();
+    } catch {
+      _audioApiUnsupported = true;
+      return null;
+    }
+  }
+  // 清理可能已关闭的 context（如浏览器回收）
+  if (audioCtx.state === "closed") {
+    try {
+      audioCtx = new AudioContext();
+    } catch {
+      _audioApiUnsupported = true;
+      return null;
+    }
   }
   return audioCtx;
 }
@@ -19,6 +35,7 @@ function getAudioContext(): AudioContext {
 export function playNotificationSound(): void {
   try {
     const ctx = getAudioContext();
+    if (!ctx) return;
     const now = ctx.currentTime;
 
     // 三个音符：C5(523) -> E5(659) -> G5(784)，每个 100ms，间隔 30ms
@@ -53,6 +70,7 @@ export function playNotificationSound(): void {
 export function playClickSound(): void {
   try {
     const ctx = getAudioContext();
+    if (!ctx) return;
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
