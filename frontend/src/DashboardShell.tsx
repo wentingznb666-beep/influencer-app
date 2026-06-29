@@ -8,6 +8,7 @@ import { DeferredBlock, useDeferredInCompact, useResponsive } from "./responsive
 import { normalizeAccountText } from "./utils/accountText";
 import { useAppStore } from "./stores/AppStore";
 import { clearAllSystemMessages, getSystemMessages, markSystemMessageRead, type SystemMessage } from "./systemMessageApi";
+import { resumeAudioContext } from "./notificationSound";
 
 /** 顶栏/侧栏导航项定义，支持 hover 预加载；达人端可带分组与视觉锁定。 */
 export type DashboardNavItem = {
@@ -365,8 +366,9 @@ export default function DashboardShell({
     navigate("/login", { replace: true });
   };
 
-  /** 点击菜单后自动关闭小屏抽屉，避免遮挡主内容。 */
+  /** 点击菜单后自动关闭小屏抽屉，避免遮挡主内容。同时恢复 AudioContext（浏览器策略）。 */
   const handleNavClick = () => {
+    resumeAudioContext();
     if (isCompact) setSidebarOpen(false);
   };
 
@@ -390,7 +392,14 @@ export default function DashboardShell({
       if (Number(it.is_read) !== 1) await readMessage(it.id);
       setMsgOpen(false);
       if (isCompact) setSidebarOpen(false);
-      if (target) navigate(target);
+      if (target) {
+        // 如果已在目标页面，派发刷新事件；否则导航跳转
+        if (location.pathname === target.split("?")[0]) {
+          window.dispatchEvent(new CustomEvent("hermes:refresh-orders"));
+        } else {
+          navigate(target);
+        }
+      }
     } finally {
       setMsgJumpingId((prev) => (prev === it.id ? null : prev));
     }
@@ -462,7 +471,7 @@ export default function DashboardShell({
       <aside
         ref={sidebarScrollRef}
         className={"xt-sidebar" + (isCompact ? " is-compact" : "") + (sidebarOpen ? " is-open" : "")}
-        style={{ ...xtLayout.sidebar, overflowY: "auto" }}
+        style={isCompact ? { overflowY: "auto" as const } : { ...xtLayout.sidebar, overflowY: "auto" as const }}
         aria-hidden={isCompact ? !sidebarOpen : false}
       >
         <div className="xt-sidebar-brand">

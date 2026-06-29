@@ -17,8 +17,10 @@ export function getUploadsRoot(): string {
 export function ensureUploadsSubdirs(): void {
   const root = getUploadsRoot();
   fs.mkdirSync(root, { recursive: true });
-  fs.mkdirSync(path.join(root, "models"), { recursive: true });
-  fs.mkdirSync(path.join(root, "skus"), { recursive: true });
+  const subdirs = ["models", "skus", "matching-orders", "payments"];
+  for (const sub of subdirs) {
+    fs.mkdirSync(path.join(root, sub), { recursive: true });
+  }
 }
 
 /**

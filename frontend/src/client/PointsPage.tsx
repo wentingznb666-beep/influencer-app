@@ -55,9 +55,8 @@ export default function ClientPointsPage() {
       <h2 style={{ marginTop: 0 }}>积分充值</h2>
       <p style={{ fontSize: compactPx(14), color: "#666" }}>1 积分 = 1 泰铢。提交充值订单后，需管理员确认后才会到账。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
-      {loading ? (
-        <p>加载中…</p>
-      ) : (
+      {loading && <p>加载中…</p>}
+      {!loading && (
         <>
           <div style={{ marginBottom: compactPx(24) }}>
             <span style={{ fontSize: compactPx(14), color: "#666" }}>当前余额：</span>

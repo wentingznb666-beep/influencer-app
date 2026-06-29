@@ -22,7 +22,9 @@ module.exports = {
     env: {
       ...env,
       NODE_ENV: 'production',
-      PORT: 3000
+      PORT: 3000,
+      // 持久化上传目录：避免每次部署/重启时图片丢失
+      UPLOADS_ROOT: '/home/ubuntu/influencer-data/uploads'
     },
     instances: 1,
     autorestart: true,

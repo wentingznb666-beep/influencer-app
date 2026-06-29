@@ -1,11 +1,12 @@
 import { compactPx } from "../responsive";
-import { Fragment, useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNode } from "react";
+import { Fragment, useCallback, useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import { useLocation } from "react-router-dom";
 
 import * as api from "../influencerApi";
 import * as employeeApi from "../employeeApi";
+import { useAutoRefresh } from "../hooks/useAutoRefresh";
 
 import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFilter";
 
@@ -590,6 +591,26 @@ export default function ClientOrdersHallPage() {
     load();
 
   }, []);
+
+  // 自动轮询：每 30 秒检测新订单并播放提示音
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  useAutoRefresh({
+    fetchCount: async () => {
+      try {
+        const [openRes, myRes] = await Promise.all([
+          api.getMarketOrders(),
+          api.getMyMarketOrders(),
+        ]);
+        const openLen = ((openRes.list || []) as unknown[]).length;
+        const myLen = ((myRes.list || []) as unknown[]).length;
+        return openLen + myLen;
+      } catch {
+        return 0;
+      }
+    },
+    onNewOrder: () => loadRef.current(),
+  });
 
 
 
@@ -1708,9 +1729,10 @@ export default function ClientOrdersHallPage() {
           </button>
         </div>
 
-        {loading ? (
-          <p>{t("加载中…")}</p>
-        ) : (
+        {loading && (
+          <p style={{ padding: "8px 0" }}>{t("加载中…")}</p>
+        )}
+        {!loading && (
           <div style={{ display: "flex", flexDirection: "column", gap: compactPx(12) }}>
             {gradedFilteredSorted.map((o) => renderUnifiedOrderCard(o))}
 

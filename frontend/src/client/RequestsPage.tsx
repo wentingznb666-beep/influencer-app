@@ -138,7 +138,8 @@ export default function RequestsPage() {
           <button type="submit" style={{ padding: "8px 16px", background: "var(--xt-accent)", color: "#fff", border: "none", borderRadius: compactPx(8), cursor: "pointer" }}>提交</button>
         </form>
       )}
-      {loading ? <p>加载中…</p> : (
+      {loading && <p>加载中…</p>}
+      {!loading && (
         <div style={{ display: "flex", flexDirection: "column", gap: compactPx(12) }}>
           {list.map((r) => (
             <div key={r.id} style={{ padding: compactPx(16), background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>

@@ -59,9 +59,8 @@ export default function PointsPage() {
       <h2 className="xt-inf-page-title">{t("积分与收益")}</h2>
       <p className="xt-inf-lead">{t("1 积分 = 1 泰铢，按周结算；流水为最近记录。")}</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
-      {loading ? (
-        <p>{t("加载中…")}</p>
-      ) : (
+      {loading && <p>{t("加载中…")}</p>}
+      {!loading && (
         <>
           <div style={{ display: "flex", gap: compactPx(16), marginBottom: compactPx(24), flexWrap: "wrap" }}>
             <div className="xt-inf-card" style={{ padding: compactPx(18), minWidth: 168, flex: "1 1 160px" }}>

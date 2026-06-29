@@ -7,6 +7,7 @@ import { useSearchParams } from "react-router-dom";
 import * as api from "../adminApi";
 
 import * as employeeApi from "../employeeApi";
+import { useAutoRefresh } from "../hooks/useAutoRefresh";
 
 import { getStoredUser } from "../authApi";
 
@@ -402,7 +403,25 @@ export default function MarketOrdersPage() {
 
   }, [detailOrder?.id]);
 
-
+  // 自动轮询：每 30 秒检测新订单并播放提示音
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  useAutoRefresh({
+    fetchCount: async () => {
+      try {
+        const [marketRes, offlineRes] = await Promise.allSettled([
+          api.getAdminMarketOrders(),
+          employeeApi.getEmployeeVideoOrders({ limit: 200 }),
+        ]);
+        const mlen = marketRes.status === "fulfilled" ? (((marketRes.value as { list: unknown[] })?.list || []) as unknown[]).length : 0;
+        const olen = offlineRes.status === "fulfilled" ? (((offlineRes.value as { list: unknown[] })?.list || []) as unknown[]).length : 0;
+        return mlen + olen;
+      } catch {
+        return 0;
+      }
+    },
+    onNewOrder: () => loadRef.current(),
+  });
 
   const statusText: Record<string, string> = useMemo(
     () => ({
@@ -685,11 +704,8 @@ export default function MarketOrdersPage() {
 
       </div>
 
-      {loading ? (
-
-        <p>{t("加载中…")}</p>
-
-      ) : (
+      {loading && <p>{t("加载中…")}</p>}
+      {!loading && (
 
         <div className="xt-table-card">
         <OrderTableScrollArea fitContent>

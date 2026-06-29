@@ -1,5 +1,5 @@
 import { compactPx } from "../responsive";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useSearchParams } from "react-router-dom";
 
@@ -9,6 +9,7 @@ import { getStoredUser } from "../authApi";
 
 import WorkLinksModal from "../components/WorkLinksModal";
 
+import { useAutoRefresh } from "../hooks/useAutoRefresh";
 import { useScrollLock } from "../hooks/useScrollLock";
 
 import { normalizeWorkLinks } from "../utils/workLinks";
@@ -246,7 +247,23 @@ export default function OrdersPage() {
 
   }, [detailOrder?.id]);
 
-
+  // 自动轮询：每 30 秒检测新订单并播放提示音
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  useAutoRefresh({
+    fetchCount: async () => {
+      try {
+        const data = await api.getAdminOrders({
+          q: (searchParams.get("q") || "").trim() || undefined,
+          status: (searchParams.get("status") || "") as "" | "open" | "claimed" | "completed" | "cancelled" || undefined,
+        });
+        return ((data.list as Row[]) || []).length;
+      } catch {
+        return 0;
+      }
+    },
+    onNewOrder: () => loadRef.current(),
+  });
 
   const statusText: Record<string, string> = {
 
@@ -510,11 +527,8 @@ export default function OrdersPage() {
 
 
 
-      {loading ? (
-
-        <p>加载中…</p>
-
-      ) : (
+      {loading && <p>加载中…</p>}
+      {!loading && (
 
         <div className="xt-table-card">
         <OrderTableScrollArea fitContent>

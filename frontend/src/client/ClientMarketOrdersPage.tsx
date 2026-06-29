@@ -1,5 +1,5 @@
 import { compactPx } from "../responsive";
-import { useState, useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { useCallback, useState, useEffect, useMemo, useRef, type CSSProperties } from "react";
 
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -10,6 +10,7 @@ import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFi
 import WorkLinksModal from "../components/WorkLinksModal";
 
 import { showToastNotice } from "../utils/showToast";
+import { useAutoRefresh } from "../hooks/useAutoRefresh";
 
 import { normalizeWorkLinks } from "../utils/workLinks";
 
@@ -428,6 +429,21 @@ export default function ClientMarketOrdersPage() {
     load();
 
   }, []);
+
+  // 自动轮询：每 30 秒检测新订单并播放提示音
+  const loadRef = useRef(load);
+  loadRef.current = load;
+  useAutoRefresh({
+    fetchCount: async () => {
+      try {
+        const data = await api.getClientMarketOrders();
+        return ((data.list || []) as unknown[]).length;
+      } catch {
+        return 0;
+      }
+    },
+    onNewOrder: () => loadRef.current(),
+  });
 
 
 
@@ -1324,11 +1340,8 @@ export default function ClientMarketOrdersPage() {
 
       )}
 
-      {loading ? (
-
-        <p>加载中…</p>
-
-      ) : (
+      {loading && <p>加载中…</p>}
+      {!loading && (
 
         <div style={{ display: "flex", flexDirection: "column", gap: compactPx(12) }}>
 
