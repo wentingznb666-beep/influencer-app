@@ -541,8 +541,8 @@ export default function TaskHallPage() {
   const TASK_CATEGORIES: { key: string; label: string; thLabel: string }[] = [
     { key: "全部", label: "全部任务", thLabel: "งานทั้งหมด" },
     { key: "creator_review_video", label: "Creator 带货测评", thLabel: "Creator รีวิวสินค้า" },
-    { key: "brand_collab", label: "品牌合作", thLabel: "งานแบรนด์" },
-    { key: "livestream", label: "直播带货", thLabel: "ไลฟ์ขายของ" },
+    { key: "high_quality_custom_video", label: "高质量定制视频", thLabel: "วิดีโอคุณภาพสูง" },
+    { key: "monthly_package", label: "包月合作套餐", thLabel: "แพ็กเกจรายเดือน" },
   ];
   const [taskCategory, setTaskCategory] = useState(CATEGORY_ALL);
 
