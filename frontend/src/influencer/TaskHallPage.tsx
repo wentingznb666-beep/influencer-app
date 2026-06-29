@@ -648,60 +648,44 @@ export default function TaskHallPage() {
               const merchant = item.client_name || item.client_username || "-";
               return (
               <div key={item.id} className="xt-inf-card" data-order-id={item.id} style={{ padding: compactPx(14), borderLeft: "4px solid #16a34a", cursor: "pointer" }} onClick={() => toggleCard(item.id)}>
-                {/* 第一行：订单号 + 商家 */}
-                <div style={{ display: "flex", gap: compactPx(12), flexWrap: "wrap", alignItems: "baseline", marginBottom: compactPx(4) }}>
-                  <span style={{ fontWeight: 600, color: "#334155", fontSize: compactPx(12) }}>
+                {/* 摘要行：订单号 · 商家 · 标题(截断) · 收益 */}
+                <div style={{ display: "flex", alignItems: "center", gap: compactPx(8) }}>
+                  <span style={{ fontWeight: 600, color: "#334155", fontSize: compactPx(12), flexShrink: 0 }}>
                     {item.order_no || `#${item.id}`}
                   </span>
-                  <span style={{ color: "#94a3b8", fontSize: compactPx(12) }}>
+                  <span style={{ color: "#cbd5e1" }}>·</span>
+                  <span style={{ color: "#94a3b8", fontSize: compactPx(12), flexShrink: 0, maxWidth: compactPx(100), overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {merchant}
                   </span>
-                </div>
-
-                {/* 第二行：标题 + 收益 */}
-                <div style={{ display: "flex", alignItems: "flex-start", gap: compactPx(10) }}>
+                  <span style={{ color: "#cbd5e1" }}>·</span>
                   <span style={{
-                    fontWeight: 700, color: "var(--xt-primary)", fontSize: compactPx(15),
-                    flex: 1, minWidth: 0, wordBreak: "break-word", lineHeight: 1.4,
+                    fontWeight: 700, color: "var(--xt-primary)", fontSize: compactPx(14),
+                    flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>
                     {title}
                   </span>
-                  <span style={{ fontWeight: 800, color: "var(--xt-accent)", fontSize: compactPx(15), whiteSpace: "nowrap", flexShrink: 0 }}>
+                  <span style={{ fontWeight: 800, color: "var(--xt-accent)", fontSize: compactPx(14), whiteSpace: "nowrap", flexShrink: 0 }}>
                     {estimatedEarningsText(item, i18n.language)}
                   </span>
                 </div>
 
-                {/* 第三行：招募数 + 操作 */}
-                <div style={{ display: "flex", alignItems: "center", gap: compactPx(10), marginTop: compactPx(6) }}>
-                  <span style={{ fontSize: compactPx(12), color: "#94a3b8" }}>
-                    {recruitTotal(item) || "-"}{t("人招募")} · {appliedCount(item)}{t("人已报")}
-                  </span>
-                  <span style={{
-                    fontSize: compactPx(10), color: "var(--xt-accent)", fontWeight: 600,
-                    transition: "transform 0.2s", transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)",
-                  }}>
-                    {isExpanded ? "▲" : "▼"} {isExpanded ? t("收起") : t("展开")}
-                  </span>
-                  <div style={{ marginLeft: "auto", display: "flex", gap: compactPx(8) }} onClick={(e) => e.stopPropagation()}>
-                    <button type="button" onClick={() => (setActiveOrder(item), setDetailOpen(true))}
-                      style={{ padding: "4px 10px", borderRadius: compactPx(6), border: "1px solid var(--xt-border)", background: "#fff", fontWeight: 600, fontSize: compactPx(12), cursor: "pointer" }}>
-                      📋
-                    </button>
-                    <button type="button" className="xt-accent-btn" disabled={isRecruitFull(item)} onClick={() => void apply(item)}
-                      style={{ opacity: isRecruitFull(item) ? 0.6 : 1, fontSize: compactPx(12), padding: "4px 12px" }}>
-                      {t("报名")}
-                    </button>
-                  </div>
-                </div>
-
-                {/* 展开：完整内容 */}
+                {/* 展开区：仅显示操作需知和按钮，不重复摘要内容 */}
                 {isExpanded && (
-                  <div onClick={(e) => e.stopPropagation()} style={{ marginTop: compactPx(10), padding: compactPx(12), background: "#f8fafc", borderRadius: compactPx(10), border: "1px solid #eef2f7", fontSize: compactPx(13), color: "#475569", lineHeight: 1.6 }}>
-                    {item.title && String(item.title).length > 0 && (
-                      <div style={{ marginBottom: compactPx(4) }}><span style={{ color: "#94a3b8" }}>{t("任务名称")}：</span>{title}</div>
-                    )}
-                    <div style={{ marginBottom: compactPx(4) }}><span style={{ color: "#94a3b8" }}>{t("商家")}：</span>{merchant}</div>
-                    <div><span style={{ color: "#94a3b8" }}>{t("预估收益")}：</span>{estimatedEarningsText(item, i18n.language)}</div>
+                  <div onClick={(e) => e.stopPropagation()} style={{ marginTop: compactPx(10), padding: `${compactPx(10)}px 0 0`, borderTop: "1px solid #eef2f7", display: "flex", alignItems: "center", gap: compactPx(10), flexWrap: "wrap" }}>
+                    <span style={{ fontSize: compactPx(12), color: "#94a3b8" }}>
+                      {t("招募")} {recruitTotal(item) || "-"} {t("人")} · {t("已报")} {appliedCount(item)} {t("人")}
+                    </span>
+                    {isRecruitFull(item) && <span style={{ fontSize: compactPx(11), color: "#dc2626", fontWeight: 600 }}>{t("已满")}</span>}
+                    <div style={{ marginLeft: "auto", display: "flex", gap: compactPx(8) }}>
+                      <button type="button" onClick={() => (setActiveOrder(item), setDetailOpen(true))}
+                        style={{ padding: "4px 12px", borderRadius: compactPx(6), border: "1px solid var(--xt-border)", background: "#fff", fontWeight: 600, fontSize: compactPx(12), cursor: "pointer" }}>
+                        📋 {t("查看详情")}
+                      </button>
+                      <button type="button" className="xt-accent-btn" disabled={isRecruitFull(item)} onClick={() => void apply(item)}
+                        style={{ opacity: isRecruitFull(item) ? 0.6 : 1, fontSize: compactPx(12), padding: "4px 14px" }}>
+                        {t("一键报名")}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
