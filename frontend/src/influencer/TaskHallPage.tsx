@@ -536,6 +536,26 @@ export default function TaskHallPage() {
   /** 当前已报名列表。 */
   const appliedList = useMemo(() => myApplies, [myApplies]);
 
+  /** 任务分类筛选 */
+  const CATEGORY_ALL = "全部";
+  const TASK_CATEGORIES: { key: string; label: string; thLabel: string }[] = [
+    { key: "全部", label: "全部任务", thLabel: "งานทั้งหมด" },
+    { key: "creator_review_video", label: "Creator 带货测评", thLabel: "Creator รีวิวสินค้า" },
+    { key: "brand_collab", label: "品牌合作", thLabel: "งานแบรนด์" },
+    { key: "livestream", label: "直播带货", thLabel: "ไลฟ์ขายของ" },
+  ];
+  const [taskCategory, setTaskCategory] = useState(CATEGORY_ALL);
+
+  const filteredList = useMemo(() => {
+    if (taskCategory === CATEGORY_ALL) return list;
+    return list.filter((item) => {
+      const ct = String(item.cooperation_type_id || "").trim();
+      if (!ct) return false;
+      // 模糊匹配：允许子类型归入大类
+      return ct === taskCategory || ct.startsWith(taskCategory + "_");
+    });
+  }, [list, taskCategory]);
+
   return (
     <div>
       <h2 className="xt-inf-page-title">{t("任务大厅（撮合模式）")}</h2>
@@ -579,16 +599,43 @@ export default function TaskHallPage() {
 
       {!loading && tab === "available" && (
         <>
-          {list.length === 0 ? (
+          {/* 任务分类筛选 */}
+          <div style={{ display: "flex", gap: compactPx(6), marginBottom: compactPx(12), flexWrap: "wrap" }}>
+            {TASK_CATEGORIES.map((cat) => {
+              const label = i18n.language === "th" ? cat.thLabel : cat.label;
+              const active = taskCategory === cat.key;
+              return (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setTaskCategory(cat.key)}
+                  style={{
+                    padding: "6px 12px",
+                    borderRadius: compactPx(20),
+                    border: active ? "1px solid var(--xt-accent)" : "1px solid var(--xt-border)",
+                    background: active ? "rgba(21,42,69,0.08)" : "#fff",
+                    color: active ? "var(--xt-accent)" : "#64748b",
+                    fontWeight: active ? 700 : 500,
+                    fontSize: compactPx(13),
+                    cursor: "pointer",
+                  }}
+                >
+                  {t(label)}
+                </button>
+              );
+            })}
+          </div>
+
+          {filteredList.length === 0 ? (
             <div className="xt-inf-empty xt-inf-card">
               <div className="xt-inf-empty-icon" aria-hidden>
                 📋
               </div>
-              <div>{t("暂无可报名任务")}</div>
+              <div>{list.length === 0 ? t("暂无可报名任务") : t("该分类暂无任务")}</div>
             </div>
           ) : null}
           <div style={{ display: "grid", gap: compactPx(10) }}>
-            {list.map((item) => (
+            {filteredList.map((item) => (
               <div key={item.id} className="xt-inf-card" data-order-id={item.id} style={{ padding: compactPx(14), borderLeft: "4px solid #16a34a" }}>
                 <div style={{ fontWeight: 800, color: "var(--xt-primary)", fontSize: compactPx(15) }}>
                   {t("预估收益：")}

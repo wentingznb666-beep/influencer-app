@@ -1333,6 +1333,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS category TEXT`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS expertise_domains TEXT`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS influencer_bio TEXT`);
+  await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS specialties TEXT DEFAULT ''`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS real_name TEXT`);
   await query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_name TEXT`);

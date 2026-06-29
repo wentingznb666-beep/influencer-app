@@ -108,6 +108,7 @@ export default function InfluencerDetailPage() {
               {row(t("粉丝数量"), profile.tiktok_fans || "—")}
               {row(t("擅长领域"), profile.expertise_domains?.length ? profile.expertise_domains.join("、") : "—")}
               {row(t("自我介绍/个人优势"), profile.influencer_bio || "—")}
+              {row(t("专长/人设标签"), (profile as { specialties?: string | null }).specialties || "—")}
             </div>
           </div>
 

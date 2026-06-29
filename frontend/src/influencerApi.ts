@@ -296,6 +296,7 @@ export type InfluencerProfilePayload = {
   expertise_domains: string[];
   influencer_bio: string;
   line_contact: string;
+  specialties: string;
 };
 
 /** 读取达人信息（报名必填）。 */

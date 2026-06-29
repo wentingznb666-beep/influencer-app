@@ -78,6 +78,7 @@ router.get("/:userId/detail", (req: AuthRequest, res: Response) => {
       expertise_domains: string | null;
       influencer_bio: string | null;
       line_contact: string | null;
+      specialties: string | null;
       real_name: string | null;
       bank_name: string | null;
       bank_branch: string | null;
@@ -90,7 +91,7 @@ router.get("/:userId/detail", (req: AuthRequest, res: Response) => {
     }>(
       `
       SELECT u.id, u.username, u.display_name, u.disabled, u.influencer_status, u.created_at, u.updated_at,
-             u.tiktok_account, u.tiktok_fans, u.expertise_domains, u.influencer_bio, u.line_contact,
+             u.tiktok_account, u.tiktok_fans, u.expertise_domains, u.influencer_bio, u.line_contact, u.specialties,
              u.real_name, u.bank_name, u.bank_branch, u.bank_card,
              p.show_face, p.tags, p.platforms, p.blacklisted, p.level
         FROM users u
@@ -120,6 +121,7 @@ router.get("/:userId/detail", (req: AuthRequest, res: Response) => {
         expertise_domains: domains,
         influencer_bio: row.influencer_bio,
         line_contact: row.line_contact,
+        specialties: row.specialties,
         real_name: row.real_name,
         bank_name: row.bank_name,
         bank_branch: row.bank_branch,

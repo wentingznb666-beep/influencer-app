@@ -220,8 +220,9 @@ router.get("/influencer/profile", async (req: AuthRequest, res: Response) => {
       expertise_domains: string | null;
       influencer_bio: string | null;
       line_contact: string | null;
+      specialties: string | null;
     }>(
-      `SELECT tiktok_account, tiktok_fans, expertise_domains, influencer_bio, line_contact
+      `SELECT tiktok_account, tiktok_fans, expertise_domains, influencer_bio, line_contact, specialties
          FROM users
         WHERE id=$1`,
       [req.user.userId],
@@ -236,6 +237,7 @@ router.get("/influencer/profile", async (req: AuthRequest, res: Response) => {
             expertise_domains: domains,
             influencer_bio: String(row.influencer_bio || ""),
             line_contact: String(row.line_contact || ""),
+            specialties: String(row.specialties || ""),
             completed: isInfluencerProfileComplete(row),
           }
         : null,
@@ -255,6 +257,7 @@ router.put("/influencer/profile", async (req: AuthRequest, res: Response) => {
   const influencerBio = String(req.body?.influencer_bio || "").trim();
   const domains = normalizeDomains(req.body?.expertise_domains);
   const lineContact = String(req.body?.line_contact || "").trim();
+  const specialties = String(req.body?.specialties || "").trim().slice(0, 2000);
 
   if (!tiktokAccount || !/^@?[A-Za-z0-9._]{2,32}$/.test(tiktokAccount)) {
     return res.status(400).json({ error: "INVALID_TIKTOK_ACCOUNT", message: "请填写有效的 TikTok 账号。" });
@@ -280,9 +283,10 @@ router.put("/influencer/profile", async (req: AuthRequest, res: Response) => {
               expertise_domains=$4,
               influencer_bio=$5,
               line_contact=$6,
+              specialties=$7,
               updated_at=now()
         WHERE id=$1`,
-      [req.user.userId, tiktokAccount, tiktokFans, domains.join(","), influencerBio, lineContact],
+      [req.user.userId, tiktokAccount, tiktokFans, domains.join(","), influencerBio, lineContact, specialties],
     );
     return res.json({ ok: true });
   } catch (e) {
