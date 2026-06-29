@@ -57,9 +57,9 @@ export default function CooperationTypesPage(props: Props) {
   }, []);
 
   const title = useMemo(() => {
-    if (isAdmin) return "合作业务类型配置";
-    if (user?.role === "employee") return "合作业务类型说明";
-    return "合作业务类型说明";
+    if (isAdmin) return t("合作业务类型配置");
+    if (user?.role === "employee") return t("合作业务类型说明");
+    return t("合作业务类型说明");
   }, [isAdmin, user?.role]);
 
   const updateType = (id: string, patch: (t: CooperationTypesConfig["types"][number]) => void) => {
@@ -135,13 +135,13 @@ export default function CooperationTypesPage(props: Props) {
               }
               style={{ padding: "6px 8px", width: 110, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
             />
-            <div>泰铢</div>
+            <div>{t("泰铢")}</div>
           </div>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", borderRadius: compactPx(10), overflow: "hidden" }}>
               <thead>
                 <tr style={{ background: "rgba(21,42,69,0.06)" }}>
-                  <th style={{ padding: compactPx(10), textAlign: "left" }}>对象</th>
+                  <th style={{ padding: compactPx(10), textAlign: "left" }}>{t("对象")}</th>
                   <th style={{ padding: compactPx(10), textAlign: "left" }}>A</th>
                   <th style={{ padding: compactPx(10), textAlign: "left" }}>B</th>
                   <th style={{ padding: compactPx(10), textAlign: "left" }}>C</th>
@@ -149,13 +149,13 @@ export default function CooperationTypesPage(props: Props) {
               </thead>
               <tbody>
                 <tr>
-                  <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>商家结算报价（积分）</td>
+                  <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>{t("商家结算报价（积分）")}</td>
                   <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>{cell("client", "A", c.A)}</td>
                   <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>{cell("client", "B", c.B)}</td>
                   <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>{cell("client", "C", c.C)}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>兼职结算报价（积分）</td>
+                  <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>{t("兼职结算报价（积分）")}</td>
                   <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>{cell("part_time", "A", p.A)}</td>
                   <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>{cell("part_time", "B", p.B)}</td>
                   <td style={{ padding: compactPx(10), borderTop: "1px solid var(--xt-border)" }}>{cell("part_time", "C", p.C)}</td>
@@ -173,7 +173,7 @@ export default function CooperationTypesPage(props: Props) {
       const max = toNum(range.max) ?? 5000;
       return (
         <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>对外报价（泰铢）</div>
+          <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>{t("对外报价（泰铢）")}</div>
           <input
             type="number"
             inputMode="decimal"
@@ -216,7 +216,7 @@ export default function CooperationTypesPage(props: Props) {
       const price = toNum(spec.merchant_price_per_video_thb) ?? 650;
       return (
         <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>门槛</div>
+          <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>{t("门槛")}</div>
           <input
             type="number"
             inputMode="decimal"
@@ -232,8 +232,8 @@ export default function CooperationTypesPage(props: Props) {
             }
             style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
           />
-          <div>条/月</div>
-          <div style={{ fontWeight: 700, color: "var(--xt-primary)", marginLeft: compactPx(8) }}>单价</div>
+          <div>{t("条/月")}</div>
+          <div style={{ fontWeight: 700, color: "var(--xt-primary)", marginLeft: compactPx(8) }}>{t("单价")}</div>
           <input
             type="number"
             inputMode="decimal"
@@ -249,7 +249,7 @@ export default function CooperationTypesPage(props: Props) {
             }
             style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
           />
-          <div>泰铢/条</div>
+          <div>{t("泰铢/条")}</div>
         </div>
       );
     }
@@ -262,7 +262,7 @@ export default function CooperationTypesPage(props: Props) {
       return (
         <div style={{ display: "grid", gap: compactPx(10) }}>
           <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>产出条数</div>
+            <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>{t("产出条数")}</div>
             <input
               type="number"
               inputMode="decimal"
@@ -296,17 +296,17 @@ export default function CooperationTypesPage(props: Props) {
               }
               style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
             />
-            <div>条</div>
+            <div>{t("条")}</div>
           </div>
           <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>报价（泰铢）</div>
+            <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>{t("报价（泰铢）")}</div>
             <input
               type="number"
               inputMode="decimal"
               min={0}
               disabled={readOnly}
               value={price == null ? "" : toNum(price) ?? ""}
-              placeholder="待定"
+              placeholder={t("待定")}
               onChange={(e) =>
                 updateType(t.id, (tt) => {
                   const s = asRecord(tt.spec);
@@ -317,7 +317,7 @@ export default function CooperationTypesPage(props: Props) {
               }
               style={{ padding: "6px 8px", width: 180, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
             />
-            <div style={{ color: "var(--xt-text-muted)", fontSize: compactPx(13) }}>留空表示待定</div>
+            <div style={{ color: "var(--xt-text-muted)", fontSize: compactPx(13) }}>{t("留空表示待定")}</div>
           </div>
         </div>
       );
@@ -326,25 +326,25 @@ export default function CooperationTypesPage(props: Props) {
     return <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{JSON.stringify(spec, null, 2)}</pre>;
   };
 
-  if (loading) return <p>加载中…</p>;
+  if (loading) return <p>{t("加载中…")}</p>;
 
   return (
     <div>
       <div style={{ display: "flex", gap: compactPx(12), alignItems: "center", flexWrap: "wrap" }}>
         <h2 style={{ margin: 0 }}>{title}</h2>
         <button type="button" onClick={() => void load()} disabled={loading} style={{ height: 36 }}>
-          刷新
+          {t("刷新")}
         </button>
         {!readOnly && (
           <button type="button" onClick={() => void save()} disabled={saving || !config} style={{ height: 36, fontWeight: 700 }}>
-            {saving ? t("保存中…") : "保存配置"}
+            {saving ? t("保存中…") : t("保存配置")}
           </button>
         )}
       </div>
 
       {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
 
-      {!config ? <p style={{ color: "var(--xt-text-muted)" }}>暂无配置</p> : null}
+      {!config ? <p style={{ color: "var(--xt-text-muted)" }}>{t("暂无配置")}</p> : null}
 
       {config ? (
         <div style={{ display: "grid", gap: compactPx(12), marginTop: compactPx(14) }}>
@@ -355,12 +355,12 @@ export default function CooperationTypesPage(props: Props) {
                   <div style={{ fontWeight: 900, color: "var(--xt-primary)", fontSize: compactPx(16) }}>{t.name?.zh || t.id}</div>
                   <div style={{ color: "var(--xt-text-muted)" }}>{t.name?.th || ""}</div>
                 </div>
-                <div style={{ color: "var(--xt-text-muted)", fontSize: compactPx(12) }}>ID：{t.id}</div>
+                <div style={{ color: "var(--xt-text-muted)", fontSize: compactPx(12) }}>{t("ID")}：{t.id}</div>
               </div>
 
               <div style={{ display: "grid", gap: compactPx(10), marginTop: compactPx(12) }}>
                 <div style={{ display: "grid", gap: compactPx(8) }}>
-                  <div style={{ fontWeight: 800 }}>名称</div>
+                  <div style={{ fontWeight: 800 }}>{t("名称")}</div>
                   <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap" }}>
                     <input
                       disabled={readOnly}
@@ -380,7 +380,7 @@ export default function CooperationTypesPage(props: Props) {
                 </div>
 
                 <div style={{ display: "grid", gap: compactPx(8) }}>
-                  <div style={{ fontWeight: 800 }}>关键参数</div>
+                  <div style={{ fontWeight: 800 }}>{t("关键参数")}</div>
                   {renderSpec(t)}
                 </div>
               </div>
