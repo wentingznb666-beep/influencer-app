@@ -49,6 +49,7 @@ const ClientShowcaseInfluencersPage = lazy(() => import("./client/ClientShowcase
 const ClientShowcaseContentCreatorsPage = lazy(() => import("./client/ClientShowcaseContentCreatorsPage"));
 const PaymentProfilePage = lazy(() => import("./influencer/PaymentProfilePage"));
 const InfluencerProfilePage = lazy(() => import("./influencer/InfluencerProfilePage"));
+const InfluencerDashboard = lazy(() => import("./influencer/InfluencerDashboard"));
 const TaskHallPage = lazy(() => import("./influencer/TaskHallPage"));
 const InfluencerPermissionPage = lazy(() => import("./influencer/InfluencerPermissionPage"));
 const CollabDemandsPage = lazy(() => import("./influencer/CollabDemandsPage"));
@@ -129,7 +130,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="merchant-members" element={<MerchantMembersPage />} />
           </Route>
           <Route path="/influencer" element={<ProtectedRoute roles={["influencer"]}><InfluencerLayout /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/influencer/task-hall" replace />} />
+            <Route index element={<Navigate to="/influencer/dashboard" replace />} />
+            <Route path="dashboard" element={<InfluencerDashboard />} />
             <Route path="task-hall" element={<TaskHallPage />} />
             <Route path="client-orders" element={<ClientOrdersHallPage />} />
             <Route path="payment-profile" element={<PaymentProfilePage />} />

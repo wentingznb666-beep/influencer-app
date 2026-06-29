@@ -37,6 +37,7 @@ export default function InfluencerLayout() {
   const matchLocked = permissionStatus !== "approved";
 
   const navItems: DashboardNavItem[] = [
+    { to: "/influencer/dashboard", label: "首页", menuHint: "ภาพรวมบัญชีและทางลัด", icon: "🏠", group: "common" },
     { to: "/influencer/task-hall", label: "任务大厅", menuHint: "สมัครงานจับคู่และติดตามสถานะ", icon: "📋", group: "match" },
     { to: "/influencer/payment-profile", label: "收款信息", menuHint: "ตั้งค่าบัญชีรับเงินสำหรับการโอน", icon: "💳", group: "match" },
     { to: "/influencer/profile", label: "达人信息", menuHint: "完善账号与擅长领域后才可报名", icon: "👤", group: "match" },
@@ -48,7 +49,7 @@ export default function InfluencerLayout() {
 
   /** 手机端底部 Tab 栏显示的主要页面（最多 4 个）。 */
   const tabItems: DashboardNavItem[] = [
-    { to: "/influencer/task-hall", label: "接单", icon: "📋" },
+    { to: "/influencer/dashboard", label: "首页", icon: "🏠" },
     { to: "/influencer/my-demands", label: "需求", icon: "📦" },
     { to: "/influencer/profile", label: "我的", icon: "👤" },
     { to: "/influencer/op-logs", label: "日志", icon: "📄" },
