@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
+import { useLanguage } from "./i18n";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { getStoredUser, clearAuth } from "./authApi";
 import LanguageSwitch from "./LanguageSwitch";
@@ -73,10 +75,10 @@ function sanitizeEscapedTextNodes(root: HTMLElement): void {
 
 type InfluencerGroupId = "points" | "match" | "common";
 
-const GROUP_META: Record<InfluencerGroupId, { label: string; icon: string }> = {
-  points: { label: "视频分级", icon: "💰" },
-  match: { label: "合作业务类型", icon: "🤝" },
-  common: { label: "公共项目类型", icon: "📄" },
+const GROUP_META: Record<InfluencerGroupId, { label: string; thLabel: string; icon: string }> = {
+  points: { label: "视频分级", thLabel: "งานวิดีโอ", icon: "💰" },
+  match: { label: "合作业务类型", thLabel: "ประเภทธุรกิจ", icon: "🤝" },
+  common: { label: "公共项目类型", thLabel: "โปรเจกต์ทั่วไป", icon: "📄" },
 };
 
 /** 业务分组顺序，所有角色保持一致。 */
@@ -222,6 +224,8 @@ export default function DashboardShell({
   shellVariant = "default",
   mainClassName,
 }: DashboardShellProps) {
+  const { t } = useTranslation();
+  const { lang } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const user = getStoredUser();
@@ -501,7 +505,7 @@ export default function DashboardShell({
                   onClick={() => toggleGroup(gid)}
                 >
                   <span className="xt-sidebar-group-toggle__icon" aria-hidden>{GROUP_META[gid].icon}</span>
-                  <span className="xt-sidebar-group-toggle__label">{GROUP_META[gid].label}</span>
+                  <span className="xt-sidebar-group-toggle__label">{lang === "th" ? GROUP_META[gid].thLabel : GROUP_META[gid].label}</span>
                   <span className="xt-sidebar-group-toggle__chevron" aria-hidden />
                 </button>
                 <div 
@@ -763,7 +767,7 @@ export default function DashboardShell({
               if (items.length === 0) return null;
               return (
                 <div key={gid} className="xt-more-sheet__group">
-                  <div className="xt-more-sheet__group-title">{GROUP_META[gid].icon} {GROUP_META[gid].label}</div>
+                  <div className="xt-more-sheet__group-title">{GROUP_META[gid].icon} {lang === "th" ? GROUP_META[gid].thLabel : GROUP_META[gid].label}</div>
                   <div className="xt-more-sheet__group-items">
                     {items.map((item) => {
                       const target = resolveNavTarget(item);

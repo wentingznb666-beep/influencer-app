@@ -411,7 +411,8 @@ function collectPendingChineseKeys(root: HTMLElement, pathname: string): string[
 
 function UiAutoTranslator({ lang }: { lang: Lang }) {
   const location = useLocation();
-  const useTranslatorEffect = import.meta.env.PROD && isLowEndDevice() ? useEffect : useLayoutEffect;
+  // 始终使用 useEffect，避免语言切换时阻塞页面渲染
+  const useTranslatorEffect = useEffect;
 
   useTranslatorEffect(() => {
     const root = document.getElementById("root");
