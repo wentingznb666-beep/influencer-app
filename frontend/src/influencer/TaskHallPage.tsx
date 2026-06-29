@@ -492,7 +492,7 @@ export default function TaskHallPage() {
       setError(errMsg);
       if (errMsg.includes("招募数量已满")) toastRecruitFull(t);
       if (errMsg.includes("请先完善达人信息")) {
-        window.alert("请先完善达人信息后再报名任务");
+        window.alert(t("请先完善达人信息后再报名任务"));
         navigate("/influencer/profile");
       }
     }
