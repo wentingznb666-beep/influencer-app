@@ -63,6 +63,8 @@ export async function getClientMarketOrderApplications(orderId: number) {
 
   const res = await fetchWithAuth(`/api/matching/client/market-orders/${orderId}/applications`);
 
+  if (!res.ok) throw new Error(await readError(res, "Request failed"));
+
   return res.json();
 
 }

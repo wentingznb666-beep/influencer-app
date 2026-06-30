@@ -1,3 +1,5 @@
+import { fetchWithAuth } from "./fetchWithAuth";
+
 export interface TranslateRequestPayload {
 
   text: string;
@@ -28,23 +30,6 @@ export interface TtsRequestPayload {
 
 }
 
-
-
-/**
-
- * 获取后端 API 的基础地址。
-
- * 优先读取前端环境变量，以便在不同环境中灵活切换后端地址。
-
- */
-
-function getApiBaseUrl(): string {
-
-  const baseUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
-
-  return baseUrl || window.location.origin;
-
-}
 
 
 

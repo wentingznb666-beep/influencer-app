@@ -33,11 +33,11 @@ export default function InfluencerDashboard() {
 
   const navCards = [
     { icon: "📋", label: t("可接任务"), sub: availableTasks > 0 ? `${availableTasks} ${t("个任务")}` : t("暂无"), to: "/influencer/task-hall", color: "#2563eb" },
-    { icon: "📦", label: t("我的订单"), sub: pendingOrders > 0 ? `${pendingOrders} ${t("进行中")}` : t("暂无"), to: "/influencer/client-orders-hall", color: "#7c3aed" },
-    { icon: "💰", label: t("积分余额"), sub: balance != null ? `${balance} ${t("积分")}` : "—", to: "/influencer/points", color: "#059669" },
+    { icon: "📦", label: t("我的订单"), sub: pendingOrders > 0 ? `${pendingOrders} ${t("进行中")}` : t("暂无"), to: "/influencer/client-orders", color: "#7c3aed" },
+    { icon: "💰", label: t("积分余额"), sub: balance != null ? `${balance} ${t("积分")}` : "—", to: "/influencer/payment-profile", color: "#059669" },
     { icon: "👤", label: t("达人资料"), sub: t("完善信息提高接单率"), to: "/influencer/profile", color: "#d97706" },
     { icon: "🤝", label: t("合作需求"), sub: t("发布需求等商家报名"), to: "/influencer/demands", color: "#dc2626" },
-    { icon: "📊", label: t("撮合广场"), sub: t("浏览商家撮合任务"), to: "/influencer/collab-demands", color: "#0891b2" },
+    { icon: "📊", label: t("撮合广场"), sub: t("浏览商家撮合任务"), to: "/influencer/task-hall", color: "#0891b2" },
   ];
 
   return (
