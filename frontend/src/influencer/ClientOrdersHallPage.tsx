@@ -546,15 +546,11 @@ export default function ClientOrdersHallPage() {
 
     try {
 
-      const [openRes, myRes, offlineRes] = await Promise.all([
+      const [openRes, myRes] = await Promise.all([
 
         api.getMarketOrders(),
 
         api.getMyMarketOrders(),
-
-        employeeApi.getEmployeeVideoOrders({
-          limit: 200,
-        }),
 
       ]);
 
@@ -564,7 +560,7 @@ export default function ClientOrdersHallPage() {
 
       setMyList(myRows.map((r) => ({ ...r, work_links: normalizeWorkLinks(r.work_links) })));
 
-      setOfflineList((offlineRes.list || []) as OfflineOrder[]);
+      setOfflineList([]);
 
     } catch (e) {
 
