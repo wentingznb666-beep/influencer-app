@@ -613,7 +613,7 @@ export default function DashboardShell({
                     border: "1px solid #e2e8f0",
                     borderRadius: 10,
                     boxShadow: "0 10px 24px rgba(15,23,42,0.12)",
-                    zIndex: 20,
+                    zIndex: 1000,
                     padding: 10,
                   }}
                 >

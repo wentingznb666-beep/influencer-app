@@ -213,13 +213,11 @@ export default function CooperationOrdersPage() {
   }, [list]);
 
   const typeOptions = useMemo(() => {
-    const set = new Set<string>();
-    for (const r of filteredList) {
-      const coop = safeText(r.cooperation_type_id);
-      if (coop && !VIDEO_ORDER_TYPE_IDS.has(coop)) set.add(coop);
-    }
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [filteredList]);
+    const types = (typeConfig?.types || [])
+      .filter((t) => t.id && !VIDEO_ORDER_TYPE_IDS.has(t.id))
+      .map((t) => t.id);
+    return types.sort((a, b) => a.localeCompare(b));
+  }, [typeConfig]);
 
   useEffect(() => {
     if (!type) return;
@@ -352,10 +350,11 @@ export default function CooperationOrdersPage() {
         .xt-coop-links { display:grid; gap: compactPx(8)px; min-width:0; }
         .xt-coop-link-row { display:flex; gap: compactPx(6)px; align-items:center; min-width:0; }
         .xt-coop-link-tag { flex: 0 0 auto; padding: 1px 6px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.35); font-size: 11px; color: #334155; background: rgba(148,163,184,0.12); }
-        .xt-coop-link-url { min-width:0; color: var(--xt-primary); text-decoration: none; word-break: break-all; white-space: normal; }
+        .xt-coop-link-url { min-width:0; color: var(--xt-primary); text-decoration: none; word-break: break-all; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 160px; }
         .xt-coop-link-url:hover { text-decoration: underline; }
         .xt-coop-linkbtn { padding: compactPx(6)px 10px; border-radius: 10px; border: 1px solid var(--xt-border); background: #fff; cursor: pointer; font-weight: 800; font-size: 12px; display:inline-flex; align-items:center; justify-content:center; }
         .xt-coop-linkbtn[disabled] { opacity: .55; cursor: not-allowed; }
+        .xt-coop-order-no { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700; }
         .xt-coop-review-note { margin-top: 8px; color: #475569; font-size: 12px; line-height: 1.4; max-height: 3.6em; overflow: hidden; text-overflow: ellipsis; }
         @media (max-width: 1280px) {
           .xt-coop-col-orderNo { width: 11%; }

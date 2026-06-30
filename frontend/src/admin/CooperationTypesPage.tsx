@@ -44,9 +44,13 @@ export default function CooperationTypesPage(props: Props) {
     setLoading(true);
     try {
       const ret = await getCooperationTypes();
+      if (!ret?.config || !Array.isArray(ret.config.types)) {
+        throw new Error("配置数据格式异常，请刷新重试。");
+      }
       setConfig(ret.config);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("加载失败"));
+      setConfig(null);
     } finally {
       setLoading(false);
     }
@@ -326,7 +330,12 @@ export default function CooperationTypesPage(props: Props) {
     return <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{JSON.stringify(spec, null, 2)}</pre>;
   };
 
-  if (loading) return <p>{t("加载中…")}</p>;
+  if (loading) return (
+    <div style={{ padding: 40, textAlign: "center" }}>
+      <p style={{ color: "var(--xt-text-muted)", fontSize: 14 }}>{t("加载中…")}</p>
+      <p style={{ color: "var(--xt-text-muted)", fontSize: 12, marginTop: 4 }}>{t("如长时间无响应，请刷新页面")}</p>
+    </div>
+  );
 
   return (
     <div>
@@ -352,8 +361,8 @@ export default function CooperationTypesPage(props: Props) {
             <div key={t.id} style={{ border: "1px solid var(--xt-border)", background: "#fff", borderRadius: compactPx(14), padding: compactPx(14) }}>
               <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
-                  <div style={{ fontWeight: 900, color: "var(--xt-primary)", fontSize: compactPx(16) }}>{t.name?.zh || t.id}</div>
-                  <div style={{ color: "var(--xt-text-muted)" }}>{t.name?.th || ""}</div>
+                  <div style={{ fontWeight: 900, color: "var(--xt-primary)", fontSize: compactPx(16) }}>{t.name?.zh ?? t.id || t.id}</div>
+                  <div style={{ color: "var(--xt-text-muted)" }}>{t.name?.th ?? t.id || ""}</div>
                 </div>
                 <div style={{ color: "var(--xt-text-muted)", fontSize: compactPx(12) }}>{t("ID")}：{t.id}</div>
               </div>
@@ -364,14 +373,14 @@ export default function CooperationTypesPage(props: Props) {
                   <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap" }}>
                     <input
                       disabled={readOnly}
-                      value={t.name?.zh || ""}
+                      value={t.name?.zh ?? t.id || ""}
                       onChange={(e) => updateType(t.id, (tt) => (tt.name = { ...(tt.name || { zh: "", th: "" }), zh: e.target.value }))}
                       placeholder="中文"
                       style={{ padding: "8px 10px", minWidth: 260, borderRadius: compactPx(10), border: "1px solid var(--xt-border)" }}
                     />
                     <input
                       disabled={readOnly}
-                      value={t.name?.th || ""}
+                      value={t.name?.th ?? t.id || ""}
                       onChange={(e) => updateType(t.id, (tt) => (tt.name = { ...(tt.name || { zh: "", th: "" }), th: e.target.value }))}
                       placeholder="ภาษาไทย"
                       style={{ padding: "8px 10px", minWidth: 260, borderRadius: compactPx(10), border: "1px solid var(--xt-border)" }}

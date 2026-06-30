@@ -23,6 +23,7 @@ export default function InfluencerPermissionsPage() {
   const { t } = useTranslation();
   const location = useLocation();
   const [list, setList] = useState<InfluencerPermissionRow[]>([]);
+  const [searchQ, setSearchQ] = useState("");
   const [msg, setMsg] = useState<string>("");
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [isMobile, setIsMobile] = useState(false);
@@ -142,6 +143,21 @@ export default function InfluencerPermissionsPage() {
   return (
     <div style={{ background: "#fff", borderRadius: compactPx(16), padding: isMobile ? 12 : 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
       <h2 style={{ marginTop: 0 }}>达人撮合权限审核</h2>
+      <input
+        type="text"
+        placeholder="搜索 Creator 用户名…"
+        value={searchQ}
+        onChange={(e) => setSearchQ(e.target.value)}
+        style={{
+          padding: "8px 12px",
+          borderRadius: 8,
+          border: "1px solid var(--xt-border)",
+          width: "100%",
+          maxWidth: 320,
+          marginBottom: 12,
+          fontSize: 13,
+        }}
+      />
       {msg && <p style={{ margin: "8px 0 12px", color: "#334155" }}>{msg}</p>}
 
       <style>{`
@@ -168,7 +184,7 @@ export default function InfluencerPermissionsPage() {
         }
         .xt-perm-table tbody td {
           padding: compactPx(10)px 12px;
-          border-bottom: 1px solid #f1f5f9;
+          border-bottom: 1px solid #cbd5e1;
           vertical-align: top;
           color: #0f172a;
           font-size: 13px;
