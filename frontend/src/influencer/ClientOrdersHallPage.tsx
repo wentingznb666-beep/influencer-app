@@ -5,7 +5,6 @@ import type { TFunction } from "i18next";
 import { useLocation } from "react-router-dom";
 
 import * as api from "../influencerApi";
-import * as employeeApi from "../employeeApi";
 import { useAutoRefresh } from "../hooks/useAutoRefresh";
 
 import OrderDateFilter, { type DateFilterState } from "../components/OrderDateFilter";
@@ -98,21 +97,15 @@ type MyOrder = {
 
 };
 
-type OfflineTypeId = employeeApi.EmployeeVideoOrderTypeId;
-type OfflinePhase = employeeApi.EmployeeVideoOrderPhase;
-type OfflineOrder = employeeApi.EmployeeVideoOrder;
-type OfflineMonthlyDraft = { batchNo: string; videoCount: string; urls: string };
 type UnifiedStatusFilter =
   | ""
   | "open"
   | "claimed"
   | "completed"
   | "cancelled"
-  | "offline_unassigned"
+
   | OfflinePhase;
-type GradedUnifiedOrder = (OpenOrder & { _source: "graded"; _list_kind: "open" }) | (MyOrder & { _source: "graded"; _list_kind: "mine" });
-type OfflineUnifiedOrder = OfflineOrder & { _source: "offline"; _list_kind: "open" | "mine" };
-type UnifiedOrder = GradedUnifiedOrder | OfflineUnifiedOrder;
+type GradedUnifiedOrder = (OpenOrder & { _source: "graded"; _list_kind: "open" }) | (MyOrder & { _source: "graded"; _list_kind: "mine" });type UnifiedOrder = GradedUnifiedOrder;
 
 
 
@@ -451,13 +444,6 @@ export default function ClientOrdersHallPage() {
 
   const [error, setError] = useState<string | null>(null);
 
-  const [offlineList, setOfflineList] = useState<OfflineOrder[]>([]);
-  const [offlineDraftUrls, setOfflineDraftUrls] = useState<Record<number, string>>({});
-  const [offlinePublishDraft, setOfflinePublishDraft] = useState<Record<number, string>>({});
-  const [offlineMonthlyDraft, setOfflineMonthlyDraft] = useState<Record<number, OfflineMonthlyDraft>>({});
-  const [offlineActionLoading, setOfflineActionLoading] = useState<Record<string, boolean>>({});
-  const [offlineActionError, setOfflineActionError] = useState<Record<number, string>>({});
-  const [offlineActionOk, setOfflineActionOk] = useState<Record<number, string>>({});
 
   const [completeId, setCompleteId] = useState<number | null>(null);
 
@@ -848,45 +834,6 @@ export default function ClientOrdersHallPage() {
     }
   };
 
-  const handleMonthlySubmitBatch = async (orderId: number, batchNo: number, allSubmitted: boolean) => {
-    if (allSubmitted) return;
-    const draft = offlineMonthlyDraft[orderId] || { batchNo: "1", videoCount: "1", urls: "" };
-    const vcRaw = Number(draft.videoCount);
-    const vc = Math.floor(vcRaw);
-    if (!Number.isFinite(vcRaw) || vc < 1) {
-      const msg = t("请输入有效数量（>= 1）。");
-      setError(msg);
-      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
-      return;
-    }
-    const urls = String(draft.urls || "")
-      .split(/\r?\n/g)
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .slice(0, 20);
-    if (!urls.length) {
-      const msg = t("请至少填写一条交付链接。");
-      setError(msg);
-      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
-      return;
-    }
-    setError(null);
-    setOfflineActionError((p) => ({ ...p, [orderId]: "" }));
-    setOfflineActionOk((p) => ({ ...p, [orderId]: "" }));
-    setOfflineActionLoading((p) => ({ ...p, [`${orderId}:monthly-submit`]: true }));
-    try {
-      await employeeApi.submitEmployeeMonthlyBatch(orderId, { batch_no: batchNo, video_count: vc, video_urls: urls });
-      setOfflineMonthlyDraft((p) => ({ ...p, [orderId]: { ...draft, urls: "" } }));
-      setOfflineActionOk((p) => ({ ...p, [orderId]: t("已提交批次交付") }));
-      load();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : t("提交失败");
-      setError(msg);
-      setOfflineActionError((p) => ({ ...p, [orderId]: msg }));
-    } finally {
-      setOfflineActionLoading((p) => ({ ...p, [`${orderId}:monthly-submit`]: false }));
-    }
-  };
 
   const gradedUnified = useMemo((): GradedUnifiedOrder[] => {
     const open = openList.map((o) => ({ ...o, _source: "graded" as const, _list_kind: "open" as const }));
@@ -894,17 +841,8 @@ export default function ClientOrdersHallPage() {
     return [...open, ...mine];
   }, [openList, myList]);
 
-  const offlineUnified = useMemo(
-    (): OfflineUnifiedOrder[] =>
-      offlineList.map((o) => ({
-        ...o,
-        _source: "offline" as const,
-        _list_kind: o.assigned_employee_id ? ("mine" as const) : ("open" as const),
-      })),
-    [offlineList],
-  );
 
-  const unifiedOrders = useMemo((): UnifiedOrder[] => [...gradedUnified, ...offlineUnified], [gradedUnified, offlineUnified]);
+  const unifiedOrders = useMemo((): UnifiedOrder[] => gradedUnified, [gradedUnified]);
 
   function statusBadgeStyle(status: string): CSSProperties {
     const base: CSSProperties = {
