@@ -361,8 +361,8 @@ export default function CooperationTypesPage(props: Props) {
             <div key={t.id} style={{ border: "1px solid var(--xt-border)", background: "#fff", borderRadius: compactPx(14), padding: compactPx(14) }}>
               <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
-                  <div style={{ fontWeight: 900, color: "var(--xt-primary)", fontSize: compactPx(16) }}>{t.name?.zh ?? t.id || t.id}</div>
-                  <div style={{ color: "var(--xt-text-muted)" }}>{t.name?.th ?? t.id || ""}</div>
+                  <div style={{ fontWeight: 900, color: "var(--xt-primary)", fontSize: compactPx(16) }}>{(t.name?.zh ?? t.id) || t.id}</div>
+                  <div style={{ color: "var(--xt-text-muted)" }}>{(t.name?.th ?? t.id) || ""}</div>
                 </div>
                 <div style={{ color: "var(--xt-text-muted)", fontSize: compactPx(12) }}>{t("ID")}：{t.id}</div>
               </div>
@@ -373,14 +373,14 @@ export default function CooperationTypesPage(props: Props) {
                   <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap" }}>
                     <input
                       disabled={readOnly}
-                      value={t.name?.zh ?? t.id || ""}
+                      value={(t.name?.zh ?? t.id) || ""}
                       onChange={(e) => updateType(t.id, (tt) => (tt.name = { ...(tt.name || { zh: "", th: "" }), zh: e.target.value }))}
                       placeholder="中文"
                       style={{ padding: "8px 10px", minWidth: 260, borderRadius: compactPx(10), border: "1px solid var(--xt-border)" }}
                     />
                     <input
                       disabled={readOnly}
-                      value={t.name?.th ?? t.id || ""}
+                      value={(t.name?.th ?? t.id) || ""}
                       onChange={(e) => updateType(t.id, (tt) => (tt.name = { ...(tt.name || { zh: "", th: "" }), th: e.target.value }))}
                       placeholder="ภาษาไทย"
                       style={{ padding: "8px 10px", minWidth: 260, borderRadius: compactPx(10), border: "1px solid var(--xt-border)" }}
