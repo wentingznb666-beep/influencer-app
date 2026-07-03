@@ -26,6 +26,7 @@ const UsersPage = lazy(() => import("./admin/UsersPage"));
 const MarketOrdersPage = lazy(() => import("./admin/MarketOrdersPage"));
 const AdminSkusPage = lazy(() => import("./admin/SkusPage"));
 const ProfitPage = lazy(() => import("./admin/ProfitPage"));
+const ModelsPage = lazy(() => import("./admin/ModelsPage"));
 const ShowcaseInfluencersPage = lazy(() => import("./admin/ShowcaseInfluencersPage"));
 const ShowcaseContentCreatorsPage = lazy(() => import("./admin/ShowcaseContentCreatorsPage"));
 const MerchantMembersPage = lazy(() => import("./admin/MerchantMembersPage"));
@@ -43,6 +44,7 @@ const MatchingCenterPage = lazy(() => import("./client/MatchingCenterPage"));
 const MatchingOrdersPage = lazy(() => import("./client/MatchingOrdersPage"));
 const MemberCenterPage = lazy(() => import("./client/MemberCenterPage"));
 const MerchantTemplatePage = lazy(() => import("./client/MerchantTemplatePage"));
+const ClientModelsPage = lazy(() => import("./client/ModelsPage"));
 const ClientShowcaseInfluencersPage = lazy(() => import("./client/ClientShowcaseInfluencersPage"));
 const ClientShowcaseContentCreatorsPage = lazy(() => import("./client/ClientShowcaseContentCreatorsPage"));
 const PaymentProfilePage = lazy(() => import("./influencer/PaymentProfilePage"));
@@ -76,6 +78,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="risk" element={<RiskPage />} />
             <Route path="users" element={<UsersPage />} />
             <Route path="profit" element={<ProtectedRoute roles={["admin"]}><ProfitPage /></ProtectedRoute>} />
+            <Route path="models" element={<ModelsPage />} />
             <Route path="showcase-influencers" element={<ShowcaseInfluencersPage />} />
             <Route path="showcase-content-creators" element={<ShowcaseContentCreatorsPage />} />
             <Route path="market-orders" element={<MarketOrdersPage />} />
@@ -91,6 +94,7 @@ createRoot(document.getElementById("root")!).render(
             <Route index element={<Navigate to="/employee/market-orders" replace />} />
             <Route path="influencers" element={<InfluencersPage />} />
             <Route path="influencers/:id" element={<InfluencerDetailPage />} />
+            <Route path="models" element={<ModelsPage />} />
             <Route path="showcase-influencers" element={<ShowcaseInfluencersPage />} />
             <Route path="showcase-content-creators" element={<ShowcaseContentCreatorsPage />} />
             <Route path="market-orders" element={<MarketOrdersPage />} />
@@ -109,6 +113,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="requests" element={<Navigate to="/client/market-orders" replace />} />
             <Route path="requests/:id/edit" element={<Navigate to="/client/market-orders" replace />} />
             <Route path="orders" element={<Navigate to="/client/market-orders" replace />} />
+            <Route path="models" element={<ClientModelsPage />} />
             <Route path="showcase-influencers" element={<ClientShowcaseInfluencersPage />} />
             <Route path="showcase-content-creators" element={<ClientShowcaseContentCreatorsPage />} />
             <Route path="market-orders" element={<ClientMarketOrdersPage />} />
