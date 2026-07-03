@@ -703,27 +703,6 @@ export async function deleteMarketOrder(id: number) {
 
  */
 
-export async function getClientModels(params?: { q?: string }) {
-
-  const q = new URLSearchParams();
-
-  if (params?.q) q.set("q", params.q);
-
-  const res = await fetchWithAuth(`/api/client/models?${q}`);
-
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || "请求失败");
-
-  return res.json();
-
-}
-
-
-
-/**
-
- * 商家端：获取我的长期合作模特列表。
-
- */
 
 export async function getMyCooperationModels() {
 

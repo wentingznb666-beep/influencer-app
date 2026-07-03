@@ -50,9 +50,7 @@ import adminSkusRoutes from "./routes/adminSkus";
 
 import operationLogsRoutes from "./routes/operationLogs";
 
-import modelsRoutes, { adminPhotosRouter, employeePhotosRouter } from "./routes/models";
 
-import clientModelsRoutes from "./routes/clientModels";
 
 import showcaseInfluencersRoutes from "./routes/showcaseInfluencers";
 
@@ -174,15 +172,11 @@ app.use("/api/admin/market-orders", adminMarketOrdersRoutes);
 
 app.use("/api/admin/skus", adminSkusRoutes);
 
-app.use("/api/admin/models", modelsRoutes);
 
-/** 管理员端：模特照片删除（与文档路径 /api/admin/photos 对齐；原 /api/admin/models/photos/* 仍可用） */
 
-app.use("/api/admin/photos", adminPhotosRouter);
 
 /** 员工端：本人上传的模特照片删除（与文档路径 /api/employee/photos 对齐） */
 
-app.use("/api/employee/photos", employeePhotosRouter);
 
 /** 管理员/员工：资源库（模特 / Influencer / Content Creator） */
 
@@ -205,8 +199,6 @@ app.use("/api/influencer", influencerRoutes);
 app.use("/api/client", clientRoutes);
 app.use("/api/client", clientSkusRoutes);
 app.use("/api/client", clientMarketOrderRoutes);
-
-app.use("/api/client/models", clientModelsRoutes);
 
 app.use("/api/client/showcase-influencers", clientShowcaseInfluencersRoutes);
 

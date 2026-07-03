@@ -8,7 +8,6 @@ const BASE_ADMIN_NAV: DashboardNavItem[] = [
   { to: "/admin/profit", label: "利润统计", icon: "📊", group: "common" },
   { to: "/admin/influencers", label: "达人管理", icon: "👥", group: "match" },
   { to: "/admin/market-orders", label: "视频分级订单", icon: "🎬", group: "points" },
-  { to: "/admin/models", label: "模特展示", icon: "🧑", group: "points" },
   { to: "/admin/showcase-influencers", label: "Influencer", icon: "⭐", group: "points" },
   { to: "/admin/showcase-content-creators", label: "Content Creator", icon: "✍", group: "points" },
   { to: "/admin/skus", label: "SKU 列表", icon: "📦", group: "points" },

@@ -8,7 +8,6 @@ import { useAppStore } from "./stores/AppStore";
 
 const CLIENT_NAV: DashboardNavItem[] = [
   { to: "/client/market-orders", label: "视频分级订单", icon: "🎬", group: "points" },
-  { to: "/client/models", label: "模特展示", icon: "🧑", group: "points" },
   { to: "/client/showcase-influencers", label: "Influencer", icon: "⭐", group: "points" },
   { to: "/client/showcase-content-creators", label: "Content Creator", icon: "✍", group: "points" },
   { to: "/client/matching-orders", label: "我的撮合订单", icon: "🤝", group: "match" },

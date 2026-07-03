@@ -17,7 +17,6 @@ export default function EmployeeLayout() {
 
   const navItems: DashboardNavItem[] = [
     { to: "/employee/market-orders", label: "视频分级订单", icon: "🎬", group: "points" },
-    { to: "/employee/models", label: "模特展示", icon: "🧑", group: "points" },
     { to: "/employee/showcase-influencers", label: "Influencer", icon: "⭐", group: "points" },
     { to: "/employee/showcase-content-creators", label: "Content Creator", icon: "✍", group: "points" },
     { to: "/employee/graded-video-hall", label: "视频分级工作台", icon: "🧰", group: "points" },
