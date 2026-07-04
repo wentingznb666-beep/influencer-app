@@ -1630,6 +1630,8 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS tiktok_followers_text TEXT`);
 
   await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS tiktok_sales_text TEXT`);
+  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS tiktok_live_sales_text TEXT`);
+  await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS tiktok_gmv_text TEXT`);
 
   await query(`ALTER TABLE model_profiles ADD COLUMN IF NOT EXISTS sellable_product_types TEXT`);
 

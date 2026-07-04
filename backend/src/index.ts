@@ -110,9 +110,8 @@ app.use(cors({
   credentials: true,
 }));
 
-/** 上传文件需登录后访问，避免素材、凭证等私有文件被公开枚举。 */
-
-app.use("/uploads", requireAuth, express.static(getUploadsRoot()));
+/** 上传文件公开访问，用于图片展示。 */
+app.use("/uploads", express.static(getUploadsRoot()));
 
 app.use(requestId);
 

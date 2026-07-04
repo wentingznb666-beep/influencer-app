@@ -18,6 +18,8 @@ type ModelRow = {
   /** 手动维护的 TK 与可售品类（可选） */
   tiktok_followers_text?: string | null;
   tiktok_sales_text?: string | null;
+  tiktok_live_sales_text?: string | null;
+  tiktok_gmv_text?: string | null;
   sellable_product_types?: string | null;
   skills_text?: string | null;
 };
@@ -47,7 +49,7 @@ function parseUploaderUserIdFromPhotoUrl(url: string): number | null {
 }
 
 /**
- * 管理员/员工模特展示管理页。
+ * 管理员/员工达人展示管理页。
  */
 export default function ModelsPage() {
   const { t } = useTranslation();
@@ -61,7 +63,7 @@ export default function ModelsPage() {
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"" | "enabled" | "disabled">("");
-  const [form, setForm] = useState({ id: 0, name: "", intro: "", tiktok_followers_text: "", tiktok_sales_text: "", sellable_product_types: "", skills_text: "", cloud_link: "", status: "disabled" as "enabled" | "disabled" });
+  const [form, setForm] = useState({ id: 0, name: "", intro: "", tiktok_followers_text: "", tiktok_sales_text: "", tiktok_live_sales_text: "", tiktok_gmv_text: "", sellable_product_types: "", skills_text: "", cloud_link: "", status: "disabled" as "enabled" | "disabled" });
   const [photos, setPhotos] = useState<string[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   /** URL -> photo_id，供勾选与删除接口使用 */
@@ -151,7 +153,7 @@ export default function ModelsPage() {
    */
   const save = async () => {
     if (!form.name.trim()) {
-      setError(t("请输入模特姓名/昵称"));
+      setError(t("请输入达人编号"));
       return;
     }
     if (!form.cloud_link.trim()) {
@@ -163,7 +165,7 @@ export default function ModelsPage() {
     try {
       const nextPhotos = await uploadSelected();
       if (nextPhotos.length === 0) {
-        setError(t("请至少上传一张模特照片"));
+        setError(t("请至少上传一张达人照片"));
         setSaving(false);
         return;
       }
@@ -172,6 +174,8 @@ export default function ModelsPage() {
         intro: form.intro.trim(),
         tiktok_followers_text: form.tiktok_followers_text.trim(),
         tiktok_sales_text: form.tiktok_sales_text.trim(),
+        tiktok_live_sales_text: form.tiktok_live_sales_text.trim(),
+        tiktok_gmv_text: form.tiktok_gmv_text.trim(),
         sellable_product_types: form.sellable_product_types.trim(),
         skills_text: form.skills_text.trim(),
         cloud_link: form.cloud_link.trim(),
@@ -222,7 +226,7 @@ export default function ModelsPage() {
    * 删除模特资料（仅管理员）。
    */
   const remove = async (id: number) => {
-    if (!window.confirm(t("确认删除该模特资料？"))) return;
+    if (!window.confirm(t("确认删除该达人资料？"))) return;
     setError(null);
     try {
       await api.deleteAdminModel(id);
@@ -323,8 +327,8 @@ export default function ModelsPage() {
 
   return (
     <div>
-      <h2 style={{ marginTop: 0 }}>视频分级 - 模特展示</h2>
-      <p style={{ fontSize: compactPx(14), color: "#64748b" }}>当前已归入视频分级板块。管理员可新增/编辑/删除/上下架；员工可新增/编辑并提交上下架审核申请。</p>
+      <h2 style={{ marginTop: 0 }}>视频分级 - 达人展示</h2>
+      <p style={{ fontSize: compactPx(14), color: "#64748b" }}>当前已归入视频分级板块。</p>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       {toast && (
         <div
@@ -348,7 +352,7 @@ export default function ModelsPage() {
       )}
 
       <div style={{ marginBottom: compactPx(12), display: "flex", gap: compactPx(8), flexWrap: "wrap", position: "sticky", top: 0, zIndex: 10, background: "#f5f7fa", padding: "12px 0" }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索模特名称/介绍" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), minWidth: 260 }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索达人编号" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), minWidth: 260 }} />
         <select value={status} onChange={(e) => setStatus(e.target.value as "" | "enabled" | "disabled")} style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff" }}>
           <option value="">全部状态</option>
           <option value="enabled">已启用</option>
@@ -360,17 +364,21 @@ export default function ModelsPage() {
       </div>
 
       <div style={{ marginBottom: compactPx(16), padding: compactPx(14), background: "#fff", borderRadius: compactPx(10), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-        <h3 style={{ marginTop: 0 }}>{editing ? `编辑模特 #${form.id}` : "新增模特"}</h3>
+        <h3 style={{ marginTop: 0 }}>{editing ? `编辑达人 #${form.id}` : "新增达人"}</h3>
         <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: compactPx(8), alignItems: "center" }}>
-          <div>模特姓名/昵称</div>
+          <div>达人编号</div>
           <input value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} placeholder="请输入姓名/昵称" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }} />
           <div>文字介绍</div>
-          <textarea value={form.intro} onChange={(e) => setForm((s) => ({ ...s, intro: e.target.value }))} rows={4} placeholder="请输入模特介绍" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }} />
-          <div>模特 TK 账号粉丝数量</div>
+          <textarea value={form.intro} onChange={(e) => setForm((s) => ({ ...s, intro: e.target.value }))} rows={4} placeholder="请输入达人介绍" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }} />
+          <div>达人 TK 账号粉丝数量</div>
           <input value={form.tiktok_followers_text} onChange={(e) => setForm((s) => ({ ...s, tiktok_followers_text: e.target.value }))} placeholder="可填写数字或描述" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }} />
-          <div>模特 TK 账号销售额</div>
+          <div>达人 TK 账号销售额</div>
           <input value={form.tiktok_sales_text} onChange={(e) => setForm((s) => ({ ...s, tiktok_sales_text: e.target.value }))} placeholder="可填写金额或描述" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }} />
-          <div>模特可销售的商品类型</div>
+          <div>达人 TK 直播销售额</div>
+          <input value={form.tiktok_live_sales_text} onChange={(e) => setForm((s) => ({ ...s, tiktok_live_sales_text: e.target.value }))} placeholder="可填写金额或描述" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }} />
+          <div>达人 TK GMV 销售额</div>
+          <input value={form.tiktok_gmv_text} onChange={(e) => setForm((s) => ({ ...s, tiktok_gmv_text: e.target.value }))} placeholder="可填写金额或描述" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }} />
+          <div>可承接拍摄内容类型 (ประเภทสินค้า)</div>
           <input value={form.sellable_product_types} onChange={(e) => setForm((s) => ({ ...s, sellable_product_types: e.target.value }))} placeholder="如：美妆、服饰等" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }} />
           <div>技能</div>
           <textarea value={form.skills_text} onChange={(e) => setForm((s) => ({ ...s, skills_text: e.target.value }))} rows={2} placeholder="可填写多项技能或技能描述" style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }} />
@@ -381,7 +389,7 @@ export default function ModelsPage() {
             <option value="disabled">禁用</option>
             <option value="enabled">启用</option>
           </select>
-          <div>模特照片</div>
+          <div>达人照片</div>
           <div>
             <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setSelectedFiles(Array.from(e.target.files || []).slice(0, 20))} />
             {(photos.length > 0 || selectedFiles.length > 0) && (
@@ -452,6 +460,8 @@ export default function ModelsPage() {
                         intro: m.intro || "",
                         tiktok_followers_text: m.tiktok_followers_text ?? "",
                         tiktok_sales_text: m.tiktok_sales_text ?? "",
+                        tiktok_live_sales_text: m.tiktok_live_sales_text ?? "",
+                        tiktok_gmv_text: m.tiktok_gmv_text ?? "",
                         sellable_product_types: m.sellable_product_types ?? "",
                         skills_text: m.skills_text ?? "",
                         cloud_link: m.cloud_link,
@@ -497,7 +507,15 @@ export default function ModelsPage() {
                   {m.tiktok_sales_text?.trim() ? m.tiktok_sales_text : "—"}
                 </div>
                 <div>
-                  <span style={{ color: "#64748b" }}>可售商品类型：</span>
+                  <span style={{ color: "#64748b" }}>TK 直播销售额：</span>
+                  {m.tiktok_live_sales_text?.trim() ? m.tiktok_live_sales_text : "—"}
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>TK GMV 销售额：</span>
+                  {m.tiktok_gmv_text?.trim() ? m.tiktok_gmv_text : "—"}
+                </div>
+                <div>
+                  <span style={{ color: "#64748b" }}>可承接拍摄内容类型：</span>
                   {m.sellable_product_types?.trim() ? m.sellable_product_types : "—"}
                 </div>
                 <div>
