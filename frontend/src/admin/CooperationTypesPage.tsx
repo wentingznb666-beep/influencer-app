@@ -373,14 +373,14 @@ export default function CooperationTypesPage(props: Props) {
 
       {config ? (
         <div style={{ display: "grid", gap: compactPx(12), marginTop: compactPx(14) }}>
-          {config.types.map((t) => (
-            <div key={t.id} style={{ border: "1px solid var(--xt-border)", background: "#fff", borderRadius: compactPx(14), padding: compactPx(14) }}>
+          {config.types.map((type) => (
+            <div key={type.id} style={{ border: "1px solid var(--xt-border)", background: "#fff", borderRadius: compactPx(14), padding: compactPx(14) }}>
               <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
-                  <div style={{ fontWeight: 900, color: "var(--xt-primary)", fontSize: compactPx(16) }}>{(t.name?.zh ?? t.id) || t.id}</div>
-                  <div style={{ color: "var(--xt-text-muted)" }}>{(t.name?.th ?? t.id) || ""}</div>
+                  <div style={{ fontWeight: 900, color: "var(--xt-primary)", fontSize: compactPx(16) }}>{(type.name?.zh ?? type.id) || type.id}</div>
+                  <div style={{ color: "var(--xt-text-muted)" }}>{(type.name?.th ?? type.id) || ""}</div>
                 </div>
-                <div style={{ color: "var(--xt-text-muted)", fontSize: compactPx(12) }}>{t("ID")}：{t.id}</div>
+                <div style={{ color: "var(--xt-text-muted)", fontSize: compactPx(12) }}>{t("ID")}：{type.id}</div>
               </div>
 
               <div style={{ display: "grid", gap: compactPx(10), marginTop: compactPx(12) }}>
@@ -389,15 +389,15 @@ export default function CooperationTypesPage(props: Props) {
                   <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap" }}>
                     <input
                       disabled={readOnly}
-                      value={(t.name?.zh ?? t.id) || ""}
-                      onChange={(e) => updateType(t.id, (tt) => (tt.name = { ...(tt.name || { zh: "", th: "" }), zh: e.target.value }))}
+                      value={(type.name?.zh ?? type.id) || ""}
+                      onChange={(e) => updateType(type.id, (tt) => (tt.name = { ...(tt.name || { zh: "", th: "" }), zh: e.target.value }))}
                       placeholder="中文"
                       style={{ padding: "8px 10px", minWidth: 260, borderRadius: compactPx(10), border: "1px solid var(--xt-border)" }}
                     />
                     <input
                       disabled={readOnly}
-                      value={(t.name?.th ?? t.id) || ""}
-                      onChange={(e) => updateType(t.id, (tt) => (tt.name = { ...(tt.name || { zh: "", th: "" }), th: e.target.value }))}
+                      value={(type.name?.th ?? type.id) || ""}
+                      onChange={(e) => updateType(type.id, (tt) => (tt.name = { ...(tt.name || { zh: "", th: "" }), th: e.target.value }))}
                       placeholder="ภาษาไทย"
                       style={{ padding: "8px 10px", minWidth: 260, borderRadius: compactPx(10), border: "1px solid var(--xt-border)" }}
                     />
@@ -406,7 +406,7 @@ export default function CooperationTypesPage(props: Props) {
 
                 <div style={{ display: "grid", gap: compactPx(8) }}>
                   <div style={{ fontWeight: 800 }}>{t("关键参数")}</div>
-                  {renderSpec(t)}
+                  {renderSpec(type)}
                 </div>
               </div>
             </div>
