@@ -8,6 +8,18 @@ import * as api from "../adminApi";
 
 type Influencer = { id: number; username: string; display_name: string | null; created_at: string; show_face: number; tags: string | null; platforms: string | null; blacklisted: number; level: number };
 
+const LEVEL_OPTIONS = [
+  { value: 1, label: "A" },
+  { value: 2, label: "B" },
+  { value: 3, label: "C" },
+] as const;
+
+function formatLevel(level: number | string): string {
+  const n = typeof level === "number" ? level : Number(level);
+  const found = LEVEL_OPTIONS.find((opt) => opt.value === n);
+  return found ? found.label : String(level ?? "—");
+}
+
 
 
 export default function InfluencersPage() {
@@ -176,7 +188,7 @@ export default function InfluencersPage() {
 
                 <td style={{ padding: compactPx(10) }}>{row.blacklisted ? t("是") : "否"}</td>
 
-                <td style={{ padding: compactPx(10) }}>{row.level}</td>
+                <td style={{ padding: compactPx(10) }}>{formatLevel(row.level)}</td>
 
                 <td style={{ padding: compactPx(10) }}>
 
@@ -260,7 +272,11 @@ export default function InfluencersPage() {
 
             <label>等级</label>
 
-            <input type="number" inputMode="decimal" min={1} value={form.level} onChange={(e) => setForm((f) => ({ ...f, level: Number(e.target.value) || 1 }))} style={{ marginLeft: compactPx(8), width: 60, padding: "6px 8px" }} />
+            <select value={form.level} onChange={(e) => setForm((f) => ({ ...f, level: Number(e.target.value) }))} style={{ marginLeft: compactPx(8), padding: "6px 8px" }}>
+              {LEVEL_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
 
           </div>
 

@@ -31,11 +31,8 @@ type InfluencerDetail = {
 function formatLevel(level: number | string): string {
   const n = typeof level === "number" ? level : Number(level);
   if (n === 1) return "A";
-  if (n === 2) return "A+";
-  if (n === 3) return "B";
-  if (n === 4) return "B+";
-  if (n === 5) return "C";
-  if (n === 6) return "C+";
+  if (n === 2) return "B";
+  if (n === 3) return "C";
   return String(level ?? "—");
 }
 
