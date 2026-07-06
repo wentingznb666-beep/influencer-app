@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { compactPx } from "../responsive";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { getAdminInfluencerPermissions, reviewAdminInfluencerPermission, toggleAdminInfluencerPermission } from "../matchingApi";
 import { formatInfluencerPermissionStatus } from "../utils/matchingStatusText";
@@ -26,6 +26,17 @@ export default function InfluencerPermissionsPage() {
   const [searchQ, setSearchQ] = useState("");
   const [msg, setMsg] = useState<string>("");
   const [busy, setBusy] = useState<Record<string, boolean>>({});
+
+  const filteredList = useMemo(() => {
+    const q = searchQ.trim().toLowerCase();
+    if (!q) return list;
+    return list.filter((it) => {
+      const name = (it.display_name || it.username || "").toLowerCase();
+      const account = (it.tiktok_account || "").toLowerCase();
+      const category = (it.category || "").toLowerCase();
+      return name.includes(q) || account.includes(q) || category.includes(q);
+    });
+  }, [list, searchQ]);
   const [isMobile, setIsMobile] = useState(false);
   const focusIdRef = useRef<number>(0);
   const jumpedOnceRef = useRef(false);
@@ -321,7 +332,7 @@ export default function InfluencerPermissionsPage() {
 
       {isMobile ? (
         <div className="xt-perm-cards">
-          {list.map((it) => {
+          {filteredList.map((it) => {
             const name = it.display_name || it.username;
             const bankText = [it.real_name, it.bank_name, it.bank_branch].filter(Boolean).join(" / ");
             const tiktokAccount = it.tiktok_account ?? "";
@@ -421,7 +432,7 @@ export default function InfluencerPermissionsPage() {
             </tr>
           </thead>
           <tbody>
-            {list.map((it) => {
+            {filteredList.map((it) => {
               const name = it.display_name || it.username;
               const bankText = [it.real_name, it.bank_name, it.bank_branch].filter(Boolean).join(" / ");
               const tiktokAccount = it.tiktok_account ?? "";
