@@ -1,4 +1,40 @@
-import { lazy, StrictMode, Suspense } from "react";
+import { lazy, StrictMode, Suspense, Component, type ReactNode } from "react";
+
+/** 错误边界：捕获子组件渲染错误，避免整个应用白屏。 */
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", flexDirection: "column", gap: 12 }}>
+          <h2 style={{ color: "#b91c1c" }}>页面加载异常</h2>
+          <p style={{ color: "#64748b", fontSize: 14 }}>{this.state.error?.message || "未知错误"}</p>
+          <button onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }} style={{ padding: "8px 20px", borderRadius: 8, border: "1px solid #e2e8f0", background: "#fff", cursor: "pointer", fontWeight: 700 }}>
+            刷新页面
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/** Suspense 加载占位：避免懒加载期间显示白屏。 */
+function PageLoading() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", flexDirection: "column", gap: 8 }}>
+      <div style={{ width: 32, height: 32, border: "3px solid #e2e8f0", borderTopColor: "var(--xt-accent, #f97316)", borderRadius: "50%", animation: "xt-spin 0.7s linear infinite" }} />
+      <p style={{ color: "#64748b", fontSize: 13 }}>加载中…</p>
+      <style>{"@keyframes xt-spin { to { transform: rotate(360deg); } }"}</style>
+    </div>
+  );
+}
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
@@ -64,7 +100,8 @@ createRoot(document.getElementById("root")!).render(
       <BrowserRouter>
         <I18nextProvider i18n={appI18n}>
           <LanguageProvider>
-            <Suspense fallback={null}>
+            <Suspense fallback={<PageLoading />}>
+            <ErrorBoundary>
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
@@ -146,6 +183,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
+            </ErrorBoundary>
             </Suspense>
           </LanguageProvider>
         </I18nextProvider>

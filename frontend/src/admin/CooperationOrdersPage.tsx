@@ -336,7 +336,8 @@ export default function CooperationOrdersPage() {
         .xt-coop-col-delivery { width: 10%; }
         .xt-coop-col-acceptance { width: 14%; }
         .xt-coop-th { position: sticky; top: 0; z-index: 1; background: rgba(21,42,69,0.06); text-align:left; padding: compactPx(10)px; font-size: 12px; color: #475569; font-weight: 900; border-bottom: 1px solid rgba(148,163,184,0.28); }
-        .xt-coop-td { box-sizing: border-box; padding: compactPx(10)px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); vertical-align: top; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
+        .xt-coop-td { box-sizing: border-box; padding: compactPx(10)px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); border-right: 1px solid rgba(148,163,184,0.12); vertical-align: top; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
+        .xt-coop-td:last-child { border-right: none; }
         .xt-coop-row:hover { background: rgba(15,23,42,0.02); }
         .xt-coop-order-no { font-weight: 900; color: var(--xt-primary); }
         .xt-coop-title { color: #0f172a; font-weight: 700; }
@@ -350,11 +351,11 @@ export default function CooperationOrdersPage() {
         .xt-coop-links { display:grid; gap: compactPx(8)px; min-width:0; }
         .xt-coop-link-row { display:flex; gap: compactPx(6)px; align-items:center; min-width:0; }
         .xt-coop-link-tag { flex: 0 0 auto; padding: 1px 6px; border-radius: 999px; border: 1px solid rgba(148,163,184,0.35); font-size: 11px; color: #334155; background: rgba(148,163,184,0.12); }
-        .xt-coop-link-url { min-width:0; color: var(--xt-primary); text-decoration: none; word-break: break-all; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 160px; }
+        .xt-coop-link-url { min-width:0; color: var(--xt-primary); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; max-width: 160px; }
         .xt-coop-link-url:hover { text-decoration: underline; }
         .xt-coop-linkbtn { padding: compactPx(6)px 10px; border-radius: 10px; border: 1px solid var(--xt-border); background: #fff; cursor: pointer; font-weight: 800; font-size: 12px; display:inline-flex; align-items:center; justify-content:center; }
         .xt-coop-linkbtn[disabled] { opacity: .55; cursor: not-allowed; }
-        .xt-coop-order-no { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700; }
+        .xt-coop-order-no { white-space: nowrap !important; font-variant-numeric: tabular-nums; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
         .xt-coop-review-note { margin-top: 8px; color: #475569; font-size: 12px; line-height: 1.4; max-height: 3.6em; overflow: hidden; text-overflow: ellipsis; }
         @media (max-width: 1280px) {
           .xt-coop-col-orderNo { width: 11%; }
@@ -391,13 +392,19 @@ export default function CooperationOrdersPage() {
         </div>
 
         <div className="xt-coop-topbar">
-          <select className="xt-coop-select" value={type} onChange={(e) => setType(e.target.value)}>
+          <select className="xt-coop-select" value={type} onChange={(e) => setType(e.target.value)} disabled={!typeConfig && !loading}>
             <option value="">全部类型</option>
-            {typeOptions.map((t) => (
-              <option key={t} value={t}>
-                {typeIdLabel(t)}
-              </option>
-            ))}
+            {!typeConfig && !loading ? (
+              <option disabled value="">加载中…</option>
+            ) : typeOptions.length === 0 ? (
+              <option disabled value="">暂无类型数据</option>
+            ) : (
+              typeOptions.map((t) => (
+                <option key={t} value={t}>
+                  {typeIdLabel(t)}
+                </option>
+              ))
+            )}
           </select>
           <select className="xt-coop-select" value={phase} onChange={(e) => setPhase(e.target.value)}>
             <option value="">全部阶段</option>

@@ -1972,18 +1972,19 @@ textarea {
   margin: 0;
   padding: 10px 14px 6px;
   border: none;
-  border-radius: 8px;
-  background: transparent;
+  border-left: 3px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0 8px 8px 0;
+  background: rgba(255, 255, 255, 0.06);
   cursor: pointer;
   font: inherit;
   text-align: left;
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 13px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
   font-weight: 800;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  transition: background-color 0.15s ease, color 0.15s ease;
-  min-height: 40px;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  min-height: 42px;
 }
 
 .xt-sidebar-group-toggle:hover {
@@ -2037,6 +2038,15 @@ textarea {
   padding-left: 4px;
   overflow: hidden;
   transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease;
+}
+
+/* 二级菜单字体缩小，与一级区分层级 */
+.xt-sidebar-group-children .xt-sidebar-link {
+  font-size: 13px;
+  font-weight: 500;
+  min-height: 38px !important;
+  padding: 8px 12px 8px 20px;
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .xt-sidebar-group-children[aria-hidden="true"] {

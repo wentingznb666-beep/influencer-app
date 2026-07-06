@@ -154,21 +154,31 @@ export default function InfluencerPermissionsPage() {
   return (
     <div style={{ background: "#fff", borderRadius: compactPx(16), padding: isMobile ? 12 : 20, boxShadow: "0 10px 24px rgba(15,23,42,0.08)" }}>
       <h2 style={{ marginTop: 0 }}>达人撮合权限审核</h2>
-      <input
-        type="text"
-        placeholder="搜索 Creator 用户名…"
-        value={searchQ}
-        onChange={(e) => setSearchQ(e.target.value)}
-        style={{
-          padding: "8px 12px",
-          borderRadius: 8,
-          border: "1px solid var(--xt-border)",
-          width: "100%",
-          maxWidth: 320,
-          marginBottom: 12,
-          fontSize: 13,
-        }}
-      />
+      <div style={{ display: "flex", gap: compactPx(8), alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+        <input
+          type="text"
+          placeholder="搜索 Creator 用户名 / TikTok 账号 / 类目…"
+          value={searchQ}
+          onChange={(e) => setSearchQ(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 8,
+            border: "1px solid var(--xt-border)",
+            width: "100%",
+            maxWidth: 360,
+            fontSize: 13,
+          }}
+        />
+        {searchQ.trim() && (
+          <button type="button" onClick={() => setSearchQ("")} style={{ padding: "4px 10px", fontSize: 12, border: "1px solid #e2e8f0", borderRadius: 6, background: "#fff", cursor: "pointer" }}>
+            清除
+          </button>
+        )}
+        <span style={{ fontSize: 12, color: "#64748b" }}>
+          {searchQ.trim() ? `找到 ${filteredList.length} 条` : `共 ${list.length} 条`}
+        </span>
+      </div>
       {msg && <p style={{ margin: "8px 0 12px", color: "#334155" }}>{msg}</p>}
 
       <style>{`
@@ -196,11 +206,15 @@ export default function InfluencerPermissionsPage() {
         .xt-perm-table tbody td {
           padding: compactPx(10)px 12px;
           border-bottom: 1px solid #cbd5e1;
+          border-right: 1px solid #e2e8f0;
           vertical-align: top;
           color: #0f172a;
           font-size: 13px;
           min-width: 0;
           overflow: hidden;
+        }
+        .xt-perm-table tbody td:last-child {
+          border-right: none;
         }
         .xt-perm-table tbody tr:nth-child(odd) td {
           background: #fcfcfd;

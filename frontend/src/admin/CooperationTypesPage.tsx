@@ -57,7 +57,27 @@ export default function CooperationTypesPage(props: Props) {
   };
 
   useEffect(() => {
-    void load();
+    let cancelled = false;
+    const doLoad = async () => {
+      setError(null);
+      setLoading(true);
+      try {
+        const ret = await getCooperationTypes();
+        if (cancelled) return;
+        if (!ret?.config || !Array.isArray(ret.config.types)) {
+          throw new Error('配置数据格式异常，请刷新重试。');
+        }
+        setConfig(ret.config);
+      } catch (e) {
+        if (cancelled) return;
+        setError(e instanceof Error ? e.message : t('加载失败'));
+        setConfig(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void doLoad();
+    return () => { cancelled = true; };
   }, []);
 
   const title = useMemo(() => {
