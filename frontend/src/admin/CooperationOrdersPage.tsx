@@ -466,7 +466,9 @@ export default function CooperationOrdersPage() {
                 return (
                   <tr key={id} className="xt-coop-row" data-coop-id={id}>
                     <td className="xt-coop-td">
-                      <div className="xt-coop-order-no">{safeText(r.order_no) || `#${id}`}</div>
+                      <div className="xt-coop-order-no" title={safeText(r.order_no) || `#${id}`} style={{ cursor: "pointer" }} onClick={() => { const txt = safeText(r.order_no) || `#${id}`; if (txt) { navigator.clipboard?.writeText(txt).then(() => { /* copied */ }).catch(() => {}); } }}>
+                        {safeText(r.order_no) || `#${id}`}
+                      </div>
                     </td>
                     <td className="xt-coop-td">
                       <div className="xt-coop-title">{taskNameLabel(r)}</div>

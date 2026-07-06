@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { compactPx } from "../responsive";
 import { useEffect, useMemo, useState } from "react";
-import { getStoredUser } from "../authApi";
+import { getStoredUser, getAccessToken } from "../authApi";
 import { getCooperationTypes, updateCooperationTypes, type CooperationTypesConfig } from "../matchingApi";
 
 type Props = { readOnly?: boolean };
@@ -38,18 +38,52 @@ export default function CooperationTypesPage(props: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<CooperationTypesConfig | null>(null);
+  const abortRef = { current: null as AbortController | null };
 
-  const load = async () => {
+  const doFetch = async (signal: AbortSignal) => {
+    const token = getAccessToken() || "";
+    // 创建超时控制器，与外层 signal 竞速
+    const timeoutId = setTimeout(() => {
+      if (abortRef.current && !abortRef.current.signal.aborted) {
+        abortRef.current.abort();
+      }
+    }, 15000);
+    try {
+      const res = await fetch("/api/matching/cooperation-types", {
+        headers: { Authorization: `Bearer ${token}` },
+        signal,
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error((body as any).message || `HTTP ${res.status}`);
+      }
+      return res.json();
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
+
+  const load = async (signal?: AbortSignal) => {
+    if (abortRef.current) abortRef.current.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const sig = signal ?? controller.signal;
+
     setError(null);
     setLoading(true);
     try {
-      const ret = await getCooperationTypes();
+      const ret = await doFetch(sig);
       if (!ret?.config || !Array.isArray(ret.config.types)) {
         throw new Error("配置数据格式异常，请刷新重试。");
       }
       setConfig(ret.config);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : t("加载失败"));
+    } catch (e: any) {
+      if (e?.name === "AbortError") {
+        setError("请求超时或已取消，请检查网络后刷新重试。");
+      } else {
+        setError(e instanceof Error ? e.message : t("加载失败"));
+      }
       setConfig(null);
     } finally {
       setLoading(false);
@@ -57,27 +91,13 @@ export default function CooperationTypesPage(props: Props) {
   };
 
   useEffect(() => {
-    let cancelled = false;
-    const doLoad = async () => {
-      setError(null);
-      setLoading(true);
-      try {
-        const ret = await getCooperationTypes();
-        if (cancelled) return;
-        if (!ret?.config || !Array.isArray(ret.config.types)) {
-          throw new Error('配置数据格式异常，请刷新重试。');
-        }
-        setConfig(ret.config);
-      } catch (e) {
-        if (cancelled) return;
-        setError(e instanceof Error ? e.message : t('加载失败'));
-        setConfig(null);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
+    const controller = new AbortController();
+    abortRef.current = controller;
+    void load(controller.signal);
+    return () => {
+      controller.abort();
+      abortRef.current = null;
     };
-    void doLoad();
-    return () => { cancelled = true; };
   }, []);
 
   const title = useMemo(() => {
