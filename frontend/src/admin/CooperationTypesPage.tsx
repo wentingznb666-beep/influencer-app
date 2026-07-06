@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { compactPx } from "../responsive";
-import { useEffect, useMemo, useState } from "react";
-import { getStoredUser, getAccessToken } from "../authApi";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { getStoredUser } from "../authApi";
 import { getCooperationTypes, updateCooperationTypes, type CooperationTypesConfig } from "../matchingApi";
 
 type Props = { readOnly?: boolean };
@@ -38,66 +38,42 @@ export default function CooperationTypesPage(props: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<CooperationTypesConfig | null>(null);
-  const abortRef = { current: null as AbortController | null };
+  const mountedRef = useRef(true);
 
-  const doFetch = async (signal: AbortSignal) => {
-    const token = getAccessToken() || "";
-    // 创建超时控制器，与外层 signal 竞速
-    const timeoutId = setTimeout(() => {
-      if (abortRef.current && !abortRef.current.signal.aborted) {
-        abortRef.current.abort();
+  /** 加载合作业务类型配置，带 15 秒超时保护 */
+  const load = async () => {
+    setError(null);
+    setLoading(true);
+    // 15 秒超时保护：防止请求永久挂起导致页面白屏
+    const timer = setTimeout(() => {
+      if (mountedRef.current) {
+        setLoading(false);
+        setError("加载超时，请检查网络后刷新重试。");
       }
     }, 15000);
     try {
-      const res = await fetch("/api/matching/cooperation-types", {
-        headers: { Authorization: `Bearer ${token}` },
-        signal,
-      });
-      clearTimeout(timeoutId);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error((body as any).message || `HTTP ${res.status}`);
-      }
-      return res.json();
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  };
-
-  const load = async (signal?: AbortSignal) => {
-    if (abortRef.current) abortRef.current.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const sig = signal ?? controller.signal;
-
-    setError(null);
-    setLoading(true);
-    try {
-      const ret = await doFetch(sig);
+      const ret = await getCooperationTypes();
+      clearTimeout(timer);
+      if (!mountedRef.current) return;
       if (!ret?.config || !Array.isArray(ret.config.types)) {
         throw new Error("配置数据格式异常，请刷新重试。");
       }
       setConfig(ret.config);
-    } catch (e: any) {
-      if (e?.name === "AbortError") {
-        setError("请求超时或已取消，请检查网络后刷新重试。");
-      } else {
-        setError(e instanceof Error ? e.message : t("加载失败"));
-      }
+    } catch (e) {
+      clearTimeout(timer);
+      if (!mountedRef.current) return;
+      setError(e instanceof Error ? e.message : t("加载失败"));
       setConfig(null);
     } finally {
-      setLoading(false);
+      clearTimeout(timer);
+      if (mountedRef.current) setLoading(false);
     }
   };
 
   useEffect(() => {
-    const controller = new AbortController();
-    abortRef.current = controller;
-    void load(controller.signal);
-    return () => {
-      controller.abort();
-      abortRef.current = null;
-    };
+    mountedRef.current = true;
+    void load();
+    return () => { mountedRef.current = false; };
   }, []);
 
   const title = useMemo(() => {
