@@ -466,7 +466,21 @@ export default function CooperationOrdersPage() {
                 return (
                   <tr key={id} className="xt-coop-row" data-coop-id={id}>
                     <td className="xt-coop-td">
-                      <div className="xt-coop-order-no" title={safeText(r.order_no) || `#${id}`} style={{ cursor: "pointer" }} onClick={() => { const txt = safeText(r.order_no) || `#${id}`; if (txt) { navigator.clipboard?.writeText(txt).then(() => { /* copied */ }).catch(() => {}); } }}>
+                      <div
+                        className="xt-coop-order-no"
+                        title={`订单号：${safeText(r.order_no) || `#${id}`}（点击复制）`}
+                        style={{ cursor: "pointer", textDecoration: "underline dotted", textUnderlineOffset: "3px" }}
+                        onClick={(ev) => {
+                          const txt = safeText(r.order_no) || `#${id}`;
+                          if (!txt) return;
+                          navigator.clipboard?.writeText(txt).catch(() => {});
+                          // 简短视觉反馈
+                          const el = ev.currentTarget;
+                          const orig = el.textContent || "";
+                          el.textContent = "已复制 ✓";
+                          setTimeout(() => { el.textContent = orig; }, 1200);
+                        }}
+                      >
                         {safeText(r.order_no) || `#${id}`}
                       </div>
                     </td>
