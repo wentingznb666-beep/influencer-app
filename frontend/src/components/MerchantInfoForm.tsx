@@ -1,5 +1,6 @@
 import { compactPx } from "../responsive";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useAppStore } from "../stores/AppStore";
 import { saveClientMerchantInfoTemplate } from "../clientApi";
 
@@ -11,6 +12,7 @@ import { saveClientMerchantInfoTemplate } from "../clientApi";
  * 4. 模拟 Element Plus 校验提示
  */
 export const MerchantInfoForm: React.FC = () => {
+  const { t } = useTranslation();
   const { merchantTemplate, setMerchantTemplate } = useAppStore();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "success">("idle");

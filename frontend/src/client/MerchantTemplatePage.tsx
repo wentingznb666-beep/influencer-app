@@ -9,6 +9,7 @@ import { MerchantInfoForm } from "../components/MerchantInfoForm";
  * 对应需求：把商家信息模块，放到撮合业务组里面
  */
 const MerchantTemplatePage: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div style={{ padding: compactPx(20) }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: compactPx(20) }}>
