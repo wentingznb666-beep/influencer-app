@@ -107,16 +107,16 @@ export default function CooperationTypesPage(props: Props) {
     }
   };
 
-  const renderSpec = (t: CooperationTypesConfig["types"][number]) => {
-    const spec = asRecord(t.spec);
+  const renderSpec = (item: CooperationTypesConfig["types"][number]) => {
+    const spec = asRecord(item.spec);
 
-    if (t.id === "graded_video") {
+    if (item.id === "graded_video") {
       const pricing = asRecord(spec.pricing_points);
       const c = asRecord(pricing.client);
       const p = asRecord(pricing.part_time);
       const rate = toNum(spec.point_rate_thb) ?? 1;
       const setGrade = (who: "client" | "part_time", grade: "A" | "B" | "C", value: number) => {
-        updateType(t.id, (tt) => {
+        updateType(item.id, (tt) => {
           const s = asRecord(tt.spec);
           s.point_rate_thb = rate;
           const nextPricing = ensureRecord(s, "pricing_points");
