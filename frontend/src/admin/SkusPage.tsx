@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { compactPx } from "../responsive";
 import { useEffect, useState } from "react";
 import * as api from "../adminApi";
+import { resolvePublicUploadUrl } from "../fetchWithAuth";
 
 type Row = {
   id: number;
@@ -118,8 +119,8 @@ export default function AdminSkusPage() {
               {Array.isArray(s.sku_images) && s.sku_images.length > 0 && (
                 <div style={{ marginTop: compactPx(8), display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
                   {s.sku_images.slice(0, 8).map((url, idx) => (
-                    <a key={`${s.id}-${idx}`} href={url} target="_blank" rel="noreferrer">
-                      <img src={url} alt={`admin-sku-${s.id}-${idx}`} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: compactPx(6), border: "1px solid #eee" }} />
+                    <a key={`${s.id}-${idx}`} href={resolvePublicUploadUrl(url)} target="_blank" rel="noreferrer">
+                      <img src={resolvePublicUploadUrl(url)} alt={`admin-sku-${s.id}-${idx}`} style={{ width: 56, height: 56, objectFit: "cover", borderRadius: compactPx(6), border: "1px solid #eee" }} />
                     </a>
                   ))}
                 </div>

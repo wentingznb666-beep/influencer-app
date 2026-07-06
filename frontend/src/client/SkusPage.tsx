@@ -3,6 +3,7 @@ import { compactPx } from "../responsive";
 import { useEffect, useMemo, useState } from "react";
 import * as api from "../clientApi";
 import { useScrollLock } from "../hooks/useScrollLock";
+import { resolvePublicUploadUrl } from "../fetchWithAuth";
 
 type ImportResult = {
   success: number;
@@ -402,8 +403,8 @@ export default function SkusPage() {
                 {Array.isArray(s.sku_images) && s.sku_images.length > 0 && (
                   <div style={{ marginTop: compactPx(8), display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
                     {s.sku_images.slice(0, 6).map((url, idx) => (
-                      <a key={`${s.id}-${idx}`} href={url} target="_blank" rel="noreferrer" style={{ display: "inline-block" }}>
-                        <img src={url} alt={`sku-${s.id}-${idx}`} style={{ width: 56, height: 56, borderRadius: compactPx(6), objectFit: "cover", border: "1px solid #eee" }} />
+                      <a key={`${s.id}-${idx}`} href={resolvePublicUploadUrl(url)} target="_blank" rel="noreferrer" style={{ display: "inline-block" }}>
+                        <img src={resolvePublicUploadUrl(url)} alt={`sku-${s.id}-${idx}`} style={{ width: 56, height: 56, borderRadius: compactPx(6), objectFit: "cover", border: "1px solid #eee" }} />
                       </a>
                     ))}
                   </div>
@@ -485,8 +486,8 @@ export default function SkusPage() {
               {(existingImages.length > 0 || localPreviewUrls.length > 0) && (
                 <div style={{ marginTop: compactPx(8), display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
                   {existingImages.map((url, idx) => (
-                    <a key={`existing-${idx}`} href={url} target="_blank" rel="noreferrer">
-                      <img src={url} alt={`existing-${idx}`} style={{ width: 56, height: 56, borderRadius: compactPx(6), objectFit: "cover", border: "1px solid #eee" }} />
+                    <a key={`existing-${idx}`} href={resolvePublicUploadUrl(url)} target="_blank" rel="noreferrer">
+                      <img src={resolvePublicUploadUrl(url)} alt={`existing-${idx}`} style={{ width: 56, height: 56, borderRadius: compactPx(6), objectFit: "cover", border: "1px solid #eee" }} />
                     </a>
                   ))}
                   {localPreviewUrls.map((url, idx) => (
