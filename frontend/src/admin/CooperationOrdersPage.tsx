@@ -355,7 +355,7 @@ export default function CooperationOrdersPage() {
         .xt-coop-link-url:hover { text-decoration: underline; }
         .xt-coop-linkbtn { padding: compactPx(6)px 10px; border-radius: 10px; border: 1px solid var(--xt-border); background: #fff; cursor: pointer; font-weight: 800; font-size: 12px; display:inline-flex; align-items:center; justify-content:center; }
         .xt-coop-linkbtn[disabled] { opacity: .55; cursor: not-allowed; }
-        .xt-coop-order-no { white-space: nowrap !important; font-variant-numeric: tabular-nums; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+        .xt-coop-order-no { white-space: normal; word-break: break-all; font-variant-numeric: tabular-nums; font-weight: 700; }
         .xt-coop-review-note { margin-top: 8px; color: #475569; font-size: 12px; line-height: 1.4; max-height: 3.6em; overflow: hidden; text-overflow: ellipsis; }
         @media (max-width: 1280px) {
           .xt-coop-col-orderNo { width: 11%; }
@@ -466,21 +466,7 @@ export default function CooperationOrdersPage() {
                 return (
                   <tr key={id} className="xt-coop-row" data-coop-id={id}>
                     <td className="xt-coop-td">
-                      <div
-                        className="xt-coop-order-no"
-                        title={`订单号：${safeText(r.order_no) || `#${id}`}（点击复制）`}
-                        style={{ cursor: "pointer", textDecoration: "underline dotted", textUnderlineOffset: "3px" }}
-                        onClick={(ev) => {
-                          const txt = safeText(r.order_no) || `#${id}`;
-                          if (!txt) return;
-                          navigator.clipboard?.writeText(txt).catch(() => {});
-                          // 简短视觉反馈
-                          const el = ev.currentTarget;
-                          const orig = el.textContent || "";
-                          el.textContent = "已复制 ✓";
-                          setTimeout(() => { el.textContent = orig; }, 1200);
-                        }}
-                      >
+                      <div className="xt-coop-order-no" title={safeText(r.order_no) || `#${id}`}>
                         {safeText(r.order_no) || `#${id}`}
                       </div>
                     </td>
