@@ -20,7 +20,7 @@ export default function ClientVCInviteForm() {
     try {
       await fetchWithAuth("/api/client/connections", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ influencer_id: Number(influencerId), influencer_profile_id: Number(influencerId), category, grade, brief: form.brief, budget: form.budget }) });
       setMsg("建联邀请已发送！30天内有效");
-      setTimeout(()=>nav("/client/vertical-connections/my-list"), 1500);
+      setTimeout(()=>nav("/client/vertical-connections/my"), 1500);
     } catch(e:any) { setErr(e.message); }
     finally { setSending(false); }
   };
