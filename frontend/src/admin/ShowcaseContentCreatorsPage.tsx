@@ -13,6 +13,8 @@ type Row = {
   skills_text: string | null;
   video_url: string | null;
   tiktok_sales: string | null;
+  live_sales: string | null;
+  gmv_sales: string | null;
   status: "enabled" | "disabled";
   updated_at: string;
 };
@@ -37,6 +39,8 @@ export default function ShowcaseContentCreatorsPage() {
     skills_text: "",
     video_url: "",
     tiktok_sales: "",
+    live_sales: "",
+    gmv_sales: "",
     status: "disabled" as "enabled" | "disabled",
   });
   const [photos, setPhotos] = useState<string[]>([]);
@@ -78,6 +82,8 @@ export default function ShowcaseContentCreatorsPage() {
       skills_text: "",
       video_url: "",
       tiktok_sales: "",
+      live_sales: "",
+      gmv_sales: "",
       status: "disabled",
     });
     setPhotos([]);
@@ -87,7 +93,7 @@ export default function ShowcaseContentCreatorsPage() {
   /** 新增或更新 Content Creator。 */
   const save = async () => {
     if (!form.name.trim()) {
-      setError(t("请输入模特姓名/昵称"));
+      setError(t("请输入达人编号"));
       return;
     }
     setSaving(true);
@@ -95,7 +101,7 @@ export default function ShowcaseContentCreatorsPage() {
     try {
       const nextPhotos = await uploadSelected();
       if (nextPhotos.length === 0) {
-        setError(t("请至少上传一张模特照片"));
+        setError(t("请至少上传一张照片"));
         setSaving(false);
         return;
       }
@@ -106,6 +112,8 @@ export default function ShowcaseContentCreatorsPage() {
         skills_text: form.skills_text.trim(),
         video_url: form.video_url.trim(),
         tiktok_sales: form.tiktok_sales.trim(),
+        live_sales: form.live_sales.trim(),
+        gmv_sales: form.gmv_sales.trim(),
         status: form.status,
         photos: nextPhotos,
       };
@@ -150,7 +158,7 @@ export default function ShowcaseContentCreatorsPage() {
       {error && <p style={{ color: "#c00" }}>{error}</p>}
 
       <div className="sticky-search" style={{ marginBottom: compactPx(12), display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索模特名称/介绍" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), minWidth: 260 }} />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="搜索达人编号/名称/介绍" style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), minWidth: 260 }} />
         <select value={status} onChange={(e) => setStatus(e.target.value as "")} style={{ padding: "8px 12px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff" }}>
           <option value="">全部状态</option>
           <option value="enabled">已启用</option>
@@ -164,11 +172,11 @@ export default function ShowcaseContentCreatorsPage() {
       <div style={{ marginBottom: compactPx(16), padding: compactPx(14), background: "#fff", borderRadius: compactPx(10), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
         <h3 style={{ marginTop: 0 }}>{editing ? `编辑 Content Creator #${form.id}` : "新增 Content Creator"}</h3>
         <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: compactPx(8), alignItems: "center" }}>
-          <div>模特姓名/昵称</div>
+          <div>达人编号</div>
           <input
             value={form.name}
             onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
-            placeholder="请输入姓名/昵称"
+            placeholder="请输入达人编号/姓名"
             style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }}
           />
           <div>文字介绍</div>
@@ -176,7 +184,7 @@ export default function ShowcaseContentCreatorsPage() {
             value={form.intro}
             onChange={(e) => setForm((s) => ({ ...s, intro: e.target.value }))}
             rows={4}
-            placeholder="请输入模特介绍"
+            placeholder="请输入达人介绍"
             style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }}
           />
           <div>可承接拍摄内容类型</div>
@@ -208,12 +216,26 @@ export default function ShowcaseContentCreatorsPage() {
             placeholder="请输入 TikTok 销售额"
             style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }}
           />
+          <div>直播销售额</div>
+          <input
+            value={form.live_sales}
+            onChange={(e) => setForm((s) => ({ ...s, live_sales: e.target.value }))}
+            placeholder="请输入直播销售额"
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }}
+          />
+          <div>GMV 销售额</div>
+          <input
+            value={form.gmv_sales}
+            onChange={(e) => setForm((s) => ({ ...s, gmv_sales: e.target.value }))}
+            placeholder="请输入 GMV 销售额"
+            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }}
+          />
           <div>展示状态</div>
           <select value={form.status} onChange={(e) => setForm((s) => ({ ...s, status: e.target.value as "enabled" | "disabled" }))} style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8), background: "#fff" }}>
             <option value="disabled">禁用</option>
             <option value="enabled">启用</option>
           </select>
-          <div>模特照片</div>
+          <div>达人照片</div>
           <div>
             <input type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setSelectedFiles(Array.from(e.target.files || []).slice(0, 20))} />
             {(photos.length > 0 || selectedFiles.length > 0) && (
@@ -268,7 +290,7 @@ export default function ShowcaseContentCreatorsPage() {
             <div key={m.id} style={{ background: "#fff", borderRadius: compactPx(10), padding: compactPx(12), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: compactPx(8), flexWrap: "wrap" }}>
                 <div>
-                  <strong>{m.name}</strong>
+                  <strong>#{m.id} {m.name}</strong>
                   <span style={{ marginLeft: compactPx(8), color: m.status === "enabled" ? "#16a34a" : "#64748b" }}>{m.status === "enabled" ? t("已启用") : "已禁用"}</span>
                 </div>
                 <div style={{ display: "flex", gap: compactPx(8), flexWrap: "wrap" }}>
@@ -283,6 +305,8 @@ export default function ShowcaseContentCreatorsPage() {
                         skills_text: m.skills_text || "",
                         video_url: m.video_url || "",
                         tiktok_sales: m.tiktok_sales || "",
+                        live_sales: m.live_sales || "",
+                        gmv_sales: m.gmv_sales || "",
                         status: m.status,
                       });
                       setPhotos(m.photos || []);
@@ -321,6 +345,14 @@ export default function ShowcaseContentCreatorsPage() {
               <div style={{ marginTop: compactPx(8) }}>
                 TikTok 销售额：
                 {m.tiktok_sales?.trim() ? m.tiktok_sales : "—"}
+              </div>
+              <div style={{ marginTop: compactPx(4) }}>
+                直播销售额：
+                {m.live_sales?.trim() ? m.live_sales : "—"}
+              </div>
+              <div style={{ marginTop: compactPx(4) }}>
+                GMV 销售额：
+                {m.gmv_sales?.trim() ? m.gmv_sales : "—"}
               </div>
               {Array.isArray(m.photos) && m.photos.length > 0 && (
                 <div style={{ marginTop: compactPx(8), display: "flex", gap: compactPx(10), flexWrap: "wrap" }}>

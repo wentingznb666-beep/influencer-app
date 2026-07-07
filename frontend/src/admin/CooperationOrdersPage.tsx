@@ -335,8 +335,8 @@ export default function CooperationOrdersPage() {
         .xt-coop-col-status { width: 12%; }
         .xt-coop-col-delivery { width: 10%; }
         .xt-coop-col-acceptance { width: 14%; }
-        .xt-coop-th { position: sticky; top: 0; z-index: 1; background: rgba(21,42,69,0.06); text-align:left; padding: compactPx(10)px; font-size: 12px; color: #475569; font-weight: 900; border-bottom: 1px solid rgba(148,163,184,0.28); }
-        .xt-coop-td { box-sizing: border-box; padding: compactPx(10)px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); border-right: 1px solid rgba(148,163,184,0.12); vertical-align: top; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
+        .xt-coop-th { position: sticky; top: 0; z-index: 1; background: rgba(21,42,69,0.06); text-align:left; padding: compactPx(12)px compactPx(14)px; font-size: 12px; color: #475569; font-weight: 900; border-bottom: 1px solid rgba(148,163,184,0.28); }
+        .xt-coop-td { box-sizing: border-box; padding: compactPx(12)px compactPx(14)px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); border-right: 1px solid rgba(148,163,184,0.12); vertical-align: top; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
         .xt-coop-td:last-child { border-right: none; }
         .xt-coop-row:hover { background: rgba(15,23,42,0.02); }
         .xt-coop-order-no { font-weight: 900; color: var(--xt-primary); }

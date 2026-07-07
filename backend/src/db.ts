@@ -1886,6 +1886,8 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE showcase_content_creators DROP COLUMN IF EXISTS fee_quote_text`);
 
   await query(`ALTER TABLE showcase_content_creators ADD COLUMN IF NOT EXISTS tiktok_sales TEXT`);
+  await query(`ALTER TABLE showcase_content_creators ADD COLUMN IF NOT EXISTS live_sales TEXT`);
+  await query(`ALTER TABLE showcase_content_creators ADD COLUMN IF NOT EXISTS gmv_sales TEXT`);
 
   await query(`CREATE INDEX IF NOT EXISTS idx_showcase_content_creators_status ON showcase_content_creators(status, id DESC) WHERE is_deleted = 0`);
 

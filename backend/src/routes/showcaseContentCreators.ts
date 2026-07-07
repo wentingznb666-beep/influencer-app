@@ -95,7 +95,7 @@ router.get("/", (req: AuthRequest, res: Response) => {
     let idx = 1;
 
     let sql = `
-      SELECT s.id, s.name, s.intro, s.photos, s.shoot_types_text, s.skills_text, s.video_url, s.tiktok_sales, s.status,
+      SELECT s.id, s.name, s.intro, s.photos, s.shoot_types_text, s.skills_text, s.video_url, s.tiktok_sales, s.live_sales, s.gmv_sales, s.status,
              s.created_by, uc.username AS created_by_username,
              s.updated_by, uu.username AS updated_by_username,
              s.created_at, s.updated_at
