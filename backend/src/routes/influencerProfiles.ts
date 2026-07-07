@@ -187,6 +187,8 @@ influencerRouter.put("/profile", async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
     const editableFields = ["influencer_code","source","followers","gmv_sales","monthly_cart_videos","units_sold","can_live","live_sales","weekly_live_count","avg_live_hours_per_week","remark","quoted_price","cooperation_conditions"];
+    // INSERT 时额外包含 category（类目选择后不可更改，但首次必须写入）
+    const insertFields = [...editableFields, "category"];
     // Check if profile exists
     const existing = await query("SELECT * FROM influencer_profiles_full WHERE user_id = $1", [userId]);
     const exists = !!existing.rows[0];
@@ -197,7 +199,7 @@ influencerRouter.put("/profile", async (req: AuthRequest, res: Response) => {
       const vals: any[] = [];
       const cols: string[] = ["user_id"];
       vals.push(userId);
-      for (const f of editableFields) {
+      for (const f of insertFields) {
         if (req.body[f] !== undefined) { cols.push(f); vals.push(f === "can_live" ? !!req.body[f] : req.body[f]); }
       }
       const grade = calcGrade(req.body);
@@ -206,7 +208,7 @@ influencerRouter.put("/profile", async (req: AuthRequest, res: Response) => {
       await query(`INSERT INTO influencer_profiles_full (${cols.join(", ")}) VALUES (${placeholders})`, vals);
       res.json({ ok: true, grade });
     } else {
-      // UPDATE existing
+      // UPDATE existing（不更新 category，类目选后不可改）
       const sets: string[] = [];
       const params: any[] = [];
       let idx = 1;

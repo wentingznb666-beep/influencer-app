@@ -1,0 +1,21 @@
+=== 1. 检查 InfluencerVCPage 中的 requiredFields ===
+
+=== 2. 检查 PUT /profile 是否为 UPSERT ===
+2
+INSERT count should be 1 for UPSERT
+
+=== 3. 检查 GET /profile 是否返回 quoted_price ===
+        const { rows } = await (0, db_1.query)("SELECT * FROM influencer_profiles_full WHERE user_id = $1 AND status = 'active'", [req.user.userId]);
+        const existing = await (0, db_1.query)("SELECT * FROM influencer_profiles_full WHERE user_id = $1", [userId]);
+        const { rows } = await (0, db_1.query)("SELECT payment_info FROM influencer_profiles_full WHERE user_id = $1", [req.user.userId]);
+
+=== 4. 检查 client influencers 查询条件 ===
+        let where = "WHERE status = 'active' AND category = $1 AND grade IS NOT NULL AND grade != ''";
+        const params = [category];
+        let idx = 2;
+        if (grade) {
+            where += ` AND grade = $${idx++}`;
+            params.push(grade);
+
+=== 5. 确认 DB 中是否有 active 且有 grade 的达人 ===
+1
