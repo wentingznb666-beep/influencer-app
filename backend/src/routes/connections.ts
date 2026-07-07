@@ -31,13 +31,11 @@ clientRouter.post("/connections", async (req: AuthRequest, res: Response) => {
   try {
     const { influencer_id, influencer_profile_id, category, grade, brief, budget } = req.body || {};
     if ((!influencer_id && !influencer_profile_id) || !category) return res.status(400).json({ error: "MISSING" });
-    // 通过 profile ID 或直接传入的 user ID 确定达人
-    let actualInfluencerId = influencer_id;
-    if (!actualInfluencerId && influencer_profile_id) {
-      const prof = await query("SELECT user_id FROM influencer_profiles_full WHERE id = $1", [influencer_profile_id]);
-      if (!prof.rows[0]?.user_id) return res.status(400).json({ error: "NO_USER", message: "该达人资料未关联系统用户" });
-      actualInfluencerId = prof.rows[0].user_id;
-    }
+    // 前端传的 influencer_id 实际是 profile ID，必须查 user_id
+    const profileId = influencer_profile_id || influencer_id;
+    const prof = await query("SELECT user_id FROM influencer_profiles_full WHERE id = $1", [profileId]);
+    if (!prof.rows[0]?.user_id) return res.status(400).json({ error: "NO_USER", message: "该达人资料未关联系统用户，请让达人先完善资料" });
+    const actualInfluencerId = prof.rows[0].user_id;
     const start = new Date();
     const end = new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
     const { rows } = await query(
@@ -69,16 +67,18 @@ clientRouter.post("/connection-orders", async (req: AuthRequest, res: Response) 
     // Check connection is active and not expired
     const conn = await query("SELECT * FROM influencer_connections WHERE id = $1 AND client_id = $2 AND status = 'active' AND end_date > NOW()", [connection_id, req.user!.userId]);
     if (!conn.rows[0]) return res.status(400).json({ error: "CONNECTION_EXPIRED", message: "建联已到期，请先续约" });
-    // 金额自动取达人报价
-    const profile = await query("SELECT quoted_price FROM influencer_profiles_full WHERE user_id = $1", [influencer_id]);
+    // 前端传的 influencer_id 实际是 profile ID，需查 user_id + quoted_price
+    const profile = await query("SELECT user_id, quoted_price FROM influencer_profiles_full WHERE id = $1", [influencer_id]);
+    if (!profile.rows[0]?.user_id) return res.status(400).json({ error: "NO_USER", message: "该达人资料未关联系统用户" });
+    const actualInfluencerUserId = profile.rows[0].user_id;
     const amount = profile.rows[0]?.quoted_price;
     if (!amount) return res.status(400).json({ error: "NO_PRICE", message: "该达人尚未设置报价" });
     const orderNo = genOrderNo();
     const { rows } = await query(
       `INSERT INTO connection_orders (connection_id, client_id, influencer_id, order_no, title, task_requirements, delivery_standards, deadline, submission_types, amount) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-      [connection_id, req.user!.userId, influencer_id, orderNo, title, task_requirements, delivery_standards, deadline, String(submission_types || ""), amount]
+      [connection_id, req.user!.userId, actualInfluencerUserId, orderNo, title, task_requirements, delivery_standards, deadline, String(submission_types || ""), amount]
     );
-    await sendMsg(influencer_id, "connection_order", "新的定向派单", `商家向你派发了新订单：${title}`, `/influencer/vertical-connections/orders`);
+    await sendMsg(actualInfluencerUserId, "connection_order", "新的定向派单", `商家向你派发了新订单：${title}`, `/influencer/vertical-connections/orders`);
     res.status(201).json({ id: rows[0].id, order_no: orderNo });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });

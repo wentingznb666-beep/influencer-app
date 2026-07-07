@@ -4,7 +4,7 @@ import { fetchWithAuth } from "../fetchWithAuth";
 
 export default function ClientVCMyConnections() {
   const nav = useNavigate();
-  const [tab, setTab] = useState("active");
+  const [tab, setTab] = useState("");
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
@@ -31,9 +31,9 @@ export default function ClientVCMyConnections() {
       {msg && <p style={{color:"#166534"}}>{msg}</p>}
       {err && <p style={{color:"#c00"}}>{err}</p>}
       <div style={{display:"flex",gap:8,marginBottom:12}}>
-        {["pending","active","expired"].map(t=>{
-    let label = t==="pending"?"待确认":t==="active"?"建联中":"已到期";
-    return <button key={t} onClick={()=>setTab(t)} style={{...st,background:tab===t?"var(--xt-accent)":"#fff",color:tab===t?"#fff":"#334155"}}>{label}</button>;
+        {["","pending","active","expired"].map(t=>{
+    let label = t===""?"全部":t==="pending"?"待确认":t==="active"?"建联中":"已到期";
+    return <button key={t||"all"} onClick={()=>setTab(t)} style={{...st,background:tab===t?"var(--xt-accent)":"#fff",color:tab===t?"#fff":"#334155"}}>{label}</button>;
   })}
       </div>
       {loading ? <p>加载中...</p> : list.length===0 ? <p style={{color:"#64748b"}}>暂无记录</p> : list.map((c:any)=>(
