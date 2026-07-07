@@ -24,7 +24,7 @@ export default function ClientVCInfluencerList() {
 
   return (
     <div>
-      <button onClick={()=>nav("/client/vertical-connections")} style={{ padding: "6px 12px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer", marginBottom: 8 }}>← 返回类目列表</button>
+      <button onClick={()=>nav("/client/vertical-connections/market")} style={{ padding: "6px 12px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer", marginBottom: 8 }}>← 返回类目列表</button>
       <h2 style={{ marginTop: 0 }}>{category} - 达人列表</h2>
       <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
         <select value={grade} onChange={e=>setGrade(e.target.value)} style={{ padding: "6px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }}>
@@ -51,7 +51,7 @@ export default function ClientVCInfluencerList() {
             <span>周直播次数: {inf.weekly_live_count||"-"}</span><span>直播时长: {inf.avg_live_hours_per_week||"-"}</span>
           </div>
           {inf.remark && <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>备注: {inf.remark}</div>}
-          <button onClick={()=>nav(`/client/vertical-connections/invite/${inf.id}?category=${encodeURIComponent(category)}&code=${inf.influencer_code}&grade=${inf.grade||""}`)} style={{ padding: "6px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer", fontSize: 13, marginTop: 8 }}>发起邀请</button>
+          <button onClick={()=>nav(`/client/vertical-connections/market/invite/${inf.id}?category=${encodeURIComponent(category)}&code=${inf.influencer_code}&grade=${inf.grade||""}`)} style={{ padding: "6px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer", fontSize: 13, marginTop: 8 }}>发起邀请</button>
         </div>
       ))}
     </div>

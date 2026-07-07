@@ -7,11 +7,11 @@ export default function ClientVCPage() {
       <h2 style={{ marginTop: 0 }}>垂直达人建联</h2>
       <p style={{ color: "#64748b", fontSize: 14 }}>选择类目浏览有等级的达人并发起建联</p>
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-        <button onClick={()=>nav("/client/vertical-connections/my-list")} style={{ padding: "8px 16px", border: "1px solid var(--xt-accent)", borderRadius: 8, background: "#fff", color: "var(--xt-accent)", cursor: "pointer", fontWeight: 600 }}>我的建联列表</button>
+        <button onClick={()=>nav("/client/vertical-connections/my")} style={{ padding: "8px 16px", border: "1px solid var(--xt-accent)", borderRadius: 8, background: "#fff", color: "var(--xt-accent)", cursor: "pointer", fontWeight: 600 }}>我的建联列表</button>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
         {CATEGORIES.map(c => (
-          <div key={c.th} onClick={()=>nav(`/client/vertical-connections/category/${encodeURIComponent(c.th)}`)} style={{ background: "#fff", borderRadius: 12, padding: 16, cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", transition: "0.2s" }}>
+          <div key={c.th} onClick={()=>nav(`/client/vertical-connections/market/category/${encodeURIComponent(c.th)}`)} style={{ background: "#fff", borderRadius: 12, padding: 16, cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.08)", transition: "0.2s" }}>
             <div style={{ fontWeight: 700, fontSize: 15, color: "var(--xt-primary)" }}>{c.zh}</div>
             <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>{c.th}</div>
           </div>

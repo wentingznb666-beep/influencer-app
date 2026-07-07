@@ -5,7 +5,7 @@ import { fetchWithAuth } from "../fetchWithAuth";
 export default function ClientVCCreateOrder() {
   const nav = useNavigate(); const params = useParams();
   const [sp] = useSearchParams();
-  const connectionId = params.id || "";
+  const connectionId = params.connectionId || "";
   const influencerId = sp.get("influencer") || "";
   const [form, setForm] = useState({ title: "", task_requirements: "", delivery_standards: "", deadline: "", submission_types: "", amount: "" });
   const [sending, setSending] = useState(false);
@@ -29,7 +29,7 @@ export default function ClientVCCreateOrder() {
     setSending(true);
     try {
       await fetchWithAuth("/api/client/connection-orders", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ connection_id: Number(connectionId), influencer_id: Number(influencerId), ...form }) });
-      nav("/client/vertical-connections/my-list");
+      nav("/client/vertical-connections/my");
     } catch(e:any) { setErr(e.message); }
     finally { setSending(false); }
   };

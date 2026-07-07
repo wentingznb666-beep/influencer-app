@@ -35,7 +35,7 @@ function ClientVCMyConnections() {
 
   return (
     <div>
-      <button onClick={()=>nav("/client/vertical-connections")} style={sb}>← 返回建联首页</button>
+      <button onClick={()=>nav("/client/vertical-connections/market")} style={sb}>← 返回建联首页</button>
       <h2 style={{marginTop:0}}>我的建联列表</h2>
       {msg && <p style={{color:"#166534"}}>{msg}</p>}
       {err && <p style={{color:"#c00"}}>{err}</p>}
@@ -54,7 +54,7 @@ function ClientVCMyConnections() {
           <p style={{fontSize:13,color:"#475569",margin:"4px 0"}}>类目: {c?.category||"—"} | 等级: {c?.grade||"—"} | 剩余 {daysLeft(c?.end_date)} 天</p>
           {c?.brief && <p style={{fontSize:13,margin:0}}>简述: {c.brief}</p>}
           <div style={{marginTop:8,display:"flex",gap:8}}>
-            {c?.status==="active" && <button onClick={()=>nav(`/client/vertical-connections/create-order/${c.id}?influencer=${c.influencer_id}`)} style={sp}>定向派单</button>}
+            {c?.status==="active" && <button onClick={()=>nav(`/client/vertical-connections/my/create-order/${c.id}?influencer=${c.influencer_id}`)} style={sp}>定向派单</button>}
             {c?.status==="active" && <button onClick={()=>renew(c.id)} style={sb}>续约</button>}
             {c?.status==="expired" && <span style={{color:"#b91c1c",fontSize:12}}>请先续约再派单</span>}
           </div>

@@ -194,11 +194,12 @@ createRoot(document.getElementById("root")!).render(
             <Route path="merchant-members" element={<MerchantMembersPage />} />
             <Route path="vertical-connections" element={<Navigate to="/client/vertical-connections/market" replace />} />
             <Route path="vertical-connections/market" element={<ClientVCPage />} />
-            <Route path="vertical-connections/category/:id" element={<ClientVCInfluencerList />} />
-            <Route path="vertical-connections/invite/:id" element={<ClientVCInviteForm />} />
+            <Route path="vertical-connections/market/category/:id" element={<ClientVCInfluencerList />} />
+            <Route path="vertical-connections/market/invite/:id" element={<ClientVCInviteForm />} />
             <Route path="vertical-connections/my" element={<ClientVCMyConnections />} />
-            <Route path="vertical-connections/orders/:id" element={<ClientVCOrderDetail />} />
-            <Route path="vertical-connections/create-order/:id" element={<ClientVCCreateOrder />} />
+            <Route path="vertical-connections/my/create-order/:connectionId" element={<ClientVCCreateOrder />} />
+            <Route path="vertical-connections/my/orders" element={<ClientConnectionOrdersPage />} />
+            <Route path="vertical-connections/my/orders/:id" element={<ClientVCOrderDetail />} />
           </Route>
           <Route path="/influencer" element={<ProtectedRoute roles={["influencer"]}><InfluencerLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/influencer/dashboard" replace />} />
