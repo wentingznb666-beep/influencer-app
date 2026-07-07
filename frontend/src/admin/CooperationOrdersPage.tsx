@@ -326,8 +326,8 @@ export default function CooperationOrdersPage() {
         .xt-coop-meta { color: var(--xt-text-muted); font-size: 12px; }
         .xt-coop-table-wrap { width: 100%; max-width: 100%; overflow-x: auto; background:#fff; border:1px solid var(--xt-border); border-radius: 12px; }
         .xt-coop-table { width:100%; max-width:100%; border-collapse: separate; border-spacing:0; table-layout: fixed; }
-        .xt-coop-col-orderNo { width: 8%; }
-        .xt-coop-col-taskName { width: 16%; }
+        .xt-coop-col-orderNo { width: 10%; }
+        .xt-coop-col-taskName { width: 14%; }
         .xt-coop-col-type { width: 10%; }
         .xt-coop-col-amount { width: 8%; }
         .xt-coop-col-client { width: 14%; }
@@ -339,7 +339,6 @@ export default function CooperationOrdersPage() {
         .xt-coop-td { box-sizing: border-box; padding: compactPx(12)px compactPx(14)px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); border-right: 1px solid rgba(148,163,184,0.12); vertical-align: top; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
         .xt-coop-td:last-child { border-right: none; }
         .xt-coop-row:hover { background: rgba(15,23,42,0.02); }
-        .xt-coop-order-no { font-weight: 900; color: var(--xt-primary); }
         .xt-coop-title { color: #0f172a; font-weight: 700; }
         .xt-coop-sub { display:flex; gap: compactPx(8)px; flex-wrap:wrap; align-items:center; }
         .xt-coop-amount { text-align: right; font-weight: 900; color: var(--xt-accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
@@ -355,11 +354,11 @@ export default function CooperationOrdersPage() {
         .xt-coop-link-url:hover { text-decoration: underline; }
         .xt-coop-linkbtn { padding: compactPx(6)px 10px; border-radius: 10px; border: 1px solid var(--xt-border); background: #fff; cursor: pointer; font-weight: 800; font-size: 12px; display:inline-flex; align-items:center; justify-content:center; }
         .xt-coop-linkbtn[disabled] { opacity: .55; cursor: not-allowed; }
-        .xt-coop-order-no { white-space: normal; word-break: break-all; font-variant-numeric: tabular-nums; font-weight: 700; }
+        .xt-coop-order-no { white-space: nowrap; font-variant-numeric: tabular-nums; font-weight: 700; }
         .xt-coop-review-note { margin-top: 8px; color: #475569; font-size: 12px; line-height: 1.4; max-height: 3.6em; overflow: hidden; text-overflow: ellipsis; }
         @media (max-width: 1280px) {
           .xt-coop-col-orderNo { width: 9%; }
-          .xt-coop-col-taskName { width: 16%; }
+          .xt-coop-col-taskName { width: 14%; }
           .xt-coop-col-type { width: 10%; }
           .xt-coop-col-amount { width: 9%; }
           .xt-coop-col-client { width: 14%; }
