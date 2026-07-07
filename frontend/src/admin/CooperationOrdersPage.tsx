@@ -317,7 +317,7 @@ export default function CooperationOrdersPage() {
   return (
     <div>
       <style>{`
-        .xt-coop-wrap { display:flex; flex-direction:column; gap: compactPx(12)px; }
+        .xt-coop-wrap { display:flex; flex-direction:column; gap: compactPx(12)px; margin-left: compactPx(-16)px; margin-right: compactPx(-16)px; }
         .xt-coop-topbar { display:flex; gap: compactPx(10)px; align-items:center; flex-wrap:wrap; }
         .xt-coop-topbar h2 { margin: 0; }
         .xt-coop-spacer { flex: 1 1 auto; }

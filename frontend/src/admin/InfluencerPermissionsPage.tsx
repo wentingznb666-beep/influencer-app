@@ -224,20 +224,22 @@ export default function InfluencerPermissionsPage() {
         }
         .xt-perm-actions {
           display: flex;
-          gap: compactPx(6)px;
-          flex-wrap: wrap;
+          gap: compactPx(5)px;
+          flex-wrap: nowrap;
+          align-items: center;
         }
         .xt-perm-actions > * {
           flex: 0 0 auto;
+          white-space: nowrap;
         }
         .xt-perm-btn {
           border: 1px solid #e2e8f0;
           background: #f8fafc;
           color: #334155;
-          height: 30px;
-          padding: 0 10px;
+          height: 28px;
+          padding: 0 8px;
           border-radius: 8px;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
           cursor: pointer;
           transition: transform .05s ease, filter .15s ease;
@@ -432,13 +434,13 @@ export default function InfluencerPermissionsPage() {
       ) : (
         <table className="xt-perm-table">
           <colgroup>
-            <col style={{ width: "15%" }} />
-            <col style={{ width: "10%" }} />
-            <col style={{ width: "16%" }} />
-            <col style={{ width: "9%" }} />
-            <col style={{ width: "22%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "8%" }} />
             <col style={{ width: "14%" }} />
-            <col style={{ width: "14%" }} />
+            <col style={{ width: "8%" }} />
+            <col style={{ width: "18%" }} />
+            <col style={{ width: "12%" }} />
+            <col style={{ width: "28%" }} />
           </colgroup>
           <thead>
             <tr>
