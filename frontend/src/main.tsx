@@ -91,10 +91,23 @@ const InfluencerPermissionPage = lazy(() => import("./influencer/InfluencerPermi
 const CollabDemandsPage = lazy(() => import("./influencer/CollabDemandsPage"));
 const InfluencerMyDemandsPage = lazy(() => import("./influencer/InfluencerMyDemandsPage"));
 const ClientOrdersHallPage = lazy(() => import("./influencer/ClientOrdersHallPage"));
-const ClientConnectionsPage = lazy(() => import("./client/ClientConnectionsPage"));
-const ClientConnectionOrdersPage = lazy(() => import("./client/ClientConnectionOrdersPage"));
-const InfluencerConnectionsPage = lazy(() => import("./influencer/InfluencerConnectionsPage"));
-const AdminInfluencerProfilesPage = lazy(() => import("./admin/AdminInfluencerProfilesPage"));
+// 垂直达人建联模块
+const AdminVCProfilesPage = lazy(() => import("./admin/AdminVCProfilesPage"));
+const AdminVCConnectionsPage = lazy(() => import("./admin/AdminVCConnectionsPage"));
+const AdminVCOrdersPage = lazy(() => import("./admin/AdminVCOrdersPage"));
+const VerticalConnectionsDashboard = lazy(() => import("./admin/VerticalConnectionsDashboard"));
+const GradeConfigPage = lazy(() => import("./admin/GradeConfigPage"));
+const ClientVCPage = lazy(() => import("./client/ClientVCPage"));
+const ClientVCInfluencerList = lazy(() => import("./client/ClientVCInfluencerList"));
+const ClientVCInviteForm = lazy(() => import("./client/ClientVCInviteForm"));
+const ClientVCMyConnections = lazy(() => import("./client/ClientVCMyConnections"));
+const ClientVCOrderDetail = lazy(() => import("./client/ClientVCOrderDetail"));
+const ClientVCCreateOrder = lazy(() => import("./client/ClientVCCreateOrder"));
+const InfluencerVCPage = lazy(() => import("./influencer/InfluencerVCPage"));
+const InfluencerVCProfile = lazy(() => import("./influencer/InfluencerVCProfile"));
+const InfluencerVCOrders = lazy(() => import("./influencer/InfluencerVCOrders"));
+const InfluencerVCOrderDetail = lazy(() => import("./influencer/InfluencerVCOrderDetail"));
+const InfluencerVCPayment = lazy(() => import("./influencer/InfluencerVCPayment"));
 
 runStorageSelfHealMigration();
 
@@ -130,7 +143,11 @@ createRoot(document.getElementById("root")!).render(
             <Route path="cooperation-types" element={<CooperationTypesPage />} />
             <Route path="cooperation-orders" element={<CooperationOrdersPage />} />
             <Route path="graded-video-hall" element={<ClientOrdersHallPage />} />
-            <Route path="influencer-profiles" element={<AdminInfluencerProfilesPage />} />
+            <Route path="vertical-connections" element={<VerticalConnectionsDashboard />} />
+            <Route path="vertical-connections/profiles" element={<AdminVCProfilesPage />} />
+            <Route path="vertical-connections/records" element={<AdminVCConnectionsPage />} />
+            <Route path="vertical-connections/orders" element={<AdminVCOrdersPage />} />
+            <Route path="vertical-connections/grade-config" element={<GradeConfigPage />} />
           </Route>
           <Route path="/employee" element={<ProtectedRoute roles={["employee"]}><EmployeeLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/employee/market-orders" replace />} />
@@ -149,7 +166,11 @@ createRoot(document.getElementById("root")!).render(
             <Route path="cooperation-types" element={<CooperationTypesPage readOnly />} />
             <Route path="cooperation-orders" element={<CooperationOrdersPage />} />
             <Route path="graded-video-hall" element={<ClientOrdersHallPage />} />
-            <Route path="influencer-profiles" element={<AdminInfluencerProfilesPage />} />
+            <Route path="vertical-connections" element={<VerticalConnectionsDashboard />} />
+            <Route path="vertical-connections/profiles" element={<AdminVCProfilesPage />} />
+            <Route path="vertical-connections/records" element={<AdminVCConnectionsPage />} />
+            <Route path="vertical-connections/orders" element={<AdminVCOrdersPage />} />
+            <Route path="vertical-connections/grade-config" element={<GradeConfigPage />} />
           </Route>
           <Route path="/client" element={<ProtectedRoute roles={["client"]}><ClientLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/client/market-orders" replace />} />
@@ -171,9 +192,12 @@ createRoot(document.getElementById("root")!).render(
             <Route path="collab-my-applies" element={<CollabMyAppliesPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
-            <Route path="connections" element={<ClientConnectionsPage />} />
-            <Route path="connection-orders" element={<ClientConnectionOrdersPage />} />
-            <Route path="connection-orders/:id" element={<ClientConnectionOrdersPage />} />
+            <Route path="vertical-connections" element={<ClientVCPage />} />
+            <Route path="vertical-connections/category/:id" element={<ClientVCInfluencerList />} />
+            <Route path="vertical-connections/invite/:id" element={<ClientVCInviteForm />} />
+            <Route path="vertical-connections/my-list" element={<ClientVCMyConnections />} />
+            <Route path="vertical-connections/orders/:id" element={<ClientVCOrderDetail />} />
+            <Route path="vertical-connections/create-order/:id" element={<ClientVCCreateOrder />} />
           </Route>
           <Route path="/influencer" element={<ProtectedRoute roles={["influencer"]}><InfluencerLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/influencer/dashboard" replace />} />
@@ -187,8 +211,11 @@ createRoot(document.getElementById("root")!).render(
             <Route path="my-demands" element={<InfluencerMyDemandsPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
-            <Route path="connections" element={<InfluencerConnectionsPage />} />
-            <Route path="connection-orders" element={<InfluencerConnectionsPage />} />
+            <Route path="vertical-connections" element={<InfluencerVCPage />} />
+            <Route path="vertical-connections/profile" element={<InfluencerVCProfile />} />
+            <Route path="vertical-connections/orders" element={<InfluencerVCOrders />} />
+            <Route path="vertical-connections/orders/:id" element={<InfluencerVCOrderDetail />} />
+            <Route path="vertical-connections/payment" element={<InfluencerVCPayment />} />
           </Route>
           <Route path="/translate" element={<App />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
