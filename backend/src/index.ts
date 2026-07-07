@@ -196,6 +196,9 @@ app.use("/api/admin/showcase-content-creators", showcaseContentCreatorsRoutes);
 
 app.use("/api/client", videoOrdersClientRoutes);
 app.use("/api/employee", videoOrdersEmployeeRoutes);
+/** 垂直达人建联 — 必须在 /api/admin 通配路由之前挂载 */
+app.use("/api/admin/influencer-profiles", adminInfluencerProfiles);
+app.use("/api/admin", adminConnections);
 app.use("/api/admin", videoOrdersAdminRoutes);
 
 /** 达人端：任务大厅、领取、我的任务、投稿、积分 */
@@ -223,13 +226,11 @@ app.use("/api/operation-logs", operationLogsRoutes);
 app.use("/api/matching", matchingRoutes);
 app.use("/api/matching", matchingBizRoutes);
 
-/** 垂直达人建联模块 */
-app.use("/api/admin/influencer-profiles", adminInfluencerProfiles);
+/** 垂直达人建联模块 — 客户端和达人端路由 */
 app.use("/api/client", clientConnections);
 app.use("/api/client", clientInfluencerProfiles);
 app.use("/api/influencer", influencerConnections);
 app.use("/api/influencer", influencerProfiles);
-app.use("/api/admin", adminConnections);
 
 /**
 
