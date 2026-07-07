@@ -9,10 +9,10 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || (process.env.NODE_E
 if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
   throw new Error("JWT_SECRET and JWT_REFRESH_SECRET must be set in environment variables for production.");
 }
-const ACCESS_EXP = "15m";
+const ACCESS_EXP = "1h";
 const REFRESH_EXP = "7d";
 
-const ACCESS_MAX_AGE_MS = 15 * 60 * 1000;
+const ACCESS_MAX_AGE_MS = 60 * 60 * 1000;
 const REFRESH_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const isProduction = process.env.NODE_ENV === "production";
