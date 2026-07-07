@@ -243,11 +243,6 @@ influencerRouter.post("/connection-orders/:id/revise", async (req: AuthRequest, 
 // ==== ADMIN ROUTES ====
 const adminRouter = Router();
 adminRouter.use(requireAuth);
-adminRouter.use((_req, _res, next) => {
-  const role = (_req as AuthRequest).user?.role;
-  if (!role || !["admin", "employee"].includes(role)) return next(Object.assign(new Error("FORBIDDEN"), { statusCode: 403 }));
-  next();
-});
 
 adminRouter.get("/connections", async (req: AuthRequest, res: Response) => {
   try {
