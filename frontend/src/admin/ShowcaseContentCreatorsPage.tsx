@@ -12,7 +12,6 @@ type Row = {
   shoot_types_text: string | null;
   skills_text: string | null;
   video_url: string | null;
-  tiktok_sales: string | null;
   live_sales: string | null;
   gmv_sales: string | null;
   status: "enabled" | "disabled";
@@ -38,7 +37,6 @@ export default function ShowcaseContentCreatorsPage() {
     shoot_types_text: "",
     skills_text: "",
     video_url: "",
-    tiktok_sales: "",
     live_sales: "",
     gmv_sales: "",
     status: "disabled" as "enabled" | "disabled",
@@ -81,7 +79,6 @@ export default function ShowcaseContentCreatorsPage() {
       shoot_types_text: "",
       skills_text: "",
       video_url: "",
-      tiktok_sales: "",
       live_sales: "",
       gmv_sales: "",
       status: "disabled",
@@ -111,7 +108,6 @@ export default function ShowcaseContentCreatorsPage() {
         shoot_types_text: form.shoot_types_text.trim(),
         skills_text: form.skills_text.trim(),
         video_url: form.video_url.trim(),
-        tiktok_sales: form.tiktok_sales.trim(),
         live_sales: form.live_sales.trim(),
         gmv_sales: form.gmv_sales.trim(),
         status: form.status,
@@ -209,13 +205,6 @@ export default function ShowcaseContentCreatorsPage() {
             placeholder="用于展示视频的链接"
             style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }}
           />
-          <div>TikTok 销售额</div>
-          <input
-            value={form.tiktok_sales}
-            onChange={(e) => setForm((s) => ({ ...s, tiktok_sales: e.target.value }))}
-            placeholder="请输入 TikTok 销售额"
-            style={{ padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: compactPx(8) }}
-          />
           <div>直播销售额</div>
           <input
             value={form.live_sales}
@@ -304,7 +293,6 @@ export default function ShowcaseContentCreatorsPage() {
                         shoot_types_text: m.shoot_types_text || "",
                         skills_text: m.skills_text || "",
                         video_url: m.video_url || "",
-                        tiktok_sales: m.tiktok_sales || "",
                         live_sales: m.live_sales || "",
                         gmv_sales: m.gmv_sales || "",
                         status: m.status,
@@ -343,10 +331,6 @@ export default function ShowcaseContentCreatorsPage() {
                 )}
               </div>
               <div style={{ marginTop: compactPx(8) }}>
-                TikTok 销售额：
-                {m.tiktok_sales?.trim() ? m.tiktok_sales : "—"}
-              </div>
-              <div style={{ marginTop: compactPx(4) }}>
                 直播销售额：
                 {m.live_sales?.trim() ? m.live_sales : "—"}
               </div>
