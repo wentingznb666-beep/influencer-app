@@ -331,7 +331,7 @@ export default function CooperationOrdersPage() {
         .xt-coop-td:last-child { border-right: none; }
         .xt-coop-row:hover { background: rgba(15,23,42,0.02); }
         .xt-coop-sub { display:flex; gap: compactPx(8)px; flex-wrap:wrap; align-items:center; }
-        .xt-coop-amount { text-align: right; font-weight: 900; color: var(--xt-accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .xt-coop-amount { text-align: center; font-weight: 900; color: var(--xt-accent); white-space: nowrap; font-variant-numeric: tabular-nums; }
         .xt-coop-person { display:grid; gap: compactPx(6)px; color:#0f172a; min-width:0; }
         .xt-coop-person-line { display:grid; grid-template-columns: 34px minmax(0,1fr); gap: compactPx(4)px; align-items: start; min-width:0; }
         .xt-coop-person-label { color: #475569; }
@@ -421,7 +421,7 @@ export default function CooperationOrdersPage() {
                 <th className="xt-coop-th">订单号</th>
                 <th className="xt-coop-th">任务名称</th>
                 <th className="xt-coop-th">任务类型</th>
-                <th className="xt-coop-th" style={{ textAlign: "right", minWidth: 96 }}>金额</th>
+                <th className="xt-coop-th">金额</th>
                 <th className="xt-coop-th">商家</th>
                 <th className="xt-coop-th">达人</th>
                 <th className="xt-coop-th">订单状态</th>
