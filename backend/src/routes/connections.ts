@@ -43,7 +43,7 @@ clientRouter.post("/connections", async (req: AuthRequest, res: Response) => {
 
 clientRouter.post("/connections/:id/renew", async (req: AuthRequest, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
     const existing = await query("SELECT * FROM influencer_connections WHERE id = $1 AND client_id = $2", [id, req.user!.userId]);
     if (!existing.rows[0]) return res.status(404).json({ error: "NOT_FOUND" });
     const end = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);

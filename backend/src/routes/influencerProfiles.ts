@@ -90,7 +90,7 @@ adminRouter.post("/", async (req: AuthRequest, res: Response) => {
 
 adminRouter.put("/:id", async (req: AuthRequest, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
+    const id = parseInt(String(req.params.id));
     const fields = ["influencer_code","source","followers","category","gmv_sales","monthly_cart_videos","units_sold","can_live","live_sales","weekly_live_count","avg_live_hours_per_week","remark","contact_info","payment_info","user_id","status"];
     const sets: string[] = [];
     const params: any[] = [];
