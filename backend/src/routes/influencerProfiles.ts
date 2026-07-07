@@ -24,6 +24,7 @@ function calcGrade(data: { gmv_sales?: string | null; units_sold?: string | null
 
 // Admin/Employee routes
 const adminRouter = Router();
+adminRouter.use(requireAuth);
 adminRouter.use(requireRole("admin", "employee"));
 
 adminRouter.get("/", async (req: AuthRequest, res: Response) => {

@@ -242,6 +242,7 @@ influencerRouter.post("/connection-orders/:id/revise", async (req: AuthRequest, 
 
 // ==== ADMIN ROUTES ====
 const adminRouter = Router();
+adminRouter.use(requireAuth);
 adminRouter.use(requireRole("admin", "employee"));
 
 adminRouter.get("/connections", async (req: AuthRequest, res: Response) => {
