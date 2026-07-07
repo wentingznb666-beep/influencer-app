@@ -72,58 +72,58 @@ export default function AdminVCProfilesPage() {
     <div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
         <button onClick={() => nav("/admin/vertical-connections")} style={sb}>← 返回概览</button>
-        <h2 style={{ margin: 0 }}>达人资料管理</h2>
+        <h2 style={{ margin: 0 }}>{t("达人资料管理")}</h2>
       </div>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        <input placeholder="搜索编号/粉丝" value={filter.q} onChange={e => setFilter(f => ({ ...f, q: e.target.value }))} style={si} />
+        <input placeholder={t("搜索编号/粉丝")} value={filter.q} onChange={e => setFilter(f => ({ ...f, q: e.target.value }))} style={si} />
         <select value={filter.category} onChange={e => setFilter(f => ({ ...f, category: e.target.value }))} style={si}>
-          <option value="">全部类目</option>{CATEGORIES.map(c => <option key={c.th} value={c.th}>{c.zh}</option>)}
+          <option value="">全部类目</option>{CATEGORIES.map(c => <option key={c.th} value={c.th}>{isTh ? c.th : c.zh}</option>)}
         </select>
         <select value={filter.grade} onChange={e => setFilter(f => ({ ...f, grade: e.target.value }))} style={si}>
           <option value="">全部等级</option>{["A+","B+","C+","A","B","C"].map(g => <option key={g} value={g}>{g}</option>)}
         </select>
-        <button onClick={load} style={sb}>搜索</button>
-        <button onClick={startNew} style={sp}>新增达人</button>
-        <button onClick={autoGrade} style={sb}>重新计算全部等级</button>
+        <button onClick={load} style={sb}>{t("搜索")}</button>
+        <button onClick={startNew} style={sp}>{t("新增达人")}</button>
+        <button onClick={autoGrade} style={sb}>{t("重新计算全部等级")}</button>
       </div>
       {editing !== null && (
         <div style={{ background: "#fff", padding: 16, borderRadius: 12, marginBottom: 12, border: "1px solid #e2e8f0" }}>
-          <h3>{editing?.id ? `编辑 #${editing.id}` : "新增达人"}</h3>
+          <h3>{editing?.id ? `${t("编辑")} #${editing.id}` : t("新增达人")}</h3>
           <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: 8 }}>
-            <label>达人编号*</label>{i("influencer_code")}
-            <label>来源*</label>{sel("source", ["contact_us","contact_them"])}
-            <label>粉丝</label>{i("followers")}
-            <label>类目*</label>{sel("category", CATEGORIES.map(c => c.th))}
-            <label>等级</label>{sel("grade", ["A+","B+","C+","A","B","C"])}
-            <label>GMV销售额</label>{i("gmv_sales")}
-            <label>每月挂车视频</label>{i("monthly_cart_videos")}
-            <label>销售件数</label>{i("units_sold")}
-            <label>可直播</label><input type="checkbox" checked={!!form.can_live} onChange={e => setForm(f => ({ ...f, can_live: e.target.checked }))} />
-            <label>直播销售额</label>{i("live_sales")}
-            <label>每周直播次数</label>{i("weekly_live_count")}
-            <label>平均直播时长</label>{i("avg_live_hours_per_week")}
-            <label>备注</label><textarea value={String(form.remark || "")} onChange={e => setForm(f => ({ ...f, remark: e.target.value }))} style={si} rows={2} />
-            <label>联系方式</label><textarea value={String(form.contact_info || "")} onChange={e => setForm(f => ({ ...f, contact_info: e.target.value }))} style={si} rows={2} />
-            <label>收款方式</label><textarea value={String(form.payment_info || "")} onChange={e => setForm(f => ({ ...f, payment_info: e.target.value }))} style={si} rows={2} />
+            <label>{t("达人编号")}*</label>{i("influencer_code")}
+            <label>{t("来源")}*</label>{sel("source", ["contact_us","contact_them"])}
+            <label>{t("粉丝")}</label>{i("followers")}
+            <label>{t("类目")}*</label>{sel("category", CATEGORIES.map(c => c.th))}
+            <label>{t("等级")}</label>{sel("grade", ["A+","B+","C+","A","B","C"])}
+            <label>{t("GMV销售额")}</label>{i("gmv_sales")}
+            <label>{t("每月挂车视频")}</label>{i("monthly_cart_videos")}
+            <label>{t("销售件数")}</label>{i("units_sold")}
+            <label>{t("可直播")}</label><input type="checkbox" checked={!!form.can_live} onChange={e => setForm(f => ({ ...f, can_live: e.target.checked }))} />
+            <label>{t("直播销售额")}</label>{i("live_sales")}
+            <label>{t("每周直播次数")}</label>{i("weekly_live_count")}
+            <label>{t("平均直播时长")}</label>{i("avg_live_hours_per_week")}
+            <label>{t("备注")}</label><textarea value={String(form.remark || "")} onChange={e => setForm(f => ({ ...f, remark: e.target.value }))} style={si} rows={2} />
+            <label>{t("联系方式")}</label><textarea value={String(form.contact_info || "")} onChange={e => setForm(f => ({ ...f, contact_info: e.target.value }))} style={si} rows={2} />
+            <label>{t("收款方式")}</label><textarea value={String(form.payment_info || "")} onChange={e => setForm(f => ({ ...f, payment_info: e.target.value }))} style={si} rows={2} />
           </div>
           <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
-            <button onClick={save} disabled={saving} style={sp}>{saving ? "保存中..." : "保存"}</button>
-            <button onClick={() => setEditing(null)} style={sb}>取消</button>
+            <button onClick={save} disabled={saving} style={sp}>{saving ? t("保存中...") : t("保存")}</button>
+            <button onClick={() => setEditing(null)} style={sb}>{t("取消")}</button>
           </div>
         </div>
       )}
       {loading ? <p>加载中...</p> : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", fontSize: 12 }}>
-            <thead><tr style={{ background: "#f8fafc" }}>{["ID","编号","来源","粉丝","类目","等级","GMV","挂车","件数","直播","直播销售","状态","操作"].map(h => <th key={h} style={{ padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #e2e8f0", fontWeight: 700, whiteSpace: "nowrap" }}>{h}</th>)}</tr></thead>
+            <thead><tr style={{ background: "#f8fafc" }}>{["ID","编号","来源","粉丝","类目","等级","GMV","挂车","件数","直播","直播销售","状态","操作"].map(h => <th key={h} style={{ padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #e2e8f0", fontWeight: 700, whiteSpace: "nowrap" }}>{t(h)}</th>)}</tr></thead>
             <tbody>
               {list.map((p: any) => (
                 <tr key={p.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                  <td style={{ padding: "6px 8px", fontSize: 12 }}>{p.id}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.influencer_code}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.source}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.followers||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.category}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.grade||"未达标"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.gmv_sales||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.monthly_cart_videos||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.units_sold||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.can_live?"是":"否"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.live_sales||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.status}</td>
+                  <td style={{ padding: "6px 8px", fontSize: 12 }}>{p.id}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.influencer_code}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.source==="contact_us"?t("我方联系"):t("达人联系")}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.followers||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.category}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.grade||t("未达标")}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.gmv_sales||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.monthly_cart_videos||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.units_sold||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.can_live?t("是"):t("否")}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.live_sales||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.status}</td>
                   <td style={{ padding: "6px 8px", fontSize: 12 }}>
-                    <button onClick={() => { setEditing(p); setForm({...p}); }} style={ssm}>编辑</button>
-                    <button onClick={() => del(p.id)} style={{ ...ssm, color: "#b91c1c", marginLeft: 4 }}>删除</button>
+                    <button onClick={() => { setEditing(p); setForm({...p}); }} style={ssm}>{t("编辑")}</button>
+                    <button onClick={() => del(p.id)} style={{ ...ssm, color: "#b91c1c", marginLeft: 4 }}>{t("删除")}</button>
                   </td>
                 </tr>
               ))}

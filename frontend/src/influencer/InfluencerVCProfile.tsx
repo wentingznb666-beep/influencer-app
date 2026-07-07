@@ -93,7 +93,6 @@ export default function InfluencerVCProfile() {
           <label style={lab}>每周直播次数</label><input value={form.weekly_live_count||""} onChange={e=>setForm((f:any)=>({...f,weekly_live_count:e.target.value}))} style={si} />
           <label style={lab}>平均直播时长</label><input value={form.avg_live_hours_per_week||""} onChange={e=>setForm((f:any)=>({...f,avg_live_hours_per_week:e.target.value}))} style={si} />
           <label style={lab}>备注</label><textarea value={form.remark||""} onChange={e=>setForm((f:any)=>({...f,remark:e.target.value}))} style={si} rows={2} />
-          <label style={lab}>联系方式</label><textarea value={form.contact_info||""} onChange={e=>setForm((f:any)=>({...f,contact_info:e.target.value}))} style={si} rows={2} />
           <label style={lab}>收款方式</label><textarea value={form.payment_info||""} onChange={e=>setForm((f:any)=>({...f,payment_info:e.target.value}))} style={si} rows={2} placeholder="泰国银行账户 / PromptPay" />
         </div>
         {form.grade && <p style={{marginTop:12,fontSize:13,color:"#64748b"}}>当前等级: <strong style={{color:"var(--xt-primary)"}}>{form.grade}</strong>（自动计算）</p>}
