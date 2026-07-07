@@ -326,8 +326,8 @@ export default function CooperationOrdersPage() {
         .xt-coop-meta { color: var(--xt-text-muted); font-size: 12px; }
         .xt-coop-table-wrap { width: 100%; max-width: 100%; overflow-x: auto; background:#fff; border:1px solid var(--xt-border); border-radius: 12px; }
         .xt-coop-table { width:100%; max-width:100%; border-collapse: separate; border-spacing:0; table-layout: auto; }
-        .xt-coop-th { position: sticky; top: 0; z-index: 1; background: rgba(21,42,69,0.06); text-align:left; padding: compactPx(10)px compactPx(14)px; font-size: 12px; color: #475569; font-weight: 900; border-bottom: 1px solid rgba(148,163,184,0.28); white-space: nowrap; }
-        .xt-coop-td { box-sizing: border-box; padding: compactPx(10)px compactPx(14)px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); border-right: 1px solid rgba(148,163,184,0.12); vertical-align: top; }
+        .xt-coop-th { position: sticky; top: 0; z-index: 1; background: rgba(21,42,69,0.06); text-align:center; padding: compactPx(10)px compactPx(14)px; font-size: 12px; color: #475569; font-weight: 900; border-bottom: 1px solid rgba(148,163,184,0.28); white-space: nowrap; }
+        .xt-coop-td { box-sizing: border-box; padding: compactPx(10)px compactPx(14)px; font-size: 13px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.22); border-right: 1px solid rgba(148,163,184,0.12); vertical-align: middle; text-align: center; }
         .xt-coop-td:last-child { border-right: none; }
         .xt-coop-row:hover { background: rgba(15,23,42,0.02); }
         .xt-coop-sub { display:flex; gap: compactPx(8)px; flex-wrap:wrap; align-items:center; }
