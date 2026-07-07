@@ -18,7 +18,7 @@ export type DashboardNavItem = {
   label: string;
   preload?: () => void;
   icon?: string;
-  group?: "points" | "match" | "common";
+  group?: "points" | "match" | "common" | "vertical";
   navLocked?: boolean;
   menuHint?: string;
 };
@@ -73,16 +73,17 @@ function sanitizeEscapedTextNodes(root: HTMLElement): void {
   }
 }
 
-type InfluencerGroupId = "points" | "match" | "common";
+type InfluencerGroupId = "points" | "match" | "common" | "vertical";
 
 const GROUP_META: Record<InfluencerGroupId, { label: string; thLabel: string; icon: string }> = {
   points: { label: "视频分级", thLabel: "งานวิดีโอ", icon: "💰" },
   match: { label: "合作业务类型", thLabel: "ประเภทธุรกิจ", icon: "🤝" },
   common: { label: "公共项目类型", thLabel: "โปรเจกต์ทั่วไป", icon: "📄" },
+  vertical: { label: "垂直达人建联", thLabel: "เชื่อมต่อครีเอเตอร์", icon: "🔗" },
 };
 
 /** 业务分组顺序，所有角色保持一致。 */
-const GROUP_ORDER: InfluencerGroupId[] = ["points", "match", "common"];
+const GROUP_ORDER: InfluencerGroupId[] = ["points", "match", "vertical", "common"];
 
 /** 将侧栏菜单按分组聚合，并保留未分组项作为兜底。 */
 function bucketGroupedNavItems(items: DashboardNavItem[]) {
@@ -90,6 +91,7 @@ function bucketGroupedNavItems(items: DashboardNavItem[]) {
     points: [],
     match: [],
     common: [],
+    vertical: [],
   };
   const loose: DashboardNavItem[] = [];
   for (const it of items) {

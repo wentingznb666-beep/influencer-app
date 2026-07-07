@@ -20,7 +20,8 @@ const CATEGORIES = [
 type Profile = any;
 
 export default function AdminVCProfilesPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isTh = (i18n.language || "").startsWith("th");
   const nav = useNavigate();
   const [list, setList] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);

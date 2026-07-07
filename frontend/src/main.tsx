@@ -192,10 +192,11 @@ createRoot(document.getElementById("root")!).render(
             <Route path="collab-my-applies" element={<CollabMyAppliesPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
-            <Route path="vertical-connections" element={<ClientVCPage />} />
+            <Route path="vertical-connections" element={<Navigate to="/client/vertical-connections/market" replace />} />
+            <Route path="vertical-connections/market" element={<ClientVCPage />} />
             <Route path="vertical-connections/category/:id" element={<ClientVCInfluencerList />} />
             <Route path="vertical-connections/invite/:id" element={<ClientVCInviteForm />} />
-            <Route path="vertical-connections/my-list" element={<ClientVCMyConnections />} />
+            <Route path="vertical-connections/my" element={<ClientVCMyConnections />} />
             <Route path="vertical-connections/orders/:id" element={<ClientVCOrderDetail />} />
             <Route path="vertical-connections/create-order/:id" element={<ClientVCCreateOrder />} />
           </Route>
@@ -211,8 +212,9 @@ createRoot(document.getElementById("root")!).render(
             <Route path="my-demands" element={<InfluencerMyDemandsPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
-            <Route path="vertical-connections" element={<InfluencerVCPage />} />
+            <Route path="vertical-connections" element={<Navigate to="/influencer/vertical-connections/profile" replace />} />
             <Route path="vertical-connections/profile" element={<InfluencerVCProfile />} />
+            <Route path="vertical-connections/invitations" element={<InfluencerVCPage />} />
             <Route path="vertical-connections/orders" element={<InfluencerVCOrders />} />
             <Route path="vertical-connections/orders/:id" element={<InfluencerVCOrderDetail />} />
             <Route path="vertical-connections/payment" element={<InfluencerVCPayment />} />

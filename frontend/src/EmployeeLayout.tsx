@@ -28,7 +28,10 @@ export default function EmployeeLayout() {
     { to: "/employee/influencer-permissions", label: "达人撮合权限审核", icon: "✅", group: "match" },
     { to: "/employee/cooperation-types", label: "合作业务类型说明", icon: "🧩", group: "match" },
     { to: "/employee/cooperation-orders", label: "合作订单工作台", icon: "🧾", group: "match" },
-    { to: "/employee/vertical-connections", label: "垂直达人建联", icon: "🔗", group: "match" },
+    { to: "/employee/vertical-connections/profiles", label: "达人资料管理", icon: "👥", group: "vertical" },
+    { to: "/employee/vertical-connections/records", label: "建联记录", icon: "📋", group: "vertical" },
+    { to: "/employee/vertical-connections/orders", label: "派单管理", icon: "💳", group: "vertical" },
+    { to: "/employee/vertical-connections/grade-config", label: "等级配置", icon: "⚙️", group: "vertical" },
     { to: "/employee/users", label: "账号管理", icon: "👤", group: "common" },
     { to: "/employee/op-logs", label: "我的操作日志", icon: "📄", group: "common" },
   ];

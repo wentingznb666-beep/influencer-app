@@ -19,7 +19,8 @@ const CLIENT_NAV: DashboardNavItem[] = [
   { to: "/client/matching-center", label: "撮合中心", icon: "🏗", group: "match" },
   { to: "/client/collab-pool", label: "达人需求广场", icon: "📨", group: "match" },
   { to: "/client/collab-my-applies", label: "我的需求报名", icon: "📨", group: "match" },
-  { to: "/client/vertical-connections", label: "垂直达人建联", icon: "🔗", group: "match" },
+  { to: "/client/vertical-connections/market", label: "达人市场", icon: "🛒", group: "vertical" },
+  { to: "/client/vertical-connections/my", label: "我的建联", icon: "🤝", group: "vertical" },
   { to: "/client/op-logs", label: "我的操作日志", icon: "📄", group: "common" },
 ];
 
