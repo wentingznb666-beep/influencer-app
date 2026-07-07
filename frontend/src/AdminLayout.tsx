@@ -20,6 +20,7 @@ const BASE_ADMIN_NAV: DashboardNavItem[] = [
   { to: "/admin/influencer-permissions", label: "达人撮合权限审核", icon: "✅", group: "match" },
   { to: "/admin/cooperation-types", label: "合作业务类型配置", icon: "🧩", group: "match" },
   { to: "/admin/cooperation-orders", label: "合作订单工作台", icon: "🧾", group: "match" },
+  { to: "/admin/influencer-profiles", label: "垂直达人建联管理", icon: "🔗", group: "match" },
   { to: "/admin/risk", label: "防删与风控", icon: "🛡", group: "common" },
   { to: "/admin/op-logs", label: "我的操作日志", icon: "📄", group: "common" },
 ];

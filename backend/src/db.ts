@@ -1989,6 +1989,82 @@ async function applyOnlineSchemaPatches(): Promise<void> {
 
 }
 
+  // ========== 垂直达人建联模块 ==========
+  await query(`
+    CREATE TABLE IF NOT EXISTS influencer_profiles_full (
+      id SERIAL PRIMARY KEY,
+      influencer_code VARCHAR(100) NOT NULL UNIQUE,
+      source VARCHAR(50) NOT NULL CHECK (source IN ('contact_us','contact_them')),
+      followers VARCHAR(100),
+      category VARCHAR(100) NOT NULL,
+      grade VARCHAR(10) CHECK (grade IN ('A+','B+','C+','A','B','C')),
+      gmv_sales VARCHAR(100),
+      monthly_cart_videos VARCHAR(100),
+      units_sold VARCHAR(100),
+      can_live BOOLEAN DEFAULT FALSE,
+      live_sales VARCHAR(100),
+      weekly_live_count VARCHAR(50),
+      avg_live_hours_per_week VARCHAR(50),
+      remark TEXT,
+      contact_info TEXT,
+      payment_info TEXT,
+      user_id INTEGER REFERENCES users(id),
+      status VARCHAR(20) DEFAULT 'active',
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await query(`
+    CREATE TABLE IF NOT EXISTS influencer_connections (
+      id SERIAL PRIMARY KEY,
+      client_id INTEGER NOT NULL REFERENCES users(id),
+      influencer_id INTEGER NOT NULL REFERENCES users(id),
+      influencer_profile_id INTEGER REFERENCES influencer_profiles_full(id),
+      category VARCHAR(100) NOT NULL,
+      grade VARCHAR(10),
+      brief TEXT,
+      budget VARCHAR(200),
+      start_date TIMESTAMP,
+      end_date TIMESTAMP,
+      status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','active','rejected','expired','renewed')),
+      renewal_count INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await query(`
+    CREATE TABLE IF NOT EXISTS connection_orders (
+      id SERIAL PRIMARY KEY,
+      connection_id INTEGER NOT NULL REFERENCES influencer_connections(id),
+      client_id INTEGER NOT NULL REFERENCES users(id),
+      influencer_id INTEGER NOT NULL REFERENCES users(id),
+      order_no VARCHAR(100) NOT NULL UNIQUE,
+      title VARCHAR(500),
+      task_requirements TEXT,
+      delivery_standards TEXT,
+      deadline TIMESTAMP,
+      submission_types VARCHAR(200),
+      amount DECIMAL(12,2),
+      influencer_response VARCHAR(20) DEFAULT 'pending' CHECK (influencer_response IN ('pending','accepted','rejected')),
+      influencer_reject_reason TEXT,
+      submission_content TEXT,
+      status VARCHAR(20) DEFAULT 'pending',
+      review_status VARCHAR(20) DEFAULT 'pending_review',
+      review_note TEXT,
+      review_count INTEGER DEFAULT 0,
+      revised_at TIMESTAMP,
+      payment_voucher TEXT,
+      payment_status VARCHAR(20) DEFAULT 'unpaid',
+      paid_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await query(\`ALTER TABLE system_messages ADD COLUMN IF NOT EXISTS link VARCHAR(500)\`);
+
+  // ========== 垂直达人建联模块结束 ==========
+
+
 
 
 

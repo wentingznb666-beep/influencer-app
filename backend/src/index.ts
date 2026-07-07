@@ -69,6 +69,9 @@ import videoOrdersClientRoutes from "./routes/videoOrdersClient";
 import videoOrdersEmployeeRoutes from "./routes/videoOrdersEmployee";
 import videoOrdersAdminRoutes from "./routes/videoOrdersAdmin";
 
+import { adminInfluencerProfiles, clientInfluencerProfiles, influencerProfiles } from "./routes/influencerProfiles";
+import { adminConnections, clientConnections, influencerConnections } from "./routes/connections";
+
 import { initDb } from "./db";
 
 import { ensureUploadsSubdirs, getUploadsRoot } from "./uploadsConfig";
@@ -220,7 +223,13 @@ app.use("/api/operation-logs", operationLogsRoutes);
 app.use("/api/matching", matchingRoutes);
 app.use("/api/matching", matchingBizRoutes);
 
-
+/** 垂直达人建联模块 */
+app.use("/api/admin/influencer-profiles", adminInfluencerProfiles);
+app.use("/api/client", clientConnections);
+app.use("/api/client", clientInfluencerProfiles);
+app.use("/api/influencer", influencerConnections);
+app.use("/api/influencer", influencerProfiles);
+app.use("/api/admin", adminConnections);
 
 /**
 

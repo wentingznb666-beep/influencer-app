@@ -91,6 +91,10 @@ const InfluencerPermissionPage = lazy(() => import("./influencer/InfluencerPermi
 const CollabDemandsPage = lazy(() => import("./influencer/CollabDemandsPage"));
 const InfluencerMyDemandsPage = lazy(() => import("./influencer/InfluencerMyDemandsPage"));
 const ClientOrdersHallPage = lazy(() => import("./influencer/ClientOrdersHallPage"));
+const ClientConnectionsPage = lazy(() => import("./client/ClientConnectionsPage"));
+const ClientConnectionOrdersPage = lazy(() => import("./client/ClientConnectionOrdersPage"));
+const InfluencerConnectionsPage = lazy(() => import("./influencer/InfluencerConnectionsPage"));
+const AdminInfluencerProfilesPage = lazy(() => import("./admin/AdminInfluencerProfilesPage"));
 
 runStorageSelfHealMigration();
 
@@ -126,6 +130,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="cooperation-types" element={<CooperationTypesPage />} />
             <Route path="cooperation-orders" element={<CooperationOrdersPage />} />
             <Route path="graded-video-hall" element={<ClientOrdersHallPage />} />
+            <Route path="influencer-profiles" element={<AdminInfluencerProfilesPage />} />
           </Route>
           <Route path="/employee" element={<ProtectedRoute roles={["employee"]}><EmployeeLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/employee/market-orders" replace />} />
@@ -144,6 +149,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="cooperation-types" element={<CooperationTypesPage readOnly />} />
             <Route path="cooperation-orders" element={<CooperationOrdersPage />} />
             <Route path="graded-video-hall" element={<ClientOrdersHallPage />} />
+            <Route path="influencer-profiles" element={<AdminInfluencerProfilesPage />} />
           </Route>
           <Route path="/client" element={<ProtectedRoute roles={["client"]}><ClientLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/client/market-orders" replace />} />
@@ -165,6 +171,9 @@ createRoot(document.getElementById("root")!).render(
             <Route path="collab-my-applies" element={<CollabMyAppliesPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
+            <Route path="connections" element={<ClientConnectionsPage />} />
+            <Route path="connection-orders" element={<ClientConnectionOrdersPage />} />
+            <Route path="connection-orders/:id" element={<ClientConnectionOrdersPage />} />
           </Route>
           <Route path="/influencer" element={<ProtectedRoute roles={["influencer"]}><InfluencerLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/influencer/dashboard" replace />} />
@@ -178,6 +187,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="my-demands" element={<InfluencerMyDemandsPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
+            <Route path="connections" element={<InfluencerConnectionsPage />} />
+            <Route path="connection-orders" element={<InfluencerConnectionsPage />} />
           </Route>
           <Route path="/translate" element={<App />} />
           <Route path="/" element={<Navigate to="/login" replace />} />
