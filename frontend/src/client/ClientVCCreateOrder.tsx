@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { fetchWithAuth } from "../fetchWithAuth";
 
@@ -11,8 +11,21 @@ export default function ClientVCCreateOrder() {
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState("");
 
+  // 自动获取达人报价填入金额字段
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetchWithAuth(`/api/admin/influencer-profiles?q=${encodeURIComponent(influencerId)}`);
+        const data = await res.json();
+        const profiles = data.list || [];
+        const match = profiles.find((p: any) => String(p.user_id) === String(influencerId) || String(p.id) === String(influencerId));
+        if (match?.quoted_price) setForm(f => ({ ...f, amount: match.quoted_price }));
+      } catch {}
+    })();
+  }, [influencerId]);
+
   const submit = async () => {
-    if (!form.title || !form.task_requirements || !form.delivery_standards || !form.deadline || !form.amount) { setErr("请填写所有必填字段"); return; }
+    if (!form.title || !form.task_requirements || !form.delivery_standards || !form.deadline) { setErr("请填写所有必填字段"); return; }
     setSending(true);
     try {
       await fetchWithAuth("/api/client/connection-orders", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ connection_id: Number(connectionId), influencer_id: Number(influencerId), ...form }) });
@@ -35,7 +48,7 @@ export default function ClientVCCreateOrder() {
           <label>交付标准*</label><textarea value={form.delivery_standards} onChange={e=>setForm(f=>({...f,delivery_standards:e.target.value}))} style={si} rows={3} />
           <label>截止时间*</label><input type="datetime-local" value={form.deadline} onChange={e=>setForm(f=>({...f,deadline:e.target.value}))} style={si} />
           <label>提交方式</label><input value={form.submission_types} onChange={e=>setForm(f=>({...f,submission_types:e.target.value}))} style={si} placeholder="link,video,image 逗号分隔" />
-          <label>订单金额*</label><input type="number" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} style={si} />
+          <label>订单金额（达人报价）</label><div style={{...si,background:"#f8fafc",color:"#475569",display:"flex",alignItems:"center",fontWeight:700}}>{form.amount ? `${form.amount} THB` : "加载中..."}</div>
         </div>
         <button onClick={submit} disabled={sending} style={{ marginTop: 16, padding: "8px 20px", border: "none", borderRadius: 8, background: sending ? "#94a3b8" : "var(--xt-accent)", color: "#fff", cursor: sending ? "not-allowed" : "pointer", fontWeight: 600 }}>{sending ? "提交中..." : "提交派单"}</button>
       </div>

@@ -40,6 +40,10 @@ export default function ClientVCInfluencerList() {
             <strong>{inf.influencer_code}</strong>
             <span style={{ display: "inline-block", padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: "#04785722", color: "#047857" }}>{inf.grade}</span>
           </div>
+          <div style={{ marginTop: 4, padding: "6px 8px", background: "#fffbeb", borderRadius: 6, border: "1px solid #fde68a" }}>
+            <div style={{ fontWeight: 700, color: "#92400e", fontSize: 13 }}>报价: {inf.quoted_price ? `${inf.quoted_price} THB` : "未设置"}</div>
+            {inf.cooperation_conditions && <div style={{ fontSize: 12, color: "#78716c", marginTop: 2 }}>{inf.cooperation_conditions}</div>}
+          </div>
           <div style={{ fontSize: 12, color: "#475569", marginTop: 4, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 4 }}>
             <span>粉丝: {inf.followers||"-"}</span><span>GMV: {inf.gmv_sales||"-"}</span>
             <span>挂车视频/月: {inf.monthly_cart_videos||"-"}</span><span>销量: {inf.units_sold||"-"}</span>

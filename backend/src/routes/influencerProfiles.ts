@@ -77,12 +77,12 @@ adminRouter.get("/:id", async (req: AuthRequest, res: Response) => {
 
 adminRouter.post("/", async (req: AuthRequest, res: Response) => {
   try {
-    const { influencer_code, source, category, followers, gmv_sales, monthly_cart_videos, units_sold, can_live, live_sales, weekly_live_count, avg_live_hours_per_week, remark, contact_info, payment_info, user_id } = req.body || {};
+    const { influencer_code, source, category, followers, gmv_sales, monthly_cart_videos, units_sold, can_live, live_sales, weekly_live_count, avg_live_hours_per_week, remark, contact_info, payment_info, quoted_price, cooperation_conditions, user_id } = req.body || {};
     if (!influencer_code || !source || !category) return res.status(400).json({ error: "MISSING_FIELDS", message: "influencer_code, source, category 为必填" });
     const grade = calcGrade({ gmv_sales, units_sold, live_sales, weekly_live_count });
     const { rows } = await query(
-      `INSERT INTO influencer_profiles_full (influencer_code, source, followers, category, grade, gmv_sales, monthly_cart_videos, units_sold, can_live, live_sales, weekly_live_count, avg_live_hours_per_week, remark, contact_info, payment_info, user_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
-      [influencer_code, source, followers || null, category, grade, gmv_sales || null, monthly_cart_videos || null, units_sold || null, !!can_live, live_sales || null, weekly_live_count || null, avg_live_hours_per_week || null, remark || null, contact_info || null, payment_info || null, user_id || null]
+      `INSERT INTO influencer_profiles_full (influencer_code, source, followers, category, grade, gmv_sales, monthly_cart_videos, units_sold, can_live, live_sales, weekly_live_count, avg_live_hours_per_week, remark, contact_info, payment_info, quoted_price, cooperation_conditions, user_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING id`,
+      [influencer_code, source, followers || null, category, grade, gmv_sales || null, monthly_cart_videos || null, units_sold || null, !!can_live, live_sales || null, weekly_live_count || null, avg_live_hours_per_week || null, remark || null, contact_info || null, payment_info || null, quoted_price || null, cooperation_conditions || null, user_id || null]
     );
     res.status(201).json({ id: rows[0].id, grade });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
@@ -91,7 +91,7 @@ adminRouter.post("/", async (req: AuthRequest, res: Response) => {
 adminRouter.put("/:id", async (req: AuthRequest, res: Response) => {
   try {
     const id = parseInt(String(req.params.id));
-    const fields = ["influencer_code","source","followers","category","gmv_sales","monthly_cart_videos","units_sold","can_live","live_sales","weekly_live_count","avg_live_hours_per_week","remark","contact_info","payment_info","user_id","status"];
+    const fields = ["influencer_code","source","followers","category","gmv_sales","monthly_cart_videos","units_sold","can_live","live_sales","weekly_live_count","avg_live_hours_per_week","remark","contact_info","payment_info","quoted_price","cooperation_conditions","user_id","status"];
     const sets: string[] = [];
     const params: any[] = [];
     let idx = 1;
@@ -185,7 +185,7 @@ influencerRouter.get("/profile", async (req: AuthRequest, res: Response) => {
 
 influencerRouter.put("/profile", async (req: AuthRequest, res: Response) => {
   try {
-    const editableFields = ["influencer_code","source","followers","gmv_sales","monthly_cart_videos","units_sold","can_live","live_sales","weekly_live_count","avg_live_hours_per_week","remark","contact_info"];
+    const editableFields = ["influencer_code","source","followers","gmv_sales","monthly_cart_videos","units_sold","can_live","live_sales","weekly_live_count","avg_live_hours_per_week","remark","quoted_price","cooperation_conditions"];
     const sets: string[] = [];
     const params: any[] = [];
     let idx = 1;

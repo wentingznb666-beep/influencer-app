@@ -41,7 +41,7 @@ export default function InfluencerVCProfile() {
   }, []);
 
   const save = async () => {
-    if (!form.influencer_code || !form.source || !form.category) { setErr("请填写所有必填字段（编号、来源、类目）"); return; }
+    if (!form.influencer_code || !form.source || !form.category || !form.quoted_price || !form.cooperation_conditions) { setErr("请填写所有必填字段（编号、来源、类目、报价、合作条件）"); return; }
     setSaving(true);
     try {
       if (isNew) {
@@ -85,6 +85,8 @@ export default function InfluencerVCProfile() {
           </select>
           
           <label style={lab}>粉丝</label><input value={form.followers||""} onChange={e=>setForm((f:any)=>({...f,followers:e.target.value}))} style={si} />
+          <label style={{...lab,color:"#b91c1c"}}>报价 (quoted_price) *</label><input type="number" value={form.quoted_price||""} onChange={e=>setForm((f:any)=>({...f,quoted_price:e.target.value}))} style={si} placeholder="THB, 商家可见" />
+          <label style={{...lab,color:"#b91c1c"}}>合作条件 (cooperation_conditions) *</label><textarea value={form.cooperation_conditions||""} onChange={e=>setForm((f:any)=>({...f,cooperation_conditions:e.target.value}))} style={si} rows={3} placeholder="你的合作要求和条件说明，商家可见" />
           <label style={lab}>GMV 销售额</label><input value={form.gmv_sales||""} onChange={e=>setForm((f:any)=>({...f,gmv_sales:e.target.value}))} style={si} />
           <label style={lab}>每月挂车视频</label><input value={form.monthly_cart_videos||""} onChange={e=>setForm((f:any)=>({...f,monthly_cart_videos:e.target.value}))} style={si} />
           <label style={lab}>销售件数</label><input value={form.units_sold||""} onChange={e=>setForm((f:any)=>({...f,units_sold:e.target.value}))} style={si} />

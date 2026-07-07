@@ -2060,6 +2060,8 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     )
   `);
   await query(`ALTER TABLE system_messages ADD COLUMN IF NOT EXISTS link VARCHAR(500)`);
+  await query(`ALTER TABLE influencer_profiles_full ADD COLUMN IF NOT EXISTS quoted_price DECIMAL(12,2)`);
+  await query(`ALTER TABLE influencer_profiles_full ADD COLUMN IF NOT EXISTS cooperation_conditions TEXT`);
 
   // ========== 垂直达人建联模块结束 ==========
 

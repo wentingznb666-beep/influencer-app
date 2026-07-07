@@ -56,11 +56,15 @@ clientRouter.post("/connections/:id/renew", async (req: AuthRequest, res: Respon
 // Connection Orders - Client
 clientRouter.post("/connection-orders", async (req: AuthRequest, res: Response) => {
   try {
-    const { connection_id, influencer_id, title, task_requirements, delivery_standards, deadline, submission_types, amount } = req.body || {};
-    if (!connection_id || !influencer_id || !title || !task_requirements || !delivery_standards || !deadline || !amount) return res.status(400).json({ error: "MISSING" });
+    const { connection_id, influencer_id, title, task_requirements, delivery_standards, deadline, submission_types } = req.body || {};
+    if (!connection_id || !influencer_id || !title || !task_requirements || !delivery_standards || !deadline) return res.status(400).json({ error: "MISSING" });
     // Check connection is active and not expired
     const conn = await query("SELECT * FROM influencer_connections WHERE id = $1 AND client_id = $2 AND status = 'active' AND end_date > NOW()", [connection_id, req.user!.userId]);
     if (!conn.rows[0]) return res.status(400).json({ error: "CONNECTION_EXPIRED", message: "建联已到期，请先续约" });
+    // 金额自动取达人报价
+    const profile = await query("SELECT quoted_price FROM influencer_profiles_full WHERE user_id = $1", [influencer_id]);
+    const amount = profile.rows[0]?.quoted_price;
+    if (!amount) return res.status(400).json({ error: "NO_PRICE", message: "该达人尚未设置报价" });
     const orderNo = genOrderNo();
     const { rows } = await query(
       `INSERT INTO connection_orders (connection_id, client_id, influencer_id, order_no, title, task_requirements, delivery_standards, deadline, submission_types, amount) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
