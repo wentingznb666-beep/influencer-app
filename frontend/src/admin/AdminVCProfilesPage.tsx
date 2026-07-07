@@ -48,8 +48,20 @@ export default function AdminVCProfilesPage() {
 
   useEffect(() => { load(); }, []);
 
+  const [showErrors, setShowErrors] = useState<string[]>([]);
+
+  const validate = (data: any): string[] => {
+    const e: string[] = [];
+    const required = ["influencer_code","source","followers","category","quoted_price","cooperation_conditions","gmv_sales","monthly_cart_videos","units_sold","live_sales","weekly_live_count","avg_live_hours_per_week","contact_info"];
+    const labels: Record<string,string> = {influencer_code:"达人编号",source:"达人来源",followers:"达人粉丝",category:"类目",quoted_price:"报价",cooperation_conditions:"合作条件",gmv_sales:"GMV 销售额",monthly_cart_videos:"每月挂车视频",units_sold:"销售件数",live_sales:"直播销售额",weekly_live_count:"每周直播次数",avg_live_hours_per_week:"平均直播时长",contact_info:"联系方式"};
+    for (const f of required) { if (!data[f] || String(data[f]).trim()==="") e.push(`${labels[f]||f} 不能为空`); }
+    return e;
+  };
+
   const save = async () => {
-    setSaving(true);
+    const errors = validate(form);
+    if (errors.length > 0) { setShowErrors(errors); return; }
+    setShowErrors([]); setSaving(true);
     try {
       const body = { ...form };
       if (editing?.id) {
@@ -76,6 +88,15 @@ export default function AdminVCProfilesPage() {
         <h2 style={{ margin: 0 }}>{t("达人资料管理")}</h2>
       </div>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
+      {showErrors.length > 0 && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}} onClick={()=>setShowErrors([])}>
+          <div style={{background:"#fff",borderRadius:12,padding:24,maxWidth:450,width:"90%"}} onClick={e=>e.stopPropagation()}>
+            <h3 style={{color:"#b91c1c",marginTop:0}}>请完善以下信息</h3>
+            <ul style={{color:"#475569",fontSize:14,lineHeight:2.2}}>{showErrors.map((e,i)=><li key={i}>· {e}</li>)}</ul>
+            <button onClick={()=>setShowErrors([])} style={{padding:"8px 20px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer",marginTop:8}}>关闭</button>
+          </div>
+        </div>
+      )}
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
         <input placeholder={t("搜索编号/粉丝")} value={filter.q} onChange={e => setFilter(f => ({ ...f, q: e.target.value }))} style={si} />
         <select value={filter.category} onChange={e => setFilter(f => ({ ...f, category: e.target.value }))} style={si}>
@@ -105,7 +126,7 @@ export default function AdminVCProfilesPage() {
             <label>{t("每周直播次数")}</label>{i("weekly_live_count")}
             <label>{t("平均直播时长")}</label>{i("avg_live_hours_per_week")}
             <label>{t("备注")}</label><textarea value={String(form.remark || "")} onChange={e => setForm(f => ({ ...f, remark: e.target.value }))} style={si} rows={2} />
-            <label>{t("联系方式")}</label><textarea value={String(form.contact_info || "")} onChange={e => setForm(f => ({ ...f, contact_info: e.target.value }))} style={si} rows={2} />
+            <label style={{color:"#b91c1c"}}>{t("联系方式")} *</label><textarea value={String(form.contact_info || "")} onChange={e => setForm(f => ({ ...f, contact_info: e.target.value }))} style={si} rows={2} />
             <label>{t("收款方式")}</label><textarea value={String(form.payment_info || "")} onChange={e => setForm(f => ({ ...f, payment_info: e.target.value }))} style={si} rows={2} />
           </div>
           <div style={{ marginTop: 10, display: "flex", gap: 8 }}>

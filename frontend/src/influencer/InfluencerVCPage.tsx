@@ -13,19 +13,20 @@ export default function InfluencerVCPage() {
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
 
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
+  const requiredFields = ["influencer_code","source","followers","category","quoted_price","cooperation_conditions","gmv_sales","monthly_cart_videos","units_sold","live_sales","weekly_live_count","avg_live_hours_per_week"];
+
   // Force profile check on mount
   useEffect(() => {
     (async () => {
       try {
         const r = await fetchWithAuth("/api/influencer/profile");
         const p = await r.json();
-        if (!p || !p.influencer_code || !p.source || !p.category) {
-          nav("/influencer/vertical-connections/profile", { replace: true });
-          return;
-        }
-        setProfile(p);
-        setChecking(false);
-      } catch { nav("/influencer/vertical-connections/profile", { replace: true }); }
+        if (!p) { setProfileIncomplete(true); setChecking(false); return; }
+        const missing = requiredFields.filter(f => !p[f] || String(p[f]).trim() === "");
+        if (missing.length > 0) { setProfileIncomplete(true); setChecking(false); return; }
+        setProfile(p); setChecking(false);
+      } catch { setProfileIncomplete(true); setChecking(false); }
     })();
   }, []);
 
@@ -53,6 +54,15 @@ export default function InfluencerVCPage() {
   };
 
   if (checking) return <p>正在验证资料...</p>;
+
+  if (profileIncomplete) return (
+    <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"50vh",flexDirection:"column",gap:16}}>
+      <div style={{fontSize:48}}>⚠️</div>
+      <h2 style={{color:"#b91c1c",margin:0}}>资料不完整</h2>
+      <p style={{color:"#475569",textAlign:"center",maxWidth:400}}>请先在「我的资料」中填写并保存完整信息后，再进行建联操作</p>
+      <button onClick={()=>nav("/influencer/vertical-connections/profile")} style={{padding:"10px 24px",border:"none",borderRadius:8,background:"var(--xt-accent)",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:15}}>去填写</button>
+    </div>
+  );
 
   const pendingCount = connections.filter(c=>c.status==="pending").length;
   const card: React.CSSProperties = { background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginBottom: 8 };
