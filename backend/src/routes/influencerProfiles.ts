@@ -155,7 +155,7 @@ clientRouter.get("/influencers", async (req: AuthRequest, res: Response) => {
     if (!category) return res.status(400).json({ error: "MISSING_CATEGORY" });
     const grade = String(req.query.grade || "").trim();
     const sort = String(req.query.sort || "").trim();
-    let where = "WHERE status = 'active' AND category = $1 AND grade IS NOT NULL";
+    let where = "WHERE status = 'active' AND category = $1 AND grade IS NOT NULL AND grade != ''";
     const params: any[] = [category];
     let idx = 2;
     if (grade) { where += ` AND grade = $${idx++}`; params.push(grade); }
@@ -163,7 +163,7 @@ clientRouter.get("/influencers", async (req: AuthRequest, res: Response) => {
     if (sort === "followers_desc") order = "ORDER BY followers DESC";
     if (sort === "gmv_desc") order = "ORDER BY gmv_sales::numeric DESC NULLS LAST";
     const { rows } = await query(
-      `SELECT id, influencer_code, source, followers, category, grade, gmv_sales, monthly_cart_videos, units_sold, can_live, live_sales, weekly_live_count, avg_live_hours_per_week, remark FROM influencer_profiles_full ${where} ${order} LIMIT 200`,
+      `SELECT id, influencer_code, source, followers, category, grade, quoted_price, cooperation_conditions, gmv_sales, monthly_cart_videos, units_sold, can_live, live_sales, weekly_live_count, avg_live_hours_per_week, remark FROM influencer_profiles_full ${where} ${order} LIMIT 200`,
       params
     );
     res.json({ list: rows });

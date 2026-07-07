@@ -23,7 +23,12 @@ export default function InfluencerVCPage() {
         const r = await fetchWithAuth("/api/influencer/profile");
         const p = await r.json();
         if (!p) { setProfileIncomplete(true); setChecking(false); return; }
-        const missing = requiredFields.filter(f => !p[f] || String(p[f]).trim() === "");
+        const missing = requiredFields.filter(f => {
+    const v = p[f];
+    if (v === null || v === undefined || v === '') return true;
+    if (typeof v === 'string' && v.trim() === '') return true;
+    return false;
+  });
         if (missing.length > 0) { setProfileIncomplete(true); setChecking(false); return; }
         setProfile(p); setChecking(false);
       } catch { setProfileIncomplete(true); setChecking(false); }
