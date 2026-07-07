@@ -2060,7 +2060,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
       updated_at TIMESTAMP DEFAULT NOW()
     )
   `);
-  await query(\`ALTER TABLE system_messages ADD COLUMN IF NOT EXISTS link VARCHAR(500)\`);
+  await query(`ALTER TABLE system_messages ADD COLUMN IF NOT EXISTS link VARCHAR(500)`);
 
   // ========== 垂直达人建联模块结束 ==========
 
