@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import * as api from "../influencerApi";
+import { fetchWithAuth } from "../fetchWithAuth";
 
 /** 达人首页：简洁内容概览 + 快捷入口 */
 const vcCard = (color: string): React.CSSProperties => ({ background: "#fff", border: `1px solid ${color}22`, borderRadius: "12px", padding: "16px", cursor: "pointer", textAlign: "center" as const, transition: "0.2s" });
@@ -40,13 +41,11 @@ export default function InfluencerDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetch("/api/influencer/profile", { headers: { Authorization: `Bearer ${localStorage.getItem("access_token") || ""}` } });
+        const r = await fetchWithAuth("/api/influencer/profile");
         const p = await r.json();
         setVcProfile(p);
-        const requiredFields = ["influencer_code","source","followers","category","quoted_price","cooperation_conditions","gmv_sales","monthly_cart_videos","units_sold","live_sales","weekly_live_count","avg_live_hours_per_week"];
-        const missing = p ? requiredFields.filter((f: string) => { const v = p[f]; return v === null || v === undefined || v === '' || (typeof v === 'string' && v.trim() === ''); }) : requiredFields;
         if (p?.payment_info) setVcPaymentSet(true);
-        try { const cr = await fetch("/api/influencer/connections?tab=pending", { headers: { Authorization: `Bearer ${localStorage.getItem("access_token") || ""}` } }); const cd = await cr.json(); setVcPending((cd.list || []).length); } catch {}
+        try { const cr = await fetchWithAuth("/api/influencer/connections?tab=pending"); const cd = await cr.json(); setVcPending((cd.list || []).length); } catch {}
       } catch {}
     })();
   }, []);
