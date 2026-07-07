@@ -185,31 +185,50 @@ influencerRouter.get("/profile", async (req: AuthRequest, res: Response) => {
 
 influencerRouter.put("/profile", async (req: AuthRequest, res: Response) => {
   try {
+    const userId = req.user!.userId;
     const editableFields = ["influencer_code","source","followers","gmv_sales","monthly_cart_videos","units_sold","can_live","live_sales","weekly_live_count","avg_live_hours_per_week","remark","quoted_price","cooperation_conditions"];
-    const sets: string[] = [];
-    const params: any[] = [];
-    let idx = 1;
-    for (const f of editableFields) {
-      if (req.body[f] !== undefined) {
-        sets.push(`${f} = $${idx++}`);
-        params.push(f === "can_live" ? !!req.body[f] : req.body[f]);
-      }
-    }
-    if (sets.length === 0) return res.json({ ok: true });
-    sets.push(`updated_at = now()`);
-    // Recalc grade
-    const existing = await query("SELECT gmv_sales, units_sold, live_sales, weekly_live_count FROM influencer_profiles_full WHERE user_id = $1", [req.user!.userId]);
+    // Check if profile exists
+    const existing = await query("SELECT * FROM influencer_profiles_full WHERE user_id = $1", [userId]);
+    const exists = !!existing.rows[0];
     const row = existing.rows[0] || {};
-    const grade = calcGrade({
-      gmv_sales: req.body.gmv_sales ?? row.gmv_sales,
-      units_sold: req.body.units_sold ?? row.units_sold,
-      live_sales: req.body.live_sales ?? row.live_sales,
-      weekly_live_count: req.body.weekly_live_count ?? row.weekly_live_count,
-    });
-    sets.push(`grade = $${idx++}`); params.push(grade);
-    params.push(req.user!.userId);
-    await query(`UPDATE influencer_profiles_full SET ${sets.join(", ")} WHERE user_id = $${idx}`, params);
-    res.json({ ok: true, grade });
+
+    if (!exists) {
+      // INSERT new profile
+      const vals: any[] = [];
+      const cols: string[] = ["user_id"];
+      vals.push(userId);
+      for (const f of editableFields) {
+        if (req.body[f] !== undefined) { cols.push(f); vals.push(f === "can_live" ? !!req.body[f] : req.body[f]); }
+      }
+      const grade = calcGrade(req.body);
+      if (grade !== undefined) { cols.push("grade"); vals.push(grade); }
+      const placeholders = vals.map((_,i) => `$${i+1}`).join(", ");
+      await query(`INSERT INTO influencer_profiles_full (${cols.join(", ")}) VALUES (${placeholders})`, vals);
+      res.json({ ok: true, grade });
+    } else {
+      // UPDATE existing
+      const sets: string[] = [];
+      const params: any[] = [];
+      let idx = 1;
+      for (const f of editableFields) {
+        if (req.body[f] !== undefined) {
+          sets.push(`${f} = $${idx++}`);
+          params.push(f === "can_live" ? !!req.body[f] : req.body[f]);
+        }
+      }
+      if (sets.length === 0) return res.json({ ok: true });
+      sets.push(`updated_at = now()`);
+      const grade = calcGrade({
+        gmv_sales: req.body.gmv_sales ?? row.gmv_sales,
+        units_sold: req.body.units_sold ?? row.units_sold,
+        live_sales: req.body.live_sales ?? row.live_sales,
+        weekly_live_count: req.body.weekly_live_count ?? row.weekly_live_count,
+      });
+      sets.push(`grade = $${idx++}`); params.push(grade);
+      params.push(userId);
+      await query(`UPDATE influencer_profiles_full SET ${sets.join(", ")} WHERE user_id = $${idx}`, params);
+      res.json({ ok: true, grade });
+    }
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
 
