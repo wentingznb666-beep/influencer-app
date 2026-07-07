@@ -1987,7 +1987,6 @@ async function applyOnlineSchemaPatches(): Promise<void> {
 
 
 
-}
 
   // ========== 垂直达人建联模块 ==========
   await query(`
@@ -2064,10 +2063,7 @@ async function applyOnlineSchemaPatches(): Promise<void> {
 
   // ========== 垂直达人建联模块结束 ==========
 
-
-
-
-
+  }
 
 /**
 
