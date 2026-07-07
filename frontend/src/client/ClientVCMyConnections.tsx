@@ -31,13 +31,16 @@ export default function ClientVCMyConnections() {
       {msg && <p style={{color:"#166534"}}>{msg}</p>}
       {err && <p style={{color:"#c00"}}>{err}</p>}
       <div style={{display:"flex",gap:8,marginBottom:12}}>
-        {["active","expired"].map(t=><button key={t} onClick={()=>setTab(t)} style={{...st,background:tab===t?"var(--xt-accent)":"#fff",color:tab===t?"#fff":"#334155"}}>{t==="active"?"建联中":"已到期"}</button>)}
+        {["pending","active","expired"].map(t=>{
+    let label = t==="pending"?"待确认":t==="active"?"建联中":"已到期";
+    return <button key={t} onClick={()=>setTab(t)} style={{...st,background:tab===t?"var(--xt-accent)":"#fff",color:tab===t?"#fff":"#334155"}}>{label}</button>;
+  })}
       </div>
       {loading ? <p>加载中...</p> : list.length===0 ? <p style={{color:"#64748b"}}>暂无记录</p> : list.map((c:any)=>(
         <div key={c.id} style={card}>
           <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap"}}>
             <strong>{c.influencer_code||c.influencer_username||`达人#${c.influencer_id}`}</strong>
-            <span style={tag(c.status)}>{c.status==="active"?"建联中":c.status==="expired"?"已到期":c.status}</span>
+            <span style={tag(c.status)}>{c.status==="pending"?"待确认":c.status==="active"?"建联中":c.status==="expired"?"已到期":c.status}</span>
           </div>
           <p style={{fontSize:13,color:"#475569",margin:"4px 0"}}>类目: {c.category} | 等级: {c.grade||"-"} | 剩余 {daysLeft(c.end_date)} 天</p>
           {c.brief && <p style={{fontSize:13,margin:0}}>简述: {c.brief}</p>}

@@ -18,7 +18,8 @@ clientRouter.get("/connections", async (req: AuthRequest, res: Response) => {
     const tab = String(req.query.tab || "");
     let where = "WHERE ic.client_id = $1";
     const params: any[] = [req.user!.userId];
-    if (tab === "active") where += " AND ic.status = 'active'";
+    if (tab === "pending") where += " AND ic.status = 'pending'";
+    else if (tab === "active") where += " AND ic.status = 'active'";
     else if (tab === "expired") where += " AND ic.status = 'expired'";
     const { rows } = await query(
       `SELECT ic.*, ipf.influencer_code, ipf.followers, ipf.category as profile_category, ipf.grade as profile_grade, ipf.gmv_sales, u.username as influencer_username FROM influencer_connections ic LEFT JOIN influencer_profiles_full ipf ON ic.influencer_profile_id = ipf.id LEFT JOIN users u ON ic.influencer_id = u.id ${where} ORDER BY ic.id DESC LIMIT 200`, params);
