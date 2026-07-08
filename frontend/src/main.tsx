@@ -217,7 +217,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="my-demands" element={<InfluencerMyDemandsPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
-            <Route path="vertical-connections" element={<Navigate to="/influencer/vertical-connections/profile" replace />} />
+            <Route path="vertical-connections" element={<Navigate to="/influencer/vertical-connections/invitations" replace />} />
             <Route path="vertical-connections/invitations" element={<InfluencerVCPage />} />
             <Route path="vertical-connections/orders" element={<InfluencerVCOrders />} />
             <Route path="vertical-connections/orders/:id" element={<InfluencerVCOrderDetail />} />
