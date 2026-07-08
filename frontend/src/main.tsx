@@ -111,6 +111,7 @@ const InfluencerVCProfile = lazy(() => import("./influencer/InfluencerVCProfile"
 const InfluencerVCOrders = lazy(() => import("./influencer/InfluencerVCOrders"));
 const InfluencerVCOrderDetail = lazy(() => import("./influencer/InfluencerVCOrderDetail"));
 const InfluencerVCPayment = lazy(() => import("./influencer/InfluencerVCPayment"));
+const InfluencerVCHome = lazy(() => import("./influencer/InfluencerVCHome"));
 
 runStorageSelfHealMigration();
 
@@ -217,14 +218,12 @@ createRoot(document.getElementById("root")!).render(
             <Route path="my-demands" element={<InfluencerMyDemandsPage />} />
             <Route path="op-logs" element={<OperationLogsPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
-            <Route path="vertical-connections" element={<Navigate to="/influencer/vertical-connections/invitations" replace />} />
+            <Route path="vertical-connections" element={<InfluencerVCHome />} />
             <Route path="vertical-connections/invitations" element={<InfluencerVCPage />} />
             <Route path="vertical-connections/orders" element={<InfluencerVCOrders />} />
             <Route path="vertical-connections/orders/:id" element={<InfluencerVCOrderDetail />} />
             <Route path="vertical-connections/payment" element={<InfluencerVCPayment />} />
             <Route path="vertical-connections/profile" element={<InfluencerVCProfile />} />
-            <Route path="vertical-connections/orders/:id" element={<InfluencerVCOrderDetail />} />
-            <Route path="vertical-connections/payment" element={<InfluencerVCPayment />} />
           </Route>
           <Route path="/translate" element={<App />} />
           <Route path="/" element={<Navigate to="/login" replace />} />

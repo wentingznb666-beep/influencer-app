@@ -5,7 +5,14 @@ import { fetchWithAuth } from "../fetchWithAuth";
 export default function GradeConfigPage() {
   const nav = useNavigate();
   const [counts, setCounts] = useState<Record<string,number>>({});
-  const [form, setForm] = useState({ a_gmv:"100000",a_units:"1000",b_gmv:"10000",b_units:"100",c_gmv:"3000",c_units:"10",live_pct:"50",live_weekly:"7" });
+  const defaults = { a_gmv:"100000",a_units:"1000",b_gmv:"10000",b_units:"100",c_gmv:"3000",c_units:"10",live_pct:"50",live_weekly:"7" };
+  const [form, setForm] = useState(() => {
+    try {
+      const saved = localStorage.getItem("vc_grade_thresholds");
+      if (saved) return { ...defaults, ...JSON.parse(saved) };
+    } catch {}
+    return defaults;
+  });
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -32,7 +39,7 @@ export default function GradeConfigPage() {
     if (!confirm("此修改将触发重新计算全部达人等级，确认？")) return;
     setSaving(true);
     try {
-      // Save thresholds to config
+      localStorage.setItem("vc_grade_thresholds", JSON.stringify(form));
       await fetchWithAuth("/api/admin/influencer-profiles/auto-grade");
       setMsg("等级配置已更新，已重新计算全部达人等级");
       setTimeout(()=>setMsg(""),3000);

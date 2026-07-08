@@ -121,8 +121,8 @@ export default function InfluencerVCOrderDetail() {
             </div>
           )}
 
-          <button onClick={order.review_status==="rejected"?revise:submitWork} style={{...btnPri,marginTop:8}}>
-            {order.review_status==="rejected"?"修改重提":"提交作品"}
+          <button onClick={order.review_status==="rejected"?revise:submitWork} disabled={submitted} style={{...btnPri,marginTop:8,opacity:submitted?0.5:1,cursor:submitted?"not-allowed":"pointer"}}>
+            {submitted ? "已提交" : order.review_status==="rejected" ? "修改重提" : "提交作品"}
           </button>
         </div>
       )}

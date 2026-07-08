@@ -23,7 +23,9 @@ export default function InfluencerVCPage() {
 
   const respond = async (id: number, action: string) => {
     if (action==="accept" && !confirm("确认接受该建联邀请？")) return;
-    await fetchWithAuth(`/api/influencer/connections/${id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({action}) });
+    const body: any = { action };
+    if (action === "reject") body.reject_reason = rejectReason;
+    await fetchWithAuth(`/api/influencer/connections/${id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
     if (action==="accept") { setMsg("✅ 已接受建联邀请"); setTimeout(()=>{setTab("active");load();},800); }
     else { setRejectId(0); setRejectReason(""); load(); }
   };

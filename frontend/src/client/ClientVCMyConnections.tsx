@@ -60,7 +60,7 @@ function ClientVCMyConnections() {
       {loading ? <p>加载中...</p> : (list?.length||0)===0 ? <p style={{color:"#64748b"}}>暂无记录</p> : (list||[]).map((c:any)=>(
         <div key={c?.id} style={card}>
           <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><strong>{c?.influencer_code||c?.influencer_username||`达人#${c?.influencer_id}`}</strong><span style={tag(c?.status)}>{c?.status==="pending"?"待回应":c?.status==="active"?"建联中":c?.status==="expired"?"已到期":c?.status||"—"}</span>{c?.status==="active"&&<button onClick={()=>nav(`/client/vertical-connections/my/create-order/${c.id}?influencer=${c.influencer_id}`)} style={{fontSize:11,padding:"3px 10px",border:"1px solid var(--xt-accent)",borderRadius:6,color:"var(--xt-accent)",background:"#fff",cursor:"pointer"}}>⚡快速派单</button>}</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><strong>{c?.influencer_code||c?.influencer_username||`达人#${c?.influencer_id}`}</strong>{c?.status==="active"&&<button onClick={()=>nav(`/client/vertical-connections/my/create-order/${c.id}?influencer=${c.influencer_id}`)} style={{fontSize:11,padding:"3px 10px",border:"1px solid var(--xt-accent)",borderRadius:6,color:"var(--xt-accent)",background:"#fff",cursor:"pointer"}}>⚡快速派单</button>}</div>
             <span style={tag(c?.status)}>{c?.status==="pending"?"待回应":c?.status==="active"?"建联中":c?.status==="expired"?"已到期":c?.status||"—"}</span>
           </div>
           <p style={{fontSize:13,color:"#475569",margin:"4px 0"}}>类目: {c?.category||"—"} | 等级: {c?.grade||"—"} | 剩余 {daysLeft(c?.end_date)} 天</p>

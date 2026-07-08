@@ -46,6 +46,54 @@ export default function AdminVCConnectionsPage() {
     URL.revokeObjectURL(url);
   };
 
+  // 代达人接受建联（直接确认）
+  const openProxyAccept = async (c: any) => {
+    if (!confirm(`确认代替达人「${c.influencer_code || c.influencer_username || `#${c.influencer_id}`}」接受该建联邀请？`)) return;
+    try {
+      await fetchWithAuth(`/api/admin/connections/${c.id}/proxy`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "accept" }) });
+      load();
+    } catch (e: any) { setErr(e.message); }
+  };
+
+  // 代达人拒绝建联（打开模态框填原因）
+  const openProxyReject = (c: any) => {
+    setProxyTarget(c);
+    setProxyReason("");
+  };
+
+  // 代达人提交作品（获取该达人的待提交订单列表）
+  const openProxySubmit = async (c: any) => {
+    setProxyTarget(c);
+    setProxyContent("");
+    try {
+      const r = await fetchWithAuth("/api/admin/connection-orders");
+      const d = await r.json();
+      setProxyOrders((d.list || []).filter((o: any) => String(o.influencer_id) === String(c.influencer_id) && o.influencer_response === "accepted" && !o.submission_content));
+    } catch { setProxyOrders([]); }
+  };
+
+  // 确认代拒绝建联
+  const doProxy = async (id: number, action: string, reason: string) => {
+    if (!reason.trim()) return;
+    try {
+      await fetchWithAuth(`/api/admin/connections/${id}/proxy`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, reject_reason: reason }) });
+      setProxyTarget(null); setProxyReason(""); setProxyContent("");
+      load();
+    } catch (e: any) { setErr(e.message); }
+  };
+
+  // 确认代提交作品
+  const doProxySubmit = async () => {
+    if (!proxyTarget || !proxyContent.trim() || proxyOrders.length === 0) return;
+    try {
+      for (const o of proxyOrders) {
+        await fetchWithAuth(`/api/admin/connection-orders/${o.id}/proxy-submit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ submission_content: proxyContent }) });
+      }
+      setProxyTarget(null); setProxyContent(""); setProxyOrders([]);
+      load();
+    } catch (e: any) { setErr(e.message); }
+  };
+
   const cards = [
     { label: "总建联数", value: stats.total||0, bg: "#dbeafe", color: "#1d4ed8" },
     { label: "活跃建联", value: stats.active||0, bg: "#dcfce7", color: "#166534" },

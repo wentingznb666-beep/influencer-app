@@ -10,7 +10,6 @@ const BANKS = [
   { th: "ธนาคารกรุงศรีอยุธยา", zh: "大城银行" },
   { th: "ธนาคารทหารไทยธนชาต", zh: "军人银行" },
   { th: "ธนาคารออมสิน", zh: "储蓄银行" },
-  { th: "PromptPay", zh: "PromptPay" },
 ];
 
 export default function InfluencerVCPayment() {
