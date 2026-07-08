@@ -220,6 +220,34 @@ clientRouter.post("/connection-orders/:id/confirm-payment", async (req: AuthRequ
 const influencerRouter = Router();
 influencerRouter.use(requireRole("influencer"));
 
+// 首页仪表盘统计
+influencerRouter.get("/connections/home-stats", async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.user!.userId;
+    const [[cr], [or], [pr], [msgs]] = await Promise.all([
+      query("SELECT COUNT(*)::int as c FROM influencer_connections WHERE influencer_id = $1 AND status = 'pending'", [uid]),
+      query("SELECT COUNT(*)::int as c FROM connection_orders WHERE influencer_id = $1 AND influencer_response = 'pending'", [uid]),
+      query("SELECT influencer_code, category, grade, quoted_price, payment_info FROM influencer_profiles_full WHERE user_id = $1 AND status = 'active'", [uid]),
+      query("SELECT id, title, content, link, created_at FROM system_messages WHERE user_id = $1 AND is_read = 0 AND (category LIKE 'connection%') ORDER BY created_at DESC LIMIT 3", [uid]),
+    ]);
+    const p = pr.rows[0];
+    const hasProfile = !!(p?.influencer_code && p?.source && p?.category && p?.quoted_price);
+    const { rows: needRevise } = await query("SELECT COUNT(*)::int as c FROM connection_orders WHERE influencer_id = $1 AND review_status = 'rejected'", [uid]);
+    const { rows: completed } = await query("SELECT COUNT(*)::int as c FROM connection_orders WHERE influencer_id = $1 AND payment_status = 'paid'", [uid]);
+    const { rows: needSubmit } = await query("SELECT COUNT(*)::int as c FROM connection_orders WHERE influencer_id = $1 AND influencer_response = 'accepted' AND submission_content IS NULL AND review_status != 'rejected'", [uid]);
+    res.json({
+      pending_invites: cr.rows[0]?.c||0,
+      pending_submissions: needSubmit.rows[0]?.c||0,
+      need_revisions: needRevise.rows[0]?.c||0,
+      completed: completed.rows[0]?.c||0,
+      pending_orders: or.rows[0]?.c||0,
+      has_profile: hasProfile,
+      has_payment: !!p?.payment_info,
+      recent_notifications: msgs.rows,
+    });
+  } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
+});
+
 influencerRouter.get("/connections", async (req: AuthRequest, res: Response) => {
   try {
     const tab = String(req.query.tab || "");
