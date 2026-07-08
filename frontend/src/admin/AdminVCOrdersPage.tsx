@@ -142,6 +142,7 @@ const [proxyModal, setProxyModal] = useState<any>(null); // {type, order}
     </div>
   );
 }
+const card: React.CSSProperties = { background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginBottom: 8, position:"relative" };
 const sb: React.CSSProperties = { padding: "6px 12px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" };
 const sm: React.CSSProperties = { fontSize: 12, color: "#64748b", margin: "2px 0" };
 const ssm: React.CSSProperties = { padding: "4px 8px", border: "1px solid #dbe1ea", borderRadius: 6, background: "#fff", cursor: "pointer", fontSize: 11 };
