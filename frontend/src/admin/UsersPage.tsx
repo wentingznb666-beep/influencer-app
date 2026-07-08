@@ -746,30 +746,30 @@ export default function UsersPage() {
 
       ) : (
 
-        <div style={{ overflowX: "auto", background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
+        <div style={{ overflow: "auto", maxHeight: "calc(100vh - 260px)", background: "#fff", borderRadius: compactPx(8), boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
 
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 860 }}>
 
-            <thead>
+            <thead style={{ position: "sticky", top: 0, zIndex: 2 }}>
 
-              <tr>
+              <tr style={{ background: "#f8fafc" }}>
 
-                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>ID</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee", background: "#f8fafc" }}>ID</th>
 
-                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>用户名</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee", background: "#f8fafc" }}>用户名</th>
 
-                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>显示名</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee", background: "#f8fafc" }}>显示名</th>
 
-                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>Line</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee", background: "#f8fafc" }}>Line</th>
 
-                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>账号类型</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee", background: "#f8fafc" }}>账号类型</th>
 
-                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>状态</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee", background: "#f8fafc" }}>状态</th>
 
-                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>撮合/会员字段</th>
-                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>创建时间</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee", background: "#f8fafc" }}>撮合/会员字段</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee", background: "#f8fafc" }}>创建时间</th>
 
-                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee" }}>操作</th>
+                <th style={{ textAlign: "left", padding: compactPx(10), borderBottom: "1px solid #eee", background: "#f8fafc" }}>操作</th>
 
               </tr>
 
