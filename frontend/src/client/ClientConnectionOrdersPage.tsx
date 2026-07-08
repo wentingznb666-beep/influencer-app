@@ -63,7 +63,8 @@ export default function ClientConnectionOrdersPage() {
   const hasUnpaid = orders.some(o => o.review_status === "approved" && o.payment_status !== "paid");
 
   const dispatch = async () => {
-    if (!form.title || !form.task_requirements || !form.delivery_standards || !form.deadline || !form.amount) {
+    if (hasUnpaid) { setError("请先完成未付款订单的付款后再操作"); return; }
+    if (!form.title || !form.task_requirements || !form.delivery_standards || !form.deadline) {
       setError("请填写所有必填字段"); return;
     }
     try {
@@ -157,12 +158,12 @@ export default function ClientConnectionOrdersPage() {
         <input placeholder="搜索订单号/达人编号" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")load();}} style={{padding:"6px 10px",border:"1px solid #dbe1ea",borderRadius:8,minWidth:200,marginLeft:"auto"}} />
         <button onClick={load} style={{padding:"6px 12px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer"}}>搜索</button>
       </div>
-      {hasUnpaid && <div style={{ padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, color: "#b91c1c", marginBottom: 12, fontWeight: 700 }}>⚠ 您有未完成付款的订单，请先完成付款后再操作！</div>}
+      {hasUnpaid && <div style={{ padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, color: "#b91c1c", marginBottom: 12, fontWeight: 700 }}>⚠ 您有未完成付款的订单，请先完成付款后再派单/审核操作！</div>}
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       {msg && <p style={{ color: "#166534" }}>{msg}</p>}
 
       {connectionId && influencerId && (
-        <button onClick={() => setShowForm(!showForm)} style={btnPrimary}>{showForm ? "取消" : "新建派单"}</button>
+        <button onClick={() => setShowForm(!showForm)} disabled={hasUnpaid} style={{...btnPrimary, opacity: hasUnpaid ? 0.5 : 1, cursor: hasUnpaid ? "not-allowed" : "pointer"}}>{showForm ? "取消" : "新建派单"}</button>
       )}
 
       {showForm && (
@@ -174,7 +175,7 @@ export default function ClientConnectionOrdersPage() {
             <label>交付标准*</label><textarea value={form.delivery_standards} onChange={e => setForm(f => ({ ...f, delivery_standards: e.target.value }))} style={inputS} rows={3} />
             <label>截止时间*</label><input type="datetime-local" value={form.deadline} onChange={e => setForm(f => ({ ...f, deadline: e.target.value }))} style={inputS} />
             <label>提交方式</label><input value={form.submission_types} onChange={e => setForm(f => ({ ...f, submission_types: e.target.value }))} style={inputS} placeholder="link,video,image 多选用逗号分隔" />
-            <label>订单金额*</label><input type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} style={inputS} />
+            <label>订单金额 (达人报价)</label><input type="number" value={form.amount} readOnly style={{...inputS, background:"#f8fafc", color:"#64748b", cursor:"not-allowed"}} /><small style={{color:"#64748b",gridColumn:"2"}}>金额自动取达人报价，不可修改</small>
           </div>
           <button onClick={dispatch} style={{ ...btnPrimary, marginTop: 12 }}>提交派单</button>
         </div>
@@ -200,7 +201,7 @@ export default function ClientConnectionOrdersPage() {
               </>
             )}
             {o.review_status === "pending_review" && o.submission_content && (
-              <button onClick={() => setReviewTarget(o)} style={btnSm}>审核</button>
+              <button onClick={() => setReviewTarget(o)} disabled={hasUnpaid && o.review_status !== "approved"} style={{...btnSm, opacity: (hasUnpaid && o.review_status !== "approved") ? 0.5 : 1, cursor: (hasUnpaid && o.review_status !== "approved") ? "not-allowed" : "pointer"}}>审核</button>
             )}
             {o.review_status === "approved" && o.payment_status !== "paid" && (
               <button onClick={() => loadPaymentInfo(o)} style={btnPrimary}>确认付款</button>

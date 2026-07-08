@@ -143,7 +143,7 @@ export default function AdminVCConnectionsPage() {
         <div key={c.id} style={card}>
           <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap"}}>
             <div>
-              <strong>{c.client_username||`商家#${c.client_id}`} ↔ {c.influencer_username||c.influencer_code||`达人#${c.influencer_id}`}</strong>
+              <strong>{c.client_username||`商家#${c.client_id}`} ↔ {c.influencer_code||c.influencer_username||`达人#${c.influencer_id}`}</strong>
               <span style={{marginLeft:8,fontSize:13,color:"#64748b"}}>{c.category} | {c.grade||"-"}</span>
             </div>
             <span style={tg(c.status)}>{c.status==="pending"?"待确认":c.status==="active"?"建联中":c.status==="expired"?"已到期":c.status==="rejected"?"已拒绝":c.status}</span>

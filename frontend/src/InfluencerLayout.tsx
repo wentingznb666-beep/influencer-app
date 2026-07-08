@@ -58,6 +58,7 @@ export default function InfluencerLayout() {
     { to: "/influencer/task-hall", label: "任务大厅", menuHint: "สมัครงานจับคู่และติดตามสถานะ", icon: "📋", group: "match" },
     { to: "/influencer/payment-profile", label: "收款信息", menuHint: "ตั้งค่าบัญชีรับเงินสำหรับการโอน", icon: "💳", group: "match" },
     { to: "/influencer/profile", label: "达人信息", menuHint: "完善账号与擅长领域后才可报名", icon: "👤", group: "match" },
+    { to: "/influencer/vertical-connections", label: "合作中心", menuHint: "ดูภาพรวมการเชื่อมต่อ", icon: "🏠", group: "vertical" },
     { to: "/influencer/vertical-connections/invitations", label: invBadge > 0 ? `建联邀请 (${invBadge})` : "建联邀请", menuHint: "ดูคำเชิญเชื่อมต่อ", icon: "📨", group: "vertical" },
     { to: "/influencer/vertical-connections/orders", label: orderBadge > 0 ? `我的派单 (${orderBadge})` : "我的派单", menuHint: "รายการคำสั่งงาน", icon: "📋", group: "vertical" },
     { to: "/influencer/vertical-connections/payment", label: "收款设置", menuHint: "ตั้งค่าบัญชีรับเงิน", icon: "💳", group: "vertical" },
