@@ -70,13 +70,17 @@ export default function AdminVCProfilesPage() {
         await fetchWithAuth("/api/admin/influencer-profiles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       }
       setEditing(null); setForm({}); load();
-    } catch (e: any) { setError(e.message); }
+      showToast("success", editing?.id ? "保存成功" : "新增成功");
+    } catch (e: any) { showToast("error", e.message||"保存失败"); }
     finally { setSaving(false); }
   };
 
   const startNew = () => { setEditing({ id: 0 } as any); setForm({ source: "contact_us", category: CATEGORIES[0].th, status: "active" }); };
-  const del = async (id: number) => { if (!confirm("确认删除？")) return; await fetchWithAuth(`/api/admin/influencer-profiles/${id}`, { method: "DELETE" }); load(); };
-  const autoGrade = async () => { await fetchWithAuth("/api/admin/influencer-profiles/auto-grade"); load(); };
+  const [toast, setToast] = useState<{type:"success"|"error",msg:string}|null>(null);
+  const showToast = (type: "success"|"error", msg: string) => { setToast({type,msg}); setTimeout(()=>setToast(null),3000); };
+
+  const del = async (id: number) => { if (!confirm("确认删除该达人？")) return; try { await fetchWithAuth(`/api/admin/influencer-profiles/${id}`, { method: "DELETE" }); showToast("success","删除成功"); load(); } catch(e:any) { showToast("error",e.message||"删除失败"); } };
+  const autoGrade = async () => { try { const r = await fetchWithAuth("/api/admin/influencer-profiles/auto-grade"); const d = await r.json(); showToast("success", `等级已重新计算 (${d.updated||0}条)`); load(); } catch(e:any) { showToast("error", e.message||"重新计算失败"); } };
 
   const i = (f: string, p?: string) => <input value={String(form[f] || "")} onChange={e => setForm(ff => ({ ...ff, [f]: e.target.value }))} placeholder={p || f} style={si} />;
   const sel = (f: string, o: string[]) => <select value={String(form[f] || "")} onChange={e => setForm(ff => ({ ...ff, [f]: e.target.value }))} style={si}>{o.map(v => <option key={v} value={v}>{v}</option>)}</select>;
@@ -88,6 +92,12 @@ export default function AdminVCProfilesPage() {
         <h2 style={{ margin: 0 }}>{t("达人资料管理")}</h2>
       </div>
       {error && <p style={{ color: "#c00" }}>{error}</p>}
+      {toast && (
+        <div style={{position:"fixed",top:20,right:20,background:toast.type==="success"?"#166534":"#b91c1c",color:"#fff",padding:"12px 20px",borderRadius:8,zIndex:2000,fontWeight:700,boxShadow:"0 4px 12px rgba(0,0,0,0.2)"}}>
+          {toast.type==="success"?"✅":"❌"} {toast.msg}
+          <button onClick={()=>setToast(null)} style={{marginLeft:12,background:"none",border:"none",color:"#fff",cursor:"pointer",fontWeight:700}}>×</button>
+        </div>
+      )}
       {showErrors.length > 0 && (
         <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}} onClick={()=>setShowErrors([])}>
           <div style={{background:"#fff",borderRadius:12,padding:24,maxWidth:450,width:"90%"}} onClick={e=>e.stopPropagation()}>
