@@ -63,10 +63,10 @@ export default function InfluencerVCProfile() {
   const autoSave = (data: any) => {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(async () => {
-      if (!data.influencer_code) return;
+      // 仅当 profile 已存在（首次手动保存成功）后才执行自动保存，避免创建不完整的记录
+      if (!data.influencer_code || !initialForm.current) return;
       try {
         await fetchWithAuth("/api/influencer/profile", { method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify(data) });
-        setIsNew(false);
         initialForm.current = JSON.stringify(data);
       } catch {}
     }, 1500);
@@ -91,12 +91,16 @@ export default function InfluencerVCProfile() {
     if (errors.length > 0) { setShowErrors(errors); return; }
     setShowErrors([]); setSaving(true);
     try {
-      await fetchWithAuth("/api/influencer/profile", { method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify(form) });
+      const r = await fetchWithAuth("/api/influencer/profile", { method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify(form) });
+      if (!r.ok) {
+        const errData = await r.json().catch(() => ({}));
+        throw new Error(errData.message || `保存失败 (${r.status})`);
+      }
       setIsNew(false);
       initialForm.current = JSON.stringify(form);
       setSaved(true); setDirty(false);
       setToast({type:"success",msg:"保存成功"});
-      setTimeout(()=>{setToast(null);nav("/influencer/vertical-connections/invitations");},1200);
+      setTimeout(()=>{setToast(null);nav("/influencer/vertical-connections");},1200);
     } catch(e:any) { setToast({type:"error",msg:e.message||"保存失败，请重试"}); }
     finally { setSaving(false); }
   };

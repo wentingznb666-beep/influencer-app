@@ -211,6 +211,7 @@ export const adminInfluencerProfiles = adminRouter;
 
 // Client routes
 const clientRouter = Router();
+clientRouter.use(requireAuth);
 clientRouter.use(requireRole("client"));
 
 clientRouter.get("/categories", async (_req: AuthRequest, res: Response) => {
@@ -255,6 +256,7 @@ export const clientInfluencerProfiles = clientRouter;
 
 // Influencer routes
 const influencerRouter = Router();
+influencerRouter.use(requireAuth);
 influencerRouter.use(requireRole("influencer"));
 
 influencerRouter.get("/profile", async (req: AuthRequest, res: Response) => {
@@ -285,6 +287,8 @@ influencerRouter.put("/profile", async (req: AuthRequest, res: Response) => {
       }
       const grade = calcGrade(req.body);
       if (grade !== undefined) { cols.push("grade"); vals.push(grade); }
+      // 显式设置 status 确保 GET 查询能匹配到
+      cols.push("status"); vals.push("active");
       const placeholders = vals.map((_,i) => `$${i+1}`).join(", ");
       await query(`INSERT INTO influencer_profiles_full (${cols.join(", ")}) VALUES (${placeholders})`, vals);
       res.json({ ok: true, grade });

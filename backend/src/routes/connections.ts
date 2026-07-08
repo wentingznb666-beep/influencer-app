@@ -16,6 +16,7 @@ async function sendMsg(userId: number, category: string, title: string, content:
 
 // ==== CLIENT ROUTES ====
 const clientRouter = Router();
+clientRouter.use(requireAuth);
 clientRouter.use(requireRole("client"));
 
 clientRouter.get("/connections", async (req: AuthRequest, res: Response) => {
@@ -237,6 +238,7 @@ clientRouter.post("/connection-orders/:id/confirm-payment", async (req: AuthRequ
 
 // ==== INFLUENCER ROUTES ====
 const influencerRouter = Router();
+influencerRouter.use(requireAuth);
 influencerRouter.use(requireRole("influencer"));
 
 // 首页仪表盘统计
@@ -293,7 +295,7 @@ influencerRouter.patch("/connections/:id", async (req: AuthRequest, res: Respons
       await logOperation(req.user!.userId, "accept", "connection", parseInt(String(req.params.id)), "达人接受建联邀请");
       await sendMsg(conn.client_id, "connection_invite", "建联已接受", "达人已接受你的建联邀请", "/client/vertical-connections/my?tab=active");
     } else if (action === "reject") {
-      await query("UPDATE influencer_connections SET status = 'rejected', updated_at = now() WHERE id = $1", [req.params.id]);
+      await query("UPDATE influencer_connections SET status = 'rejected', reject_reason = $1, updated_at = now() WHERE id = $2", [reject_reason || null, req.params.id]);
       await logOperation(req.user!.userId, "reject", "connection", parseInt(String(req.params.id)), `达人拒绝建联，原因：${reject_reason || ""}`);
       await sendMsg(conn.client_id, "connection_invite", "建联已拒绝", `达人已拒绝你的建联邀请${reject_reason ? "，原因：" + reject_reason : ""}`, "/client/vertical-connections/my");
     }
@@ -370,7 +372,7 @@ adminRouter.patch("/connections/:id/proxy", async (req: AuthRequest, res: Respon
       await sendMsg(conn.rows[0].client_id, "connection_invite", "建联已接受(代)", "管理员已代替达人接受建联", "/client/vertical-connections/my?tab=active");
     } else if (action === "reject") {
       if (!reject_reason) return res.status(400).json({ error: "MISSING_REASON" });
-      await query("UPDATE influencer_connections SET status = 'rejected', updated_at = now() WHERE id = $1", [req.params.id]);
+      await query("UPDATE influencer_connections SET status = 'rejected', reject_reason = $1, updated_at = now() WHERE id = $2", [reject_reason, req.params.id]);
       await logOperation(req.user!.userId, "proxy_reject", "connection", parseInt(String(req.params.id)), `代替达人拒绝建联，原因：${reject_reason}`);
       await sendMsg(conn.rows[0].client_id, "connection_invite", "建联已拒绝(代)", `管理员已代替达人拒绝，原因：${reject_reason}`, "/client/vertical-connections/my");
     }

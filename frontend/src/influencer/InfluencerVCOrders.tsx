@@ -1,6 +1,31 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchWithAuth } from "../fetchWithAuth";
+
+const VIEWED_KEY = "influencer_viewed_order_ids";
+
+function loadViewed(): Set<number> {
+  try {
+    const raw = localStorage.getItem(VIEWED_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch { return new Set(); }
+}
+
+function saveViewed(ids: Set<number>) {
+  try { localStorage.setItem(VIEWED_KEY, JSON.stringify([...ids])); } catch {}
+}
+
+function getDeadlineInfo(deadline: string | null | undefined): { text: string; urgent: boolean } | null {
+  if (!deadline) return null;
+  const now = Date.now();
+  const dl = new Date(deadline).getTime();
+  const diffMs = dl - now;
+  const diffHours = diffMs / (1000 * 60 * 60);
+  if (diffMs <= 0) return { text: "已逾期", urgent: true };
+  if (diffHours <= 24) return { text: `剩余 ${Math.ceil(diffHours)} 小时`, urgent: true };
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  return { text: `剩余 ${diffDays} 天`, urgent: false };
+}
 
 export default function InfluencerVCOrders() {
   const nav = useNavigate();
@@ -9,19 +34,25 @@ export default function InfluencerVCOrders() {
   const [loading, setLoading] = useState(true);
   const [rejectId, setRejectId] = useState<number|0>(0);
   const [rejectReason, setRejectReason] = useState("");
+  const [viewed, setViewed] = useState<Set<number>>(() => loadViewed());
+
+  const markViewed = useCallback((id: number) => {
+    setViewed(prev => { const next = new Set(prev); next.add(id); saveViewed(next); return next; });
+  }, []);
 
   const load = async () => {
     setLoading(true);
     try {
       const r = await fetchWithAuth("/api/influencer/connection-orders");
       let items = ((await r.json()).list || []);
-      // Sort: pending_response > need_submit > need_revise > others
+      // Sort: 待回应 > 需要修改 > 待提交 > 已提交/审核中 > 已完成 > 已拒绝
       const getPriority = (o:any) => {
-        if (o.influencer_response==="pending") return 0;
-        if (o.review_status==="rejected") return 1;
-        if (o.influencer_response==="accepted" && !o.submission_content) return 2;
-        if (o.payment_status==="paid") return 4;
-        return 3;
+        if (o.influencer_response==="pending") return 0;            // 待回应 — 最高
+        if (o.review_status==="rejected") return 1;                 // 需要修改
+        if (o.influencer_response==="accepted" && !o.submission_content) return 2; // 待提交
+        if (o.influencer_response==="rejected") return 5;           // 已拒绝 — 最低
+        if (o.payment_status==="paid") return 4;                    // 已完成
+        return 3;                                                    // 已提交/审核中
       };
       items.sort((a:any,b:any)=>getPriority(a)-getPriority(b)||new Date(b.created_at).getTime()-new Date(a.created_at).getTime());
       setList(items);
@@ -67,21 +98,25 @@ export default function InfluencerVCOrders() {
       </div>
       {loading ? <p>加载中...</p> : filtered.length===0 ? (
         <p style={{color:"#94a3b8",textAlign:"center",padding:40}}>还没有派单任务，建联成功后商家会向你派单</p>
-      ) : filtered.map((o:any)=>(
-        <div key={o.id} style={card} onClick={()=>nav(`/influencer/vertical-connections/orders/${o.id}`)}>
+      ) : filtered.map((o:any)=>{
+        const isNew = !viewed.has(o.id);
+        const dlInfo = getDeadlineInfo(o.deadline);
+        return (
+        <div key={o.id} style={{...card, background: isNew ? "#fef9e7" : "#fff", fontWeight: isNew ? 700 : 400}} onClick={()=>{markViewed(o.id);nav(`/influencer/vertical-connections/orders/${o.id}`);}}>
           {/* "New" badge */}
           {o.influencer_response==="pending" && <span style={newBadge}>新</span>}
           <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap"}}>
             <div>
               <strong>{o.order_no}</strong>
-              <span style={{marginLeft:8,fontSize:13,color:"#64748b"}}>{o.client_username||`商家#${o.client_id}`}</span>
+              <span style={{marginLeft:8,fontSize:13,color:"#64748b",fontWeight:400}}>{o.client_username||`商家#${o.client_id}`}</span>
             </div>
             <span style={tg(statusLabel(o))}>{statusLabel(o)}</span>
           </div>
-          <p style={{fontSize:13,margin:"4px 0",color:"#475569"}}>{o.title}</p>
+          <p style={{fontSize:13,margin:"4px 0",color:"#475569",fontWeight:isNew?600:400}}>{o.title}</p>
           <p style={{fontSize:13,margin:0,color:"#64748b"}}>
             <strong>{o.amount} THB</strong>
             {o.deadline && <span style={{marginLeft:8}}>截止: {new Date(o.deadline).toLocaleDateString()}</span>}
+            {dlInfo && <span style={{marginLeft:8,fontSize:12,fontWeight:600,color:dlInfo.urgent?"#dc2626":"#64748b"}}>⏰ {dlInfo.text}</span>}
           </p>
           {o.review_note && <p style={{fontSize:12,color:"#b91c1c",background:"#fee2e2",padding:"4px 8px",borderRadius:6,margin:"4px 0 0"}}>驳回: {o.review_note}</p>}
 
@@ -100,17 +135,17 @@ export default function InfluencerVCOrders() {
               </>
             )}
             {o.influencer_response==="accepted" && !o.submission_content && o.review_status!=="rejected" && (
-              <button onClick={()=>nav(`/influencer/vertical-connections/orders/${o.id}`)} style={acc}>去提交</button>
+              <button onClick={()=>{markViewed(o.id);nav(`/influencer/vertical-connections/orders/${o.id}`);}} style={acc}>去提交</button>
             )}
             {o.review_status==="rejected" && (
-              <button onClick={()=>nav(`/influencer/vertical-connections/orders/${o.id}`)} style={{...acc,background:"#dc2626"}}>修改重提</button>
+              <button onClick={()=>{markViewed(o.id);nav(`/influencer/vertical-connections/orders/${o.id}`);}} style={{...acc,background:"#dc2626"}}>修改重提</button>
             )}
             {o.submission_content && o.review_status!=="rejected" && o.payment_status!=="paid" && (
               <span style={{fontSize:12,color:"#64748b"}}>等待商家审核...</span>
             )}
           </div>
         </div>
-      ))}
+      )})}
     </div>
   );
 }

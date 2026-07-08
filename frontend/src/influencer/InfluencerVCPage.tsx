@@ -26,8 +26,8 @@ export default function InfluencerVCPage() {
     const body: any = { action };
     if (action === "reject") body.reject_reason = rejectReason;
     await fetchWithAuth(`/api/influencer/connections/${id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
-    if (action==="accept") { setMsg("✅ 已接受建联邀请"); setTimeout(()=>{setTab("active");load();},800); }
-    else { setRejectId(0); setRejectReason(""); load(); }
+    if (action==="accept") { setMsg("✅ 已接受建联邀请，等待商家派单"); setTimeout(()=>{setTab("active");setMsg("");},800); }
+    else { setRejectId(0); setRejectReason(""); setMsg("已拒绝该邀请"); setTab("rejected"); }
   };
 
   const counts = { pending: list.filter(c=>c.status==="pending").length };
@@ -44,7 +44,7 @@ export default function InfluencerVCPage() {
       <div style={{display:"flex",gap:8,marginBottom:16}}>
         {tabs.map(t=>{
           const badge = t==="pending" && counts.pending > 0 ? ` (${counts.pending})` : "";
-          return <button key={t} onClick={()=>{setTab(t);setRejectId(0);}} style={{...tabStyle,background:tab===t?"var(--xt-accent)":"#fff",color:tab===t?"#fff":"#334155",fontWeight:tab===t?700:400}}>{tabLabels[t]}{badge}</button>;
+          return <button key={t} onClick={()=>{setTab(t);setRejectId(0);setMsg("");}} style={{...tabStyle,background:tab===t?"var(--xt-accent)":"#fff",color:tab===t?"#fff":"#334155",fontWeight:tab===t?700:400}}>{tabLabels[t]}{badge}</button>;
         })}
       </div>
 
@@ -75,6 +75,7 @@ export default function InfluencerVCPage() {
             </div>
           )}
           {c.status==="active" && <p style={{fontSize:12,color:"#166534",marginTop:8}}>⏳ 等待商家派单</p>}
+          {c.status==="rejected" && c.reject_reason && <p style={{fontSize:12,color:"#b91c1c",marginTop:4}}>拒绝原因: {c.reject_reason}</p>}
         </div>
       ))}
     </div>

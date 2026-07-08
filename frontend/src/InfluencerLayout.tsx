@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { getInfluencerPermissionStatus } from "./matchingApi";
 import DashboardShell, { type DashboardNavItem } from "./DashboardShell";
 import { useAppStore } from "./stores/AppStore";
+import { fetchWithAuth } from "./fetchWithAuth";
 
 type PermissionStatus = "unapplied" | "pending" | "approved" | "rejected" | "disabled";
 
@@ -41,10 +42,9 @@ export default function InfluencerLayout() {
   useEffect(() => {
     (async () => {
       try {
-        const tok = localStorage.getItem("access_token") || "";
         const [rc, ro] = await Promise.all([
-          fetch("/api/influencer/connections", { headers: { Authorization: `Bearer ${tok}` } }),
-          fetch("/api/influencer/connection-orders", { headers: { Authorization: `Bearer ${tok}` } }),
+          fetchWithAuth("/api/influencer/connections"),
+          fetchWithAuth("/api/influencer/connection-orders"),
         ]);
         const conns = ((await rc.json()).list || []);
         const orders = ((await ro.json()).list || []);

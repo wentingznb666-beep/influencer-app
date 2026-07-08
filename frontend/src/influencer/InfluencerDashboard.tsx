@@ -41,8 +41,8 @@ const [vcProfile, setVcProfile] = useState<any>(null);
   useEffect(() => {
     (async () => {
       try {
-        const tok = localStorage.getItem("access_token") || "";
-        const r = await fetch("/api/influencer/connections/home-stats", { headers: { Authorization: `Bearer ${tok}` } });
+        const r = await fetchWithAuth("/api/influencer/connections/home-stats");
+        if (!r.ok) return;
         const d = await r.json();
         setVcProfile(d.has_profile);
         setVcPending(d.pending_invites||0);
@@ -133,15 +133,13 @@ const navCards = [
       {/* 达人合作中心板块 */}
       <div style={{ marginBottom: compactPx(24) }}>
         <h3 style={{ margin: `0 0 ${compactPx(12)}px`, fontSize: compactPx(16), fontWeight: 700, color: "var(--xt-primary)" }}>🤝 达人合作中心</h3>
-        {/* Stats */}
-        {(vcPending > 0 || vcNeedRevise > 0 || vcCompleted > 0) && (
-          <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-            <div style={{ ...vcStatCard, background: "#fef3c7" }}><div style={vcStatNum}>{vcPending}</div><div style={vcStatLabel}>待处理邀请</div></div>
-            <div style={{ ...vcStatCard, background: "#dbeafe" }}><div style={vcStatNum}>{vcNeedSubmit||0}</div><div style={vcStatLabel}>待提交作品</div></div>
-            <div style={{ ...vcStatCard, background: "#fee2e2" }}><div style={vcStatNum}>{vcNeedRevise||0}</div><div style={vcStatLabel}>需要修改</div></div>
-            <div style={{ ...vcStatCard, background: "#dcfce7" }}><div style={vcStatNum}>{vcCompleted||0}</div><div style={vcStatLabel}>已完成</div></div>
-          </div>
-        )}
+        {/* Stats — always visible */}
+        <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+          <div style={{ ...vcStatCard, background: "#fef3c7" }}><div style={vcStatNum}>{vcPending}</div><div style={vcStatLabel}>待处理邀请</div></div>
+          <div style={{ ...vcStatCard, background: "#dbeafe" }}><div style={vcStatNum}>{vcNeedSubmit||0}</div><div style={vcStatLabel}>待提交作品</div></div>
+          <div style={{ ...vcStatCard, background: "#fee2e2" }}><div style={vcStatNum}>{vcNeedRevise||0}</div><div style={vcStatLabel}>需要修改</div></div>
+          <div style={{ ...vcStatCard, background: "#dcfce7" }}><div style={vcStatNum}>{vcCompleted||0}</div><div style={vcStatLabel}>已完成</div></div>
+        </div>
         {/* Guide card */}
         {(() => {
           if (!vcProfile) return <div onClick={()=>navigate("/influencer/vertical-connections/profile")} style={{background:"#fef3c7",borderRadius:10,padding:12,cursor:"pointer",display:"flex",alignItems:"center",gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:"#92400e"}}>📝 请先完善个人资料，才能接收建联邀请 <span style={{marginLeft:"auto",fontSize:12}}>去完善 →</span></div>;
@@ -154,8 +152,8 @@ const navCards = [
         <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
           <button onClick={()=>navigate("/influencer/vertical-connections/invitations")} style={{padding:"6px 12px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:12}}>📨 建联邀请</button>
           <button onClick={()=>navigate("/influencer/vertical-connections/orders")} style={{padding:"6px 12px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:12}}>📋 我的派单</button>
-          <button onClick={()=>navigate("/influencer/vertical-connections/profile")} style={{padding:"6px 12px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:12}}>👤 我的资料</button>
           <button onClick={()=>navigate("/influencer/vertical-connections/payment")} style={{padding:"6px 12px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:12}}>💳 收款设置</button>
+          <button onClick={()=>navigate("/influencer/vertical-connections/profile")} style={{padding:"6px 12px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:12}}>👤 我的资料</button>
         </div>
       </div>
 
