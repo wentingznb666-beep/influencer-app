@@ -224,7 +224,7 @@ influencerRouter.use(requireRole("influencer"));
 influencerRouter.get("/connections/home-stats", async (req: AuthRequest, res: Response) => {
   try {
     const uid = req.user!.userId;
-    const [[cr], [or], [pr], [msgs]] = await Promise.all([
+    const [cr, or, pr, msgs] = await Promise.all([
       query("SELECT COUNT(*)::int as c FROM influencer_connections WHERE influencer_id = $1 AND status = 'pending'", [uid]),
       query("SELECT COUNT(*)::int as c FROM connection_orders WHERE influencer_id = $1 AND influencer_response = 'pending'", [uid]),
       query("SELECT influencer_code, category, grade, quoted_price, payment_info FROM influencer_profiles_full WHERE user_id = $1 AND status = 'active'", [uid]),
