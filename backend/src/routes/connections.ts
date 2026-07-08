@@ -336,6 +336,48 @@ adminRouter.get("/connections", async (req: AuthRequest, res: Response) => {
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
 
+// 代达人接受/拒绝建联
+adminRouter.patch("/connections/:id/proxy", async (req: AuthRequest, res: Response) => {
+  try {
+    const { action, reject_reason } = req.body || {};
+    if (!action) return res.status(400).json({ error: "MISSING" });
+    const conn = await query("SELECT ic.*, ipf.user_id as influencer_user_id FROM influencer_connections ic LEFT JOIN influencer_profiles_full ipf ON ic.influencer_profile_id = ipf.id WHERE ic.id = $1", [req.params.id]);
+    if (!conn.rows[0]) return res.status(404).json({ error: "NOT_FOUND" });
+    if (action === "accept") {
+      await query("UPDATE influencer_connections SET status = 'active', updated_at = now() WHERE id = $1", [req.params.id]);
+      await sendMsg(conn.rows[0].client_id, "connection_invite", "建联已接受(代)", "管理员已代替达人接受建联", "/client/vertical-connections/my?tab=active");
+    } else if (action === "reject") {
+      if (!reject_reason) return res.status(400).json({ error: "MISSING_REASON" });
+      await query("UPDATE influencer_connections SET status = 'rejected', updated_at = now() WHERE id = $1", [req.params.id]);
+      await sendMsg(conn.rows[0].client_id, "connection_invite", "建联已拒绝(代)", `管理员已代替达人拒绝，原因：${reject_reason}`, "/client/vertical-connections/my");
+    }
+    res.json({ ok: true });
+  } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
+});
+
+// 代达人提交/修改作品
+adminRouter.post("/connection-orders/:id/proxy-submit", async (req: AuthRequest, res: Response) => {
+  try {
+    const { submission_content } = req.body || {};
+    if (!submission_content) return res.status(400).json({ error: "MISSING" });
+    await query("UPDATE connection_orders SET submission_content = $1, status = 'submitted', review_status = 'pending_review', updated_at = now() WHERE id = $2", [submission_content, req.params.id]);
+    const order = await query("SELECT client_id, order_no FROM connection_orders WHERE id = $1", [req.params.id]);
+    if (order.rows[0]) await sendMsg(order.rows[0].client_id, "connection_order", "达人已提交作品(代)", `订单 ${order.rows[0].order_no} 管理员已代替达人提交作品`, "/client/vertical-connections/my");
+    res.json({ ok: true });
+  } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
+});
+
+adminRouter.post("/connection-orders/:id/proxy-revise", async (req: AuthRequest, res: Response) => {
+  try {
+    const { submission_content } = req.body || {};
+    if (!submission_content) return res.status(400).json({ error: "MISSING" });
+    await query("UPDATE connection_orders SET submission_content = $1, review_status = 'pending_review', status = 'submitted', revised_at = now(), updated_at = now() WHERE id = $2 AND review_status = 'rejected'", [submission_content, req.params.id]);
+    const order = await query("SELECT client_id, order_no FROM connection_orders WHERE id = $1", [req.params.id]);
+    if (order.rows[0]) await sendMsg(order.rows[0].client_id, "connection_order", "达人已修改重提(代)", `订单 ${order.rows[0].order_no} 管理员已代替达人修改重提`, "/client/vertical-connections/my");
+    res.json({ ok: true });
+  } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
+});
+
 adminRouter.patch("/connections/:id", async (req: AuthRequest, res: Response) => {
   try {
     const { status, intervention_note } = req.body || {};
@@ -369,7 +411,7 @@ adminRouter.get("/connection-orders", async (req: AuthRequest, res: Response) =>
     const anomaly = req.query.anomaly === "1";
     let where = "";
     if (anomaly) where = "WHERE (co.influencer_response = 'rejected' AND (co.influencer_reject_reason IS NULL OR co.influencer_reject_reason = '')) OR (co.review_status = 'rejected' AND (co.review_note IS NULL OR co.review_note = '')) OR (co.influencer_response = 'pending' AND co.created_at < NOW() - INTERVAL '48 hours')";
-    const { rows } = await query(`SELECT co.*, c.username as client_username, inf.username as influencer_username FROM connection_orders co LEFT JOIN users c ON co.client_id = c.id LEFT JOIN users inf ON co.influencer_id = inf.id ${where} ORDER BY co.id DESC LIMIT 500`);
+    const { rows } = await query(`SELECT co.*, c.username as client_username, inf.username as influencer_username, ipf.user_id as influencer_user_id FROM connection_orders co LEFT JOIN users c ON co.client_id = c.id LEFT JOIN users inf ON co.influencer_id = inf.id LEFT JOIN influencer_profiles_full ipf ON co.influencer_id = ipf.user_id ${where} ORDER BY co.id DESC LIMIT 500`);
     // Financial stats
     const [fs1, fs2, fs3] = await Promise.all([
       query("SELECT COALESCE(SUM(amount),0)::float as total FROM connection_orders"),

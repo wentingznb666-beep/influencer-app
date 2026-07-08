@@ -34,6 +34,30 @@ export default function AdminVCOrdersPage() {
     load();
   };
 
+  const proxyAccept = async (id: number) => { 
+    if (!confirm("确认代替达人接受该派单？")) return;
+    await fetchWithAuth(`/api/influencer/connection-orders/${id}/respond`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({action:"accept"}) });
+    load();
+  };
+  const proxyReject = async (id: number) => {
+    const reason = prompt("拒绝原因（必填）：");
+    if (!reason) return;
+    await fetchWithAuth(`/api/influencer/connection-orders/${id}/respond`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({action:"reject",reject_reason:reason}) });
+    load();
+  };
+  const proxySubmit = async (id: number) => {
+    const content = prompt("作品内容/链接：");
+    if (!content) return;
+    await fetchWithAuth(`/api/admin/connection-orders/${id}/proxy-submit`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({submission_content:content}) });
+    load();
+  };
+  const proxyRevise = async (id: number) => {
+    const content = prompt("修改后的作品内容：");
+    if (!content) return;
+    await fetchWithAuth(`/api/admin/connection-orders/${id}/proxy-revise`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({submission_content:content}) });
+    load();
+  };
+
   const isAnomaly = (o: any) => {
     if (o.influencer_response==="rejected" && (!o.influencer_reject_reason||o.influencer_reject_reason.trim()==="")) return "拒绝无原因";
     if (o.review_status==="rejected" && (!o.review_note||o.review_note.trim()==="")) return "驳回无备注";
@@ -67,6 +91,14 @@ export default function AdminVCOrdersPage() {
           {o.review_note && <p style={{...sm,color:"#92400e"}}>驳回: {o.review_note}</p>}
           {o.payment_voucher && <p style={sm}>凭证: {o.payment_voucher}</p>}
           <div style={{marginTop:6,display:"flex",gap:6}}>
+            {o.influencer_user_id===null && (
+              <div style={{marginTop:4,display:"flex",gap:4}}>
+                <span style={{fontSize:10,color:"#64748b",background:"#f1f5f9",padding:"1px 6px",borderRadius:4}}>🛠 托管达人</span>
+                {o.influencer_response==="pending" && <><button onClick={()=>proxyAccept(o.id)} style={{...ssm,background:"#dcfce7",border:"1px dashed #16a34a",color:"#166534"}}>✅ 代接受</button><button onClick={()=>proxyReject(o.id)} style={{...ssm,border:"1px dashed #ef4444",color:"#b91c1c"}}>❌ 代拒绝</button></>}
+                {o.influencer_response==="accepted" && !o.submission_content && <button onClick={()=>proxySubmit(o.id)} style={{...ssm,border:"1px dashed var(--xt-accent)",color:"var(--xt-accent)"}}>📤 代提交</button>}
+                {o.review_status==="rejected" && <button onClick={()=>proxyRevise(o.id)} style={{...ssm,border:"1px dashed #dc2626",color:"#dc2626"}}>🔧 代修改重提</button>}
+              </div>
+            )}
             {o.review_status==="approved" && o.payment_status!=="paid" && <button onClick={()=>adminAction(o.id,"mark_paid")} style={ssm}>标记已付款</button>}
             {o.payment_voucher && <button onClick={()=>adminAction(o.id,"reject_voucher")} style={{...ssm,color:"#b91c1c"}}>驳回凭证</button>}
           </div>
