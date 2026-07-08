@@ -115,8 +115,8 @@ clientRouter.post("/connection-orders", async (req: AuthRequest, res: Response) 
     if (!amount) return res.status(400).json({ error: "NO_PRICE", message: "该达人尚未设置报价" });
     const orderNo = genOrderNo();
     const { rows } = await query(
-      `INSERT INTO connection_orders (connection_id, client_id, influencer_id, order_no, title, task_requirements, delivery_standards, deadline, submission_types, amount) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-      [connection_id, req.user!.userId, actualInfluencerUserId, orderNo, title, task_requirements, delivery_standards, deadline, String(submission_types || ""), amount]
+      `INSERT INTO connection_orders (connection_id, client_id, influencer_id, influencer_profile_id, order_no, title, task_requirements, delivery_standards, deadline, submission_types, amount) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+      [connection_id, req.user!.userId, actualInfluencerUserId, influencer_id, orderNo, title, task_requirements, delivery_standards, deadline, String(submission_types || ""), amount]
     );
     await sendMsg(actualInfluencerUserId, "connection_order", "新的定向派单", `商家向你派发了新订单：${title}`, `/influencer/vertical-connections/orders`);
     res.status(201).json({ id: rows[0].id, order_no: orderNo });
@@ -138,8 +138,8 @@ clientRouter.post("/connection-orders/batch", async (req: AuthRequest, res: Resp
         if (!prof.rows[0]?.user_id || !prof.rows[0]?.quoted_price) continue;
         const orderNo = genOrderNo();
         const { rows } = await query(
-          `INSERT INTO connection_orders (connection_id, client_id, influencer_id, order_no, title, task_requirements, delivery_standards, deadline, submission_types, amount) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-          [connId, req.user!.userId, prof.rows[0].user_id, orderNo, title, task_requirements, delivery_standards, deadline, String(submission_types || ""), prof.rows[0].quoted_price]
+          `INSERT INTO connection_orders (connection_id, client_id, influencer_id, influencer_profile_id, order_no, title, task_requirements, delivery_standards, deadline, submission_types, amount) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+          [connId, req.user!.userId, prof.rows[0].user_id, conn.rows[0].influencer_profile_id, orderNo, title, task_requirements, delivery_standards, deadline, String(submission_types || ""), prof.rows[0].quoted_price]
         );
         await sendMsg(prof.rows[0].user_id, "connection_order", "新的定向派单", `商家向你派发了新订单：${title}`, `/influencer/vertical-connections/orders`);
         success.push({ connection_id: connId, order_id: rows[0].id, order_no: orderNo });
