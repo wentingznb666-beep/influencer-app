@@ -6,8 +6,6 @@ import * as api from "../influencerApi";
 import { fetchWithAuth } from "../fetchWithAuth";
 
 /** 达人首页：简洁内容概览 + 快捷入口 */
-const vcCard = (color: string): React.CSSProperties => ({ background: "#fff", border: `1px solid ${color}22`, borderRadius: "12px", padding: "16px", cursor: "pointer", textAlign: "center" as const, transition: "0.2s" });
-
 export default function InfluencerDashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -34,23 +32,32 @@ export default function InfluencerDashboard() {
     }
   };
 
-  const [vcProfile, setVcProfile] = useState<any>(null);
+const [vcProfile, setVcProfile] = useState<any>(null);
   const [vcPending, setVcPending] = useState(0);
-  const [vcPaymentSet, setVcPaymentSet] = useState(false);
+  const [vcNeedRevise, setVcNeedRevise] = useState(0);
+  const [vcCompleted, setVcCompleted] = useState(0);
+  const [vcNeedSubmit, setVcNeedSubmit] = useState(0);
 
   useEffect(() => {
     (async () => {
       try {
-        const r = await fetchWithAuth("/api/influencer/profile");
-        const p = await r.json();
-        setVcProfile(p);
-        if (p?.payment_info) setVcPaymentSet(true);
-        try { const cr = await fetchWithAuth("/api/influencer/connections?tab=pending"); const cd = await cr.json(); setVcPending((cd.list || []).length); } catch {}
+        const tok = localStorage.getItem("access_token") || "";
+        const r = await fetch("/api/influencer/connections/home-stats", { headers: { Authorization: `Bearer ${tok}` } });
+        const d = await r.json();
+        setVcProfile(d.has_profile);
+        setVcPending(d.pending_invites||0);
+        setVcNeedRevise(d.need_revisions||0);
+        setVcCompleted(d.completed||0);
+        setVcNeedSubmit(d.pending_submissions||0);
       } catch {}
     })();
   }, []);
 
-  const navCards = [
+  const vcStatCard: React.CSSProperties = { borderRadius: 10, padding: "12px 16px", flex: 1, minWidth: 100, textAlign: "center" };
+const vcStatNum: React.CSSProperties = { fontSize: 24, fontWeight: 800 };
+const vcStatLabel: React.CSSProperties = { fontSize: 11, marginTop: 4 };
+
+const navCards = [
     { icon: "📋", label: t("可接任务"), sub: availableTasks > 0 ? `${availableTasks} ${t("个任务")}` : t("暂无"), to: "/influencer/task-hall", color: "#2563eb" },
     { icon: "📦", label: t("我的订单"), sub: pendingOrders > 0 ? `${pendingOrders} ${t("进行中")}` : t("暂无"), to: "/influencer/client-orders", color: "#7c3aed" },
     { icon: "💰", label: t("积分余额"), sub: balance != null ? `${balance} ${t("积分")}` : "—", to: "/influencer/payment-profile", color: "#059669" },
@@ -123,27 +130,32 @@ export default function InfluencerDashboard() {
         ))}
       </div>
 
-      {/* 垂直达人建联板块 */}
+      {/* 达人合作中心板块 */}
       <div style={{ marginBottom: compactPx(24) }}>
-        <h3 style={{ margin: `0 0 ${compactPx(12)}px`, fontSize: compactPx(16), fontWeight: 700, color: "var(--xt-primary)" }}>🔗 垂直达人建联</h3>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: compactPx(12) }}>
-          <button type="button" onClick={() => navigate("/influencer/vertical-connections/invitations?tab=pending")} style={vcCard("#7c3aed")}>
-            <div style={{ fontSize: 28, marginBottom: 4 }}>📨</div>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>建联邀请</div>
-            <div style={{ fontSize: 13, color: "#64748b" }}>
-              {vcPending > 0 ? <span style={{ color: "#7c3aed", fontWeight: 800, fontSize: 18 }}>{vcPending}</span> : "0"} 条待处理
-            </div>
-          </button>
-          <button type="button" onClick={() => navigate("/influencer/vertical-connections/profile")} style={vcCard(vcProfile ? "#059669" : "#d97706")}>
-            <div style={{ fontSize: 28, marginBottom: 4 }}>{vcProfile ? "✅" : "⚠️"}</div>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>我的资料</div>
-            <div style={{ fontSize: 13, color: vcProfile ? "#059669" : "#92400e" }}>{vcProfile ? "资料已完善" : "资料待完善"}</div>
-          </button>
-          <button type="button" onClick={() => navigate("/influencer/vertical-connections/payment")} style={vcCard(vcPaymentSet ? "#059669" : "#d97706")}>
-            <div style={{ fontSize: 28, marginBottom: 4 }}>💳</div>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>收款设置</div>
-            <div style={{ fontSize: 13, color: vcPaymentSet ? "#059669" : "#92400e" }}>{vcPaymentSet ? "已设置" : "待设置"}</div>
-          </button>
+        <h3 style={{ margin: `0 0 ${compactPx(12)}px`, fontSize: compactPx(16), fontWeight: 700, color: "var(--xt-primary)" }}>🤝 达人合作中心</h3>
+        {/* Stats */}
+        {(vcPending > 0 || vcNeedRevise > 0 || vcCompleted > 0) && (
+          <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+            <div style={{ ...vcStatCard, background: "#fef3c7" }}><div style={vcStatNum}>{vcPending}</div><div style={vcStatLabel}>待处理邀请</div></div>
+            <div style={{ ...vcStatCard, background: "#dbeafe" }}><div style={vcStatNum}>{vcNeedSubmit||0}</div><div style={vcStatLabel}>待提交作品</div></div>
+            <div style={{ ...vcStatCard, background: "#fee2e2" }}><div style={vcStatNum}>{vcNeedRevise||0}</div><div style={vcStatLabel}>需要修改</div></div>
+            <div style={{ ...vcStatCard, background: "#dcfce7" }}><div style={vcStatNum}>{vcCompleted||0}</div><div style={vcStatLabel}>已完成</div></div>
+          </div>
+        )}
+        {/* Guide card */}
+        {(() => {
+          if (!vcProfile) return <div onClick={()=>navigate("/influencer/vertical-connections/profile")} style={{background:"#fef3c7",borderRadius:10,padding:12,cursor:"pointer",display:"flex",alignItems:"center",gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:"#92400e"}}>📝 请先完善个人资料，才能接收建联邀请 <span style={{marginLeft:"auto",fontSize:12}}>去完善 →</span></div>;
+          if (vcPending > 0) return <div onClick={()=>navigate("/influencer/vertical-connections/invitations?tab=pending")} style={{background:"#fef3c7",borderRadius:10,padding:12,cursor:"pointer",display:"flex",alignItems:"center",gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:"#92400e"}}>📨 您有 {vcPending} 个新的建联邀请待处理 <span style={{marginLeft:"auto",fontSize:12}}>查看 →</span></div>;
+          if ((vcNeedSubmit||0) > 0) return <div onClick={()=>navigate("/influencer/vertical-connections/orders")} style={{background:"#dbeafe",borderRadius:10,padding:12,cursor:"pointer",display:"flex",alignItems:"center",gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:"#1d4ed8"}}>📤 您有 {vcNeedSubmit} 个派单待提交作品 <span style={{marginLeft:"auto",fontSize:12}}>查看 →</span></div>;
+          if ((vcNeedRevise||0) > 0) return <div onClick={()=>navigate("/influencer/vertical-connections/orders")} style={{background:"#fee2e2",borderRadius:10,padding:12,cursor:"pointer",display:"flex",alignItems:"center",gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:"#b91c1c"}}>🔧 您有 {vcNeedRevise} 个订单需要修改重提 <span style={{marginLeft:"auto",fontSize:12}}>去修改 →</span></div>;
+          return <div onClick={()=>navigate("/influencer/vertical-connections/payment")} style={{background:"#dcfce7",borderRadius:10,padding:12,cursor:"pointer",display:"flex",alignItems:"center",gap:8,marginBottom:10,fontSize:14,fontWeight:600,color:"#166534"}}>🎉 资料已完善，等待商家邀请 <span style={{marginLeft:"auto",fontSize:12}}>设置收款 →</span></div>;
+        })()}
+        {/* Quick links */}
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <button onClick={()=>navigate("/influencer/vertical-connections/invitations")} style={{padding:"6px 12px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:12}}>📨 建联邀请</button>
+          <button onClick={()=>navigate("/influencer/vertical-connections/orders")} style={{padding:"6px 12px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:12}}>📋 我的派单</button>
+          <button onClick={()=>navigate("/influencer/vertical-connections/profile")} style={{padding:"6px 12px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:12}}>👤 我的资料</button>
+          <button onClick={()=>navigate("/influencer/vertical-connections/payment")} style={{padding:"6px 12px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:12}}>💳 收款设置</button>
         </div>
       </div>
 
