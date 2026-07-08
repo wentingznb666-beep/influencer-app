@@ -2063,6 +2063,19 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE influencer_profiles_full ADD COLUMN IF NOT EXISTS quoted_price DECIMAL(12,2)`);
   await query(`ALTER TABLE influencer_profiles_full ADD COLUMN IF NOT EXISTS cooperation_conditions TEXT`);
 
+  // 等级变更日志
+  await query(`
+    CREATE TABLE IF NOT EXISTS influencer_grade_log (
+      id SERIAL PRIMARY KEY,
+      profile_id INTEGER NOT NULL REFERENCES influencer_profiles_full(id),
+      old_grade VARCHAR(10),
+      new_grade VARCHAR(10),
+      reason VARCHAR(500) DEFAULT 'auto_calc',
+      changed_by INTEGER REFERENCES users(id),
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
   // ========== 垂直达人建联模块结束 ==========
 
   }

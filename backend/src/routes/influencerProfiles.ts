@@ -2,6 +2,11 @@ import { Router, Response } from "express";
 import { query } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
+async function logGradeChange(profileId: number, oldGrade: string|null, newGrade: string|null, reason: string, userId?: number) {
+  if (oldGrade === newGrade) return;
+  try { await query("INSERT INTO influencer_grade_log (profile_id, old_grade, new_grade, reason, changed_by) VALUES ($1,$2,$3,$4,$5)", [profileId, oldGrade, newGrade, reason, userId||null]); } catch {}
+}
+
 const router = Router();
 router.use(requireAuth);
 
@@ -60,7 +65,7 @@ adminRouter.get("/auto-grade", async (_req: AuthRequest, res: Response) => {
     let updated = 0;
     for (const r of rows) {
       const grade = calcGrade(r);
-      await query("UPDATE influencer_profiles_full SET grade = $1, updated_at = now() WHERE id = $2", [grade, r.id]);
+      const oldG = (await query("SELECT grade FROM influencer_profiles_full WHERE id=$1",[r.id])).rows[0]?.grade; await query("UPDATE influencer_profiles_full SET grade = $1, updated_at = now() WHERE id = $2", [grade, r.id]); await logGradeChange(r.id, oldG, grade, 'auto_calc');
       updated++;
     }
     res.json({ ok: true, updated });
@@ -84,7 +89,7 @@ adminRouter.post("/", async (req: AuthRequest, res: Response) => {
       `INSERT INTO influencer_profiles_full (influencer_code, source, followers, category, grade, gmv_sales, monthly_cart_videos, units_sold, can_live, live_sales, weekly_live_count, avg_live_hours_per_week, remark, contact_info, payment_info, quoted_price, cooperation_conditions, user_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING id`,
       [influencer_code, source, followers || null, category, grade, gmv_sales || null, monthly_cart_videos || null, units_sold || null, !!can_live, live_sales || null, weekly_live_count || null, avg_live_hours_per_week || null, remark || null, contact_info || null, payment_info || null, quoted_price || null, cooperation_conditions || null, user_id || null]
     );
-    res.status(201).json({ id: rows[0].id, grade });
+    if (grade) await logGradeChange(rows[0].id, null, grade, 'manual_admin', req.user!.userId); res.status(201).json({ id: rows[0].id, grade });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
 
@@ -104,7 +109,7 @@ adminRouter.put("/:id", async (req: AuthRequest, res: Response) => {
     if (sets.length === 0) return res.json({ ok: true });
     sets.push(`updated_at = now()`);
     const grade = calcGrade(req.body);
-    if (grade !== undefined) { sets.push(`grade = $${idx++}`); params.push(grade); }
+    if (grade !== undefined) { sets.push(`grade = $${idx++}`); params.push(grade); await logGradeChange(id, (await query("SELECT grade FROM influencer_profiles_full WHERE id=$1",[id])).rows[0]?.grade, grade, 'manual_admin', req.user!.userId); }
     params.push(id);
     await query(`UPDATE influencer_profiles_full SET ${sets.join(", ")} WHERE id = $${idx}`, params);
     res.json({ ok: true, grade });
@@ -115,6 +120,22 @@ adminRouter.delete("/:id", async (req: AuthRequest, res: Response) => {
   try {
     await query("UPDATE influencer_profiles_full SET status = 'inactive', updated_at = now() WHERE id = $1", [req.params.id]);
     res.json({ ok: true });
+  } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
+});
+
+// 批量设置等级
+adminRouter.post("/batch-grade", async (req: AuthRequest, res: Response) => {
+  try {
+    const { profile_ids, grade } = req.body || {};
+    if (!Array.isArray(profile_ids) || !grade) return res.status(400).json({ error: "MISSING" });
+    let count = 0;
+    for (const pid of profile_ids) {
+      const old = await query("SELECT grade FROM influencer_profiles_full WHERE id = $1", [pid]);
+      await query("UPDATE influencer_profiles_full SET grade = $1, updated_at = now() WHERE id = $2", [grade, pid]);
+      await logGradeChange(pid, old.rows[0]?.grade, grade, 'manual_admin', req.user!.userId);
+      count++;
+    }
+    res.json({ ok: true, updated: count });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
 
