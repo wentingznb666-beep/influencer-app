@@ -19,15 +19,15 @@ export default function ClientVCCreateOrder() {
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState("");
 
-  // 自动获取达人报价填入金额字段
+  // 自动获取达人报价填入金额字段（influencerId 为资料 ID，直接查询单条记录）
   useEffect(() => {
     (async () => {
+      if (!influencerId) return;
       try {
-        const res = await fetchWithAuth(`/api/admin/influencer-profiles?q=${encodeURIComponent(influencerId)}`);
-        const data = await res.json();
-        const profiles = data.list || [];
-        const match = profiles.find((p: any) => String(p.user_id) === String(influencerId) || String(p.id) === String(influencerId));
-        if (match?.quoted_price) setForm(f => ({ ...f, amount: match.quoted_price }));
+        const res = await fetchWithAuth(`/api/admin/influencer-profiles/${influencerId}`);
+        if (!res.ok) return;
+        const profile = await res.json();
+        if (profile?.quoted_price) setForm(f => ({ ...f, amount: profile.quoted_price }));
       } catch {}
     })();
   }, [influencerId]);

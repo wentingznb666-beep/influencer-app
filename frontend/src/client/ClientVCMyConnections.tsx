@@ -60,13 +60,13 @@ function ClientVCMyConnections() {
       {loading ? <p>加载中...</p> : (list?.length||0)===0 ? <p style={{color:"#64748b"}}>暂无记录</p> : (list||[]).map((c:any)=>(
         <div key={c?.id} style={card}>
           <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap"}}>
-            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><strong>{c?.influencer_code||c?.influencer_username||`达人#${c?.influencer_id}`}</strong>{c?.status==="active"&&<button onClick={()=>nav(`/client/vertical-connections/my/create-order/${c.id}?influencer=${c.influencer_id}`)} style={{fontSize:11,padding:"3px 10px",border:"1px solid var(--xt-accent)",borderRadius:6,color:"var(--xt-accent)",background:"#fff",cursor:"pointer"}}>⚡快速派单</button>}</div>
+            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}><strong>{c?.influencer_code||c?.influencer_username||`达人#${c?.influencer_id}`}</strong>{c?.status==="active"&&<button onClick={()=>nav(`/client/vertical-connections/my/create-order/${c.id}?influencer=${c.influencer_profile_id}`)} style={{fontSize:11,padding:"3px 10px",border:"1px solid var(--xt-accent)",borderRadius:6,color:"var(--xt-accent)",background:"#fff",cursor:"pointer"}}>⚡快速派单</button>}</div>
             <span style={tag(c?.status)}>{c?.status==="pending"?"待回应":c?.status==="active"?"建联中":c?.status==="expired"?"已到期":c?.status||"—"}</span>
           </div>
           <p style={{fontSize:13,color:"#475569",margin:"4px 0"}}>类目: {c?.category||"—"} | 等级: {c?.grade||"—"} | 剩余 {daysLeft(c?.end_date)} 天</p>
           {c?.brief && <p style={{fontSize:13,margin:0}}>简述: {c.brief}</p>}
           <div style={{marginTop:8,display:"flex",gap:8}}>
-            {c?.status==="active" && <button onClick={()=>nav(`/client/vertical-connections/my/create-order/${c.id}?influencer=${c.influencer_id}`)} style={sp}>定向派单</button>}
+            {c?.status==="active" && <button onClick={()=>nav(`/client/vertical-connections/my/create-order/${c.id}?influencer=${c.influencer_profile_id}`)} style={sp}>定向派单</button>}
             {c?.status==="active" && <button onClick={()=>renew(c.id)} style={sb}>续约</button>}
             {c?.status==="expired" && <span style={{color:"#b91c1c",fontSize:12}}>请先续约再派单</span>}
           </div>
