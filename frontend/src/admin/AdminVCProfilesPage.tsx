@@ -37,6 +37,23 @@ export default function AdminVCProfilesPage() {
   const toggleSelect = (id: number) => setSelected(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
   const toggleAll = () => { if(selected.size===list.length&&list.length>0) setSelected(new Set()); else setSelected(new Set(list.map((p:any)=>p.id))); };
   const [batchGrade, setBatchGrade] = useState("");
+  const [linkTarget, setLinkTarget] = useState<any>(null);
+  const [linkUserId, setLinkUserId] = useState<number|"">("");
+  const [linkableUsers, setLinkableUsers] = useState<any[]>([]);
+
+  const openLinkModal = async (p: any) => {
+    setLinkTarget(p); setLinkUserId("");
+    try { const r = await fetchWithAuth("/api/admin/influencer-profiles/linkable-users"); const d = await r.json(); setLinkableUsers(d.list||[]); } catch { setLinkableUsers([]); }
+  };
+  const confirmLink = async () => {
+    if (!linkTarget || !linkUserId) return;
+    try {
+      const r = await fetchWithAuth(`/api/admin/influencer-profiles/${linkTarget.id}/link-user`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({user_id: linkUserId}) });
+      const d = await r.json();
+      showToast("success", `已关联用户 #${d.user_id}`);
+      setLinkTarget(null); load();
+    } catch(e:any) { showToast("error", e.message||"关联失败"); }
+  };
 
   const batchSetGrade = async () => {
     if(!batchGrade||selected.size===0) return;
@@ -206,13 +223,30 @@ export default function AdminVCProfilesPage() {
                   <td style={{ padding: "6px 8px", fontSize: 12 }}>{p.status}</td>
                   <td style={{ padding: "6px 8px", fontSize: 12 }}>
                     <button onClick={() => { setEditing(p); setForm({...p}); }} style={ssm}>{t("编辑")}</button>
+                    {!p.user_id && <button onClick={()=>openLinkModal(p)} style={{...ssm, border:"1px dashed #6366f1",color:"#6366f1",marginLeft:4}}>🔗 关联</button>}
                     <button onClick={() => del(p.id)} style={{ ...ssm, color: "#b91c1c", marginLeft: 4 }}>{t("删除")}</button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          {/* Pagination + Export */}
+          {linkTarget && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}} onClick={()=>setLinkTarget(null)}>
+          <div style={{background:"#fff",borderRadius:12,padding:24,maxWidth:450,width:"90%"}} onClick={e=>e.stopPropagation()}>
+            <h3 style={{marginTop:0}}>关联用户 — {linkTarget.influencer_code}</h3>
+            <p style={{fontSize:13,color:"#64748b"}}>达人已注册账号后，在此选择该用户进行关联。关联后达人可自行登录操作。</p>
+            <select value={linkUserId} onChange={e=>setLinkUserId(Number(e.target.value)||"")} style={{width:"100%",padding:"8px 10px",border:"1px solid #dbe1ea",borderRadius:8,marginBottom:12}}>
+              <option value="">-- 选择用户 --</option>
+              {linkableUsers.map((u:any)=><option key={u.id} value={u.id}>{u.username} (ID:{u.id})</option>)}
+            </select>
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={confirmLink} disabled={!linkUserId} style={{padding:"8px 20px",border:"none",borderRadius:8,background:linkUserId?"var(--xt-accent)":"#94a3b8",color:"#fff",cursor:linkUserId?"pointer":"not-allowed",fontWeight:700}}>确认关联</button>
+              <button onClick={()=>setLinkTarget(null)} style={{padding:"8px 20px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer"}}>取消</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Pagination + Export */}
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12,flexWrap:"wrap",gap:8}}>
             <div style={{fontSize:12,color:"#64748b"}}>共 {total} 条，第 {page}/{Math.max(1,Math.ceil(total/pageSize))} 页</div>
             <div style={{display:"flex",gap:4}}>
