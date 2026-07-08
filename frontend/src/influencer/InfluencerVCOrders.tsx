@@ -68,7 +68,7 @@ export default function InfluencerVCOrders() {
       {loading ? <p>加载中...</p> : filtered.length===0 ? (
         <p style={{color:"#94a3b8",textAlign:"center",padding:40}}>还没有派单任务，建联成功后商家会向你派单</p>
       ) : filtered.map((o:any)=>(
-        <div key={o.id} style={card} onClick={()=>{if(o.influencer_response!=="pending")nav(`/influencer/vertical-connections/orders/${o.id}`);}}>
+        <div key={o.id} style={card} onClick={()=>nav(`/influencer/vertical-connections/orders/${o.id}`)}>
           {/* "New" badge */}
           {o.influencer_response==="pending" && <span style={newBadge}>新</span>}
           <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap"}}>

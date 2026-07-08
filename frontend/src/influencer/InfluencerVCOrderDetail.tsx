@@ -12,6 +12,8 @@ export default function InfluencerVCOrderDetail() {
   const [videoUrl, setVideoUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [textContent, setTextContent] = useState("");
+  const [rejectReason, setRejectReason] = useState("");
+  const [responding, setResponding] = useState(false);
 
   const load = async () => {
     try {
@@ -56,6 +58,20 @@ export default function InfluencerVCOrderDetail() {
   if (!order) return <p>订单不存在</p>;
 
   const canSubmit = order.influencer_response==="accepted" && (!order.submission_content || order.review_status==="rejected");
+  const isPending = order.influencer_response === "pending";
+
+  const respond = async (action: string) => {
+    if (action === "reject" && !rejectReason.trim()) return;
+    setResponding(true);
+    try {
+      await fetchWithAuth(`/api/influencer/connection-orders/${id}/respond`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, reject_reason: action === "reject" ? rejectReason : undefined })
+      });
+      load();
+    } catch (e: any) { alert(e.message); }
+    finally { setResponding(false); }
+  };
 
   return (
     <div>
@@ -85,6 +101,24 @@ export default function InfluencerVCOrderDetail() {
         <div style={{background:"#dcfce7",borderRadius:8,padding:12,marginBottom:12,textAlign:"center"}}>
           <p style={{color:"#166534",fontWeight:700,margin:0}}>✅ 已提交，等待商家审核</p>
           {order.submission_content && <p style={{fontSize:12,color:"#475569",marginTop:4}}>{order.submission_content}</p>}
+        </div>
+      )}
+
+      {/* Pending response: 接受/拒绝 */}
+      {isPending && (
+        <div style={card}>
+          <h3 style={{ marginTop: 0 }}>确认回应</h3>
+          {!responding ? (
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <button onClick={() => respond("accept")} style={{ padding: "10px 24px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: 15 }}>✅ 接受派单</button>
+              <div style={{ display: "flex", gap: 6, flex: 1 }}>
+                <input placeholder="拒绝原因（必填）" value={rejectReason} onChange={e => setRejectReason(e.target.value)} style={{ flex: 1, padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8 }} />
+                <button onClick={() => respond("reject")} disabled={!rejectReason.trim()} style={{ padding: "10px 20px", border: "1px solid #fecaca", borderRadius: 8, background: "#fff", color: "#b91c1c", cursor: rejectReason.trim() ? "pointer" : "not-allowed", fontWeight: 700, opacity: rejectReason.trim() ? 1 : 0.5 }}>❌ 拒绝</button>
+              </div>
+            </div>
+          ) : (
+            <p style={{ color: "#64748b" }}>处理中...</p>
+          )}
         </div>
       )}
 
