@@ -103,6 +103,8 @@ const ClientVCInviteForm = lazy(() => import("./client/ClientVCInviteForm"));
 const ClientVCMyConnections = lazy(() => import("./client/ClientVCMyConnections"));
 const ClientVCOrderDetail = lazy(() => import("./client/ClientVCOrderDetail"));
 const ClientVCCreateOrder = lazy(() => import("./client/ClientVCCreateOrder"));
+const ClientConnectionOrdersPage = lazy(() => import("./client/ClientConnectionOrdersPage"));
+const ClientVCBatchOrders = lazy(() => import("./client/ClientVCBatchOrders"));
 const InfluencerVCPage = lazy(() => import("./influencer/InfluencerVCPage"));
 const InfluencerVCProfile = lazy(() => import("./influencer/InfluencerVCProfile"));
 const InfluencerVCOrders = lazy(() => import("./influencer/InfluencerVCOrders"));
