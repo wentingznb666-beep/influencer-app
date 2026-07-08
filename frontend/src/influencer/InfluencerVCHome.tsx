@@ -10,6 +10,7 @@ export default function InfluencerVCHome() {
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
+  const [paymentSet, setPaymentSet] = useState(true);
 
   useEffect(() => {
     (async () => {
@@ -27,6 +28,7 @@ export default function InfluencerVCHome() {
         const missing = requiredFields.filter((f: string) => { const v = p[f]; return v === null || v === undefined || v === '' || (typeof v === 'string' && v.trim() === ''); });
         setProfile(p);
         setProfileIncomplete(missing.length > 0);
+        setPaymentSet(!!p.payment_info);
         const conns = ((await rc.json()).list || []);
         const orders = ((await ro.json()).list || []);
         setStats({
@@ -80,6 +82,8 @@ export default function InfluencerVCHome() {
           <button onClick={()=>nav("/influencer/vertical-connections/profile")} style={{padding:"6px 14px",border:"1px solid var(--xt-accent)",borderRadius:8,background:"#fff",color:"var(--xt-accent)",cursor:"pointer",fontSize:13}}>编辑资料</button>
         </div>
       )}
+
+      {!paymentSet && <div onClick={()=>nav("/influencer/vertical-connections/payment")} style={{background:"#fef3c7",borderRadius:12,padding:12,marginBottom:16,cursor:"pointer",display:"flex",alignItems:"center",gap:8,fontSize:14,fontWeight:600,color:"#92400e"}}><span>⚠️</span><span>收款方式未设置，请及时填写</span><span style={{marginLeft:"auto",fontSize:13}}>去设置 →</span></div>}
 
       {/* Guide card */}
       <div onClick={()=>nav(guide.to)} style={{background:guide.bg,borderRadius:12,padding:16,marginBottom:16,cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>

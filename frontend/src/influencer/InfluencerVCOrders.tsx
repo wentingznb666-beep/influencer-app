@@ -30,6 +30,7 @@ export default function InfluencerVCOrders() {
   useEffect(()=>{load();},[]);
 
   const respond = async (id: number, action: string) => {
+    if (action==="accept" && !confirm("确认接受该派单？")) return;
     await fetchWithAuth(`/api/influencer/connection-orders/${id}/respond`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({action, reject_reason: action==="reject"?rejectReason:undefined}) });
     setRejectId(0); setRejectReason(""); load();
   };
