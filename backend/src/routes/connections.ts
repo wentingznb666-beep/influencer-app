@@ -237,9 +237,9 @@ influencerRouter.get("/connections/home-stats", async (req: AuthRequest, res: Re
     const { rows: needSubmit } = await query("SELECT COUNT(*)::int as c FROM connection_orders WHERE influencer_id = $1 AND influencer_response = 'accepted' AND submission_content IS NULL AND review_status != 'rejected'", [uid]);
     res.json({
       pending_invites: cr.rows[0]?.c||0,
-      pending_submissions: needSubmit.rows[0]?.c||0,
-      need_revisions: needRevise.rows[0]?.c||0,
-      completed: completed.rows[0]?.c||0,
+      pending_submissions: needSubmit[0]?.c||0,
+      need_revisions: needRevise[0]?.c||0,
+      completed: completed[0]?.c||0,
       pending_orders: or.rows[0]?.c||0,
       has_profile: hasProfile,
       has_payment: !!p?.payment_info,
