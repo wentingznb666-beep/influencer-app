@@ -31,6 +31,32 @@ function calcGrade(data: { gmv_sales?: string | null; units_sold?: string | null
 const adminRouter = Router();
 adminRouter.use(requireAuth);
 
+// 数据看板统计
+adminRouter.get("/dashboard", async (_req: AuthRequest, res: Response) => {
+  try {
+    const [totalProf, activeProf, ungraded, totalConn, activeConn, expiring, totalAmt, paidAmt, unpaidAmt, anomalyOrd] = await Promise.all([
+      query("SELECT COUNT(*)::int as c FROM influencer_profiles_full WHERE status='active'"),
+      query("SELECT COUNT(*)::int as c FROM influencer_profiles_full WHERE status='active' AND grade IS NOT NULL AND grade != ''"),
+      query("SELECT COUNT(*)::int as c FROM influencer_profiles_full WHERE status='active' AND (grade IS NULL OR grade = '')"),
+      query("SELECT COUNT(*)::int as c FROM influencer_connections"),
+      query("SELECT COUNT(*)::int as c FROM influencer_connections WHERE status='active'"),
+      query("SELECT COUNT(*)::int as c FROM influencer_connections WHERE status='active' AND end_date BETWEEN NOW() AND NOW() + INTERVAL '3 days'"),
+      query("SELECT COALESCE(SUM(amount),0)::float as v FROM connection_orders"),
+      query("SELECT COALESCE(SUM(amount),0)::float as v FROM connection_orders WHERE payment_status='paid'"),
+      query("SELECT COALESCE(SUM(amount),0)::float as v FROM connection_orders WHERE review_status='approved' AND payment_status!='paid'"),
+      query("SELECT COUNT(*)::int as c FROM connection_orders WHERE (influencer_response='rejected' AND (influencer_reject_reason IS NULL OR influencer_reject_reason='')) OR (review_status='rejected' AND (review_note IS NULL OR review_note='')) OR (influencer_response='pending' AND created_at < NOW() - INTERVAL '48 hours')"),
+    ]);
+    const { rows: byCat } = await query("SELECT category, COUNT(*)::int as c FROM influencer_connections GROUP BY category ORDER BY c DESC LIMIT 10");
+    const { rows: expiringList } = await query("SELECT ic.*, c.username as client_name, inf.username as influencer_name FROM influencer_connections ic LEFT JOIN users c ON ic.client_id=c.id LEFT JOIN users inf ON ic.influencer_id=inf.id WHERE ic.status='active' AND ic.end_date BETWEEN NOW() AND NOW() + INTERVAL '3 days' ORDER BY ic.end_date LIMIT 10");
+    res.json({
+      total_profiles: totalProf.rows[0]?.c||0, active_profiles: activeProf.rows[0]?.c||0, ungraded: ungraded.rows[0]?.c||0,
+      total_connections: totalConn.rows[0]?.c||0, active_connections: activeConn.rows[0]?.c||0, expiring: expiring.rows[0]?.c||0,
+      total_amount: totalAmt.rows[0]?.v||0, paid_amount: paidAmt.rows[0]?.v||0, unpaid_amount: unpaidAmt.rows[0]?.v||0,
+      anomaly_orders: anomalyOrd.rows[0]?.c||0, by_category: byCat, expiring_list: expiringList,
+    });
+  } catch(e:any) { res.status(500).json({error:"INTERNAL_ERROR",message:e.message}); }
+});
+
 adminRouter.get("/", async (req: AuthRequest, res: Response) => {
   try {
     const q = String(req.query.q || "").trim();
@@ -111,7 +137,13 @@ adminRouter.put("/:id", async (req: AuthRequest, res: Response) => {
     const grade = calcGrade(req.body);
     if (grade !== undefined) { sets.push(`grade = $${idx++}`); params.push(grade); await logGradeChange(id, (await query("SELECT grade FROM influencer_profiles_full WHERE id=$1",[id])).rows[0]?.grade, grade, 'manual_admin', req.user!.userId); }
     params.push(id);
-    await query(`UPDATE influencer_profiles_full SET ${sets.join(", ")} WHERE id = $${idx}`, params);
+    // Log field changes
+      for (const f of fields) {
+        if (req.body[f] !== undefined && String(req.body[f]) !== String((await query("SELECT "+f+" FROM influencer_profiles_full WHERE id=$1",[id])).rows[0]?.[f])) {
+          try { await query("INSERT INTO influencer_profiles_edit_log (profile_id, field_name, old_value, new_value, changed_by) VALUES ($1,$2,$3,$4,$5)", [id, f, String((await query("SELECT "+f+" FROM influencer_profiles_full WHERE id=$1",[id])).rows[0]?.[f]||""), String(req.body[f]), req.user!.userId]); } catch {}
+        }
+      }
+      await query(`UPDATE influencer_profiles_full SET ${sets.join(", ")} WHERE id = $${idx}`, params);
     res.json({ ok: true, grade });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });

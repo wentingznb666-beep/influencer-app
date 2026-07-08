@@ -2076,6 +2076,19 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     )
   `);
 
+  // 达人资料编辑日志
+  await query(`
+    CREATE TABLE IF NOT EXISTS influencer_profiles_edit_log (
+      id SERIAL PRIMARY KEY,
+      profile_id INTEGER NOT NULL REFERENCES influencer_profiles_full(id),
+      field_name VARCHAR(100),
+      old_value TEXT,
+      new_value TEXT,
+      changed_by INTEGER REFERENCES users(id),
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
   // ========== 垂直达人建联模块结束 ==========
 
   }

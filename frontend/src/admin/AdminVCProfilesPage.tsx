@@ -63,7 +63,7 @@ export default function AdminVCProfilesPage() {
     try {
       const params = new URLSearchParams();
       if (filter.category) params.set("category", filter.category);
-      if (filter.grade) params.set("grade", filter.grade);
+      if (filter.grade==="ungraded") params.set("grade",""); else if (filter.grade) params.set("grade", filter.grade);
       if (filter.source) params.set("source", filter.source);
       if (filter.q) params.set("q", filter.q);
       params.set("limit", String(pageSize));
@@ -143,7 +143,7 @@ export default function AdminVCProfilesPage() {
           <option value="">全部类目</option>{CATEGORIES.map(c => <option key={c.th} value={c.th}>{isTh ? c.th : c.zh}</option>)}
         </select>
         <select value={filter.grade} onChange={e => setFilter(f => ({ ...f, grade: e.target.value }))} style={si}>
-          <option value="">全部等级</option>{["A+","B+","C+","A","B","C"].map(g => <option key={g} value={g}>{g}</option>)}
+          <option value="">全部等级</option><option value="ungraded">{t("未达标")}</option>{["A+","B+","C+","A","B","C"].map(g => <option key={g} value={g}>{g}</option>)}
         </select>
         <button onClick={load} style={sb}>{t("搜索")}</button>
         <button onClick={startNew} style={sp}>{t("新增达人")}</button>
