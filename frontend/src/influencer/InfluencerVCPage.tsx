@@ -4,132 +4,85 @@ import { fetchWithAuth } from "../fetchWithAuth";
 
 export default function InfluencerVCPage() {
   const nav = useNavigate();
-  const [checking, setChecking] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
-  const [connections, setConnections] = useState<any[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
   const [tab, setTab] = useState("pending");
+  const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
-
-  const [profileIncomplete, setProfileIncomplete] = useState(false);
-  const requiredFields = ["influencer_code","source","followers","category","quoted_price","cooperation_conditions","gmv_sales","monthly_cart_videos","units_sold","live_sales","weekly_live_count","avg_live_hours_per_week"];
-
-  // Force profile check on mount
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await fetchWithAuth("/api/influencer/profile");
-        const p = await r.json();
-        if (!p) { setProfileIncomplete(true); setChecking(false); return; }
-        const missing = requiredFields.filter(f => {
-    const v = p[f];
-    if (v === null || v === undefined || v === '') return true;
-    if (typeof v === 'string' && v.trim() === '') return true;
-    return false;
-  });
-        if (missing.length > 0) { setProfileIncomplete(true); setChecking(false); return; }
-        setProfile(p); setChecking(false);
-      } catch { setProfileIncomplete(true); setChecking(false); }
-    })();
-  }, []);
+  const [rejectId, setRejectId] = useState<number|0>(0);
+  const [rejectReason, setRejectReason] = useState("");
 
   const load = async () => {
-    if (checking) return;
     setLoading(true);
     try {
-      const rc = await fetchWithAuth(`/api/influencer/connections?tab=${tab}`);
-      setConnections(((await rc.json()).list || []));
-      const ro = await fetchWithAuth("/api/influencer/connection-orders");
-      setOrders(((await ro.json()).list || []));
+      const r = await fetchWithAuth(`/api/influencer/connections?tab=${tab}`);
+      setList(((await r.json()).list || []));
     } catch(e:any){setErr(e.message)} finally{setLoading(false)};
   };
+  useEffect(()=>{load();},[tab]);
 
-  useEffect(() => { if (!checking) load(); }, [tab, checking]);
-
-  const respondConn = async (id: number, action: string) => {
-    await fetchWithAuth(`/api/influencer/connections/${id}`, { method: "PATCH", headers: {"Content-Type":"application/json"}, body: JSON.stringify({action}) });
-    load(); setMsg(action==="accept"?"已接受建联":"已拒绝建联");
+  const respond = async (id: number, action: string) => {
+    await fetchWithAuth(`/api/influencer/connections/${id}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({action}) });
+    if (action==="accept") { setMsg("✅ 已接受建联邀请"); setTimeout(()=>{setTab("active");load();},800); }
+    else { setRejectId(0); setRejectReason(""); load(); }
   };
 
-  const respondOrder = async (oid: number, action: string, reason?: string) => {
-    await fetchWithAuth(`/api/influencer/connection-orders/${oid}/respond`, { method: "PATCH", headers: {"Content-Type":"application/json"}, body: JSON.stringify({action, reject_reason: reason}) });
-    load(); setMsg(action==="accept"?"已接受派单":"已拒绝派单");
-  };
-
-  if (checking) return <p>正在验证资料...</p>;
-
-  if (profileIncomplete) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",minHeight:"50vh",flexDirection:"column",gap:16}}>
-      <div style={{fontSize:48}}>⚠️</div>
-      <h2 style={{color:"#b91c1c",margin:0}}>资料不完整</h2>
-      <p style={{color:"#475569",textAlign:"center",maxWidth:400}}>请先在「我的资料」中填写并保存完整信息后，再进行建联操作</p>
-      <button onClick={()=>nav("/influencer/vertical-connections/profile")} style={{padding:"10px 24px",border:"none",borderRadius:8,background:"var(--xt-accent)",color:"#fff",cursor:"pointer",fontWeight:700,fontSize:15}}>去填写</button>
-    </div>
-  );
-
-  const pendingCount = connections.filter(c=>c.status==="pending").length;
-  const card: React.CSSProperties = { background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginBottom: 8 };
-  const sp: React.CSSProperties = { padding: "6px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer", fontSize: 13 };
-  const sd: React.CSSProperties = { padding: "6px 14px", border: "1px solid #fecaca", borderRadius: 8, background: "#fff", color: "#b91c1c", cursor: "pointer", fontSize: 13 };
+  const counts = { pending: list.filter(c=>c.status==="pending").length };
+  const tabs = ["pending","active","rejected","expired"];
+  const tabLabels: Record<string,string> = { pending:"待处理", active:"建联中", rejected:"已拒绝", expired:"已到期" };
+  const filtered = list;
 
   return (
     <div>
-      <h2 style={{marginTop:0}}>垂直达人建联 {pendingCount > 0 && `(${pendingCount})`}</h2>
+      <h2 style={{marginTop:0}}>建联邀请</h2>
+      {msg && <p style={{color:"#166534",fontWeight:700}}>{msg}</p>}
       {err && <p style={{color:"#c00"}}>{err}</p>}
-      {msg && <p style={{color:"#166534"}}>{msg}</p>}
 
       <div style={{display:"flex",gap:8,marginBottom:16}}>
-        {["pending","active","rejected","expired"].map(t => {
-          const labels:Record<string,string>={pending:"待处理",active:"建联中",rejected:"已拒绝",expired:"已到期"};
-          let label = labels[t]||t;
-          if(t==="pending"&&pendingCount>0) label += "("+pendingCount+")";
-          return <button key={t} onClick={()=>setTab(t)} style={{padding:"6px 14px",border:"1px solid #dbe1ea",borderRadius:8,background:tab===t?"var(--xt-accent)":"#fff",color:tab===t?"#fff":"#334155",cursor:"pointer",fontSize:13,fontWeight:t==="pending"&&pendingCount>0?800:400}}>{label}</button>;
+        {tabs.map(t=>{
+          const badge = t==="pending" && counts.pending > 0 ? ` (${counts.pending})` : "";
+          return <button key={t} onClick={()=>{setTab(t);setRejectId(0);}} style={{...tabStyle,background:tab===t?"var(--xt-accent)":"#fff",color:tab===t?"#fff":"#334155",fontWeight:tab===t?700:400}}>{tabLabels[t]}{badge}</button>;
         })}
-        <button onClick={()=>nav("/influencer/vertical-connections/profile")} style={{padding:"6px 14px",border:"1px solid var(--xt-accent)",borderRadius:8,background:"#fff",color:"var(--xt-accent)",cursor:"pointer",fontSize:13,marginLeft:"auto"}}>编辑资料</button>
-        <button onClick={()=>nav("/influencer/vertical-connections/payment")} style={{padding:"6px 14px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer",fontSize:13}}>收款方式</button>
       </div>
 
-      {loading ? <p>加载中...</p> : (
-        <>
-          {connections.length === 0 && <p style={{color:"#64748b"}}>暂无建联记录</p>}
-          {connections.map((c:any)=>(
-            <div key={c.id} style={card}>
-              <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap"}}>
-                <div><strong>{c.client_username||`商家#${c.client_id}`}</strong><span style={{marginLeft:8,fontSize:13,color:"#64748b"}}>{c.category} | {c.grade||"-"}</span></div>
-                <span style={tag(c.status)}>{c.status}</span>
-              </div>
-              {c.brief && <p style={{fontSize:13,margin:"4px 0"}}>简述: {c.brief}</p>}
-              {c.budget && <p style={{fontSize:13,margin:0,color:"#64748b"}}>预算: {c.budget}</p>}
-              {c.status==="pending" && <div style={{marginTop:8,display:"flex",gap:8}}><button onClick={()=>respondConn(c.id,"accept")} style={sp}>接受</button><button onClick={()=>respondConn(c.id,"reject")} style={sd}>拒绝</button></div>}
+      {loading ? <p>加载中...</p> : filtered.length===0 ? (
+        <p style={{color:"#94a3b8",textAlign:"center",padding:40}}>还没有建联邀请，完善资料后等待商家联系你</p>
+      ) : filtered.map((c:any)=>(
+        <div key={c.id} style={card}>
+          <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap"}}>
+            <div>
+              <strong>{c.client_username||`商家#${c.client_id}`}</strong>
+              <span style={{marginLeft:8,fontSize:13,color:"#64748b"}}>{c.category} | {c.grade||"-"}</span>
             </div>
-          ))}
+            <span style={tg(c.status)}>{tabLabels[c.status]||c.status}</span>
+          </div>
+          {c.brief && <p style={{fontSize:13,margin:"4px 0",color:"#475569"}}>合作简述: {c.brief}</p>}
+          {c.budget && <p style={{fontSize:13,margin:0,color:"#64748b"}}>预算: {c.budget}</p>}
 
-          {orders.length > 0 && (
-            <div style={{marginTop:24}}>
-              <h3>定向派单</h3>
-              {orders.map((o:any)=>(
-                <div key={o.id} style={card}>
-                  <div style={{display:"flex",justifyContent:"space-between"}}><strong>{o.order_no} - {o.title}</strong><span style={tag(o.status)}>{o.status}</span></div>
-                  <p style={{fontSize:13,margin:"4px 0",color:"#475569"}}>{o.amount} THB | 商家: {o.client_username||`#${o.client_id}`}</p>
-                  {o.review_note && <p style={{fontSize:12,color:"#b91c1c"}}>驳回原因: {o.review_note}</p>}
-                  {o.influencer_response==="pending" && (
-                    <div style={{marginTop:8,display:"flex",gap:8}}>
-                      <button onClick={()=>respondOrder(o.id,"accept")} style={sp}>接受</button>
-                      <button onClick={()=>{const r=prompt("拒绝原因（必填）");if(r)respondOrder(o.id,"reject",r)}} style={sd}>拒绝</button>
-                    </div>
-                  )}
-                  {o.influencer_response==="accepted" && (
-                    <button onClick={()=>nav(`/influencer/vertical-connections/orders/${o.id}`)} style={{...sp,marginTop:8}}>查看详情/提交作品</button>
-                  )}
+          {c.status==="pending" && (
+            <div style={{marginTop:8,display:"flex",gap:8}}>
+              <button onClick={()=>respond(c.id,"accept")} style={btnAcc}>接受</button>
+              <button onClick={()=>{setRejectId(c.id);setRejectReason("");}} style={btnRej}>拒绝</button>
+              {rejectId===c.id && (
+                <div style={{display:"flex",gap:4,flex:1}}>
+                  <input placeholder="拒绝原因（必填）" value={rejectReason} onChange={e=>setRejectReason(e.target.value)} style={{flex:1,padding:"6px 8px",border:"1px solid #dbe1ea",borderRadius:8}} autoFocus />
+                  <button onClick={()=>respond(c.id,"reject")} disabled={!rejectReason.trim()} style={{...btnRej,opacity:rejectReason.trim()?1:0.5}}>确认</button>
                 </div>
-              ))}
+              )}
             </div>
           )}
-        </>
-      )}
+          {c.status==="active" && <p style={{fontSize:12,color:"#166534",marginTop:8}}>⏳ 等待商家派单</p>}
+        </div>
+      ))}
     </div>
   );
 }
-const tag = (s: string): React.CSSProperties => ({ display: "inline-block", padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: ({active:"#166534",expired:"#b91c1c",pending:"#92400e",rejected:"#64748b",submitted:"#1d4ed8",completed:"#166534"}[s]||"#f1f5f9")+"22", color: {active:"#166534",expired:"#b91c1c",pending:"#92400e",rejected:"#64748b",submitted:"#1d4ed8",completed:"#166534"}[s]||"#475569" });
+const card: React.CSSProperties = { background:"#fff",borderRadius:10,padding:14,boxShadow:"0 1px 3px rgba(0,0,0,0.08)",marginBottom:8 };
+const tabStyle: React.CSSProperties = { padding:"6px 14px",border:"1px solid #dbe1ea",borderRadius:8,cursor:"pointer",fontSize:13 };
+const btnAcc: React.CSSProperties = { padding:"6px 16px",border:"none",borderRadius:8,background:"var(--xt-accent)",color:"#fff",cursor:"pointer",fontSize:13 };
+const btnRej: React.CSSProperties = { padding:"6px 16px",border:"1px solid #fecaca",borderRadius:8,background:"#fff",color:"#b91c1c",cursor:"pointer",fontSize:13 };
+const tg = (s: string): React.CSSProperties => {
+  const c: Record<string,{bg:string;text:string}> = { pending:{bg:"#fef3c7",text:"#92400e"}, active:{bg:"#dcfce7",text:"#166534"}, rejected:{bg:"#fee2e2",text:"#b91c1c"}, expired:{bg:"#f1f5f9",text:"#64748b"} };
+  const v = c[s]||{bg:"#f1f5f9",text:"#475569"};
+  return { display:"inline-block",padding:"2px 10px",borderRadius:999,fontSize:11,fontWeight:700,background:v.bg,color:v.text };
+};
