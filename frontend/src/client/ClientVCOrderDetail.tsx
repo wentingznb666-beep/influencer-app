@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { fetchWithAuth } from "../fetchWithAuth";
+import { vcTagStyle, vcStatusLabel } from "../utils/vcStatusColors";
 
 export default function ClientVCOrderDetail() {
   const nav = useNavigate(); const params = useParams();

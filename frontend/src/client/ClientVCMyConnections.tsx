@@ -1,6 +1,7 @@
 import { Component, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchWithAuth } from "../fetchWithAuth";
+import { vcTagStyle } from "../utils/vcStatusColors";
 
 class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: boolean}> {
   constructor(props: any) { super(props); this.state = { hasError: false }; }
@@ -49,7 +50,7 @@ function ClientVCMyConnections() {
         <div key={c?.id} style={card}>
           <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap"}}>
             <strong>{c?.influencer_code||c?.influencer_username||`达人#${c?.influencer_id}`}</strong>
-            <span style={tag(c?.status)}>{c?.status==="pending"?"待确认":c?.status==="active"?"建联中":c?.status==="expired"?"已到期":c?.status||"—"}</span>
+            <span style={tag(c?.status)}>{c?.status==="pending"?"待回应":c?.status==="active"?"建联中":c?.status==="expired"?"已到期":c?.status||"—"}</span>
           </div>
           <p style={{fontSize:13,color:"#475569",margin:"4px 0"}}>类目: {c?.category||"—"} | 等级: {c?.grade||"—"} | 剩余 {daysLeft(c?.end_date)} 天</p>
           {c?.brief && <p style={{fontSize:13,margin:0}}>简述: {c.brief}</p>}
@@ -67,7 +68,7 @@ const sb: React.CSSProperties = { padding: "6px 12px", border: "1px solid #dbe1e
 const sp: React.CSSProperties = { padding: "6px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer", fontSize: 13 };
 const st: React.CSSProperties = { padding: "6px 14px", border: "1px solid #dbe1ea", borderRadius: 8, cursor: "pointer", fontSize: 13 };
 const card: React.CSSProperties = { background: "#fff", borderRadius: 10, padding: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", marginBottom: 8 };
-const tag = (s?: string): React.CSSProperties => ({ display: "inline-block", padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: ({active:"#166534",expired:"#b91c1c"}[s||""]||"#f1f5f9")+"22", color: {active:"#166534",expired:"#b91c1c"}[s||""]||"#475569" });
+const tag = (s?: string) => vcTagStyle(s);
 
 export default function ClientVCMyConnectionsWithErrorBoundary() {
   return <ErrorBoundary><ClientVCMyConnections /></ErrorBoundary>;
