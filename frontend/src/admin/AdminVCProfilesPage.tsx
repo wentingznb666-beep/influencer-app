@@ -31,6 +31,10 @@ export default function AdminVCProfilesPage() {
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState({ category: "", grade: "", source: "", q: "" });
 
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+
   const load = async () => {
     setLoading(true);
     try {
@@ -39,14 +43,17 @@ export default function AdminVCProfilesPage() {
       if (filter.grade) params.set("grade", filter.grade);
       if (filter.source) params.set("source", filter.source);
       if (filter.q) params.set("q", filter.q);
+      params.set("limit", String(pageSize));
+      params.set("offset", String((page-1)*pageSize));
       const res = await fetchWithAuth(`/api/admin/influencer-profiles?${params}`);
       const data = await res.json();
       setList(data.list || []);
+      setTotal(data.total || 0);
     } catch (e: any) { setError(e.message); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [page]);
 
   const [showErrors, setShowErrors] = useState<string[]>([]);
 
@@ -161,6 +168,16 @@ export default function AdminVCProfilesPage() {
               ))}
             </tbody>
           </table>
+          {/* Pagination + Export */}
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:12,flexWrap:"wrap",gap:8}}>
+            <div style={{fontSize:12,color:"#64748b"}}>共 {total} 条，第 {page}/{Math.max(1,Math.ceil(total/pageSize))} 页</div>
+            <div style={{display:"flex",gap:4}}>
+              <button onClick={()=>setPage(1)} disabled={page<=1} style={pageBtn}>首页</button>
+              <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page<=1} style={pageBtn}>上一页</button>
+              <button onClick={()=>setPage(p=>Math.min(Math.ceil(total/pageSize),p+1))} disabled={page>=Math.ceil(total/pageSize)} style={pageBtn}>下一页</button>
+              <button onClick={()=>{const csv=[[t("ID"),t("编号"),t("来源"),t("粉丝"),t("类目"),t("等级"),t("GMV"),t("挂车"),t("件数"),t("直播"),t("直播销售"),t("状态")].join(",")+"\\n"+list.map((p:any)=>[p.id,p.influencer_code,p.source,p.followers||"",p.category,p.grade||"",p.gmv_sales||"",p.monthly_cart_videos||"",p.units_sold||"",p.can_live?"是":"否",p.live_sales||"",p.status].join(",")).join("\\n");const b=new Blob(["\\uFEFF"+csv],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="profiles.csv";a.click()}} style={{...pageBtn,background:"#1d4ed8",color:"#fff",border:"none",fontWeight:700}}>导出CSV</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -170,3 +187,4 @@ const si: React.CSSProperties = { padding: "6px 8px", border: "1px solid #dbe1ea
 const sb: React.CSSProperties = { padding: "6px 12px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" };
 const sp: React.CSSProperties = { padding: "6px 12px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer" };
 const ssm: React.CSSProperties = { padding: "4px 8px", border: "1px solid #dbe1ea", borderRadius: 6, background: "#fff", cursor: "pointer", fontSize: 11 };
+const pageBtn: React.CSSProperties = { padding: "4px 10px", border: "1px solid #dbe1ea", borderRadius: 6, background: "#fff", cursor: "pointer", fontSize: 12 };
