@@ -35,6 +35,24 @@ export default function InfluencerLayout() {
   }, [setRole]);
 
   const matchLocked = permissionStatus !== "approved";
+  const [invBadge, setInvBadge] = useState(0);
+  const [orderBadge, setOrderBadge] = useState(0);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const tok = localStorage.getItem("access_token") || "";
+        const [rc, ro] = await Promise.all([
+          fetch("/api/influencer/connections", { headers: { Authorization: `Bearer ${tok}` } }),
+          fetch("/api/influencer/connection-orders", { headers: { Authorization: `Bearer ${tok}` } }),
+        ]);
+        const conns = ((await rc.json()).list || []);
+        const orders = ((await ro.json()).list || []);
+        setInvBadge(conns.filter((c:any)=>c.status==="pending").length);
+        setOrderBadge(orders.filter((o:any)=>o.influencer_response==="pending"||o.review_status==="rejected").length);
+      } catch {}
+    })();
+  }, []);
 
   const navItems: DashboardNavItem[] = [
     { to: "/influencer/task-hall", label: "任务大厅", menuHint: "สมัครงานจับคู่และติดตามสถานะ", icon: "📋", group: "match" },
