@@ -2064,6 +2064,8 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   await query(`ALTER TABLE influencer_profiles_full ADD COLUMN IF NOT EXISTS cooperation_conditions TEXT`);
   await query(`ALTER TABLE connection_orders ADD COLUMN IF NOT EXISTS payment_verified BOOLEAN DEFAULT FALSE`);
   await query(`ALTER TABLE connection_orders ADD COLUMN IF NOT EXISTS influencer_profile_id INTEGER REFERENCES influencer_profiles_full(id)`);
+  // 历史数据回填：从建联记录中获取 influencer_profile_id
+  await query(`UPDATE connection_orders co SET influencer_profile_id = ic.influencer_profile_id FROM influencer_connections ic WHERE co.connection_id = ic.id AND co.influencer_profile_id IS NULL`);
   await query(`ALTER TABLE influencer_connections ADD COLUMN IF NOT EXISTS intervention_note TEXT`);
 
   // 等级变更日志
