@@ -77,7 +77,7 @@ adminRouter.get("/", async (req: AuthRequest, res: Response) => {
     if (status) { where += ` AND status = $${idx}`; params.push(status); idx++; }
 
     const { rows } = await query(
-      `SELECT * FROM influencer_profiles_full ${where} ORDER BY id DESC LIMIT $${idx} OFFSET $${idx + 1}`,
+      `SELECT ipf.*, u.disabled as user_disabled FROM influencer_profiles_full ipf LEFT JOIN users u ON ipf.user_id = u.id ${where} ORDER BY ipf.id DESC LIMIT $${idx} OFFSET $${idx + 1}`,
       [...params, limit, offset]
     );
     const { rows: countRows } = await query(`SELECT COUNT(*) as total FROM influencer_profiles_full ${where}`, params);

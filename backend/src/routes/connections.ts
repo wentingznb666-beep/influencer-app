@@ -1,4 +1,5 @@
 import { Router, Response } from "express";
+import bcrypt from "bcryptjs";
 import { query } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
@@ -58,9 +59,23 @@ clientRouter.post("/connections", async (req: AuthRequest, res: Response) => {
     // 防重复邀请：检查是否已有pending/active的建联
     const dupCheck = await query("SELECT id, status FROM influencer_connections WHERE client_id = $1 AND influencer_profile_id = $2 AND status IN ('pending','active') LIMIT 1", [req.user!.userId, profileId]);
     if (dupCheck.rows[0]) return res.status(400).json({ error: "DUPLICATE", message: `该达人已有${dupCheck.rows[0].status === 'pending' ? '待确认' : '建联中'}的邀请，不可重复邀请` });
-    const prof = await query("SELECT user_id FROM influencer_profiles_full WHERE id = $1", [profileId]);
-    if (!prof.rows[0]?.user_id) return res.status(400).json({ error: "NO_USER", message: "该达人资料未关联系统用户，请让达人先完善资料" });
-    const actualInfluencerId = prof.rows[0].user_id;
+    const prof = await query("SELECT user_id, influencer_code FROM influencer_profiles_full WHERE id = $1", [profileId]);
+    let actualInfluencerId = prof.rows[0]?.user_id as number | null;
+    // 托管达人（未关联用户）：自动创建禁用状态的达人账号
+    if (!actualInfluencerId) {
+      const code = String(prof.rows[0]?.influencer_code || `inf_${profileId}`);
+      const username = `vc_${code.replace(/[^a-zA-Z0-9_]/g, "_").substring(0, 30)}`;
+      const password_hash = await bcrypt.hash("changeme123", 10);
+      // 避免用户名冲突
+      const existUser = await query("SELECT id FROM users WHERE username = $1", [username]);
+      const finalUsername = existUser.rows[0] ? `${username}_${Date.now()}` : username;
+      const newUser = await query(
+        "INSERT INTO users (username, password_hash, role_id, disabled, display_name) VALUES ($1, $2, 3, 1, $3) RETURNING id",
+        [finalUsername, password_hash, code]
+      );
+      actualInfluencerId = newUser.rows[0].id;
+      await query("UPDATE influencer_profiles_full SET user_id = $1, updated_at = now() WHERE id = $2", [actualInfluencerId, profileId]);
+    }
     const start = new Date();
     const end = new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
     const { rows } = await query(
@@ -337,7 +352,7 @@ adminRouter.use(requireAuth);
 
 adminRouter.get("/connections", async (req: AuthRequest, res: Response) => {
   try {
-    const { rows } = await query("SELECT ic.*, c.username as client_username, inf.username as influencer_username, ipf.user_id as influencer_user_id FROM influencer_connections ic LEFT JOIN users c ON ic.client_id = c.id LEFT JOIN users inf ON ic.influencer_id = inf.id LEFT JOIN influencer_profiles_full ipf ON ic.influencer_profile_id = ipf.id ORDER BY ic.id DESC LIMIT 500");
+    const { rows } = await query("SELECT ic.*, c.username as client_username, inf.username as influencer_username, ipf.user_id as influencer_user_id, inf.disabled as influencer_disabled FROM influencer_connections ic LEFT JOIN users c ON ic.client_id = c.id LEFT JOIN users inf ON ic.influencer_id = inf.id LEFT JOIN influencer_profiles_full ipf ON ic.influencer_profile_id = ipf.id ORDER BY ic.id DESC LIMIT 500");
     res.json({ list: rows });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
@@ -421,7 +436,7 @@ adminRouter.get("/connection-orders", async (req: AuthRequest, res: Response) =>
     const anomaly = req.query.anomaly === "1";
     let where = "";
     if (anomaly) where = "WHERE (co.influencer_response = 'rejected' AND (co.influencer_reject_reason IS NULL OR co.influencer_reject_reason = '')) OR (co.review_status = 'rejected' AND (co.review_note IS NULL OR co.review_note = '')) OR (co.influencer_response = 'pending' AND co.created_at < NOW() - INTERVAL '48 hours')";
-    const { rows } = await query(`SELECT co.*, c.username as client_username, inf.username as influencer_username, ipf.user_id as influencer_user_id FROM connection_orders co LEFT JOIN users c ON co.client_id = c.id LEFT JOIN users inf ON co.influencer_id = inf.id LEFT JOIN influencer_profiles_full ipf ON co.influencer_id = ipf.user_id ${where} ORDER BY co.id DESC LIMIT 500`);
+    const { rows } = await query(`SELECT co.*, c.username as client_username, inf.username as influencer_username, ipf.user_id as influencer_user_id, inf.disabled as influencer_disabled FROM connection_orders co LEFT JOIN users c ON co.client_id = c.id LEFT JOIN users inf ON co.influencer_id = inf.id LEFT JOIN influencer_profiles_full ipf ON co.influencer_id = ipf.user_id ${where} ORDER BY co.id DESC LIMIT 500`);
     // Financial stats
     const [fs1, fs2, fs3] = await Promise.all([
       query("SELECT COALESCE(SUM(amount),0)::float as total FROM connection_orders"),

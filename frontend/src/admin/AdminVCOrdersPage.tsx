@@ -91,7 +91,7 @@ const [proxyModal, setProxyModal] = useState<any>(null); // {type, order}
           {o.review_note && <p style={{...sm,color:"#92400e"}}>驳回: {o.review_note}</p>}
           {o.payment_voucher && <p style={sm}>凭证: {o.payment_voucher}</p>}
           <div style={{marginTop:6,display:"flex",gap:6}}>
-            {o.influencer_user_id===null && (
+            {o.influencer_disabled === 1 && (
               <div style={{marginTop:4,display:"flex",gap:4,alignItems:"center"}}>
                 <span style={{fontSize:10,color:"#64748b",background:"#f1f5f9",padding:"1px 6px",borderRadius:4}}>🛠 托管</span>
                 {o.influencer_response==="pending" && <><button onClick={()=>doProxyAccept(o.id)} style={{...ssm,background:"#dcfce7",border:"1px dashed #16a34a",color:"#166534"}}>✅ 代接受</button><button onClick={()=>setProxyModal({type:"reject",order:o})} style={{...ssm,border:"1px dashed #ef4444",color:"#b91c1c"}}>❌ 代拒绝</button></>}

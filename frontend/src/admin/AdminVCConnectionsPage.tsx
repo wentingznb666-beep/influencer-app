@@ -148,11 +148,11 @@ export default function AdminVCConnectionsPage() {
             </div>
             <span style={tg(c.status)}>{c.status==="pending"?"待确认":c.status==="active"?"建联中":c.status==="expired"?"已到期":c.status==="rejected"?"已拒绝":c.status}</span>
           </div>
-          {c.influencer_user_id===null && <span style={{background:"#f1f5f9",color:"#64748b",padding:"2px 8px",borderRadius:999,fontSize:11,fontWeight:700,marginLeft:6}}>🛠 托管达人</span>}
+          {c.influencer_disabled === 1 && <span style={{background:"#f1f5f9",color:"#64748b",padding:"2px 8px",borderRadius:999,fontSize:11,fontWeight:700,marginLeft:6}}>🛠 托管达人</span>}
           <p style={sm}>{c.start_date} ~ {c.end_date} | 续约{c.renewal_count||0}次</p>
           {c.brief && <p style={sm}>简述: {c.brief}</p>}
-          {c.influencer_user_id===null && c.status==="pending" && <div style={{display:"flex",gap:4,marginTop:4}}><button onClick={()=>openProxyAccept(c)} style={{...ssm,background:"#dcfce7",border:"1px dashed #16a34a",color:"#166534"}}>✅ 代接受</button><button onClick={()=>openProxyReject(c)} style={{...ssm,border:"1px dashed #ef4444",color:"#b91c1c"}}>❌ 代拒绝</button></div>}
-          {c.influencer_user_id===null && c.status==="active" && <div style={{display:"flex",gap:4,marginTop:4}}><button onClick={()=>openProxySubmit(c)} style={{...ssm,border:"1px dashed var(--xt-accent)",color:"var(--xt-accent)"}}>📤 代提交作品</button></div>}
+          {c.influencer_disabled === 1 && c.status==="pending" && <div style={{display:"flex",gap:4,marginTop:4}}><button onClick={()=>openProxyAccept(c)} style={{...ssm,background:"#dcfce7",border:"1px dashed #16a34a",color:"#166534"}}>✅ 代接受</button><button onClick={()=>openProxyReject(c)} style={{...ssm,border:"1px dashed #ef4444",color:"#b91c1c"}}>❌ 代拒绝</button></div>}
+          {c.influencer_disabled === 1 && c.status==="active" && <div style={{display:"flex",gap:4,marginTop:4}}><button onClick={()=>openProxySubmit(c)} style={{...ssm,border:"1px dashed var(--xt-accent)",color:"var(--xt-accent)"}}>📤 代提交作品</button></div>}
           <div style={{marginTop:8,display:"flex",gap:6}}>
             {intTarget===c.id ? <div style={{display:"flex",gap:4,width:"100%"}}><input placeholder="干预备注(必填)" value={intNote} onChange={e=>setIntNote(e.target.value)} style={{flex:1,padding:"4px 8px",border:"1px solid #dbe1ea",borderRadius:4,fontSize:11}} />{["active","expired","rejected"].filter(s=>s!==c.status).map(s=><button key={s} onClick={()=>{setIntTarget(c.id);setIntNote("");}} style={ssm}>{s==="active"?"标记建联中":s==="expired"?"标记已到期":"标记已拒绝"}</button>)}<button onClick={()=>setIntTarget(0)} style={{...ssm,color:"#b91c1c"}}>取消</button></div> : ["active","expired","rejected"].filter(s=>s!==c.status).map(s=>(
               <button key={s} onClick={()=>{setIntTarget(c.id);setIntNote("");}} style={ssm}>{s==="active"?"标记建联中":s==="expired"?"标记已到期":"标记已拒绝"}</button>
