@@ -106,7 +106,7 @@ const ClientVCCreateOrder = lazy(() => import("./client/ClientVCCreateOrder"));
 const ClientConnectionOrdersPage = lazy(() => import("./client/ClientConnectionOrdersPage"));
 const ClientVCBatchOrders = lazy(() => import("./client/ClientVCBatchOrders"));
 const InfluencerVCPage = lazy(() => import("./influencer/InfluencerVCPage"));
-const InfluencerVCCooperation = lazy(() => import("./influencer/InfluencerVCCooperation"));
+
 const InfluencerVCProfile = lazy(() => import("./influencer/InfluencerVCProfile"));
 const InfluencerVCOrders = lazy(() => import("./influencer/InfluencerVCOrders"));
 const InfluencerVCOrderDetail = lazy(() => import("./influencer/InfluencerVCOrderDetail"));
