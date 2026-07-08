@@ -332,8 +332,46 @@ adminRouter.get("/connections/stats", async (_req: AuthRequest, res: Response) =
 
 adminRouter.get("/connection-orders", async (req: AuthRequest, res: Response) => {
   try {
-    const { rows } = await query("SELECT co.*, c.username as client_username, inf.username as influencer_username FROM connection_orders co LEFT JOIN users c ON co.client_id = c.id LEFT JOIN users inf ON co.influencer_id = inf.id ORDER BY co.id DESC LIMIT 500");
-    res.json({ list: rows });
+    const anomaly = req.query.anomaly === "1";
+    let where = "";
+    if (anomaly) where = "WHERE (co.influencer_response = 'rejected' AND (co.influencer_reject_reason IS NULL OR co.influencer_reject_reason = '')) OR (co.review_status = 'rejected' AND (co.review_note IS NULL OR co.review_note = '')) OR (co.influencer_response = 'pending' AND co.created_at < NOW() - INTERVAL '48 hours')";
+    const { rows } = await query(`SELECT co.*, c.username as client_username, inf.username as influencer_username FROM connection_orders co LEFT JOIN users c ON co.client_id = c.id LEFT JOIN users inf ON co.influencer_id = inf.id ${where} ORDER BY co.id DESC LIMIT 500`);
+    // Financial stats
+    const [{rows: s1}], [{rows: s2}], [{rows: s3}] = await Promise.all([
+      query("SELECT COALESCE(SUM(amount),0)::float as total FROM connection_orders"),
+      query("SELECT COALESCE(SUM(amount),0)::float as paid FROM connection_orders WHERE payment_status = 'paid'"),
+      query("SELECT COALESCE(SUM(amount),0)::float as unpaid FROM connection_orders WHERE review_status = 'approved' AND payment_status != 'paid'"),
+    ]);
+    res.json({ list: rows, stats: { total_amount: s1[0]?.total||0, paid_amount: s2[0]?.paid||0, unpaid_amount: s3[0]?.unpaid||0 } });
+  } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
+});
+
+// Admin: mark paid or reject voucher
+adminRouter.post("/connection-orders/:id/admin-action", async (req: AuthRequest, res: Response) => {
+  try {
+    const { action } = req.body || {};
+    if (action === "mark_paid") {
+      await query("UPDATE connection_orders SET payment_status = 'paid', paid_at = now(), updated_at = now() WHERE id = $1", [req.params.id]);
+    } else if (action === "reject_voucher") {
+      await query("UPDATE connection_orders SET payment_voucher = NULL, payment_status = 'unpaid', updated_at = now() WHERE id = $1", [req.params.id]);
+    }
+    res.json({ ok: true });
+  } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
+});
+
+// Expiry checker endpoint
+adminRouter.post("/connections/check-expiry", async (_req: AuthRequest, res: Response) => {
+  try {
+    // Auto-expire overdue connections
+    const { rows: expired } = await query("UPDATE influencer_connections SET status = 'expired', updated_at = now() WHERE status = 'active' AND end_date < NOW() RETURNING id, client_id, influencer_id");
+    // Send notifications for connections expiring in 3 days
+    const { rows: warning } = await query("SELECT id, client_id, influencer_id, end_date FROM influencer_connections WHERE status = 'active' AND end_date BETWEEN NOW() AND NOW() + INTERVAL '3 days'");
+    for (const c of warning) {
+      const days = Math.ceil((new Date(c.end_date).getTime() - Date.now())/86400000);
+      await sendMsg(c.client_id, "connection_expiry", "建联即将到期", `您的建联还有${days}天到期`, "/client/vertical-connections/my");
+      await sendMsg(c.influencer_id, "connection_expiry", "建联即将到期", `您的建联还有${days}天到期`, "/influencer/vertical-connections/cooperation");
+    }
+    res.json({ expired: expired.length, warnings_sent: warning.length });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
 

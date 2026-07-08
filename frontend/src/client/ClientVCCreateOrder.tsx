@@ -34,6 +34,7 @@ export default function ClientVCCreateOrder() {
     finally { setSending(false); }
   };
 
+  const sb: React.CSSProperties = { padding: "6px 12px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" };
   const si: React.CSSProperties = { width: "100%", padding: "8px 10px", border: "1px solid #dbe1ea", borderRadius: 8, boxSizing: "border-box", marginTop: 4 };
 
   return (
@@ -42,7 +43,21 @@ export default function ClientVCCreateOrder() {
       <h2 style={{marginTop:0}}>定向派单</h2>
       {err && <p style={{color:"#c00"}}>{err}</p>}
       <div style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.08)", maxWidth: 600 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 10, alignItems: "center" }}>
+        const [templates, setTemplates] = useState<any[]>(()=>{try{return JSON.parse(localStorage.getItem("vc_templates")||"[]");}catch{return[];}});
+  const saveTemplate = () => {
+    if(!form.title){setErr("请先填写任务标题");return;}
+    const t = {title:form.title,task_requirements:form.task_requirements,delivery_standards:form.delivery_standards,submission_types:form.submission_types};
+    const next = [...templates, t].slice(0,10);
+    setTemplates(next); localStorage.setItem("vc_templates",JSON.stringify(next));
+    setErr(""); alert("模板已保存");
+  };
+  const applyTemplate = (e: any) => {
+    const t = templates[Number(e.target.value)];
+    if(t) setForm(f=>({...f,title:t.title,task_requirements:t.task_requirements,delivery_standards:t.delivery_standards,submission_types:t.submission_types}));
+  };
+  <div style={{ display: "grid", gridTemplateColumns: "110px 1fr", gap: 10, alignItems: "center" }}>
+          {templates.length > 0 && <><label>选择模板</label><select onChange={applyTemplate} style={si}><option value="">-- 选择 --</option>{templates.map((t:any,i:number)=><option key={i} value={i}>{t.title}</option>)}</select></>}
+          <label></label><button type="button" onClick={saveTemplate} style={{...sb,marginTop:4}}>💾 保存为模板</button>
           <label>任务标题*</label><input value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} style={si} />
           <label>任务要求*</label><textarea value={form.task_requirements} onChange={e=>setForm(f=>({...f,task_requirements:e.target.value}))} style={si} rows={3} />
           <label>交付标准*</label><textarea value={form.delivery_standards} onChange={e=>setForm(f=>({...f,delivery_standards:e.target.value}))} style={si} rows={3} />
