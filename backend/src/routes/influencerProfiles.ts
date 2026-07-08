@@ -148,6 +148,33 @@ adminRouter.put("/:id", async (req: AuthRequest, res: Response) => {
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
 
+// 关联用户到托管达人
+adminRouter.post("/:id/link-user", async (req: AuthRequest, res: Response) => {
+  try {
+    const id = parseInt(String(req.params.id));
+    const { user_id, username, password } = req.body || {};
+    let uid = user_id;
+    if (!uid && username && password) {
+      // Create new influencer user
+      const existing = await query("SELECT id FROM users WHERE username = $1", [username]);
+      if (existing.rows[0]) return res.status(400).json({ error: "USER_EXISTS", message: "用户名已存在" });
+      const { rows } = await query("INSERT INTO users (username, password_hash, role_id) VALUES ($1, $2, 3) RETURNING id", [username, password]);
+      uid = rows[0].id;
+    }
+    if (!uid) return res.status(400).json({ error: "MISSING", message: "需要提供 user_id 或 username+password" });
+    await query("UPDATE influencer_profiles_full SET user_id = $1, updated_at = now() WHERE id = $2", [uid, id]);
+    res.json({ ok: true, user_id: uid });
+  } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
+});
+
+// 获取可关联的influencer用户列表
+adminRouter.get("/linkable-users", async (_req: AuthRequest, res: Response) => {
+  try {
+    const { rows } = await query("SELECT u.id, u.username FROM users u JOIN roles r ON u.role_id=r.id WHERE r.name='influencer' AND u.id NOT IN (SELECT user_id FROM influencer_profiles_full WHERE user_id IS NOT NULL) ORDER BY u.id LIMIT 200");
+    res.json({ list: rows });
+  } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
+});
+
 adminRouter.delete("/:id", async (req: AuthRequest, res: Response) => {
   try {
     await query("UPDATE influencer_profiles_full SET status = 'inactive', updated_at = now() WHERE id = $1", [req.params.id]);
