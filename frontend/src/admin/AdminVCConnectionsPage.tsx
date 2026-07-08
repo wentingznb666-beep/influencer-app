@@ -26,6 +26,10 @@ export default function AdminVCConnectionsPage() {
 
   const [intNote, setIntNote] = useState("");
   const [intTarget, setIntTarget] = useState<number|0>(0);
+  const [proxyTarget, setProxyTarget] = useState<any>(null);
+  const [proxyReason, setProxyReason] = useState("");
+  const [proxyContent, setProxyContent] = useState("");
+  const [proxyOrders, setProxyOrders] = useState<any[]>([]);
   const intervene = async (id: number, status: string) => {
     if (!intNote.trim()) { alert("干预操作必须填写备注"); return; }
     await fetchWithAuth(`/api/admin/connections/${id}`, { method: "PATCH", headers: {"Content-Type":"application/json"}, body: JSON.stringify({status, intervention_note: intNote}) });
