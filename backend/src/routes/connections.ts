@@ -82,7 +82,7 @@ clientRouter.post("/connections", async (req: AuthRequest, res: Response) => {
       `INSERT INTO influencer_connections (client_id, influencer_id, influencer_profile_id, category, grade, brief, budget, start_date, end_date, status) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending') RETURNING id`,
       [req.user!.userId, actualInfluencerId, influencer_profile_id || null, category, grade || null, brief || null, budget || null, start, end]
     );
-    await sendMsg(actualInfluencerId, "connection_invite", "新的建联邀请", `商家向你发起了建联邀请，类目：${category}`, "/influencer/vertical-connections/invitations?tab=pending");
+    await sendMsg(actualInfluencerId!, "connection_invite", "新的建联邀请", `商家向你发起了建联邀请，类目：${category}`, "/influencer/vertical-connections/invitations?tab=pending");
     res.status(201).json({ id: rows[0].id });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
@@ -290,11 +290,11 @@ influencerRouter.patch("/connections/:id", async (req: AuthRequest, res: Respons
     const conn = existing.rows[0];
     if (action === "accept") {
       await query("UPDATE influencer_connections SET status = 'active', updated_at = now() WHERE id = $1", [req.params.id]);
-      await logOperation(req.user!.userId, "accept", "connection", parseInt(req.params.id), "达人接受建联邀请");
+      await logOperation(req.user!.userId, "accept", "connection", parseInt(String(req.params.id)), "达人接受建联邀请");
       await sendMsg(conn.client_id, "connection_invite", "建联已接受", "达人已接受你的建联邀请", "/client/vertical-connections/my?tab=active");
     } else if (action === "reject") {
       await query("UPDATE influencer_connections SET status = 'rejected', updated_at = now() WHERE id = $1", [req.params.id]);
-      await logOperation(req.user!.userId, "reject", "connection", parseInt(req.params.id), `达人拒绝建联，原因：${reject_reason || ""}`);
+      await logOperation(req.user!.userId, "reject", "connection", parseInt(String(req.params.id)), `达人拒绝建联，原因：${reject_reason || ""}`);
       await sendMsg(conn.client_id, "connection_invite", "建联已拒绝", `达人已拒绝你的建联邀请${reject_reason ? "，原因：" + reject_reason : ""}`, "/client/vertical-connections/my");
     }
     res.json({ ok: true });
@@ -366,12 +366,12 @@ adminRouter.patch("/connections/:id/proxy", async (req: AuthRequest, res: Respon
     if (!conn.rows[0]) return res.status(404).json({ error: "NOT_FOUND" });
     if (action === "accept") {
       await query("UPDATE influencer_connections SET status = 'active', updated_at = now() WHERE id = $1", [req.params.id]);
-      await logOperation(req.user!.userId, "proxy_accept", "connection", parseInt(req.params.id), "代替达人接受建联邀请");
+      await logOperation(req.user!.userId, "proxy_accept", "connection", parseInt(String(req.params.id)), "代替达人接受建联邀请");
       await sendMsg(conn.rows[0].client_id, "connection_invite", "建联已接受(代)", "管理员已代替达人接受建联", "/client/vertical-connections/my?tab=active");
     } else if (action === "reject") {
       if (!reject_reason) return res.status(400).json({ error: "MISSING_REASON" });
       await query("UPDATE influencer_connections SET status = 'rejected', updated_at = now() WHERE id = $1", [req.params.id]);
-      await logOperation(req.user!.userId, "proxy_reject", "connection", parseInt(req.params.id), `代替达人拒绝建联，原因：${reject_reason}`);
+      await logOperation(req.user!.userId, "proxy_reject", "connection", parseInt(String(req.params.id)), `代替达人拒绝建联，原因：${reject_reason}`);
       await sendMsg(conn.rows[0].client_id, "connection_invite", "建联已拒绝(代)", `管理员已代替达人拒绝，原因：${reject_reason}`, "/client/vertical-connections/my");
     }
     res.json({ ok: true });
@@ -387,12 +387,12 @@ adminRouter.patch("/connection-orders/:id/proxy-respond", async (req: AuthReques
     const order = existing.rows[0];
     if (action === "accept") {
       await query("UPDATE connection_orders SET influencer_response = 'accepted', status = 'submitted', updated_at = now() WHERE id = $1", [req.params.id]);
-      await logOperation(req.user!.userId, "proxy_accept_order", "connection_order", parseInt(req.params.id), "代替达人接受派单");
+      await logOperation(req.user!.userId, "proxy_accept_order", "connection_order", parseInt(String(req.params.id)), "代替达人接受派单");
       await sendMsg(order.client_id, "connection_order", "达人已接受派单(代)", `订单 ${order.order_no} 管理员已代替达人接受`, "/client/vertical-connections/my");
     } else if (action === "reject") {
       if (!reject_reason) return res.status(400).json({ error: "MISSING_REASON", message: "拒绝必须填写原因" });
       await query("UPDATE connection_orders SET influencer_response = 'rejected', influencer_reject_reason = $1, status = 'rejected', updated_at = now() WHERE id = $2", [reject_reason, req.params.id]);
-      await logOperation(req.user!.userId, "proxy_reject_order", "connection_order", parseInt(req.params.id), `代替达人拒绝派单，原因：${reject_reason}`);
+      await logOperation(req.user!.userId, "proxy_reject_order", "connection_order", parseInt(String(req.params.id)), `代替达人拒绝派单，原因：${reject_reason}`);
       await sendMsg(order.client_id, "connection_order", "达人已拒绝派单(代)", `订单 ${order.order_no} 管理员已代替达人拒绝：${reject_reason}`, "/client/vertical-connections/my");
     }
     res.json({ ok: true });
@@ -405,7 +405,7 @@ adminRouter.post("/connection-orders/:id/proxy-submit", async (req: AuthRequest,
     const { submission_content } = req.body || {};
     if (!submission_content) return res.status(400).json({ error: "MISSING" });
     await query("UPDATE connection_orders SET submission_content = $1, status = 'submitted', review_status = 'pending_review', updated_at = now() WHERE id = $2", [submission_content, req.params.id]);
-      await logOperation(req.user!.userId, "proxy_submit", "connection_order", parseInt(req.params.id), "代替达人提交作品");
+      await logOperation(req.user!.userId, "proxy_submit", "connection_order", parseInt(String(req.params.id)), "代替达人提交作品");
     const order = await query("SELECT client_id, order_no FROM connection_orders WHERE id = $1", [req.params.id]);
     if (order.rows[0]) await sendMsg(order.rows[0].client_id, "connection_order", "达人已提交作品(代)", `订单 ${order.rows[0].order_no} 管理员已代替达人提交作品`, "/client/vertical-connections/my");
     res.json({ ok: true });
@@ -417,7 +417,7 @@ adminRouter.post("/connection-orders/:id/proxy-revise", async (req: AuthRequest,
     const { submission_content } = req.body || {};
     if (!submission_content) return res.status(400).json({ error: "MISSING" });
     await query("UPDATE connection_orders SET submission_content = $1, review_status = 'pending_review', status = 'submitted', revised_at = now(), updated_at = now() WHERE id = $2 AND review_status = 'rejected'", [submission_content, req.params.id]);
-      await logOperation(req.user!.userId, "proxy_revise", "connection_order", parseInt(req.params.id), "代替达人修改重提");
+      await logOperation(req.user!.userId, "proxy_revise", "connection_order", parseInt(String(req.params.id)), "代替达人修改重提");
     const order = await query("SELECT client_id, order_no FROM connection_orders WHERE id = $1", [req.params.id]);
     if (order.rows[0]) await sendMsg(order.rows[0].client_id, "connection_order", "达人已修改重提(代)", `订单 ${order.rows[0].order_no} 管理员已代替达人修改重提`, "/client/vertical-connections/my");
     res.json({ ok: true });
