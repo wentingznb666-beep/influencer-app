@@ -105,6 +105,35 @@ export default function AdminVCConnectionsPage() {
           </div>
         </div>
       ))}
+    {proxyTarget && proxyReason !== undefined && !proxyContent && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}} onClick={()=>setProxyTarget(null)}>
+          <div style={{background:"#fff",borderRadius:12,padding:24,maxWidth:450,width:"90%"}} onClick={e=>e.stopPropagation()}>
+            <h3 style={{marginTop:0,color:"#b91c1c"}}>拒绝建联邀请 — {proxyTarget.influencer_code||proxyTarget.influencer_username}</h3>
+            <textarea value={proxyReason} onChange={e=>setProxyReason(e.target.value)} placeholder="拒绝原因（必填）" style={{width:"100%",padding:"8px 10px",border:"1px solid #dbe1ea",borderRadius:8,boxSizing:"border-box",minHeight:80}} autoFocus />
+            <div style={{marginTop:12,display:"flex",gap:8}}>
+              <button onClick={()=>doProxy(proxyTarget.id,"reject",proxyReason)} disabled={!proxyReason.trim()} style={{padding:"8px 20px",border:"none",borderRadius:8,background:proxyReason.trim()?"#dc2626":"#94a3b8",color:"#fff",cursor:proxyReason.trim()?"pointer":"not-allowed",fontWeight:700}}>确认拒绝</button>
+              <button onClick={()=>setProxyTarget(null)} style={{padding:"8px 20px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer"}}>取消</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {proxyTarget && proxyContent !== undefined && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000}} onClick={()=>setProxyTarget(null)}>
+          <div style={{background:"#fff",borderRadius:12,padding:24,maxWidth:500,width:"90%"}} onClick={e=>e.stopPropagation()}>
+            <h3 style={{marginTop:0}}>代替达人提交作品 — {proxyTarget.influencer_code||proxyTarget.influencer_username}</h3>
+            {proxyOrders.length > 0 ? (
+              <div style={{marginBottom:12,fontSize:12,color:"#64748b",maxHeight:150,overflow:"auto"}}>
+                {proxyOrders.map((o:any)=><div key={o.id} style={{padding:"4px 0",borderBottom:"1px solid #f1f5f9"}}>{o.order_no} — {o.title} ({o.amount}THB) | {o.status}</div>)}
+              </div>
+            ) : <p style={{color:"#94a3b8",fontSize:13}}>暂无派单记录</p>}
+            <textarea value={proxyContent} onChange={e=>setProxyContent(e.target.value)} placeholder="作品链接/视频URL/描述" style={{width:"100%",padding:"8px 10px",border:"1px solid #dbe1ea",borderRadius:8,boxSizing:"border-box",minHeight:80}} autoFocus />
+            <div style={{marginTop:12,display:"flex",gap:8}}>
+              <button onClick={doProxySubmit} disabled={!proxyContent.trim()||proxyOrders.length===0} style={{padding:"8px 20px",border:"none",borderRadius:8,background:proxyContent.trim()&&proxyOrders.length>0?"var(--xt-accent)":"#94a3b8",color:"#fff",cursor:proxyContent.trim()&&proxyOrders.length>0?"pointer":"not-allowed",fontWeight:700}}>确认提交</button>
+              <button onClick={()=>setProxyTarget(null)} style={{padding:"8px 20px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer"}}>取消</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
