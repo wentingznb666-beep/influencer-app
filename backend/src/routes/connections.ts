@@ -161,7 +161,7 @@ clientRouter.get("/connection-orders", async (req: AuthRequest, res: Response) =
     else if (tab === "pending_payment") where += " AND co.review_status = 'approved' AND co.payment_status != 'paid'";
     else if (tab === "completed") where += " AND co.payment_status = 'paid'";
     if (q) { where += ` AND (co.order_no ILIKE $${idx} OR ipf.influencer_code ILIKE $${idx})`; params.push(`%${q}%`); idx++; }
-    const { rows } = await query(`SELECT co.*, ipf.influencer_code, u.username as influencer_username FROM connection_orders co LEFT JOIN influencer_profiles_full ipf ON co.influencer_id = ipf.user_id LEFT JOIN users u ON co.influencer_id = u.id ${where} ORDER BY co.id DESC LIMIT 200`, params);
+    const { rows } = await query(`SELECT co.*, ipf.influencer_code, ipf.followers, u.username as influencer_username FROM connection_orders co LEFT JOIN influencer_profiles_full ipf ON co.influencer_profile_id = ipf.id LEFT JOIN users u ON co.influencer_id = u.id ${where} ORDER BY co.id DESC LIMIT 200`, params);
     res.json({ list: rows });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
