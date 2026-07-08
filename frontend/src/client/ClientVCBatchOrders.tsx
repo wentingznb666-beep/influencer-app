@@ -32,9 +32,13 @@ export default function ClientVCBatchOrders() {
     else setSelected(new Set(connections.map((c: Conn) => c.id)));
   };
 
-  const submit = async () => {
+  const confirmSubmit = () => {
     if (!form.title || !form.task_requirements || !form.delivery_standards || !form.deadline) { setErr("请填写所有必填字段"); return; }
     if (selected.size === 0) { setErr("请至少勾选一个达人"); return; }
+    if (!window.confirm(`确认向 ${selected.size} 位达人批量派单？`)) return;
+    submit();
+  };
+  const submit = async () => {
     setSending(true);
     try {
       const r = await fetchWithAuth("/api/client/connection-orders/batch", {
@@ -87,7 +91,7 @@ export default function ClientVCBatchOrders() {
               <label>提交方式</label><input value={form.submission_types} onChange={e => setForm(f => ({ ...f, submission_types: e.target.value }))} style={si} placeholder="link,video,image" />
             </div>
             <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 8 }}>金额将自动取各达人的单独报价</p>
-            <button onClick={submit} disabled={sending} style={{ marginTop: 12, padding: "10px 24px", border: "none", borderRadius: 8, background: sending ? "#94a3b8" : "var(--xt-accent)", color: "#fff", cursor: sending ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 15 }}>{sending ? "派单中..." : `批量派单（${selected.size}个达人）`}</button>
+            <button onClick={confirmSubmit} disabled={sending} style={{ marginTop: 12, padding: "10px 24px", border: "none", borderRadius: 8, background: sending ? "#94a3b8" : "var(--xt-accent)", color: "#fff", cursor: sending ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 15 }}>{sending ? "派单中..." : `批量派单（${selected.size}个达人）`}</button>
           </div>
         </>
       )}

@@ -27,6 +27,20 @@ clientRouter.get("/connections", async (req: AuthRequest, res: Response) => {
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
 
+// 建联统计
+clientRouter.get("/connections/stats", async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.user!.userId;
+    const [[{active_count}], [{pending_review_count}], [{unpaid_count}], [{monthly_count}]] = await Promise.all([
+      query("SELECT COUNT(*)::int as active_count FROM influencer_connections WHERE client_id = $1 AND status = 'active'", [uid]),
+      query("SELECT COUNT(*)::int as pending_review_count FROM connection_orders WHERE client_id = $1 AND review_status = 'pending_review'", [uid]),
+      query("SELECT COUNT(*)::int as unpaid_count FROM connection_orders WHERE client_id = $1 AND review_status = 'approved' AND payment_status != 'paid'", [uid]),
+      query("SELECT COUNT(*)::int as monthly_count FROM connection_orders WHERE client_id = $1 AND created_at >= date_trunc('month', now())", [uid]),
+    ]);
+    res.json({ active_count: active_count||0, pending_review_count: pending_review_count||0, unpaid_count: unpaid_count||0, monthly_count: monthly_count||0 });
+  } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
+});
+
 clientRouter.post("/connections", async (req: AuthRequest, res: Response) => {
   try {
     const { influencer_id, influencer_profile_id, category, grade, brief, budget } = req.body || {};
@@ -114,7 +128,17 @@ clientRouter.post("/connection-orders/batch", async (req: AuthRequest, res: Resp
 
 clientRouter.get("/connection-orders", async (req: AuthRequest, res: Response) => {
   try {
-    const { rows } = await query("SELECT co.*, ipf.influencer_code, u.username as influencer_username FROM connection_orders co LEFT JOIN influencer_profiles_full ipf ON co.influencer_id = ipf.user_id LEFT JOIN users u ON co.influencer_id = u.id WHERE co.client_id = $1 ORDER BY co.id DESC LIMIT 200", [req.user!.userId]);
+    const tab = String(req.query.tab || "");
+    const q = String(req.query.q || "").trim();
+    const params: any[] = [req.user!.userId];
+    let where = "WHERE co.client_id = $1";
+    let idx = 2;
+    if (tab === "pending_response") where += " AND co.influencer_response = 'pending'";
+    else if (tab === "pending_review") where += " AND co.review_status = 'pending_review'";
+    else if (tab === "pending_payment") where += " AND co.review_status = 'approved' AND co.payment_status != 'paid'";
+    else if (tab === "completed") where += " AND co.payment_status = 'paid'";
+    if (q) { where += ` AND (co.order_no ILIKE $${idx} OR ipf.influencer_code ILIKE $${idx})`; params.push(`%${q}%`); idx++; }
+    const { rows } = await query(`SELECT co.*, ipf.influencer_code, u.username as influencer_username FROM connection_orders co LEFT JOIN influencer_profiles_full ipf ON co.influencer_id = ipf.user_id LEFT JOIN users u ON co.influencer_id = u.id ${where} ORDER BY co.id DESC LIMIT 200`, params);
     res.json({ list: rows });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });

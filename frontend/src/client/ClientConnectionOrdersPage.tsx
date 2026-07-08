@@ -25,6 +25,8 @@ export default function ClientConnectionOrdersPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+  const [tab, setTab] = useState("");
+  const [q, setQ] = useState("");
 
   // Dispatch form
   const [showForm, setShowForm] = useState(false);
@@ -43,14 +45,14 @@ export default function ClientConnectionOrdersPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetchWithAuth("/api/client/connection-orders");
+      const params = new URLSearchParams(); if(tab) params.set('tab', tab); if(q.trim()) params.set('q', q.trim()); const res = await fetchWithAuth(`/api/client/connection-orders?${params}`);
       const data = await res.json();
       setOrders(data.list || []);
     } catch (e: any) { setError(e.message); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [tab]);
   useEffect(() => {
     if (detailId) {
       fetchWithAuth(`/api/client/connection-orders/${detailId}`).then(r => r.json()).then(setDetail).catch(() => {});
@@ -147,7 +149,14 @@ export default function ClientConnectionOrdersPage() {
 
   return (
     <div>
-      <h2>建联定向派单</h2>
+      <h2>订单列表</h2>
+      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
+        {[["","全部"],["pending_response","待回应"],["pending_review","待审核"],["pending_payment","待付款"],["completed","已完成"]].map(([v,l])=>(
+          <button key={v} onClick={()=>setTab(v)} style={{padding:"6px 14px",border:"1px solid #dbe1ea",borderRadius:8,background:tab===v?"var(--xt-accent)":"#fff",color:tab===v?"#fff":"#334155",cursor:"pointer",fontSize:13,fontWeight:tab===v?700:400}}>{l}</button>
+        ))}
+        <input placeholder="搜索订单号/达人编号" value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")load();}} style={{padding:"6px 10px",border:"1px solid #dbe1ea",borderRadius:8,minWidth:200,marginLeft:"auto"}} />
+        <button onClick={load} style={{padding:"6px 12px",border:"1px solid #dbe1ea",borderRadius:8,background:"#fff",cursor:"pointer"}}>搜索</button>
+      </div>
       {hasUnpaid && <div style={{ padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, color: "#b91c1c", marginBottom: 12, fontWeight: 700 }}>⚠ 您有未完成付款的订单，请先完成付款后再操作！</div>}
       {error && <p style={{ color: "#c00" }}>{error}</p>}
       {msg && <p style={{ color: "#166534" }}>{msg}</p>}
