@@ -65,8 +65,8 @@ export default function InfluencerVCProfile() {
     autoSaveTimer.current = setTimeout(async () => {
       if (!data.influencer_code) return;
       try {
-        if (isNew) { await fetchWithAuth("/api/admin/influencer-profiles", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({...data, user_id: null}) }); setIsNew(false); }
-        else { await fetchWithAuth("/api/influencer/profile", { method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify(data) }); }
+        await fetchWithAuth("/api/influencer/profile", { method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify(data) });
+        setIsNew(false);
         initialForm.current = JSON.stringify(data);
       } catch {}
     }, 1500);
@@ -91,12 +91,12 @@ export default function InfluencerVCProfile() {
     if (errors.length > 0) { setShowErrors(errors); return; }
     setShowErrors([]); setSaving(true);
     try {
-      if (isNew) { await fetchWithAuth("/api/admin/influencer-profiles", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({...form, user_id: null}) }); setIsNew(false); }
-      else { await fetchWithAuth("/api/influencer/profile", { method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify(form) }); }
+      await fetchWithAuth("/api/influencer/profile", { method: "PUT", headers: {"Content-Type":"application/json"}, body: JSON.stringify(form) });
+      setIsNew(false);
       initialForm.current = JSON.stringify(form);
       setSaved(true); setDirty(false);
       setToast({type:"success",msg:"保存成功"});
-      setTimeout(()=>{setToast(null);nav("/influencer/vertical-connections/home");},1200);
+      setTimeout(()=>{setToast(null);nav("/influencer/vertical-connections/invitations");},1200);
     } catch(e:any) { setToast({type:"error",msg:e.message||"保存失败，请重试"}); }
     finally { setSaving(false); }
   };
