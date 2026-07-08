@@ -106,6 +106,7 @@ const ClientVCCreateOrder = lazy(() => import("./client/ClientVCCreateOrder"));
 const ClientConnectionOrdersPage = lazy(() => import("./client/ClientConnectionOrdersPage"));
 const ClientVCBatchOrders = lazy(() => import("./client/ClientVCBatchOrders"));
 const InfluencerVCPage = lazy(() => import("./influencer/InfluencerVCPage"));
+const InfluencerVCCooperation = lazy(() => import("./influencer/InfluencerVCCooperation"));
 const InfluencerVCProfile = lazy(() => import("./influencer/InfluencerVCProfile"));
 const InfluencerVCOrders = lazy(() => import("./influencer/InfluencerVCOrders"));
 const InfluencerVCOrderDetail = lazy(() => import("./influencer/InfluencerVCOrderDetail"));
@@ -218,7 +219,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="merchant-members" element={<MerchantMembersPage />} />
             <Route path="vertical-connections" element={<Navigate to="/influencer/vertical-connections/profile" replace />} />
             <Route path="vertical-connections/profile" element={<InfluencerVCProfile />} />
-            <Route path="vertical-connections/invitations" element={<InfluencerVCPage />} />
+            <Route path="vertical-connections/cooperation" element={<InfluencerVCCooperation />} />
             <Route path="vertical-connections/orders" element={<InfluencerVCOrders />} />
             <Route path="vertical-connections/orders/:id" element={<InfluencerVCOrderDetail />} />
             <Route path="vertical-connections/payment" element={<InfluencerVCPayment />} />
