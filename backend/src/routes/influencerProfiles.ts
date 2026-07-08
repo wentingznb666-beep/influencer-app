@@ -98,6 +98,14 @@ adminRouter.get("/auto-grade", async (_req: AuthRequest, res: Response) => {
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
 
+// 必须放在 /:id 之前，否则 "linkable-users" 会被作为 :id 参数解析
+adminRouter.get("/linkable-users", async (_req: AuthRequest, res: Response) => {
+  try {
+    const { rows } = await query("SELECT u.id, u.username FROM users u JOIN roles r ON u.role_id=r.id WHERE r.name='influencer' AND u.id NOT IN (SELECT user_id FROM influencer_profiles_full WHERE user_id IS NOT NULL) ORDER BY u.id LIMIT 200");
+    res.json({ list: rows });
+  } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
+});
+
 adminRouter.get("/:id", async (req: AuthRequest, res: Response) => {
   try {
     const { rows } = await query("SELECT * FROM influencer_profiles_full WHERE id = $1", [req.params.id]);
@@ -168,13 +176,6 @@ adminRouter.post("/:id/link-user", async (req: AuthRequest, res: Response) => {
 });
 
 // 获取可关联的influencer用户列表
-adminRouter.get("/linkable-users", async (_req: AuthRequest, res: Response) => {
-  try {
-    const { rows } = await query("SELECT u.id, u.username FROM users u JOIN roles r ON u.role_id=r.id WHERE r.name='influencer' AND u.id NOT IN (SELECT user_id FROM influencer_profiles_full WHERE user_id IS NOT NULL) ORDER BY u.id LIMIT 200");
-    res.json({ list: rows });
-  } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
-});
-
 adminRouter.delete("/:id", async (req: AuthRequest, res: Response) => {
   try {
     await query("UPDATE influencer_profiles_full SET status = 'inactive', updated_at = now() WHERE id = $1", [req.params.id]);
