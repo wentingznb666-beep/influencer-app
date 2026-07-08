@@ -20,13 +20,14 @@ export default function ClientVCInfluencerList() {
       setList(((await r.json()).list || []));
     } catch {} finally { setLoading(false); }
   };
-    const [existingConns, setExistingConns] = useState<Set<number>>(new Set());
+    const [existingConns, setExistingConns] = useState<Record<number,{status:string,id:number}>>({});
   useEffect(()=>{load();}, [grade, sort]);
   useEffect(()=>{
     (async()=>{
       try{const r=await fetchWithAuth("/api/client/connections");const d=await r.json();
-      const ids=new Set<number>();(d.list||[]).forEach((c:any)=>{if(c.status==="pending"||c.status==="active")ids.add(c.influencer_profile_id);});
-      setExistingConns(ids);}catch{}
+      const map:Record<number,{status:string,id:number}>={};
+      (d.list||[]).forEach((c:any)=>{if(c.influencer_profile_id)map[c.influencer_profile_id]={status:c.status,id:c.id};});
+      setExistingConns(map);}catch{}
     })();
   }, []);
 
@@ -59,7 +60,13 @@ export default function ClientVCInfluencerList() {
             <span>周直播次数: {inf.weekly_live_count||"-"}</span><span>直播时长: {inf.avg_live_hours_per_week||"-"}</span>
           </div>
           {inf.remark && <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>备注: {inf.remark}</div>}
-          <button onClick={()=>nav(`/client/vertical-connections/market/invite/${inf.id}?category=${encodeURIComponent(category)}&code=${inf.influencer_code}&grade=${inf.grade||""}`)} style={{ padding: "6px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer", fontSize: 13, marginTop: 8 }}>发起邀请</button>
+          {(()=>{const conn=existingConns[inf.id];if(!conn)return <button onClick={()=>nav(`/client/vertical-connections/market/invite/${inf.id}?category=${encodeURIComponent(category)}&code=${inf.influencer_code}&grade=${inf.grade||""}`)} style={{ padding: "6px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer", fontSize: 13, marginTop: 8 }}>发起邀请</button>;
+            if(conn.status==="pending")return <span style={{display:"inline-block",padding:"6px 14px",borderRadius:8,background:"#fef3c7",color:"#92400e",fontSize:13,marginTop:8,fontWeight:600}}>⏳ 已邀请，待达人确认</span>;
+            if(conn.status==="active")return <div style={{display:"flex",gap:6,marginTop:8}}><span style={{display:"inline-block",padding:"6px 14px",borderRadius:8,background:"#dcfce7",color:"#166534",fontSize:13,fontWeight:600}}>🔗 建联中</span><button onClick={()=>nav(`/client/vertical-connections/my/create-order/${conn.id}?influencer=${inf.id}`)} style={{padding:"6px 14px",border:"none",borderRadius:8,background:"var(--xt-accent)",color:"#fff",cursor:"pointer",fontSize:13}}>快捷派单</button></div>;
+            if(conn.status==="expired")return <button onClick={()=>nav(`/client/vertical-connections/market/invite/${inf.id}?category=${encodeURIComponent(category)}&code=${inf.influencer_code}&grade=${inf.grade||""}`)} style={{ padding: "6px 14px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#f1f5f9", color: "#64748b", cursor: "pointer", fontSize: 13, marginTop: 8 }}>⌛ 已到期，重新邀请</button>;
+            if(conn.status==="rejected")return <button onClick={()=>nav(`/client/vertical-connections/market/invite/${inf.id}?category=${encodeURIComponent(category)}&code=${inf.influencer_code}&grade=${inf.grade||""}`)} style={{ padding: "6px 14px", border: "1px solid #fecaca", borderRadius: 8, background: "#fff", color: "#b91c1c", cursor: "pointer", fontSize: 13, marginTop: 8 }}>❌ 已拒绝，重新邀请</button>;
+            return <button onClick={()=>nav(`/client/vertical-connections/market/invite/${inf.id}?category=${encodeURIComponent(category)}&code=${inf.influencer_code}&grade=${inf.grade||""}`)} style={{ padding: "6px 14px", border: "none", borderRadius: 8, background: "var(--xt-accent)", color: "#fff", cursor: "pointer", fontSize: 13, marginTop: 8 }}>发起邀请</button>;
+          })()}
         </div>
       ))}
     </div>
