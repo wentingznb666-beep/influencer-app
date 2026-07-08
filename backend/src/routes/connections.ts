@@ -319,14 +319,14 @@ adminRouter.patch("/connections/:id", async (req: AuthRequest, res: Response) =>
 
 adminRouter.get("/connections/stats", async (_req: AuthRequest, res: Response) => {
   try {
-    const [{rows: total}], [{rows: active}], [{rows: monthly}], [{rows: expiring}], [{rows: byCategory}] = await Promise.all([
+    const [r1, r2, r3, r4, r5] = await Promise.all([
       query("SELECT COUNT(*)::int as c FROM influencer_connections"),
       query("SELECT COUNT(*)::int as c FROM influencer_connections WHERE status = 'active'"),
       query("SELECT COUNT(*)::int as c FROM influencer_connections WHERE created_at >= date_trunc('month', now())"),
       query("SELECT COUNT(*)::int as c FROM influencer_connections WHERE status = 'active' AND end_date BETWEEN NOW() AND NOW() + INTERVAL '3 days'"),
       query("SELECT category, COUNT(*)::int as c FROM influencer_connections GROUP BY category ORDER BY c DESC LIMIT 10"),
     ]);
-    res.json({ total: total[0]?.c||0, active: active[0]?.c||0, monthly_new: monthly[0]?.c||0, expiring: expiring[0]?.c||0, byCategory: byCategory });
+    res.json({ total: r1.rows[0]?.c||0, active: r2.rows[0]?.c||0, monthly_new: r3.rows[0]?.c||0, expiring: r4.rows[0]?.c||0, byCategory: r5.rows });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
 
