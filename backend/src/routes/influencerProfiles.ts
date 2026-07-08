@@ -305,6 +305,7 @@ influencerRouter.put("/profile", async (req: AuthRequest, res: Response) => {
       }
       if (sets.length === 0) return res.json({ ok: true });
       sets.push(`updated_at = now()`);
+      sets.push(`status = 'active'`);
       const grade = calcGrade({
         gmv_sales: req.body.gmv_sales ?? row.gmv_sales,
         units_sold: req.body.units_sold ?? row.units_sold,

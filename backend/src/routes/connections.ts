@@ -204,12 +204,12 @@ clientRouter.post("/connection-orders/:id/review", async (req: AuthRequest, res:
     const order = existing.rows[0];
     if (action === "approve") {
       await query("UPDATE connection_orders SET review_status = 'approved', status = 'completed', updated_at = now() WHERE id = $1", [req.params.id]);
-      await sendMsg(order.influencer_id, "connection_order", "订单验收通过", `订单 ${order.order_no} 已验收通过`, `/influencer/vertical-connections/orders`);
+      await sendMsg(order.influencer_id, "connection_order", "订单验收通过", `订单 ${order.order_no} 已验收通过`, `/influencer/vertical-connections/orders/${order.id}`);
     } else if (action === "reject") {
       if (order.review_count >= 1) return res.status(400).json({ error: "MAX_REJECT", message: "只能驳回一次" });
       if (!review_note) return res.status(400).json({ error: "MISSING_NOTE", message: "驳回必须填写修改备注" });
       await query("UPDATE connection_orders SET review_status = 'rejected', review_note = $1, review_count = review_count + 1, status = 'rejected', updated_at = now() WHERE id = $2", [review_note, req.params.id]);
-      await sendMsg(order.influencer_id, "connection_order", "订单需要修改", `订单 ${order.order_no} 被驳回：${review_note}`, `/influencer/vertical-connections/orders`);
+      await sendMsg(order.influencer_id, "connection_order", "订单需要修改", `订单 ${order.order_no} 被驳回：${review_note}`, `/influencer/vertical-connections/orders/${order.id}`);
     }
     res.json({ ok: true });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
@@ -231,7 +231,7 @@ clientRouter.post("/connection-orders/:id/confirm-payment", async (req: AuthRequ
     const order = await query("SELECT * FROM connection_orders WHERE id = $1 AND client_id = $2 AND review_status = 'approved'", [req.params.id, req.user!.userId]);
     if (!order.rows[0]) return res.status(400).json({ error: "NOT_APPROVED" });
     await query("UPDATE connection_orders SET payment_voucher = $1, payment_status = 'paid', paid_at = now(), updated_at = now() WHERE id = $2", [payment_voucher, req.params.id]);
-    await sendMsg(order.rows[0].influencer_id, "connection_payment", "商家已付款", `订单 ${order.rows[0].order_no} 商家已确认付款`, `/influencer/vertical-connections/orders`);
+    await sendMsg(order.rows[0].influencer_id, "connection_payment", "商家已付款", `订单 ${order.rows[0].order_no} 商家已确认付款`, `/influencer/vertical-connections/orders/${order.rows[0].id}`);
     res.json({ ok: true });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
@@ -477,7 +477,7 @@ adminRouter.post("/connection-orders/:id/admin-action", async (req: AuthRequest,
     const ord = await query("SELECT client_id, influencer_id, order_no FROM connection_orders WHERE id = $1", [req.params.id]);
     if (action === "mark_paid") {
       await query("UPDATE connection_orders SET payment_status = 'paid', payment_verified = true, paid_at = now(), updated_at = now() WHERE id = $1", [req.params.id]);
-      if (ord.rows[0]) await sendMsg(ord.rows[0].influencer_id, "connection_payment", "商家已付款", `订单 ${ord.rows[0].order_no} 商家已确认付款`, `/influencer/vertical-connections/orders`);
+      if (ord.rows[0]) await sendMsg(ord.rows[0].influencer_id, "connection_payment", "商家已付款", `订单 ${ord.rows[0].order_no} 商家已确认付款`, `/influencer/vertical-connections/orders/${ord.rows[0].id}`);
     } else if (action === "reject_voucher") {
       await query("UPDATE connection_orders SET payment_voucher = NULL, payment_status = 'unpaid', payment_verified = false, updated_at = now() WHERE id = $1", [req.params.id]);
       if (ord.rows[0]) await sendMsg(ord.rows[0].client_id, "connection_payment", "付款凭证被驳回", `订单 ${ord.rows[0].order_no} 付款凭证未通过审核，请重新上传`, `/client/vertical-connections/my/orders`);
