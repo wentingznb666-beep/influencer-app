@@ -331,7 +331,7 @@ adminRouter.use(requireAuth);
 
 adminRouter.get("/connections", async (req: AuthRequest, res: Response) => {
   try {
-    const { rows } = await query("SELECT ic.*, c.username as client_username, inf.username as influencer_username FROM influencer_connections ic LEFT JOIN users c ON ic.client_id = c.id LEFT JOIN users inf ON ic.influencer_id = inf.id ORDER BY ic.id DESC LIMIT 500");
+    const { rows } = await query("SELECT ic.*, c.username as client_username, inf.username as influencer_username, ipf.user_id as influencer_user_id FROM influencer_connections ic LEFT JOIN users c ON ic.client_id = c.id LEFT JOIN users inf ON ic.influencer_id = inf.id LEFT JOIN influencer_profiles_full ipf ON ic.influencer_profile_id = ipf.id ORDER BY ic.id DESC LIMIT 500");
     res.json({ list: rows });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
