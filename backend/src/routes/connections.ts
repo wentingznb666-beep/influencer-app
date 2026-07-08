@@ -31,13 +31,17 @@ clientRouter.get("/connections", async (req: AuthRequest, res: Response) => {
 clientRouter.get("/connections/stats", async (req: AuthRequest, res: Response) => {
   try {
     const uid = req.user!.userId;
-    const [[{active_count}], [{pending_review_count}], [{unpaid_count}], [{monthly_count}]] = await Promise.all([
-      query("SELECT COUNT(*)::int as active_count FROM influencer_connections WHERE client_id = $1 AND status = 'active'", [uid]),
-      query("SELECT COUNT(*)::int as pending_review_count FROM connection_orders WHERE client_id = $1 AND review_status = 'pending_review'", [uid]),
-      query("SELECT COUNT(*)::int as unpaid_count FROM connection_orders WHERE client_id = $1 AND review_status = 'approved' AND payment_status != 'paid'", [uid]),
-      query("SELECT COUNT(*)::int as monthly_count FROM connection_orders WHERE client_id = $1 AND created_at >= date_trunc('month', now())", [uid]),
+    const [r1, r2, r3, r4] = await Promise.all([
+      query("SELECT COUNT(*)::int as c FROM influencer_connections WHERE client_id = $1 AND status = 'active'", [uid]),
+      query("SELECT COUNT(*)::int as c FROM connection_orders WHERE client_id = $1 AND review_status = 'pending_review'", [uid]),
+      query("SELECT COUNT(*)::int as c FROM connection_orders WHERE client_id = $1 AND review_status = 'approved' AND payment_status != 'paid'", [uid]),
+      query("SELECT COUNT(*)::int as c FROM connection_orders WHERE client_id = $1 AND created_at >= date_trunc('month', now())", [uid]),
     ]);
-    res.json({ active_count: active_count||0, pending_review_count: pending_review_count||0, unpaid_count: unpaid_count||0, monthly_count: monthly_count||0 });
+    const active_count = parseInt(r1.rows[0]?.c || "0");
+    const pending_review_count = parseInt(r2.rows[0]?.c || "0");
+    const unpaid_count = parseInt(r3.rows[0]?.c || "0");
+    const monthly_count = parseInt(r4.rows[0]?.c || "0");
+    res.json({ active_count, pending_review_count, unpaid_count, monthly_count });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
 
