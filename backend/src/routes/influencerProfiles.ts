@@ -69,7 +69,7 @@ adminRouter.get("/", async (req: AuthRequest, res: Response) => {
 
     const params: any[] = [];
     let idx = 1;
-    let where = "WHERE 1=1";
+    let where = status ? "WHERE 1=1" : "WHERE status = 'active'";
     if (q) { where += ` AND (influencer_code ILIKE $${idx} OR followers ILIKE $${idx} OR remark ILIKE $${idx})`; params.push(`%${q}%`); idx++; }
     if (category) { where += ` AND category = $${idx}`; params.push(category); idx++; }
     if (grade) { where += ` AND grade = $${idx}`; params.push(grade); idx++; }
