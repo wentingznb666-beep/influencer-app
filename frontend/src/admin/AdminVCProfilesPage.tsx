@@ -33,6 +33,29 @@ export default function AdminVCProfilesPage() {
 
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const toggleSelect = (id: number) => setSelected(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.add(id);return n;});
+  const toggleAll = () => { if(selected.size===list.length&&list.length>0) setSelected(new Set()); else setSelected(new Set(list.map((p:any)=>p.id))); };
+  const [batchGrade, setBatchGrade] = useState("");
+
+  const batchSetGrade = async () => {
+    if(!batchGrade||selected.size===0) return;
+    if(!confirm(`确认将 ${selected.size} 位达人等级设为 ${batchGrade}？`)) return;
+    try {
+      await fetchWithAuth("/api/admin/influencer-profiles/batch-grade", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({profile_ids:[...selected],grade:batchGrade})});
+      showToast("success",`已更新 ${selected.size} 位达人等级`);
+      setSelected(new Set()); setBatchGrade(""); load();
+    } catch(e:any) { showToast("error",e.message||"操作失败"); }
+  };
+
+  const batchDelete = async () => {
+    if(selected.size===0) return;
+    if(!confirm(`确认删除选中的 ${selected.size} 位达人？`)) return;
+    let ok=0,fail=0;
+    for(const id of selected) { try{await fetchWithAuth(`/api/admin/influencer-profiles/${id}`,{method:"DELETE"});ok++;}catch{fail++;} }
+    showToast(fail===0?"success":"error",fail===0?`已删除 ${ok} 位达人`:`成功 ${ok} 条，失败 ${fail} 条`);
+    setSelected(new Set()); load();
+  };
   const pageSize = 20;
 
   const load = async () => {
@@ -125,6 +148,18 @@ export default function AdminVCProfilesPage() {
         <button onClick={load} style={sb}>{t("搜索")}</button>
         <button onClick={startNew} style={sp}>{t("新增达人")}</button>
         <button onClick={autoGrade} style={sb}>{t("重新计算全部等级")}</button>
+        {selected.size > 0 && (
+          <div style={{display:"flex",gap:6,alignItems:"center",background:"#fef3c7",padding:"4px 12px",borderRadius:8}}>
+            <span style={{fontSize:12,fontWeight:700}}>已选 {selected.size} 个</span>
+            <select value={batchGrade} onChange={e=>setBatchGrade(e.target.value)} style={{padding:"4px 8px",border:"1px solid #dbe1ea",borderRadius:4,fontSize:12}}>
+              <option value="">-- 等级 --</option>
+              {["A+","B+","C+","A","B","C"].map(g=><option key={g} value={g}>{g}</option>)}
+            </select>
+            <button onClick={batchSetGrade} disabled={!batchGrade} style={{padding:"4px 10px",border:"none",borderRadius:4,background:batchGrade?"var(--xt-accent)":"#94a3b8",color:"#fff",cursor:batchGrade?"pointer":"not-allowed",fontSize:12}}>批量设等级</button>
+            <button onClick={batchDelete} style={{padding:"4px 10px",border:"1px solid #fecaca",borderRadius:4,background:"#fff",color:"#b91c1c",cursor:"pointer",fontSize:12}}>批量删除</button>
+            <button onClick={()=>setSelected(new Set())} style={{padding:"4px 10px",border:"1px solid #dbe1ea",borderRadius:4,background:"#fff",cursor:"pointer",fontSize:12}}>取消</button>
+          </div>
+        )}
       </div>
       {editing !== null && (
         <div style={{ background: "#fff", padding: 16, borderRadius: 12, marginBottom: 12, border: "1px solid #e2e8f0" }}>
@@ -155,11 +190,12 @@ export default function AdminVCProfilesPage() {
       {loading ? <p style={{color:"#64748b",textAlign:"center",padding:40}}>加载中...</p> : list.length===0 ? <p style={{color:"#64748b",textAlign:"center",padding:40}}>暂无达人资料</p> : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", fontSize: 12 }}>
-            <thead><tr style={{ background: "#f8fafc" }}>{["ID","编号","来源","粉丝","类目","等级","GMV","挂车","件数","直播","直播销售","状态","操作"].map(h => <th key={h} style={{ padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #e2e8f0", fontWeight: 700, whiteSpace: "nowrap" }}>{t(h)}</th>)}</tr></thead>
+            <thead><tr style={{ background: "#f8fafc" }}>{<th style={{padding:"6px 4px",width:30}}><input type="checkbox" checked={selected.size===list.length&&list.length>0} onChange={toggleAll} style={{width:14,height:14}} /></th>,
+    "ID","编号","来源","粉丝","类目","等级","GMV","挂车","件数","直播","直播销售","状态","操作"].map(h => <th key={h} style={{ padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #e2e8f0", fontWeight: 700, whiteSpace: "nowrap" }}>{t(h)}</th>)}</tr></thead>
             <tbody>
               {list.map((p: any) => (
                 <tr key={p.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                  <td style={{ padding: "6px 8px", fontSize: 12 }}>{p.id}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.influencer_code}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.source==="contact_us"?t("我方联系"):t("达人联系")}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.followers||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.category}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.grade||t("未达标")}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.gmv_sales||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.monthly_cart_videos||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.units_sold||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.can_live?t("是"):t("否")}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.live_sales||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.status}</td>
+                  <td style={{padding:"6px 4px"}}><input type="checkbox" checked={selected.has(p.id)} onChange={()=>toggleSelect(p.id)} style={{width:14,height:14}} /></td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.id}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.influencer_code}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.source==="contact_us"?t("我方联系"):t("达人联系")}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.followers||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.category}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.grade||t("未达标")}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.gmv_sales||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.monthly_cart_videos||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.units_sold||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.can_live?t("是"):t("否")}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.live_sales||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.status}</td>
                   <td style={{ padding: "6px 8px", fontSize: 12 }}>
                     <button onClick={() => { setEditing(p); setForm({...p}); }} style={ssm}>{t("编辑")}</button>
                     <button onClick={() => del(p.id)} style={{ ...ssm, color: "#b91c1c", marginLeft: 4 }}>{t("删除")}</button>
