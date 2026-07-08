@@ -142,3 +142,14 @@ const [proxyModal, setProxyModal] = useState<any>(null); // {type, order}
     </div>
   );
 }
+const sb: React.CSSProperties = { padding: "6px 12px", border: "1px solid #dbe1ea", borderRadius: 8, background: "#fff", cursor: "pointer" };
+const sm: React.CSSProperties = { fontSize: 12, color: "#64748b", margin: "2px 0" };
+const ssm: React.CSSProperties = { padding: "4px 8px", border: "1px solid #dbe1ea", borderRadius: 6, background: "#fff", cursor: "pointer", fontSize: 11 };
+const stc: React.CSSProperties = { borderRadius: 8, padding: "10px 18px", flex: 1, minWidth: 120 };
+const sn: React.CSSProperties = { fontSize: 20, fontWeight: 800 };
+const sl: React.CSSProperties = { fontSize: 11, marginTop: 2 };
+const tg = (s: string): React.CSSProperties => {
+  const c: Record<string,{bg:string;text:string}> = { submitted:{bg:"#dbeafe",text:"#1d4ed8"}, completed:{bg:"#dcfce7",text:"#166534"}, rejected:{bg:"#fee2e2",text:"#b91c1c"}, pending:{bg:"#fef3c7",text:"#92400e"} };
+  const v = c[s]||{bg:"#f1f5f9",text:"#475569"};
+  return { display:"inline-block",padding:"2px 10px",borderRadius:999,fontSize:11,fontWeight:700,background:v.bg,color:v.text };
+};
