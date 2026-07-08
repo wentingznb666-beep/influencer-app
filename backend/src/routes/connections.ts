@@ -338,9 +338,15 @@ adminRouter.get("/connections", async (req: AuthRequest, res: Response) => {
 
 adminRouter.patch("/connections/:id", async (req: AuthRequest, res: Response) => {
   try {
-    const { status } = req.body || {};
+    const { status, intervention_note } = req.body || {};
     if (!status) return res.status(400).json({ error: "MISSING_STATUS" });
-    await query("UPDATE influencer_connections SET status = $1, updated_at = now() WHERE id = $2", [status, req.params.id]);
+    if (!intervention_note || !intervention_note.trim()) return res.status(400).json({ error: "MISSING_NOTE", message: "干预操作必须填写备注" });
+    await query("UPDATE influencer_connections SET status = $1, intervention_note = $2, updated_at = now() WHERE id = $3", [status, intervention_note, req.params.id]);
+    const conn = await query("SELECT client_id, influencer_id FROM influencer_connections WHERE id = $1", [req.params.id]);
+    if (conn.rows[0]) {
+      await sendMsg(conn.rows[0].client_id, "connection_admin", "建联状态已更新", `管理员已将建联状态更新为${status}，备注：${intervention_note}`, "/client/vertical-connections/my");
+      await sendMsg(conn.rows[0].influencer_id, "connection_admin", "建联状态已更新", `管理员已将建联状态更新为${status}，备注：${intervention_note}`, "/influencer/vertical-connections/cooperation");
+    }
     res.json({ ok: true });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
@@ -378,10 +384,13 @@ adminRouter.get("/connection-orders", async (req: AuthRequest, res: Response) =>
 adminRouter.post("/connection-orders/:id/admin-action", async (req: AuthRequest, res: Response) => {
   try {
     const { action } = req.body || {};
+    const ord = await query("SELECT client_id, influencer_id, order_no FROM connection_orders WHERE id = $1", [req.params.id]);
     if (action === "mark_paid") {
-      await query("UPDATE connection_orders SET payment_status = 'paid', paid_at = now(), updated_at = now() WHERE id = $1", [req.params.id]);
+      await query("UPDATE connection_orders SET payment_status = 'paid', payment_verified = true, paid_at = now(), updated_at = now() WHERE id = $1", [req.params.id]);
+      if (ord.rows[0]) await sendMsg(ord.rows[0].influencer_id, "connection_payment", "商家已付款", `订单 ${ord.rows[0].order_no} 商家已确认付款`, `/influencer/vertical-connections/orders`);
     } else if (action === "reject_voucher") {
-      await query("UPDATE connection_orders SET payment_voucher = NULL, payment_status = 'unpaid', updated_at = now() WHERE id = $1", [req.params.id]);
+      await query("UPDATE connection_orders SET payment_voucher = NULL, payment_status = 'unpaid', payment_verified = false, updated_at = now() WHERE id = $1", [req.params.id]);
+      if (ord.rows[0]) await sendMsg(ord.rows[0].client_id, "connection_payment", "付款凭证被驳回", `订单 ${ord.rows[0].order_no} 付款凭证未通过审核，请重新上传`, `/client/vertical-connections/my/orders`);
     }
     res.json({ ok: true });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }

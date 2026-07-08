@@ -24,9 +24,12 @@ export default function AdminVCConnectionsPage() {
   };
   useEffect(()=>{load();},[]);
 
+  const [intNote, setIntNote] = useState("");
+  const [intTarget, setIntTarget] = useState<number|0>(0);
   const intervene = async (id: number, status: string) => {
-    await fetchWithAuth(`/api/admin/connections/${id}`, { method: "PATCH", headers: {"Content-Type":"application/json"}, body: JSON.stringify({status}) });
-    load();
+    if (!intNote.trim()) { alert("干预操作必须填写备注"); return; }
+    await fetchWithAuth(`/api/admin/connections/${id}`, { method: "PATCH", headers: {"Content-Type":"application/json"}, body: JSON.stringify({status, intervention_note: intNote}) });
+    setIntTarget(0); setIntNote(""); load();
   };
 
   const exportCSV = () => {
@@ -96,8 +99,8 @@ export default function AdminVCConnectionsPage() {
           <p style={sm}>{c.start_date} ~ {c.end_date} | 续约{c.renewal_count||0}次</p>
           {c.brief && <p style={sm}>简述: {c.brief}</p>}
           <div style={{marginTop:8,display:"flex",gap:6}}>
-            {["active","expired","rejected"].filter(s=>s!==c.status).map(s=>(
-              <button key={s} onClick={()=>intervene(c.id,s)} style={ssm}>{s==="active"?"标记建联中":s==="expired"?"标记已到期":"标记已拒绝"}</button>
+            {intTarget===c.id ? <div style={{display:"flex",gap:4,width:"100%"}}><input placeholder="干预备注(必填)" value={intNote} onChange={e=>setIntNote(e.target.value)} style={{flex:1,padding:"4px 8px",border:"1px solid #dbe1ea",borderRadius:4,fontSize:11}} />{["active","expired","rejected"].filter(s=>s!==c.status).map(s=><button key={s} onClick={()=>{setIntTarget(c.id);setIntNote("");}} style={ssm}>{s==="active"?"标记建联中":s==="expired"?"标记已到期":"标记已拒绝"}</button>)}<button onClick={()=>setIntTarget(0)} style={{...ssm,color:"#b91c1c"}}>取消</button></div> : ["active","expired","rejected"].filter(s=>s!==c.status).map(s=>(
+              <button key={s} onClick={()=>{setIntTarget(c.id);setIntNote("");}} style={ssm}>{s==="active"?"标记建联中":s==="expired"?"标记已到期":"标记已拒绝"}</button>
             ))}
           </div>
         </div>

@@ -62,7 +62,7 @@ export default function AdminVCOrdersPage() {
             <span style={tg(o.status)}>{o.status}</span>
           </div>
           <p style={sm}>商家: {o.client_username||`#${o.client_id}`} | 达人: {o.influencer_username||`#${o.influencer_id}`}</p>
-          <p style={sm}>金额: <strong>{o.amount} THB</strong> | 审核: {o.review_status} | 付款: {o.payment_status}</p>
+          <p style={sm}>金额: <strong>{o.amount} THB</strong> | 审核: {o.review_status} | 付款: {o.payment_status}{o.payment_verified?" ✅已核实":""}</p>
           {o.influencer_reject_reason && <p style={{...sm,color:"#b91c1c"}}>拒绝: {o.influencer_reject_reason}</p>}
           {o.review_note && <p style={{...sm,color:"#92400e"}}>驳回: {o.review_note}</p>}
           {o.payment_voucher && <p style={sm}>凭证: {o.payment_voucher}</p>}
