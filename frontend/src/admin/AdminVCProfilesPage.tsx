@@ -190,8 +190,10 @@ export default function AdminVCProfilesPage() {
       {loading ? <p style={{color:"#64748b",textAlign:"center",padding:40}}>加载中...</p> : list.length===0 ? <p style={{color:"#64748b",textAlign:"center",padding:40}}>暂无达人资料</p> : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", fontSize: 12 }}>
-            <thead><tr style={{ background: "#f8fafc" }}>{<th style={{padding:"6px 4px",width:30}}><input type="checkbox" checked={selected.size===list.length&&list.length>0} onChange={toggleAll} style={{width:14,height:14}} /></th>,
-    "ID","编号","来源","粉丝","类目","等级","GMV","挂车","件数","直播","直播销售","状态","操作"].map(h => <th key={h} style={{ padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #e2e8f0", fontWeight: 700, whiteSpace: "nowrap" }}>{t(h)}</th>)}</tr></thead>
+            <thead><tr style={{ background: "#f8fafc" }}>
+                <th style={{padding:"6px 4px",width:30}}><input type="checkbox" checked={selected.size===list.length&&list.length>0} onChange={toggleAll} style={{width:14,height:14}} /></th>
+                {["ID","编号","来源","粉丝","类目","等级","GMV","挂车","件数","直播","直播销售","状态","操作"].map(h => <th key={h} style={{ padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #e2e8f0", fontWeight: 700, whiteSpace: "nowrap" }}>{t(h)}</th>)}
+              </tr></thead>
             <tbody>
               {list.map((p: any) => (
                 <tr key={p.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
