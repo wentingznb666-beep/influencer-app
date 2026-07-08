@@ -337,12 +337,12 @@ adminRouter.get("/connection-orders", async (req: AuthRequest, res: Response) =>
     if (anomaly) where = "WHERE (co.influencer_response = 'rejected' AND (co.influencer_reject_reason IS NULL OR co.influencer_reject_reason = '')) OR (co.review_status = 'rejected' AND (co.review_note IS NULL OR co.review_note = '')) OR (co.influencer_response = 'pending' AND co.created_at < NOW() - INTERVAL '48 hours')";
     const { rows } = await query(`SELECT co.*, c.username as client_username, inf.username as influencer_username FROM connection_orders co LEFT JOIN users c ON co.client_id = c.id LEFT JOIN users inf ON co.influencer_id = inf.id ${where} ORDER BY co.id DESC LIMIT 500`);
     // Financial stats
-    const [{rows: s1}], [{rows: s2}], [{rows: s3}] = await Promise.all([
+    const [fs1, fs2, fs3] = await Promise.all([
       query("SELECT COALESCE(SUM(amount),0)::float as total FROM connection_orders"),
       query("SELECT COALESCE(SUM(amount),0)::float as paid FROM connection_orders WHERE payment_status = 'paid'"),
       query("SELECT COALESCE(SUM(amount),0)::float as unpaid FROM connection_orders WHERE review_status = 'approved' AND payment_status != 'paid'"),
     ]);
-    res.json({ list: rows, stats: { total_amount: s1[0]?.total||0, paid_amount: s2[0]?.paid||0, unpaid_amount: s3[0]?.unpaid||0 } });
+    res.json({ list: rows, stats: { total_amount: fs1.rows[0]?.total||0, paid_amount: fs2.rows[0]?.paid||0, unpaid_amount: fs3.rows[0]?.unpaid||0 } });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
 
