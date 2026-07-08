@@ -175,7 +175,7 @@ export default function AdminVCProfilesPage() {
               <button onClick={()=>setPage(1)} disabled={page<=1} style={pageBtn}>首页</button>
               <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={page<=1} style={pageBtn}>上一页</button>
               <button onClick={()=>setPage(p=>Math.min(Math.ceil(total/pageSize),p+1))} disabled={page>=Math.ceil(total/pageSize)} style={pageBtn}>下一页</button>
-              <button onClick={()=>{const csv=[[t("ID"),t("编号"),t("来源"),t("粉丝"),t("类目"),t("等级"),t("GMV"),t("挂车"),t("件数"),t("直播"),t("直播销售"),t("状态")].join(",")+"\\n"+list.map((p:any)=>[p.id,p.influencer_code,p.source,p.followers||"",p.category,p.grade||"",p.gmv_sales||"",p.monthly_cart_videos||"",p.units_sold||"",p.can_live?"是":"否",p.live_sales||"",p.status].join(",")).join("\\n");const b=new Blob(["\\uFEFF"+csv],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="profiles.csv";a.click()}} style={{...pageBtn,background:"#1d4ed8",color:"#fff",border:"none",fontWeight:700}}>导出CSV</button>
+              <button onClick={()=>{const h=["ID","编号","来源","粉丝","类目","等级","GMV","挂车","件数","直播","直播销售","状态"];const rows=list.map((p:any)=>[p.id,p.influencer_code,p.source,p.followers||"",p.category,p.grade||"",p.gmv_sales||"",p.monthly_cart_videos||"",p.units_sold||"",p.can_live?"是":"否",p.live_sales||"",p.status].join(","));const csv="﻿"+h.join(",")+"\n"+rows.join("\n");const b=new Blob([csv],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="profiles.csv";a.click();}} style={{...pageBtn,background:"#1d4ed8",color:"#fff",border:"none",fontWeight:700}}>导出CSV</button>
             </div>
           </div>
         </div>
