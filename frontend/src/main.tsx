@@ -199,6 +199,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="vertical-connections/my" element={<ClientVCMyConnections />} />
             <Route path="vertical-connections/my/create-order/:connectionId" element={<ClientVCCreateOrder />} />
             <Route path="vertical-connections/my/orders" element={<ClientConnectionOrdersPage />} />
+            <Route path="vertical-connections/my/orders/batch" element={<ClientVCBatchOrders />} />
             <Route path="vertical-connections/my/orders/:id" element={<ClientVCOrderDetail />} />
           </Route>
           <Route path="/influencer" element={<ProtectedRoute roles={["influencer"]}><InfluencerLayout /></ProtectedRoute>}>

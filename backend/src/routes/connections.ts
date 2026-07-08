@@ -33,6 +33,9 @@ clientRouter.post("/connections", async (req: AuthRequest, res: Response) => {
     if ((!influencer_id && !influencer_profile_id) || !category) return res.status(400).json({ error: "MISSING" });
     // 前端传的 influencer_id 实际是 profile ID，必须查 user_id
     const profileId = influencer_profile_id || influencer_id;
+    // 防重复邀请：检查是否已有pending/active的建联
+    const dupCheck = await query("SELECT id, status FROM influencer_connections WHERE client_id = $1 AND influencer_profile_id = $2 AND status IN ('pending','active') LIMIT 1", [req.user!.userId, profileId]);
+    if (dupCheck.rows[0]) return res.status(400).json({ error: "DUPLICATE", message: `该达人已有${dupCheck.rows[0].status === 'pending' ? '待确认' : '建联中'}的邀请，不可重复邀请` });
     const prof = await query("SELECT user_id FROM influencer_profiles_full WHERE id = $1", [profileId]);
     if (!prof.rows[0]?.user_id) return res.status(400).json({ error: "NO_USER", message: "该达人资料未关联系统用户，请让达人先完善资料" });
     const actualInfluencerId = prof.rows[0].user_id;
@@ -80,6 +83,32 @@ clientRouter.post("/connection-orders", async (req: AuthRequest, res: Response) 
     );
     await sendMsg(actualInfluencerUserId, "connection_order", "新的定向派单", `商家向你派发了新订单：${title}`, `/influencer/vertical-connections/orders`);
     res.status(201).json({ id: rows[0].id, order_no: orderNo });
+  } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
+});
+
+// 批量派单
+clientRouter.post("/connection-orders/batch", async (req: AuthRequest, res: Response) => {
+  try {
+    const { connection_ids, title, task_requirements, delivery_standards, deadline, submission_types } = req.body || {};
+    if (!connection_ids || !Array.isArray(connection_ids) || connection_ids.length === 0) return res.status(400).json({ error: "MISSING" });
+    if (!title || !task_requirements || !delivery_standards || !deadline) return res.status(400).json({ error: "MISSING" });
+    const success: any[] = [];
+    for (const connId of connection_ids) {
+      try {
+        const conn = await query("SELECT * FROM influencer_connections WHERE id = $1 AND client_id = $2 AND status = 'active' AND end_date > NOW()", [connId, req.user!.userId]);
+        if (!conn.rows[0]) continue;
+        const prof = await query("SELECT user_id, quoted_price FROM influencer_profiles_full WHERE id = $1", [conn.rows[0].influencer_profile_id]);
+        if (!prof.rows[0]?.user_id || !prof.rows[0]?.quoted_price) continue;
+        const orderNo = genOrderNo();
+        const { rows } = await query(
+          `INSERT INTO connection_orders (connection_id, client_id, influencer_id, order_no, title, task_requirements, delivery_standards, deadline, submission_types, amount) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+          [connId, req.user!.userId, prof.rows[0].user_id, orderNo, title, task_requirements, delivery_standards, deadline, String(submission_types || ""), prof.rows[0].quoted_price]
+        );
+        await sendMsg(prof.rows[0].user_id, "connection_order", "新的定向派单", `商家向你派发了新订单：${title}`, `/influencer/vertical-connections/orders`);
+        success.push({ connection_id: connId, order_id: rows[0].id, order_no: orderNo });
+      } catch { continue; }
+    }
+    res.status(201).json({ success_count: success.length, orders: success });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
 

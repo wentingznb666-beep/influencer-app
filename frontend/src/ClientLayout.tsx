@@ -22,6 +22,7 @@ const CLIENT_NAV: DashboardNavItem[] = [
   { to: "/client/vertical-connections/market", label: "达人市场", icon: "🛒", group: "vertical" },
   { to: "/client/vertical-connections/my", label: "我的建联", icon: "🤝", group: "vertical" },
   { to: "/client/vertical-connections/my/orders", label: "订单列表", icon: "📋", group: "vertical" },
+  { to: "/client/vertical-connections/my/orders/batch", label: "批量派单", icon: "📦", group: "vertical" },
   { to: "/client/op-logs", label: "我的操作日志", icon: "📄", group: "common" },
 ];
 

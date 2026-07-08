@@ -20,7 +20,15 @@ export default function ClientVCInfluencerList() {
       setList(((await r.json()).list || []));
     } catch {} finally { setLoading(false); }
   };
+    const [existingConns, setExistingConns] = useState<Set<number>>(new Set());
   useEffect(()=>{load();}, [grade, sort]);
+  useEffect(()=>{
+    (async()=>{
+      try{const r=await fetchWithAuth("/api/client/connections");const d=await r.json();
+      const ids=new Set<number>();(d.list||[]).forEach((c:any)=>{if(c.status==="pending"||c.status==="active")ids.add(c.influencer_profile_id);});
+      setExistingConns(ids);}catch{}
+    })();
+  }, []);
 
   return (
     <div>
