@@ -84,7 +84,7 @@ export default function AdminVCConnectionsPage() {
         <button onClick={load} style={sb}>搜索</button>
       </div>
 
-      {loading ? <p>加载中...</p> : list.map((c:any)=>(
+      {loading ? <p style={{color:"#64748b",textAlign:"center",padding:40}}>加载中...</p> : list.length===0 ? <p style={{color:"#64748b",textAlign:"center",padding:40}}>暂无建联记录</p> : list.map((c:any)=>(
         <div key={c.id} style={card}>
           <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap"}}>
             <div>

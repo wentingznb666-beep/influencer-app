@@ -54,7 +54,7 @@ export default function AdminVCOrdersPage() {
       <div style={{display:"flex",gap:8,marginBottom:12}}>
         <label style={{fontSize:12,cursor:"pointer"}}><input type="checkbox" checked={anomaly} onChange={e=>setAnomaly(e.target.checked)} /> 仅异常订单</label>
       </div>
-      {loading ? <p>加载中...</p> : list.map((o:any)=>(
+      {loading ? <p style={{color:"#64748b",textAlign:"center",padding:40}}>加载中...</p> : list.length===0 ? <p style={{color:"#64748b",textAlign:"center",padding:40}}>暂无派单记录</p> : list.map((o:any)=>(
         <div key={o.id} style={card}>
           {isAnomaly(o) && <span style={{position:"absolute",top:-6,right:-6,background:"#dc2626",color:"#fff",borderRadius:999,padding:"1px 8px",fontSize:10,fontWeight:700,zIndex:1}}>! {isAnomaly(o)}</span>}
           <div style={{display:"flex",justifyContent:"space-between",flexWrap:"wrap"}}>
