@@ -1716,7 +1716,7 @@ dashboardRouter.get("/", async (_req: AuthRequest, res: Response) => {
 // ========== SYSTEM MAINTENANCE ROUTE ==========
 const maintenanceRouter = Router();
 maintenanceRouter.use(requireAuth);
-maintenanceRouter.use(requireRole("admin"));
+maintenanceRouter.use(requireRole("admin", "employee"));
 
 maintenanceRouter.post("/rebuild-frontend", async (_req: AuthRequest, res: Response) => {
   try {
