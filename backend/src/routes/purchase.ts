@@ -1735,25 +1735,26 @@ maintenanceRouter.get("/status", async (_req: AuthRequest, res: Response) => {
 });
 
 maintenanceRouter.post("/rebuild-frontend", async (_req: AuthRequest, res: Response) => {
-  const { execSync } = await import("child_process");
-  res.json({ ok: true, message: "重建中..." });
+  const { spawn } = await import("child_process");
+  res.json({ ok: true, message: "重建已触发，请稍后检查状态" });
 
-  setTimeout(() => {
-    try {
-      console.log("[maintenance] build starting...");
-      const out = execSync(
-        "cd /home/ubuntu/influencer-app/frontend && ./node_modules/.bin/vite build --outDir dist-new 2>&1",
-        { timeout: 180000, stdio: "pipe", encoding: "utf-8" }
-      );
-      console.log("[maintenance] vite output:", out.slice(-300));
-      execSync("cd /home/ubuntu/influencer-app/frontend && sudo rm -rf dist && sudo mv dist-new dist && sudo chown -R www-data:www-data dist", { timeout: 10000 });
-      console.log("[maintenance] BUILD SUCCESS");
-    } catch (e: any) {
-      console.error("[maintenance] BUILD FAILED:", e.message);
-      if (e.stdout) console.error("[maintenance] stdout:", String(e.stdout).slice(-300));
-      if (e.stderr) console.error("[maintenance] stderr:", String(e.stderr).slice(-300));
-    }
-  }, 1000);
+  // Write a rebuild script and execute it
+  const fs = await import("fs");
+  const script = `#!/bin/bash
+cd /home/ubuntu/influencer-app/frontend
+echo "[rebuild] starting at $(date)" >> /tmp/rebuild.log
+./node_modules/.bin/vite build --outDir dist-new 2>> /tmp/rebuild.log
+if [ -d dist-new ]; then
+  sudo rm -rf dist
+  sudo mv dist-new dist
+  sudo chown -R www-data:www-data dist
+  echo "[rebuild] SUCCESS at $(date)" >> /tmp/rebuild.log
+else
+  echo "[rebuild] FAILED - dist-new not created at $(date)" >> /tmp/rebuild.log
+fi
+`;
+  fs.writeFileSync("/tmp/rebuild.sh", script, { mode: 0o755 });
+  spawn("bash", ["/tmp/rebuild.sh"], { detached: true, stdio: "ignore" }).unref();
 });
 
 // ========== FINANCE ROUTES (管理员/员工) ==========
