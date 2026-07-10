@@ -167,7 +167,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="users" element={<UsersPage />} />
             <Route path="merchant-members" element={<MerchantMembersPage />} />
             <Route path="influencer-permissions" element={<InfluencerPermissionsPage />} />
-            <Route path="cooperation-types" element={<CooperationTypesPage />} />
+            <Route path="cooperation-types" element={<CooperationTypesPage readOnly />} />
             <Route path="cooperation-orders" element={<CooperationOrdersPage />} />
             <Route path="graded-video-hall" element={<ClientOrdersHallPage />} />
             <Route path="vertical-connections" element={<VerticalConnectionsDashboard />} />
