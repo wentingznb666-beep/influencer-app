@@ -968,11 +968,15 @@ influencerOrderRouter.patch("/:id/confirm-received", async (req: AuthRequest, re
       return res.status(400).json({ error: "STATUS_ERROR", message: "仅已到货状态的订单可确认收货" });
     }
 
+    const note = req.body?.note || null;
+    const photos = req.body?.photos ? JSON.stringify(req.body.photos) : null;
+    const logNote = note || photos ? JSON.stringify({ note, photos: req.body?.photos || [] }) : "达人确认收货";
+
     await query(
       "UPDATE purchase_orders SET status = 'completed', confirmed_received_at = now(), updated_at = now() WHERE id = $1",
       [id]
     );
-    await insertOrderLog(id, "arrived", "completed", "达人确认收货", uid);
+    await insertOrderLog(id, "arrived", "completed", logNote, uid);
 
     res.json({ ok: true });
   } catch (e: any) {
