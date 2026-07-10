@@ -103,6 +103,7 @@ const PurchaseOrdersPage = lazy(() => import("./admin/PurchaseOrdersPage"));
 const PurchaseCozeConfig = lazy(() => import("./admin/PurchaseCozeConfig"));
 const PurchaseSuppliersPage = lazy(() => import("./admin/PurchaseSuppliersPage"));
 const PurchaseFinancePage = lazy(() => import("./admin/PurchaseFinancePage"));
+const PurchaseDashboardPage = lazy(() => import("./admin/PurchaseDashboardPage"));
 const ClientVCPage = lazy(() => import("./client/ClientVCPage"));
 const ClientVCInfluencerList = lazy(() => import("./client/ClientVCInfluencerList"));
 const ClientVCInviteForm = lazy(() => import("./client/ClientVCInviteForm"));
@@ -160,7 +161,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="vertical-connections/records" element={<AdminVCConnectionsPage />} />
             <Route path="vertical-connections/orders" element={<AdminVCOrdersPage />} />
             <Route path="vertical-connections/grade-config" element={<GradeConfigPage />} />
-            <Route path="vertical-connections/purchase" element={<PurchaseDemandsPage />} />
+            <Route path="vertical-connections/purchase" element={<PurchaseDashboardPage />} />
+            <Route path="vertical-connections/purchase/demands" element={<PurchaseDemandsPage />} />
             <Route path="vertical-connections/purchase/products" element={<PurchaseProductsPage />} />
             <Route path="vertical-connections/purchase/orders" element={<PurchaseOrdersPage />} />
             <Route path="vertical-connections/purchase/coze-config" element={<PurchaseCozeConfig />} />
@@ -189,7 +191,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="vertical-connections/records" element={<AdminVCConnectionsPage />} />
             <Route path="vertical-connections/orders" element={<AdminVCOrdersPage />} />
             <Route path="vertical-connections/grade-config" element={<GradeConfigPage />} />
-            <Route path="vertical-connections/purchase" element={<PurchaseDemandsPage />} />
+            <Route path="vertical-connections/purchase" element={<PurchaseDashboardPage />} />
+            <Route path="vertical-connections/purchase/demands" element={<PurchaseDemandsPage />} />
             <Route path="vertical-connections/purchase/products" element={<PurchaseProductsPage />} />
             <Route path="vertical-connections/purchase/orders" element={<PurchaseOrdersPage />} />
             <Route path="vertical-connections/purchase/coze-config" element={<PurchaseCozeConfig />} />

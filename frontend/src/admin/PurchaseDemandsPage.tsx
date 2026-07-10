@@ -341,7 +341,8 @@ export default function PurchaseDemandsPage() {
       {/* Tab Navigation */}
       <div style={{ display: "flex", gap: 0, marginBottom: 20, borderBottom: "2px solid #e2e8f0" }}>
         {[
-          { label: "进货需求列表", path: "/admin/vertical-connections/purchase" },
+          { label: "📊 数据看板", path: "/admin/vertical-connections/purchase" },
+          { label: "进货需求", path: "/admin/vertical-connections/purchase/demands" },
           { label: "商品库", path: "/admin/vertical-connections/purchase/products" },
           { label: "订货管理", path: "/admin/vertical-connections/purchase/orders" },
           { label: "找货配置", path: "/admin/vertical-connections/purchase/coze-config" },

@@ -382,7 +382,8 @@ export default function PurchaseOrdersPage() {
       {/* Tab Nav */}
       <div style={{ display: "flex", gap: 0, marginBottom: 20, borderBottom: "2px solid #e2e8f0" }}>
         {[
-          { label: "进货需求列表", path: basePath },
+          { label: "📊 数据看板", path: basePath },
+          { label: "进货需求", path: `${basePath}/demands` },
           { label: "商品库", path: `${basePath}/products` },
           { label: "订货管理", path: `${basePath}/orders` },
           { label: "找货配置", path: `${basePath}/coze-config` },

@@ -1518,6 +1518,45 @@ suppliersRouter.get("/:id/history", async (req: AuthRequest, res: Response) => {
   }
 });
 
+// ========== DASHBOARD ROUTE (管理员/员工) ==========
+const dashboardRouter = Router();
+dashboardRouter.use(requireAuth);
+dashboardRouter.use(requireRole("admin", "employee"));
+
+dashboardRouter.get("/", async (_req: AuthRequest, res: Response) => {
+  try {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const [newDemands, newOrders, purchaseTotal, receivedTotal, pendingDemands, pendingOrders,
+      topCategories, topInfluencers, topSuppliers] = await Promise.all([
+      query("SELECT COUNT(*)::int as v FROM purchase_demands WHERE created_at >= $1", [monthStart]),
+      query("SELECT COUNT(*)::int as v FROM purchase_orders WHERE created_at >= $1", [monthStart]),
+      query("SELECT COALESCE(SUM(total_price_cny),0)::float as v FROM purchase_orders WHERE created_at >= $1", [monthStart]),
+      query("SELECT COALESCE(SUM(pp.amount_thb),0)::float as v FROM purchase_payments pp JOIN purchase_orders po ON pp.order_id = po.id WHERE pp.paid_at >= $1", [monthStart]),
+      query("SELECT COUNT(*)::int as v FROM purchase_demands WHERE status = 'pending'"),
+      query("SELECT COUNT(*)::int as v FROM purchase_orders WHERE status = 'pending_approval'"),
+      query("SELECT category, COUNT(*)::int as cnt FROM purchase_demands GROUP BY category ORDER BY cnt DESC LIMIT 10"),
+      query("SELECT u.username, ipf.influencer_code, COUNT(po.id)::int as order_cnt, COALESCE(SUM(po.total_payable),0)::float as total_amt FROM purchase_orders po LEFT JOIN users u ON po.influencer_id = u.id LEFT JOIN influencer_profiles_full ipf ON u.id = ipf.user_id GROUP BY u.username, ipf.influencer_code ORDER BY total_amt DESC LIMIT 10"),
+      query("SELECT name, cooperation_count FROM purchase_suppliers ORDER BY cooperation_count DESC LIMIT 10"),
+    ]);
+
+    res.json({
+      new_demands_month: newDemands.rows[0]?.v || 0,
+      new_orders_month: newOrders.rows[0]?.v || 0,
+      purchase_total_cny: purchaseTotal.rows[0]?.v || 0,
+      received_total_thb: receivedTotal.rows[0]?.v || 0,
+      pending_demands: pendingDemands.rows[0]?.v || 0,
+      pending_orders: pendingOrders.rows[0]?.v || 0,
+      top_categories: topCategories.rows,
+      top_influencers: topInfluencers.rows,
+      top_suppliers: topSuppliers.rows,
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
 // ========== FINANCE ROUTES (管理员/员工) ==========
 const financeRouter = Router();
 financeRouter.use(requireAuth);
@@ -1776,3 +1815,4 @@ export const purchaseCozeCallbackRouter = cozeCallbackRouter;
 export const purchaseCozeConfigRouter = cozeConfigRouter;
 export const purchaseSuppliersRouter = suppliersRouter;
 export const purchaseFinanceRouter = financeRouter;
+export const purchaseDashboardRouter = dashboardRouter;
