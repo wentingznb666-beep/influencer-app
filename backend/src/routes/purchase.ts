@@ -19,10 +19,10 @@ async function getCozeConfig(): Promise<{ url: string; key: string } | null> {
   return null;
 }
 
+const SEARCH_SERVICE_URL = process.env.SEARCH_SERVICE_URL || "http://127.0.0.1:8000";
+
 async function triggerCozeSearch(demandId: number, category: string, description: string, budgetMin: number | null, budgetMax: number | null) {
   try {
-    const config = await getCozeConfig();
-    if (!config || !config.url) return;
     const payload = {
       demand_id: demandId,
       category,
@@ -30,17 +30,19 @@ async function triggerCozeSearch(demandId: number, category: string, description
       budget_min_thb: budgetMin,
       budget_max_thb: budgetMax,
     };
-    fetch(config.url, {
+    // Call local search service (fire-and-forget)
+    fetch(`${SEARCH_SERVICE_URL}/webhook/search`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.key}` },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(10000),
-    }).catch(() => {});
+    }).catch((e) => console.error("[purchase] search trigger failed:", e.message));
+    // Mark as triggered regardless of fetch outcome
     await query(
       "UPDATE purchase_demands SET coze_search_triggered = true, updated_at = now() WHERE id = $1",
       [demandId]
     );
-  } catch { /* fire-and-forget: don't block demand creation */ }
+  } catch (e: any) { console.error("[purchase] triggerCozeSearch error:", e.message); }
 }
 
 async function sendMsg(userId: number, category: string, title: string, content: string, link: string) {
@@ -400,6 +402,22 @@ adminRouter.patch("/:id/status", async (req: AuthRequest, res: Response) => {
     );
 
     res.json({ ok: true });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
+/** 手动触发搜索 */
+adminRouter.post("/:id/trigger-search", async (req: AuthRequest, res: Response) => {
+  try {
+    const id = parseInt(String(req.params.id));
+    const demand = await query("SELECT * FROM purchase_demands WHERE id = $1", [id]);
+    if (!demand.rows[0]) return res.status(404).json({ error: "NOT_FOUND" });
+
+    const d = demand.rows[0];
+    triggerCozeSearch(id, d.category, d.description || "", d.budget_min_thb, d.budget_max_thb);
+
+    res.json({ ok: true, message: "搜索已触发" });
   } catch (e: any) {
     res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
   }

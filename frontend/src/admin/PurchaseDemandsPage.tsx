@@ -171,11 +171,8 @@ export default function PurchaseDemandsPage() {
 
   const triggerCoze = async (demandId: number) => {
     try {
-      // reset coze flag so it can be re-scanned
-      await fetchWithAuth(`/api/admin/purchase/demands/${demandId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "pending", internal_note: "手动触发搜索" }),
+      await fetchWithAuth(`/api/admin/purchase/demands/${demandId}/trigger-search`, {
+        method: "POST",
       });
       showToast("success", "已触发搜索");
       load();
@@ -190,10 +187,8 @@ export default function PurchaseDemandsPage() {
     let ok = 0;
     for (const id of selected) {
       try {
-        await fetchWithAuth(`/api/admin/purchase/demands/${id}/status`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "pending", internal_note: "批量触发搜索" }),
+        await fetchWithAuth(`/api/admin/purchase/demands/${id}/trigger-search`, {
+          method: "POST",
         });
         ok++;
       } catch { /* skip */ }
