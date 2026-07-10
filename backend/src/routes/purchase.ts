@@ -183,6 +183,36 @@ influencerRouter.patch("/:id/cancel", async (req: AuthRequest, res: Response) =>
   }
 });
 
+/** 达人反馈推荐商品（感兴趣/不感兴趣） */
+influencerRouter.patch("/recommendations/:recId/feedback", async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.user!.userId;
+    const recId = parseInt(String(req.params.recId));
+    const { status, influencer_feedback } = req.body || {};
+
+    if (!status || !["interested", "rejected"].includes(status)) {
+      return res.status(400).json({ error: "INVALID_STATUS", message: "状态仅允许 interested 或 rejected" });
+    }
+
+    // 验证该推荐关联的需求属于当前达人
+    const rec = await query(
+      `SELECT pr.* FROM purchase_recommendations pr
+       JOIN purchase_demands pd ON pr.demand_id = pd.id
+       WHERE pr.id = $1 AND pd.influencer_id = $2`,
+      [recId, uid]
+    );
+    if (!rec.rows[0]) return res.status(404).json({ error: "NOT_FOUND", message: "推荐不存在或无权操作" });
+
+    await query(
+      "UPDATE purchase_recommendations SET status = $1, influencer_feedback = $2 WHERE id = $3",
+      [status, influencer_feedback || null, recId]
+    );
+    res.json({ ok: true });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
 // ========== ADMIN ROUTES ==========
 const adminRouter = Router();
 adminRouter.use(requireAuth);
