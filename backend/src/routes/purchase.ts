@@ -1718,6 +1718,22 @@ const maintenanceRouter = Router();
 maintenanceRouter.use(requireAuth);
 maintenanceRouter.use(requireRole("admin", "employee"));
 
+maintenanceRouter.get("/status", async (_req: AuthRequest, res: Response) => {
+  try {
+    const { execSync } = await import("child_process");
+    const checks: Record<string, any> = {};
+    try { checks.node = execSync("node -v", { timeout: 3000, stdio: "pipe" }).toString().trim(); } catch (e: any) { checks.node = e.message; }
+    try { checks.npm = execSync("npm -v", { timeout: 3000, stdio: "pipe" }).toString().trim(); } catch (e: any) { checks.npm = e.message; }
+    try { checks.dist_exists = execSync("test -f /home/ubuntu/influencer-app/frontend/dist/index.html && echo yes || echo no", { timeout: 3000, stdio: "pipe" }).toString().trim(); } catch { checks.dist_exists = "no"; }
+    try { checks.ls_dist = execSync("ls -la /home/ubuntu/influencer-app/frontend/dist/ 2>&1 | head -5", { timeout: 3000, stdio: "pipe" }).toString().trim(); } catch (e: any) { checks.ls_dist = e.message; }
+    try { checks.ls_frontend = execSync("ls /home/ubuntu/influencer-app/frontend/ 2>&1", { timeout: 3000, stdio: "pipe" }).toString().trim(); } catch (e: any) { checks.ls_frontend = e.message; }
+    try { checks.pm2 = execSync("pm2 list 2>&1 | head -5", { timeout: 3000, stdio: "pipe" }).toString().trim(); } catch (e: any) { checks.pm2 = e.message; }
+    res.json(checks);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 maintenanceRouter.post("/rebuild-frontend", async (_req: AuthRequest, res: Response) => {
   try {
     const { execSync } = await import("child_process");
