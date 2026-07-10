@@ -1,3 +1,4 @@
+set -e
 name: Deploy to Tencent Cloud
 
 on:
