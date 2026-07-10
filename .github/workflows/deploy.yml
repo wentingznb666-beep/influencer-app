@@ -16,33 +16,20 @@ jobs:
         username: ubuntu
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          echo "=== 1. nginx config test ==="
+          echo "=== nginx config test ==="
           sudo nginx -t 2>&1
-          echo ""
-          echo "=== 2. Check port 443 listener ==="
-          sudo netstat -tlnp | grep -E "443|nginx" || echo "No nginx on 443"
-          echo ""
-          echo "=== 3. Check cert files ==="
-          sudo ls -la /etc/letsencrypt/live/xiangtaiyyj.site/ 2>&1 || echo "Cert dir missing"
-          echo ""
-          echo "=== 4. Check certbot certificates ==="
-          sudo certbot certificates 2>&1 || echo "certbot error"
-          echo ""
-          echo "=== 5. Nginx sites-enabled ==="
+          echo "=== check 443 ==="
+          sudo netstat -tlnp | grep -E "443|nginx" || echo "NO_443"
+          echo "=== check sites ==="
           sudo ls -la /etc/nginx/sites-enabled/ 2>&1
-          sudo cat /etc/nginx/sites-enabled/default 2>&1 | head -40
-          echo ""
-          echo "=== 6. Try certificate renewal ==="
-          sudo certbot renew --nginx --non-interactive 2>&1 || echo "Renew failed"
-          echo ""
-          echo "=== 7. Reload nginx ==="
-          sudo nginx -t && sudo systemctl reload nginx 2>&1 || sudo nginx -t && sudo nginx -s reload 2>&1
-          echo ""
-          echo "=== 8. Verify 443 now listening ==="
-          sudo netstat -tlnp | grep -E "443|nginx" || echo "Still no nginx on 443"
-          echo ""
-          echo "=== 9. Check nginx error log ==="
-          sudo tail -20 /var/log/nginx/error.log 2>&1 || echo "No error log"
+          echo "=== cert files ==="
+          sudo ls /etc/letsencrypt/live/ 2>&1 || echo "NO_CERT_DIR"
+          echo "=== reload nginx ==="
+          sudo nginx -s reload 2>&1 || sudo systemctl reload nginx 2>&1 || echo "RELOAD_FAILED"
+          echo "=== verify 443 now ==="
+          sudo netstat -tlnp | grep -E "443|nginx" || echo "STILL_NO_443"
+          echo "=== nginx error log (last 5) ==="
+          sudo tail -5 /var/log/nginx/error.log 2>&1 || echo "NO_ERROR_LOG"
 
     - name: Deploy to server
       uses: appleboy/ssh-action@v1.0.0
