@@ -110,6 +110,18 @@ export default function CooperationTypesPage(props: Props) {
   const renderSpec = (item: CooperationTypesConfig["types"][number]) => {
     const spec = asRecord(item.spec);
 
+    const HIDDEN_KEYS = ['requires_tap', 'allow_face', 'deliverables_count_range', 'merchant_price_thb', 'must_review_before_publish'];
+    const filterSpec = (s: Record<string, unknown>) => {
+      const out: Record<string, unknown> = {};
+      for (const k of Object.keys(s)) {
+        if (!HIDDEN_KEYS.includes(k)) out[k] = s[k];
+      }
+      return out;
+    };
+    const fallbackJson = (s: Record<string, unknown>) => (
+      <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{JSON.stringify(filterSpec(s), null, 2)}</pre>
+    );
+
     if (item.id === "graded_video") {
       const pricing = asRecord(spec.pricing_points);
       const c = asRecord(pricing.client);
@@ -275,75 +287,10 @@ export default function CooperationTypesPage(props: Props) {
     }
 
     if (t.id === "creator_review_video") {
-      const range = asRecord(spec.deliverables_count_range);
-      const min = toNum(range.min) ?? 8;
-      const max = toNum(range.max) ?? 10;
-      const price = spec.merchant_price_thb;
-      return (
-        <div style={{ display: "grid", gap: compactPx(10) }}>
-          <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>{t("产出条数")}</div>
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              disabled={readOnly}
-              value={min}
-              onChange={(e) =>
-                updateType(t.id, (tt) => {
-                  const s = asRecord(tt.spec);
-                  const nextRange = ensureRecord(s, "deliverables_count_range");
-                  nextRange.min = Number(e.target.value || 0);
-                  tt.spec = s;
-                })
-              }
-              style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
-            />
-            <div>—</div>
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              disabled={readOnly}
-              value={max}
-              onChange={(e) =>
-                updateType(t.id, (tt) => {
-                  const s = asRecord(tt.spec);
-                  const nextRange = ensureRecord(s, "deliverables_count_range");
-                  nextRange.max = Number(e.target.value || 0);
-                  tt.spec = s;
-                })
-              }
-              style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
-            />
-            <div>{t("条")}</div>
-          </div>
-          <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>{t("报价（泰铢）")}</div>
-            <input
-              type="number"
-              inputMode="decimal"
-              min={0}
-              disabled={readOnly}
-              value={price == null ? "" : toNum(price) ?? ""}
-              placeholder={t("待定")}
-              onChange={(e) =>
-                updateType(t.id, (tt) => {
-                  const s = asRecord(tt.spec);
-                  const v = e.target.value.trim();
-                  s.merchant_price_thb = v ? Number(v) : null;
-                  tt.spec = s;
-                })
-              }
-              style={{ padding: "6px 8px", width: 180, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
-            />
-            <div style={{ color: "var(--xt-text-muted)", fontSize: compactPx(13) }}>{t("留空表示待定")}</div>
-          </div>
-        </div>
-      );
+      return fallbackJson(spec);
     }
 
-    return <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{JSON.stringify(spec, null, 2)}</pre>;
+    return fallbackJson(spec);
   };
 
   if (loading) return (
