@@ -432,7 +432,6 @@ export default function PurchaseProductsPage() {
                       ) : (
                         <span style={{ fontSize: 11, color: "#94a3b8" }}>系统导入</span>
                       )}
-                      </div>
                     </td>
                   </tr>
                 );
