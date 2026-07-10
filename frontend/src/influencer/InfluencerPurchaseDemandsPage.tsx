@@ -118,7 +118,7 @@ export default function InfluencerPurchaseDemandsPage() {
     try {
       const [r1, r2] = await Promise.all([
         fetchWithAuth(`/api/influencer/purchase/demands/${d.id}`),
-        fetchWithAuth(`/api/admin/purchase/recommendations/demand/${d.id}`),
+        fetchWithAuth(`/api/influencer/purchase/demands/recommendations/demand/${d.id}`),
       ]);
       const dd = await r1.json();
       const dr = await r2.json();

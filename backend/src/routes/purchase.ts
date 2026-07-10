@@ -352,6 +352,33 @@ influencerRouter.patch("/:id/cancel", async (req: AuthRequest, res: Response) =>
 });
 
 /** 达人反馈推荐商品（感兴趣/不感兴趣） */
+/** 达人查看需求推荐商品列表 */
+influencerRouter.get("/recommendations/demand/:demandId", async (req: AuthRequest, res: Response) => {
+  try {
+    const uid = req.user!.userId;
+    const demandId = parseInt(String(req.params.demandId));
+
+    // 验证需求属于当前达人
+    const demand = await query("SELECT id FROM purchase_demands WHERE id = $1 AND influencer_id = $2", [demandId, uid]);
+    if (!demand.rows[0]) return res.status(404).json({ error: "NOT_FOUND", message: "需求不存在或无权访问" });
+
+    const { rows } = await query(
+      `SELECT pr.*, pp.product_name, pp.source, pp.price_cny, pp.price_thb,
+              pp.image_urls, pp.category as product_category, pp.supplier_name,
+              pp.estimated_profit_rate, pp.moq, pp.product_link, pp.brand,
+              pp.suggested_retail_thb, pp.competitor_price_thb, pp.status as product_status
+       FROM purchase_recommendations pr
+       JOIN purchase_products pp ON pr.product_id = pp.id
+       WHERE pr.demand_id = $1
+       ORDER BY pr.created_at DESC`,
+      [demandId]
+    );
+    res.json({ list: rows });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
 influencerRouter.patch("/recommendations/:recId/feedback", async (req: AuthRequest, res: Response) => {
   try {
     const uid = req.user!.userId;
