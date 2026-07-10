@@ -1013,7 +1013,8 @@ adminOrderRouter.get("/", async (req: AuthRequest, res: Response) => {
     const { rows } = await query(
       `SELECT po.*, pp.product_name, pp.image_urls as product_images,
               u.username as influencer_username, u.display_name as influencer_display_name,
-              ipf.influencer_code, pd.title as demand_title
+              u.disabled as influencer_disabled,
+              ipf.influencer_code, ipf.user_id as profile_user_id, pd.title as demand_title
        FROM purchase_orders po
        LEFT JOIN purchase_products pp ON po.product_id = pp.id
        LEFT JOIN users u ON po.influencer_id = u.id
@@ -1040,7 +1041,8 @@ adminOrderRouter.get("/:id", async (req: AuthRequest, res: Response) => {
               pp.price_thb as product_price_thb, pp.source as product_source,
               pp.category as product_category, pp.supplier_name,
               u.username as influencer_username, u.display_name as influencer_display_name,
-              ipf.influencer_code, pd.title as demand_title
+              u.disabled as influencer_disabled,
+              ipf.influencer_code, ipf.user_id as profile_user_id, pd.title as demand_title
        FROM purchase_orders po
        LEFT JOIN purchase_products pp ON po.product_id = pp.id
        LEFT JOIN users u ON po.influencer_id = u.id
