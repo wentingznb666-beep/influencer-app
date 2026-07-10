@@ -110,7 +110,7 @@ export default function CooperationTypesPage(props: Props) {
   const renderSpec = (item: CooperationTypesConfig["types"][number]) => {
     const spec = asRecord(item.spec);
 
-    const HIDDEN_KEYS = ['requires_tap', 'allow_face', 'deliverables_count_range', 'merchant_price_thb', 'must_review_before_publish'];
+    const HIDDEN_KEYS = ['requires_tap', 'allow_face', 'deliverables_count_range', 'merchant_price_thb', 'must_review_before_publish', 'merchant_price_thb_range', 'executed_by', 'allow_script', 'revisions', 'publish', 'min_videos_per_month', 'merchant_price_per_video_thb', 'deliverables', 'revisions_first_n'];
     const filterSpec = (s: Record<string, unknown>) => {
       const out: Record<string, unknown> = {};
       for (const k of Object.keys(s)) {
@@ -118,9 +118,11 @@ export default function CooperationTypesPage(props: Props) {
       }
       return out;
     };
-    const fallbackJson = (s: Record<string, unknown>) => (
-      <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{JSON.stringify(filterSpec(s), null, 2)}</pre>
-    );
+    const fallbackJson = (s: Record<string, unknown>) => {
+      const filtered = filterSpec(s);
+      if (Object.keys(filtered).length === 0) return null;
+      return <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{JSON.stringify(filtered, null, 2)}</pre>;
+    };
 
     if (item.id === "graded_video") {
       const pricing = asRecord(spec.pricing_points);
@@ -200,90 +202,11 @@ export default function CooperationTypesPage(props: Props) {
     }
 
     if (t.id === "high_quality_custom_video") {
-      const range = asRecord(spec.merchant_price_thb_range);
-      const min = toNum(range.min) ?? 4000;
-      const max = toNum(range.max) ?? 5000;
-      return (
-        <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>{t("对外报价（泰铢）")}</div>
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            disabled={readOnly}
-            value={min}
-            onChange={(e) =>
-              updateType(t.id, (tt) => {
-                const s = asRecord(tt.spec);
-                const nextRange = ensureRecord(s, "merchant_price_thb_range");
-                nextRange.min = Number(e.target.value || 0);
-                tt.spec = s;
-              })
-            }
-            style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
-          />
-          <div>—</div>
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            disabled={readOnly}
-            value={max}
-            onChange={(e) =>
-              updateType(t.id, (tt) => {
-                const s = asRecord(tt.spec);
-                const nextRange = ensureRecord(s, "merchant_price_thb_range");
-                nextRange.max = Number(e.target.value || 0);
-                tt.spec = s;
-              })
-            }
-            style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
-          />
-        </div>
-      );
+      return fallbackJson(spec);
     }
 
     if (t.id === "monthly_package") {
-      const minVideos = toNum(spec.min_videos_per_month) ?? 20;
-      const price = toNum(spec.merchant_price_per_video_thb) ?? 650;
-      return (
-        <div style={{ display: "flex", gap: compactPx(10), flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ fontWeight: 700, color: "var(--xt-primary)" }}>{t("门槛")}</div>
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            disabled={readOnly}
-            value={minVideos}
-            onChange={(e) =>
-              updateType(t.id, (tt) => {
-                const s = asRecord(tt.spec);
-                s.min_videos_per_month = Number(e.target.value || 0);
-                tt.spec = s;
-              })
-            }
-            style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
-          />
-          <div>{t("条/月")}</div>
-          <div style={{ fontWeight: 700, color: "var(--xt-primary)", marginLeft: compactPx(8) }}>{t("单价")}</div>
-          <input
-            type="number"
-            inputMode="decimal"
-            min={0}
-            disabled={readOnly}
-            value={price}
-            onChange={(e) =>
-              updateType(t.id, (tt) => {
-                const s = asRecord(tt.spec);
-                s.merchant_price_per_video_thb = Number(e.target.value || 0);
-                tt.spec = s;
-              })
-            }
-            style={{ padding: "6px 8px", width: 140, borderRadius: compactPx(8), border: "1px solid var(--xt-border)" }}
-          />
-          <div>{t("泰铢/条")}</div>
-        </div>
-      );
+      return fallbackJson(spec);
     }
 
     if (t.id === "creator_review_video") {
@@ -351,10 +274,16 @@ export default function CooperationTypesPage(props: Props) {
                   </div>
                 </div>
 
-                <div style={{ display: "grid", gap: compactPx(8) }}>
-                  <div style={{ fontWeight: 800 }}>{t("关键参数")}</div>
-                  {renderSpec(type)}
-                </div>
+                {(() => {
+                  const specContent = renderSpec(type);
+                  if (!specContent) return null;
+                  return (
+                    <div style={{ display: "grid", gap: compactPx(8) }}>
+                      <div style={{ fontWeight: 800 }}>{t("关键参数")}</div>
+                      {specContent}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           ))}
