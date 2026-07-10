@@ -1391,32 +1391,29 @@ cozeConfigRouter.use(requireAuth);
 
 cozeConfigRouter.get("/", async (_req: AuthRequest, res: Response) => {
   try {
-    const config = await getCozeConfig();
-    res.json({
-      url: config?.url || "",
-      key: config?.key ? config.key.substring(0, 8) + "***" : "",
-      configured: !!config?.url,
-    });
-  } catch (e: any) {
-    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
-  }
-});
+    // Check local search service status
+    let searchStatus: "running" | "stopped" = "stopped";
+    try {
+      const baseUrl = process.env.SEARCH_SERVICE_URL || "http://localhost:3000";
+      const r = await fetch(`${baseUrl}/webhook/search/health`, { signal: AbortSignal.timeout(3000) });
+      searchStatus = r.ok ? "running" : "stopped";
+    } catch { searchStatus = "stopped"; }
 
-cozeConfigRouter.put("/", async (req: AuthRequest, res: Response) => {
-  try {
-    const { url, key } = req.body || {};
-    if (!url || !key) {
-      return res.status(400).json({ error: "MISSING", message: "url 和 key 为必填项" });
-    }
-    await query(
-      "INSERT INTO config (key, value) VALUES ('coze_url', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
-      [url]
+    // Today's search count
+    const today = new Date().toISOString().split("T")[0];
+    const countResult = await query(
+      "SELECT COUNT(*)::int as cnt FROM purchase_demands WHERE coze_search_triggered = true AND updated_at::date = $1",
+      [today]
     );
-    await query(
-      "INSERT INTO config (key, value) VALUES ('coze_key', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
-      [key]
-    );
-    res.json({ ok: true });
+
+    // Total demand count
+    const totalResult = await query("SELECT COUNT(*)::int as cnt FROM purchase_demands");
+
+    res.json({
+      search_status: searchStatus,
+      today_searches: countResult.rows[0]?.cnt || 0,
+      total_demands: totalResult.rows[0]?.cnt || 0,
+    });
   } catch (e: any) {
     res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
   }
