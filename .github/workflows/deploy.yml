@@ -9,28 +9,6 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Fix nginx HTTPS
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: 119.28.143.135
-        username: ubuntu
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          echo "=== nginx config test ==="
-          sudo nginx -t 2>&1
-          echo "=== check 443 ==="
-          sudo netstat -tlnp | grep -E "443|nginx" || echo "NO_443"
-          echo "=== check sites ==="
-          sudo ls -la /etc/nginx/sites-enabled/ 2>&1
-          echo "=== cert files ==="
-          sudo ls /etc/letsencrypt/live/ 2>&1 || echo "NO_CERT_DIR"
-          echo "=== reload nginx ==="
-          sudo nginx -s reload 2>&1 || sudo systemctl reload nginx 2>&1 || echo "RELOAD_FAILED"
-          echo "=== verify 443 now ==="
-          sudo netstat -tlnp | grep -E "443|nginx" || echo "STILL_NO_443"
-          echo "=== nginx error log (last 5) ==="
-          sudo tail -5 /var/log/nginx/error.log 2>&1 || echo "NO_ERROR_LOG"
-
     - name: Deploy to server
       uses: appleboy/ssh-action@v1.0.0
       with:
