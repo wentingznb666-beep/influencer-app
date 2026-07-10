@@ -2246,6 +2246,24 @@ async function applyOnlineSchemaPatches(): Promise<void> {
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_purchase_suppliers_name ON purchase_suppliers(name)`);
   await query(`ALTER TABLE purchase_products ADD COLUMN IF NOT EXISTS supplier_id INTEGER REFERENCES purchase_suppliers(id)`);
+  // ========== 财务管理 ==========
+  await query(`
+    CREATE TABLE IF NOT EXISTS purchase_payments (
+      id SERIAL PRIMARY KEY,
+      order_id INTEGER NOT NULL REFERENCES purchase_orders(id),
+      amount_thb DECIMAL(12,2) NOT NULL,
+      payment_method VARCHAR(50) CHECK (payment_method IN ('bank_transfer','promptpay','other')),
+      voucher_image TEXT,
+      paid_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      remark TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_purchase_payments_order ON purchase_payments(order_id, created_at DESC)`);
+  await query(
+    `INSERT INTO config (key, value) VALUES ('exchange_rate_cny_thb', '5.0')
+     ON CONFLICT (key) DO NOTHING`
+  );
   // ========== 达人进货管理模块结束 ==========
 
   // ========== 垂直达人建联模块结束 ==========

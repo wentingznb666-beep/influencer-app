@@ -102,6 +102,7 @@ const PurchaseProductsPage = lazy(() => import("./admin/PurchaseProductsPage"));
 const PurchaseOrdersPage = lazy(() => import("./admin/PurchaseOrdersPage"));
 const PurchaseCozeConfig = lazy(() => import("./admin/PurchaseCozeConfig"));
 const PurchaseSuppliersPage = lazy(() => import("./admin/PurchaseSuppliersPage"));
+const PurchaseFinancePage = lazy(() => import("./admin/PurchaseFinancePage"));
 const ClientVCPage = lazy(() => import("./client/ClientVCPage"));
 const ClientVCInfluencerList = lazy(() => import("./client/ClientVCInfluencerList"));
 const ClientVCInviteForm = lazy(() => import("./client/ClientVCInviteForm"));
@@ -164,6 +165,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="vertical-connections/purchase/orders" element={<PurchaseOrdersPage />} />
             <Route path="vertical-connections/purchase/coze-config" element={<PurchaseCozeConfig />} />
             <Route path="vertical-connections/purchase/suppliers" element={<PurchaseSuppliersPage />} />
+            <Route path="vertical-connections/purchase/finance" element={<PurchaseFinancePage />} />
           </Route>
           <Route path="/employee" element={<ProtectedRoute roles={["employee"]}><EmployeeLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/employee/market-orders" replace />} />
@@ -192,6 +194,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="vertical-connections/purchase/orders" element={<PurchaseOrdersPage />} />
             <Route path="vertical-connections/purchase/coze-config" element={<PurchaseCozeConfig />} />
             <Route path="vertical-connections/purchase/suppliers" element={<PurchaseSuppliersPage />} />
+            <Route path="vertical-connections/purchase/finance" element={<PurchaseFinancePage />} />
           </Route>
           <Route path="/client" element={<ProtectedRoute roles={["client"]}><ClientLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/client/market-orders" replace />} />

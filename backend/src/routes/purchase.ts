@@ -1518,6 +1518,125 @@ suppliersRouter.get("/:id/history", async (req: AuthRequest, res: Response) => {
   }
 });
 
+// ========== FINANCE ROUTES (管理员/员工) ==========
+const financeRouter = Router();
+financeRouter.use(requireAuth);
+financeRouter.use(requireRole("admin", "employee"));
+
+/** 读取汇率 */
+financeRouter.get("/exchange-rate", async (_req: AuthRequest, res: Response) => {
+  try {
+    const r = await query("SELECT value FROM config WHERE key = 'exchange_rate_cny_thb'");
+    res.json({ rate: parseFloat(r.rows[0]?.value || "5.0"), updated_at: r.rows[0]?.value ? null : new Date().toISOString() });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
+/** 更新汇率 */
+financeRouter.put("/exchange-rate", async (req: AuthRequest, res: Response) => {
+  try {
+    const { rate } = req.body || {};
+    if (!rate || isNaN(parseFloat(rate))) return res.status(400).json({ error: "MISSING", message: "汇率无效" });
+    await query(
+      "INSERT INTO config (key, value) VALUES ('exchange_rate_cny_thb', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+      [String(rate)]
+    );
+    // Also update exchange_rate_updated_at
+    await query(
+      "INSERT INTO config (key, value) VALUES ('exchange_rate_updated_at', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+      [new Date().toISOString()]
+    );
+    res.json({ ok: true, rate: parseFloat(rate) });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
+/** 查看某订单的付款记录 */
+financeRouter.get("/orders/:id/payments", async (req: AuthRequest, res: Response) => {
+  try {
+    const orderId = parseInt(String(req.params.id));
+    const { rows } = await query(
+      "SELECT * FROM purchase_payments WHERE order_id = $1 ORDER BY paid_at DESC",
+      [orderId]
+    );
+    const totalPaid = rows.reduce((s, p) => s + Number(p.amount_thb || 0), 0);
+    res.json({ list: rows, total_paid: totalPaid });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
+/** 录入付款 */
+financeRouter.post("/orders/:id/payments", async (req: AuthRequest, res: Response) => {
+  try {
+    const orderId = parseInt(String(req.params.id));
+    const { amount_thb, payment_method, voucher_image, paid_at, remark } = req.body || {};
+    if (!amount_thb) return res.status(400).json({ error: "MISSING", message: "付款金额为必填项" });
+
+    const order = await query("SELECT id, total_payable FROM purchase_orders WHERE id = $1", [orderId]);
+    if (!order.rows[0]) return res.status(404).json({ error: "NOT_FOUND" });
+
+    const { rows } = await query(
+      `INSERT INTO purchase_payments (order_id, amount_thb, payment_method, voucher_image, paid_at, remark)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING id`,
+      [orderId, amount_thb, payment_method || "bank_transfer", voucher_image || null, paid_at || new Date().toISOString(), remark || null]
+    );
+
+    // Update order's paid_amount and is_paid
+    const totalResult = await query("SELECT COALESCE(SUM(amount_thb),0) as total FROM purchase_payments WHERE order_id = $1", [orderId]);
+    const totalPaid = Number(totalResult.rows[0]?.total || 0);
+    const isFullyPaid = totalPaid >= Number(order.rows[0].total_payable || 0);
+    await query(
+      "UPDATE purchase_orders SET paid_amount = $1, is_paid = $2, paid_at = COALESCE(paid_at, $3), updated_at = now() WHERE id = $4",
+      [totalPaid, isFullyPaid, paid_at || new Date().toISOString(), orderId]
+    );
+
+    res.status(201).json({ id: rows[0].id, total_paid: totalPaid, is_fully_paid: isFullyPaid });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
+/** 对账统计 */
+financeRouter.get("/summary", async (req: AuthRequest, res: Response) => {
+  try {
+    const { start, end } = req.query as Record<string, string>;
+    const conditions: string[] = [];
+    const params: any[] = [];
+    let idx = 1;
+    if (start) { conditions.push(`po.created_at >= $${idx++}`); params.push(start); }
+    if (end) { conditions.push(`po.created_at <= $${idx++}`); params.push(end); }
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const [totalPurchase, totalReceived, orderCount, completedCount, cancelledCount] = await Promise.all([
+      query(`SELECT COALESCE(SUM(po.total_payable),0)::float as v FROM purchase_orders po ${where}`, params),
+      query(`SELECT COALESCE(SUM(pp.amount_thb),0)::float as v FROM purchase_payments pp JOIN purchase_orders po ON pp.order_id = po.id ${where.replace(/po\./g, "po.")}`, params),
+      query(`SELECT COUNT(*)::int as v FROM purchase_orders po ${where}`, params),
+      query(`SELECT COUNT(*)::int as v FROM purchase_orders po ${where} ${conditions.length ? "AND" : "WHERE"} po.status = 'completed'`, params),
+      query(`SELECT COUNT(*)::int as v FROM purchase_orders po ${where} ${conditions.length ? "AND" : "WHERE"} po.status = 'cancelled'`, params),
+    ]);
+
+    const purchaseTotal = totalPurchase.rows[0]?.v || 0;
+    const receivedTotal = totalReceived.rows[0]?.v || 0;
+    const estimatedCost = purchaseTotal * 0.7; // assume 70% cost
+    const estimatedProfit = receivedTotal - estimatedCost;
+
+    res.json({
+      total_purchase: purchaseTotal,
+      total_received: receivedTotal,
+      pending_receivable: purchaseTotal - receivedTotal,
+      estimated_profit: estimatedProfit,
+      order_count: orderCount.rows[0]?.v || 0,
+      completed_count: completedCount.rows[0]?.v || 0,
+      cancelled_count: cancelledCount.rows[0]?.v || 0,
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
 // ========== COZE CALLBACK ROUTER (公开接口) ==========
 const cozeCallbackRouter = Router();
 
@@ -1656,3 +1775,4 @@ export const purchaseAdminOrderRoutes = adminOrderRouter;
 export const purchaseCozeCallbackRouter = cozeCallbackRouter;
 export const purchaseCozeConfigRouter = cozeConfigRouter;
 export const purchaseSuppliersRouter = suppliersRouter;
+export const purchaseFinanceRouter = financeRouter;
