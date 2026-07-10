@@ -1723,13 +1723,17 @@ maintenanceRouter.post("/rebuild-frontend", async (_req: AuthRequest, res: Respo
     const { execSync } = await import("child_process");
     const runBuild = () => {
       try {
-        execSync("cd /home/ubuntu/influencer-app/frontend && npx vite build --outDir dist-new && sudo rm -rf dist && sudo mv dist-new dist && sudo chown -R www-data:www-data dist", { timeout: 120000, stdio: "pipe" });
+        console.log("[maintenance] starting frontend rebuild...");
+        execSync("cd /home/ubuntu/influencer-app/frontend && npm install 2>&1", { timeout: 120000, stdio: "pipe" });
+        const out = execSync("cd /home/ubuntu/influencer-app/frontend && npx vite build --outDir dist-new 2>&1", { timeout: 120000, stdio: "pipe" });
+        console.log("[maintenance] build output:", out.toString().slice(-200));
+        execSync("cd /home/ubuntu/influencer-app/frontend && sudo rm -rf dist && sudo mv dist-new dist && sudo chown -R www-data:www-data dist 2>&1", { timeout: 10000, stdio: "pipe" });
         console.log("[maintenance] frontend rebuilt successfully");
       } catch (e: any) {
-        console.error("[maintenance] frontend rebuild failed:", e.message);
+        console.error("[maintenance] frontend rebuild failed:", e.message, e.stderr?.toString()?.slice(-200) || "");
       }
     };
-    res.json({ ok: true, message: "前端重建已触发，请等待约 30 秒后刷新" });
+    res.json({ ok: true, message: "前端重建已触发（含 npm install），请等待约 60 秒后刷新" });
     setTimeout(runBuild, 500);
   } catch (e: any) {
     res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
