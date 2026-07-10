@@ -175,9 +175,9 @@ export default function PurchaseDemandsPage() {
       await fetchWithAuth(`/api/admin/purchase/demands/${demandId}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "pending", internal_note: "手动触发 Coze 搜索" }),
+        body: JSON.stringify({ status: "pending", internal_note: "手动触发搜索" }),
       });
-      showToast("success", "已触发 Coze 搜索");
+      showToast("success", "已触发搜索");
       load();
     } catch (e: any) {
       showToast("error", e.message || "触发失败");
@@ -186,14 +186,14 @@ export default function PurchaseDemandsPage() {
 
   const batchTriggerCoze = async () => {
     if (selected.size === 0) return;
-    if (!confirm(`确认对选中的 ${selected.size} 条需求触发 Coze 搜索？`)) return;
+    if (!confirm(`确认对选中的 ${selected.size} 条需求触发搜索？`)) return;
     let ok = 0;
     for (const id of selected) {
       try {
         await fetchWithAuth(`/api/admin/purchase/demands/${id}/status`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: "pending", internal_note: "批量触发 Coze 搜索" }),
+          body: JSON.stringify({ status: "pending", internal_note: "批量触发搜索" }),
         });
         ok++;
       } catch { /* skip */ }
@@ -402,7 +402,7 @@ export default function PurchaseDemandsPage() {
         <div style={{ flex: 1 }} />
         {selected.size > 0 && (
           <button onClick={batchTriggerCoze} style={{ ...outlineBtn, borderColor: "#f97316", color: "#f97316" }}>
-            ⚡ 批量触发 Coze ({selected.size})
+            ⚡ 批量触发搜索 ({selected.size})
           </button>
         )}
         <button onClick={openCreate} style={dashedBtn}>+ 新增需求(代提交)</button>
@@ -547,7 +547,7 @@ export default function PurchaseDemandsPage() {
                   {detailDemand.status === "pending" && (
                     <>
                       <button onClick={openRecPicker} style={btnStyle}>📦 手动推荐商品</button>
-                      <button onClick={() => triggerCoze(detailDemand.id)} style={outlineBtn}>⚡ 触发 Coze 搜索</button>
+                      <button onClick={() => triggerCoze(detailDemand.id)} style={outlineBtn}>⚡ 触发搜索</button>
                     </>
                   )}
                   {["pending", "recommended"].includes(detailDemand.status) && (
