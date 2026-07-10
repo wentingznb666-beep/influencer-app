@@ -100,6 +100,7 @@ const GradeConfigPage = lazy(() => import("./admin/GradeConfigPage"));
 const PurchaseDemandsPage = lazy(() => import("./admin/PurchaseDemandsPage"));
 const PurchaseProductsPage = lazy(() => import("./admin/PurchaseProductsPage"));
 const PurchaseOrdersPage = lazy(() => import("./admin/PurchaseOrdersPage"));
+const PurchaseCozeConfig = lazy(() => import("./admin/PurchaseCozeConfig"));
 const ClientVCPage = lazy(() => import("./client/ClientVCPage"));
 const ClientVCInfluencerList = lazy(() => import("./client/ClientVCInfluencerList"));
 const ClientVCInviteForm = lazy(() => import("./client/ClientVCInviteForm"));
@@ -160,6 +161,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="vertical-connections/purchase" element={<PurchaseDemandsPage />} />
             <Route path="vertical-connections/purchase/products" element={<PurchaseProductsPage />} />
             <Route path="vertical-connections/purchase/orders" element={<PurchaseOrdersPage />} />
+            <Route path="vertical-connections/purchase/coze-config" element={<PurchaseCozeConfig />} />
           </Route>
           <Route path="/employee" element={<ProtectedRoute roles={["employee"]}><EmployeeLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/employee/market-orders" replace />} />
@@ -186,6 +188,7 @@ createRoot(document.getElementById("root")!).render(
             <Route path="vertical-connections/purchase" element={<PurchaseDemandsPage />} />
             <Route path="vertical-connections/purchase/products" element={<PurchaseProductsPage />} />
             <Route path="vertical-connections/purchase/orders" element={<PurchaseOrdersPage />} />
+            <Route path="vertical-connections/purchase/coze-config" element={<PurchaseCozeConfig />} />
           </Route>
           <Route path="/client" element={<ProtectedRoute roles={["client"]}><ClientLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/client/market-orders" replace />} />
