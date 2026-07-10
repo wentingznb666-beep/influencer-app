@@ -1728,6 +1728,8 @@ maintenanceRouter.get("/status", async (_req: AuthRequest, res: Response) => {
     try { checks.ls_dist = execSync("ls -la /home/ubuntu/influencer-app/frontend/dist/ 2>&1 | head -5", { timeout: 3000, stdio: "pipe" }).toString().trim(); } catch (e: any) { checks.ls_dist = e.message; }
     try { checks.ls_frontend = execSync("ls /home/ubuntu/influencer-app/frontend/ 2>&1", { timeout: 3000, stdio: "pipe" }).toString().trim(); } catch (e: any) { checks.ls_frontend = e.message; }
     try { checks.pm2 = execSync("pm2 list 2>&1 | head -5", { timeout: 3000, stdio: "pipe" }).toString().trim(); } catch (e: any) { checks.pm2 = e.message; }
+    try { checks.rebuild_log = execSync("tail -20 /tmp/rebuild.log 2>&1", { timeout: 3000, stdio: "pipe" }).toString().trim(); } catch (e: any) { checks.rebuild_log = e.message; }
+    try { checks.which_vite = execSync("ls -la /home/ubuntu/influencer-app/frontend/node_modules/.bin/vite 2>&1", { timeout: 3000, stdio: "pipe" }).toString().trim(); } catch (e: any) { checks.which_vite = e.message; }
     res.json(checks);
   } catch (e: any) {
     res.status(500).json({ error: e.message });
