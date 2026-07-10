@@ -546,8 +546,6 @@ export default function ClientOrdersHallPage() {
 
       setMyList(myRows.map((r) => ({ ...r, work_links: normalizeWorkLinks(r.work_links) })));
 
-      setOfflineList([]);
-
     } catch (e) {
 
       setError(e instanceof Error ? e.message : t("加载失败"));
