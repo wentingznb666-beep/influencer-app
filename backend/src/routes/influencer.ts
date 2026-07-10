@@ -20,7 +20,7 @@ const router = Router();
 
 router.use(requireAuth);
 
-router.use(requireRole("influencer"));
+router.use(requireRole("influencer", "employee", "admin"));
 
 
 
