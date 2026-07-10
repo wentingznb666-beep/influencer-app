@@ -171,6 +171,8 @@ router.post("/", (req: AuthRequest, res: Response) => {
   const videoUrl = normText(req.body?.video_url, MAX_VIDEO_URL_CC);
 
   const tiktokSales = normText(req.body?.tiktok_sales, MAX_VIDEO_URL_CC);
+  const liveSales = normText(req.body?.live_sales, MAX_VIDEO_URL_CC);
+  const gmvSales = normText(req.body?.gmv_sales, MAX_VIDEO_URL_CC);
 
   const status = normStatus(req.body?.status);
 
@@ -204,9 +206,9 @@ router.post("/", (req: AuthRequest, res: Response) => {
 
       `INSERT INTO showcase_content_creators (
 
-         name, intro, photos, shoot_types_text, skills_text, video_url, tiktok_sales, status, created_by, updated_by
+         name, intro, photos, shoot_types_text, skills_text, video_url, tiktok_sales, live_sales, gmv_sales, status, created_by, updated_by
 
-       ) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $9)
+       ) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $10, $11, $11)
 
        RETURNING id`,
 
@@ -225,6 +227,10 @@ router.post("/", (req: AuthRequest, res: Response) => {
         videoUrl,
 
         tiktokSales,
+
+        liveSales,
+
+        gmvSales,
 
         status,
 
@@ -281,6 +287,8 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
   const videoUrl = req.body?.video_url !== undefined ? normText(req.body?.video_url, MAX_VIDEO_URL_CC) : undefined;
 
   const tiktokSales = req.body?.tiktok_sales !== undefined ? normText(req.body?.tiktok_sales, MAX_VIDEO_URL_CC) : undefined;
+  const liveSales = req.body?.live_sales !== undefined ? normText(req.body?.live_sales, MAX_VIDEO_URL_CC) : undefined;
+  const gmvSales = req.body?.gmv_sales !== undefined ? normText(req.body?.gmv_sales, MAX_VIDEO_URL_CC) : undefined;
 
   const status = req.body?.status !== undefined ? normStatus(req.body?.status) : undefined;
 
@@ -379,6 +387,20 @@ router.patch("/:id", (req: AuthRequest, res: Response) => {
       sets.push(`tiktok_sales = $${idx++}`);
 
       params.push(tiktokSales);
+
+    }
+    if (liveSales !== undefined) {
+
+      sets.push(`live_sales = $${idx++}`);
+
+      params.push(liveSales);
+
+    }
+    if (gmvSales !== undefined) {
+
+      sets.push(`gmv_sales = $${idx++}`);
+
+      params.push(gmvSales);
 
     }
 
