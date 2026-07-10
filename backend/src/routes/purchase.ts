@@ -1394,8 +1394,8 @@ cozeConfigRouter.get("/", async (_req: AuthRequest, res: Response) => {
     // Check local search service status
     let searchStatus: "running" | "stopped" = "stopped";
     try {
-      const baseUrl = process.env.SEARCH_SERVICE_URL || "http://localhost:3000";
-      const r = await fetch(`${baseUrl}/webhook/search/health`, { signal: AbortSignal.timeout(3000) });
+      const baseUrl = process.env.SEARCH_SERVICE_URL || "http://127.0.0.1:8000";
+      const r = await fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(3000) });
       searchStatus = r.ok ? "running" : "stopped";
     } catch { searchStatus = "stopped"; }
 
