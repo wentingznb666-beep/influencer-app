@@ -1735,23 +1735,25 @@ maintenanceRouter.get("/status", async (_req: AuthRequest, res: Response) => {
 });
 
 maintenanceRouter.post("/rebuild-frontend", async (_req: AuthRequest, res: Response) => {
-  try {
-    const { exec } = await import("child_process");
-    res.json({ ok: true, message: "前端重建已触发，约 60 秒" });
+  const { execSync } = await import("child_process");
+  res.json({ ok: true, message: "重建中..." });
 
-    const cmd = "cd /home/ubuntu/influencer-app/frontend && npm run build -- --outDir dist-new && sudo rm -rf dist && sudo mv dist-new dist && sudo chown -R www-data:www-data dist";
-    console.log("[maintenance] running:", cmd);
-    exec(cmd, { timeout: 180000 }, (error, stdout, stderr) => {
-      if (error) {
-        console.error("[maintenance] BUILD FAILED:", error.message);
-        console.error("[maintenance] stderr:", stderr?.slice(-500) || "");
-      } else {
-        console.log("[maintenance] BUILD OK:", stdout?.slice(-200) || "");
-      }
-    });
-  } catch (e: any) {
-    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
-  }
+  setTimeout(() => {
+    try {
+      console.log("[maintenance] build starting...");
+      const out = execSync(
+        "cd /home/ubuntu/influencer-app/frontend && ./node_modules/.bin/vite build --outDir dist-new 2>&1",
+        { timeout: 180000, stdio: "pipe", encoding: "utf-8" }
+      );
+      console.log("[maintenance] vite output:", out.slice(-300));
+      execSync("cd /home/ubuntu/influencer-app/frontend && sudo rm -rf dist && sudo mv dist-new dist && sudo chown -R www-data:www-data dist", { timeout: 10000 });
+      console.log("[maintenance] BUILD SUCCESS");
+    } catch (e: any) {
+      console.error("[maintenance] BUILD FAILED:", e.message);
+      if (e.stdout) console.error("[maintenance] stdout:", String(e.stdout).slice(-300));
+      if (e.stderr) console.error("[maintenance] stderr:", String(e.stderr).slice(-300));
+    }
+  }, 1000);
 });
 
 // ========== FINANCE ROUTES (管理员/员工) ==========
