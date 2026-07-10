@@ -23,6 +23,12 @@ const SEARCH_SERVICE_URL = process.env.SEARCH_SERVICE_URL || "http://127.0.0.1:8
 
 async function triggerCozeSearch(demandId: number, category: string, description: string, budgetMin: number | null, budgetMax: number | null) {
   try {
+    // Mark as triggered first (before awaiting the search)
+    await query(
+      "UPDATE purchase_demands SET coze_search_triggered = true, updated_at = now() WHERE id = $1",
+      [demandId]
+    );
+
     const payload = {
       demand_id: demandId,
       category,
@@ -30,19 +36,127 @@ async function triggerCozeSearch(demandId: number, category: string, description
       budget_min_thb: budgetMin,
       budget_max_thb: budgetMax,
     };
-    // Call local search service (fire-and-forget)
-    fetch(`${SEARCH_SERVICE_URL}/webhook/search`, {
+
+    const res = await fetch(`${SEARCH_SERVICE_URL}/webhook/search`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(10000),
-    }).catch((e) => console.error("[purchase] search trigger failed:", e.message));
-    // Mark as triggered regardless of fetch outcome
+      signal: AbortSignal.timeout(30000),
+    });
+
+    if (!res.ok) {
+      console.error(`[purchase] search API returned ${res.status} for demand ${demandId}`);
+      return;
+    }
+
+    const data = await res.json();
+    const products = data.products || data.data || [];
+    if (!Array.isArray(products) || products.length === 0) {
+      console.log(`[purchase] search returned 0 products for demand ${demandId}`);
+      return;
+    }
+
+    // Process products: dedup, insert, create recommendations
+    await processSearchResults(demandId, products);
+  } catch (e: any) { console.error("[purchase] triggerCozeSearch error:", e.message); }
+}
+
+/** Process search results: deduplicate by product_link, insert new products, create recommendations */
+async function processSearchResults(demandId: number, products: any[]) {
+  const demand = await query("SELECT * FROM purchase_demands WHERE id = $1", [demandId]);
+  if (!demand.rows[0]) return;
+
+  let insertedCount = 0;
+  let recCount = 0;
+
+  for (const p of products) {
+    try {
+      const productName = p.name || p.product_name || "未命名商品";
+      const productLink = p.url || p.product_link || p.source_url || "";
+
+      // Deduplicate by product_link
+      let productId: number | null = null;
+      if (productLink) {
+        const existing = await query(
+          "SELECT id FROM purchase_products WHERE product_link = $1 LIMIT 1",
+          [productLink]
+        );
+        if (existing.rows[0]) productId = existing.rows[0].id;
+      }
+
+      // Insert new product
+      if (!productId) {
+        const images = (p.image || p.images) ? [p.image || p.images].flat() : [];
+        const supplier = p.supplier || p.supplier_name || "";
+        const priceCny = p.price ? parseFloat(String(p.price)) : null;
+        const priceThb = priceCny ? Math.round(priceCny * 5) : null;
+
+        const { rows: newProd } = await query(
+          `INSERT INTO purchase_products
+            (source, product_link, product_name, image_urls, category,
+             price_cny, price_thb, supplier_name, status, coze_raw_data)
+           VALUES ('1688', $1, $2, $3, $4, $5, $6, $7, 'pending', $8)
+           RETURNING id`,
+          [
+            productLink,
+            productName,
+            JSON.stringify(images),
+            demand.rows[0].category || null,
+            priceCny,
+            priceThb,
+            supplier,
+            JSON.stringify(p),
+          ]
+        );
+        productId = newProd[0]!.id;
+        insertedCount++;
+      }
+
+      // Create recommendation (skip duplicates)
+      if (productId) {
+        const dup = await query(
+          "SELECT id FROM purchase_recommendations WHERE demand_id = $1 AND product_id = $2",
+          [demandId, productId]
+        );
+        if (!dup.rows[0]) {
+          await query(
+            `INSERT INTO purchase_recommendations (demand_id, product_id, method, status)
+             VALUES ($1, $2, 'auto_coze', 'pending')`,
+            [demandId, productId]
+          );
+          await query(
+            "UPDATE purchase_products SET total_recommend_count = total_recommend_count + 1, last_recommended_at = now() WHERE id = $1",
+            [productId]
+          );
+          recCount++;
+        }
+      }
+    } catch (e: any) {
+      console.error(`[purchase] processSearchResults product error:`, e.message);
+    }
+  }
+
+  // Update demand status
+  if (recCount > 0) {
     await query(
-      "UPDATE purchase_demands SET coze_search_triggered = true, updated_at = now() WHERE id = $1",
+      "UPDATE purchase_demands SET status = 'recommended', updated_at = now() WHERE id = $1 AND status = 'pending'",
       [demandId]
     );
-  } catch (e: any) { console.error("[purchase] triggerCozeSearch error:", e.message); }
+  }
+
+  // Send notification
+  const influencerId = demand.rows[0].influencer_id;
+  if (influencerId && recCount > 0) {
+    await sendMsg(
+      influencerId,
+      "purchase_recommendation",
+      "进货需求已匹配到商品",
+      `你的需求「${demand.rows[0].title}」已匹配到 ${recCount} 件商品，请查看`,
+      `/influencer/vertical-connections/purchase/demands`
+    );
+  }
+
+  console.log(`[purchase] demand ${demandId}: ${insertedCount} new products, ${recCount} recommendations`);
 }
 
 async function sendMsg(userId: number, category: string, title: string, content: string, link: string) {
@@ -1717,103 +1831,12 @@ cozeCallbackRouter.post("/", async (req, res: Response) => {
       return res.status(404).json({ error: "NOT_FOUND", message: "需求不存在" });
     }
 
-    let insertedProducts = 0;
-    let skippedProducts = 0;
-    let createdRecs = 0;
-
-    for (const p of products) {
-      try {
-        const productName = p.name || p.product_name || "未命名商品";
-        const productLink = p.url || p.product_link || p.source_url || "";
-
-        // 按 product_link 去重
-        let productId: number | null = null;
-        if (productLink) {
-          const existing = await query(
-            "SELECT id FROM purchase_products WHERE product_link = $1 LIMIT 1",
-            [productLink]
-          );
-          if (existing.rows[0]) {
-            productId = existing.rows[0].id;
-            skippedProducts++;
-          }
-        }
-
-        // 新商品入库
-        if (!productId) {
-          const images = p.image || p.images ? [p.image || p.images].flat() : [];
-          const supplier = p.supplier || p.supplier_name || "";
-          const priceCny = p.price ? parseFloat(String(p.price)) : null;
-          const priceThb = priceCny ? Math.round(priceCny * 5) : null; // 默认汇率 1:5
-
-          const { rows: newProd } = await query(
-            `INSERT INTO purchase_products
-              (source, product_link, product_name, image_urls, category,
-               price_cny, price_thb, supplier_name, status, coze_raw_data)
-             VALUES ('manual', $1, $2, $3, $4, $5, $6, $7, 'pending', $8)
-             RETURNING id`,
-            [
-              productLink,
-              productName,
-              JSON.stringify(images),
-              demand.rows[0].category || null,
-              priceCny,
-              priceThb,
-              supplier,
-              JSON.stringify(p),
-            ]
-          );
-          productId = newProd[0]!.id;
-          insertedProducts++;
-        }
-
-        // 创建推荐关联
-        if (productId) {
-          const dup = await query(
-            "SELECT id FROM purchase_recommendations WHERE demand_id = $1 AND product_id = $2",
-            [demand_id, productId]
-          );
-          if (!dup.rows[0]) {
-            await query(
-              `INSERT INTO purchase_recommendations (demand_id, product_id, method, status)
-               VALUES ($1, $2, 'auto_coze', 'pending')`,
-              [demand_id, productId]
-            );
-            await query(
-              "UPDATE purchase_products SET total_recommend_count = total_recommend_count + 1, last_recommended_at = now() WHERE id = $1",
-              [productId]
-            );
-            createdRecs++;
-          }
-        }
-      } catch { skippedProducts++; }
-    }
-
-    // 更新需求状态为 recommended
-    await query(
-      "UPDATE purchase_demands SET status = 'recommended', updated_at = now() WHERE id = $1 AND status = 'pending'",
-      [demand_id]
-    );
-
-    // 发送系统通知
-    const influencerId = demand.rows[0].influencer_id;
-    const influencerProfileId = demand.rows[0].influencer_profile_id;
-    if (influencerId) {
-      await sendMsg(
-        influencerId,
-        "purchase_recommendation",
-        "进货需求有新的推荐",
-        `你的需求「${demand.rows[0].title}」收到了 ${createdRecs} 件商品推荐`,
-        `/influencer/vertical-connections/purchase/demands`
-      );
-    }
+    // 复用共享的商品处理逻辑
+    await processSearchResults(demand_id, products);
 
     res.json({
       ok: true,
       demand_id,
-      products_inserted: insertedProducts,
-      products_skipped: skippedProducts,
-      recommendations_created: createdRecs,
     });
   } catch (e: any) {
     res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
