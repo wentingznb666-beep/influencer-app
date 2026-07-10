@@ -71,7 +71,7 @@ import videoOrdersAdminRoutes from "./routes/videoOrdersAdmin";
 
 import { adminInfluencerProfiles, clientInfluencerProfiles, influencerProfiles } from "./routes/influencerProfiles";
 import { adminConnections, clientConnections, influencerConnections } from "./routes/connections";
-import { purchaseAdminDemandsRoutes, purchaseInfluencerDemandsRoutes, purchaseProductsRoutes, purchaseRecommendationsRoutes, purchaseAdminOrderRoutes, purchaseInfluencerOrderRoutes, purchaseCozeCallbackRouter, purchaseCozeConfigRouter } from "./routes/purchase";
+import { purchaseAdminDemandsRoutes, purchaseInfluencerDemandsRoutes, purchaseProductsRoutes, purchaseRecommendationsRoutes, purchaseAdminOrderRoutes, purchaseInfluencerOrderRoutes, purchaseCozeCallbackRouter, purchaseCozeConfigRouter, purchaseSuppliersRouter } from "./routes/purchase";
 
 import { initDb } from "./db";
 
@@ -205,6 +205,7 @@ app.use("/api/admin/influencer-profiles", adminInfluencerProfiles);
 app.use("/api/admin", adminConnections);
 app.use("/api/admin/purchase/demands", purchaseAdminDemandsRoutes);
 app.use("/api/admin/purchase/coze-config", purchaseCozeConfigRouter);
+app.use("/api/admin/purchase/suppliers", purchaseSuppliersRouter);
 app.use("/api/admin/purchase/products", purchaseProductsRoutes);
 app.use("/api/admin/purchase/recommendations", purchaseRecommendationsRoutes);
 app.use("/api/admin/purchase/orders", purchaseAdminOrderRoutes);

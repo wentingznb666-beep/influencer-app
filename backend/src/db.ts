@@ -2227,6 +2227,25 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     )
   `);
   await query(`CREATE INDEX IF NOT EXISTS idx_purchase_order_logs_order ON purchase_order_logs(order_id, created_at DESC)`);
+  // ========== 供应商管理 ==========
+  await query(`
+    CREATE TABLE IF NOT EXISTS purchase_suppliers (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(300) NOT NULL,
+      contact_info TEXT,
+      address TEXT,
+      rating VARCHAR(10) CHECK (rating IN ('A','B','C','D')),
+      cooperation_count INTEGER DEFAULT 0,
+      total_purchase_amount DECIMAL(14,2) DEFAULT 0,
+      contract_expiry DATE,
+      payment_terms VARCHAR(100),
+      remark TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_purchase_suppliers_name ON purchase_suppliers(name)`);
+  await query(`ALTER TABLE purchase_products ADD COLUMN IF NOT EXISTS supplier_id INTEGER REFERENCES purchase_suppliers(id)`);
   // ========== 达人进货管理模块结束 ==========
 
   // ========== 垂直达人建联模块结束 ==========

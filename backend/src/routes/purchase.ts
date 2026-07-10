@@ -1422,6 +1422,102 @@ cozeConfigRouter.put("/", async (req: AuthRequest, res: Response) => {
   }
 });
 
+// ========== SUPPLIERS ROUTES (管理员/员工) ==========
+const suppliersRouter = Router();
+suppliersRouter.use(requireAuth);
+suppliersRouter.use(requireRole("admin", "employee"));
+
+suppliersRouter.get("/", async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, rating } = req.query as Record<string, string>;
+    const conditions: string[] = [];
+    const params: any[] = [];
+    let idx = 1;
+    if (name) { conditions.push(`name ILIKE $${idx++}`); params.push(`%${name}%`); }
+    if (rating) { conditions.push(`rating = $${idx++}`); params.push(rating); }
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const { rows } = await query(
+      `SELECT * FROM purchase_suppliers ${where} ORDER BY created_at DESC LIMIT 500`,
+      params
+    );
+    res.json({ list: rows });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
+suppliersRouter.post("/", async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, contact_info, address, rating, contract_expiry, payment_terms, remark } = req.body || {};
+    if (!name) return res.status(400).json({ error: "MISSING", message: "供应商名称为必填项" });
+    const { rows } = await query(
+      `INSERT INTO purchase_suppliers (name, contact_info, address, rating, contract_expiry, payment_terms, remark)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+      [name, contact_info || null, address || null, rating || null, contract_expiry || null, payment_terms || null, remark || null]
+    );
+    res.status(201).json({ id: rows[0].id });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
+suppliersRouter.put("/:id", async (req: AuthRequest, res: Response) => {
+  try {
+    const id = parseInt(String(req.params.id));
+    const existing = await query("SELECT id FROM purchase_suppliers WHERE id = $1", [id]);
+    if (!existing.rows[0]) return res.status(404).json({ error: "NOT_FOUND" });
+    const fields = ["name", "contact_info", "address", "rating", "contract_expiry", "payment_terms", "remark"];
+    const updates: string[] = ["updated_at = now()"];
+    const params: any[] = [];
+    let idx = 1;
+    for (const f of fields) {
+      if (req.body[f] !== undefined) { updates.push(`${f} = $${idx++}`); params.push(req.body[f]); }
+    }
+    params.push(id);
+    await query(`UPDATE purchase_suppliers SET ${updates.join(", ")} WHERE id = $${idx}`, params);
+    res.json({ ok: true });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
+suppliersRouter.get("/:id/history", async (req: AuthRequest, res: Response) => {
+  try {
+    const id = parseInt(String(req.params.id));
+    const supplier = await query("SELECT * FROM purchase_suppliers WHERE id = $1", [id]);
+    if (!supplier.rows[0]) return res.status(404).json({ error: "NOT_FOUND" });
+
+    const [products, orders] = await Promise.all([
+      query(
+        `SELECT id, product_name, price_cny, price_thb, status, created_at
+         FROM purchase_products WHERE supplier_id = $1 ORDER BY created_at DESC LIMIT 100`,
+        [id]
+      ),
+      query(
+        `SELECT po.id, po.order_no, po.quantity, po.total_payable, po.status, po.created_at,
+                pp.product_name, u.username as influencer_username
+         FROM purchase_orders po
+         JOIN purchase_products pp ON po.product_id = pp.id
+         LEFT JOIN users u ON po.influencer_id = u.id
+         WHERE pp.supplier_id = $1
+         ORDER BY po.created_at DESC LIMIT 100`,
+        [id]
+      ),
+    ]);
+
+    res.json({
+      supplier: supplier.rows[0],
+      products: products.rows,
+      orders: orders.rows,
+      total_products: products.rowCount,
+      total_orders: orders.rowCount,
+      total_amount: orders.rows.reduce((sum, o) => sum + Number(o.total_payable || 0), 0),
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
 // ========== COZE CALLBACK ROUTER (公开接口) ==========
 const cozeCallbackRouter = Router();
 
@@ -1559,3 +1655,4 @@ export const purchaseInfluencerOrderRoutes = influencerOrderRouter;
 export const purchaseAdminOrderRoutes = adminOrderRouter;
 export const purchaseCozeCallbackRouter = cozeCallbackRouter;
 export const purchaseCozeConfigRouter = cozeConfigRouter;
+export const purchaseSuppliersRouter = suppliersRouter;

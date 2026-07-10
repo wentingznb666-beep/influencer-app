@@ -386,6 +386,7 @@ export default function PurchaseOrdersPage() {
           { label: "商品库", path: `${basePath}/products` },
           { label: "订货管理", path: `${basePath}/orders` },
           { label: "找货配置", path: `${basePath}/coze-config` },
+          { label: "供应商管理", path: `${basePath}/suppliers` },
         ].map((tab) => {
           const active = window.location.pathname === tab.path ||
             (tab.path.endsWith("/orders") && window.location.pathname.includes("/purchase/orders"));

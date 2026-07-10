@@ -345,6 +345,7 @@ export default function PurchaseDemandsPage() {
           { label: "商品库", path: "/admin/vertical-connections/purchase/products" },
           { label: "订货管理", path: "/admin/vertical-connections/purchase/orders" },
           { label: "找货配置", path: "/admin/vertical-connections/purchase/coze-config" },
+          { label: "供应商管理", path: "/admin/vertical-connections/purchase/suppliers" },
         ].map((tab) => {
           const active = window.location.pathname === tab.path || (tab.path === "/admin/vertical-connections/purchase" && window.location.pathname === "/admin/vertical-connections/purchase");
           return (
