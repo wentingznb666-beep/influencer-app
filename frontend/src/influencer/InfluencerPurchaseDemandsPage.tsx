@@ -436,8 +436,18 @@ export default function InfluencerPurchaseDemandsPage() {
                           <div style={{ width: 52, height: 52, borderRadius: 8, background: "#e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>📦</div>
                         )}
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            {rec.product_name}
+                          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                            <span style={{ fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {rec.product_name}
+                            </span>
+                            {rec.product_link && (
+                              <a href={rec.product_link} target="_blank" rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                title="打开商品链接"
+                                style={{ color: "var(--xt-accent, #f97316)", textDecoration: "none", flexShrink: 0, fontSize: 14 }}>
+                                🔗
+                              </a>
+                            )}
                           </div>
                           <div style={{ fontSize: 12, color: "#64748b" }}>
                             [{rec.source}] ¥{rec.price_cny} / ฿{rec.price_thb} · {rec.supplier_name || "—"}
