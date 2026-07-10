@@ -358,8 +358,10 @@ export default function PurchaseProductsPage() {
                     return Array.isArray(t) ? t : [];
                   } catch { return []; }
                 })();
+                const isManual = p.source === "手动添加" || p.source === "manual";
                 return (
-                  <tr key={p.id} style={{ cursor: "pointer" }} onClick={() => openEdit(p)}>
+                  <tr key={p.id} style={{ cursor: isManual ? "pointer" : "default" }}
+                    onClick={() => isManual && openEdit(p)}>
                     <td style={tdStyle}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         {img ? (
@@ -420,11 +422,16 @@ export default function PurchaseProductsPage() {
                       </div>
                     </td>
                     <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <button onClick={() => toggleStatus(p)} style={smallBtn}>
-                          {p.status === "inactive" ? "上架" : "下架"}
-                        </button>
-                        <button onClick={() => openTagEdit(p)} style={smallBtn}>标签</button>
+                      {isManual ? (
+                        <div style={{ display: "flex", gap: 4 }}>
+                          <button onClick={() => toggleStatus(p)} style={smallBtn}>
+                            {p.status === "inactive" ? "上架" : "下架"}
+                          </button>
+                          <button onClick={() => openTagEdit(p)} style={smallBtn}>标签</button>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: 11, color: "#94a3b8" }}>系统导入</span>
+                      )}
                       </div>
                     </td>
                   </tr>
