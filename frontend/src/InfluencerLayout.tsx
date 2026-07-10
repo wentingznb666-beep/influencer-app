@@ -63,6 +63,8 @@ export default function InfluencerLayout() {
     { to: "/influencer/vertical-connections/orders", label: orderBadge > 0 ? `我的派单 (${orderBadge})` : "我的派单", menuHint: "รายการคำสั่งงาน", icon: "📋", group: "vertical" },
     { to: "/influencer/vertical-connections/payment", label: "收款设置", menuHint: "ตั้งค่าบัญชีรับเงิน", icon: "💳", group: "vertical" },
     { to: "/influencer/vertical-connections/profile", label: "我的资料", menuHint: "กรอก/แก้ไขข้อมูลส่วนตัว", icon: "👤", group: "vertical" },
+    { to: "/influencer/vertical-connections/purchase/demands", label: "我的需求", icon: "📝", group: "vertical" },
+    { to: "/influencer/vertical-connections/purchase/orders", label: "我的订单", icon: "📦", group: "vertical" },
   { to: "/influencer/permission", label: "撮合权限申请", menuHint: "ยื่นขอสิทธิ์ก่อนเผยแพร่ความต้องการ", icon: "⬆️", group: "match" },
     { to: "/influencer/demands", label: "发布合作需求", menuHint: "โพสต์ความต้องการเพื่อรับสมัครร้านค้า", icon: "📝", group: "match", navLocked: matchLocked },
     { to: "/influencer/my-demands", label: "我的需求", menuHint: "จัดการงานที่โพสต์และใบสมัครทั้งหมด", icon: "📦", group: "match", navLocked: matchLocked },

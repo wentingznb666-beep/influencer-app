@@ -97,6 +97,8 @@ const AdminVCConnectionsPage = lazy(() => import("./admin/AdminVCConnectionsPage
 const AdminVCOrdersPage = lazy(() => import("./admin/AdminVCOrdersPage"));
 const VerticalConnectionsDashboard = lazy(() => import("./admin/VerticalConnectionsDashboard"));
 const GradeConfigPage = lazy(() => import("./admin/GradeConfigPage"));
+const PurchaseDemandsPage = lazy(() => import("./admin/PurchaseDemandsPage"));
+const PurchaseProductsPage = lazy(() => import("./admin/PurchaseProductsPage"));
 const ClientVCPage = lazy(() => import("./client/ClientVCPage"));
 const ClientVCInfluencerList = lazy(() => import("./client/ClientVCInfluencerList"));
 const ClientVCInviteForm = lazy(() => import("./client/ClientVCInviteForm"));
@@ -152,6 +154,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="vertical-connections/records" element={<AdminVCConnectionsPage />} />
             <Route path="vertical-connections/orders" element={<AdminVCOrdersPage />} />
             <Route path="vertical-connections/grade-config" element={<GradeConfigPage />} />
+            <Route path="vertical-connections/purchase" element={<PurchaseDemandsPage />} />
+            <Route path="vertical-connections/purchase/products" element={<PurchaseProductsPage />} />
           </Route>
           <Route path="/employee" element={<ProtectedRoute roles={["employee"]}><EmployeeLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/employee/market-orders" replace />} />
@@ -175,6 +179,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="vertical-connections/records" element={<AdminVCConnectionsPage />} />
             <Route path="vertical-connections/orders" element={<AdminVCOrdersPage />} />
             <Route path="vertical-connections/grade-config" element={<GradeConfigPage />} />
+            <Route path="vertical-connections/purchase" element={<PurchaseDemandsPage />} />
+            <Route path="vertical-connections/purchase/products" element={<PurchaseProductsPage />} />
           </Route>
           <Route path="/client" element={<ProtectedRoute roles={["client"]}><ClientLayout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/client/market-orders" replace />} />
@@ -224,6 +230,8 @@ createRoot(document.getElementById("root")!).render(
             <Route path="vertical-connections/orders/:id" element={<InfluencerVCOrderDetail />} />
             <Route path="vertical-connections/payment" element={<InfluencerVCPayment />} />
             <Route path="vertical-connections/profile" element={<InfluencerVCProfile />} />
+            <Route path="vertical-connections/purchase/demands" element={<div>我的需求</div>} />
+            <Route path="vertical-connections/purchase/orders" element={<div>我的订单</div>} />
           </Route>
           <Route path="/translate" element={<App />} />
           <Route path="/" element={<Navigate to="/login" replace />} />

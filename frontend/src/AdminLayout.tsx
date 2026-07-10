@@ -25,6 +25,7 @@ const BASE_ADMIN_NAV: DashboardNavItem[] = [
   { to: "/admin/vertical-connections/records", label: "建联记录", icon: "📋", group: "vertical" },
   { to: "/admin/vertical-connections/orders", label: "派单管理", icon: "💳", group: "vertical" },
   { to: "/admin/vertical-connections/grade-config", label: "等级配置", icon: "⚙️", group: "vertical" },
+  { to: "/admin/vertical-connections/purchase", label: "达人进货管理", icon: "📦", group: "vertical" },
   { to: "/admin/risk", label: "防删与风控", icon: "🛡", group: "common" },
   { to: "/admin/op-logs", label: "我的操作日志", icon: "📄", group: "common" },
 ];

@@ -2095,6 +2095,140 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     )
   `);
 
+  // 修正 purchase_products.source CHECK 约束，增加中文值
+  await query(`ALTER TABLE purchase_products DROP CONSTRAINT IF EXISTS purchase_products_source_check`).catch(() => {});
+  await query(`ALTER TABLE purchase_products DROP CONSTRAINT IF EXISTS purchase_products_source_check1`).catch(() => {});
+  await query(
+    `ALTER TABLE purchase_products ADD CONSTRAINT purchase_products_source_check
+     CHECK (source IN ('1688','pinduoduo','yiwu','manual','拼多多','义乌','手动添加'))`
+  ).catch(() => {});
+
+  // ========== 达人进货管理模块 ==========
+  await query(`
+    CREATE TABLE IF NOT EXISTS purchase_demands (
+      id SERIAL PRIMARY KEY,
+      influencer_id INTEGER NOT NULL REFERENCES users(id),
+      influencer_profile_id INTEGER REFERENCES influencer_profiles_full(id),
+      title VARCHAR(500) NOT NULL,
+      category VARCHAR(100),
+      sub_category VARCHAR(100),
+      description TEXT,
+      budget_min_thb DECIMAL(12,2),
+      budget_max_thb DECIMAL(12,2),
+      target_price DECIMAL(12,2),
+      estimated_quantity INTEGER,
+      frequency VARCHAR(20) DEFAULT 'one_time' CHECK (frequency IN ('one_time','weekly','monthly')),
+      status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','recommended','ordered','closed','cancelled')),
+      coze_search_triggered BOOLEAN DEFAULT FALSE,
+      influencer_note TEXT,
+      internal_note TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_purchase_demands_influencer ON purchase_demands(influencer_id, created_at DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_purchase_demands_status ON purchase_demands(status, created_at DESC)`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS purchase_products (
+      id SERIAL PRIMARY KEY,
+      source VARCHAR(50) NOT NULL CHECK (source IN ('1688','pinduoduo','yiwu','manual')),
+      product_link TEXT,
+      product_name VARCHAR(500),
+      image_urls JSONB NOT NULL DEFAULT '[]'::jsonb,
+      category VARCHAR(100),
+      sub_category VARCHAR(100),
+      brand VARCHAR(200),
+      price_cny DECIMAL(12,2),
+      price_thb DECIMAL(12,2),
+      wholesale_tiers JSONB NOT NULL DEFAULT '{}'::jsonb,
+      specifications JSONB NOT NULL DEFAULT '{}'::jsonb,
+      weight_kg DECIMAL(10,3),
+      volume_m3 DECIMAL(10,6),
+      moq INTEGER,
+      supplier_name VARCHAR(300),
+      supplier_rating VARCHAR(50),
+      shipping_from VARCHAR(200),
+      estimated_shipping_days INTEGER,
+      sample_available BOOLEAN DEFAULT FALSE,
+      sample_price_cny DECIMAL(12,2),
+      competitor_price_thb DECIMAL(12,2),
+      suggested_retail_thb DECIMAL(12,2),
+      estimated_profit_rate DECIMAL(5,2),
+      description TEXT,
+      search_keywords JSONB NOT NULL DEFAULT '[]'::jsonb,
+      tags JSONB NOT NULL DEFAULT '[]'::jsonb,
+      status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','active','inactive')),
+      coze_raw_data JSONB NOT NULL DEFAULT '{}'::jsonb,
+      last_recommended_at TIMESTAMPTZ,
+      total_recommend_count INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_purchase_products_status ON purchase_products(status, id DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_purchase_products_category ON purchase_products(category, sub_category)`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS purchase_recommendations (
+      id SERIAL PRIMARY KEY,
+      demand_id INTEGER NOT NULL REFERENCES purchase_demands(id),
+      product_id INTEGER NOT NULL REFERENCES purchase_products(id),
+      method VARCHAR(20) DEFAULT 'auto_coze' CHECK (method IN ('auto_coze','manual')),
+      status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','interested','ordered','rejected')),
+      influencer_feedback TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_purchase_recs_demand ON purchase_recommendations(demand_id, created_at DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_purchase_recs_product ON purchase_recommendations(product_id, created_at DESC)`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS purchase_orders (
+      id SERIAL PRIMARY KEY,
+      order_no VARCHAR(100) NOT NULL UNIQUE,
+      demand_id INTEGER REFERENCES purchase_demands(id),
+      influencer_id INTEGER NOT NULL REFERENCES users(id),
+      product_id INTEGER REFERENCES purchase_products(id),
+      selected_specs JSONB NOT NULL DEFAULT '{}'::jsonb,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      unit_price_cny DECIMAL(12,2),
+      total_price_cny DECIMAL(12,2),
+      total_price_thb DECIMAL(12,2),
+      shipping_fee DECIMAL(12,2) DEFAULT 0,
+      service_fee DECIMAL(12,2) DEFAULT 0,
+      total_payable DECIMAL(12,2),
+      status VARCHAR(20) DEFAULT 'pending_approval' CHECK (status IN ('pending_approval','approved','purchasing','shipped_cn','arrived_cn_warehouse','shipped_th','customs_cleared','arrived','completed','cancelled')),
+      internal_note TEXT,
+      logistics_info JSONB NOT NULL DEFAULT '{}'::jsonb,
+      is_paid BOOLEAN DEFAULT FALSE,
+      paid_amount DECIMAL(12,2),
+      paid_at TIMESTAMPTZ,
+      delivery_address TEXT,
+      delivery_method VARCHAR(20) CHECK (delivery_method IN ('pickup','express','delivery')),
+      confirmed_received_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_purchase_orders_influencer ON purchase_orders(influencer_id, created_at DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_purchase_orders_demand ON purchase_orders(demand_id, created_at DESC)`);
+  await query(`CREATE INDEX IF NOT EXISTS idx_purchase_orders_status ON purchase_orders(status, created_at DESC)`);
+
+  await query(`
+    CREATE TABLE IF NOT EXISTS purchase_order_logs (
+      id SERIAL PRIMARY KEY,
+      order_id INTEGER NOT NULL REFERENCES purchase_orders(id),
+      from_status VARCHAR(20),
+      to_status VARCHAR(20),
+      note TEXT,
+      operator_id INTEGER REFERENCES users(id),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+  await query(`CREATE INDEX IF NOT EXISTS idx_purchase_order_logs_order ON purchase_order_logs(order_id, created_at DESC)`);
+  // ========== 达人进货管理模块结束 ==========
+
   // ========== 垂直达人建联模块结束 ==========
 
   }

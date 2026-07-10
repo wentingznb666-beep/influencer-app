@@ -33,6 +33,7 @@ export default function EmployeeLayout() {
     { to: "/employee/vertical-connections/records", label: "建联记录", icon: "📋", group: "vertical" },
     { to: "/employee/vertical-connections/orders", label: "派单管理", icon: "💳", group: "vertical" },
     { to: "/employee/vertical-connections/grade-config", label: "等级配置", icon: "⚙️", group: "vertical" },
+    { to: "/employee/vertical-connections/purchase", label: "达人进货管理", icon: "📦", group: "vertical" },
     { to: "/employee/users", label: "账号管理", icon: "👤", group: "common" },
     { to: "/employee/op-logs", label: "我的操作日志", icon: "📄", group: "common" },
   ];

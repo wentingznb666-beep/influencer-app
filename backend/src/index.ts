@@ -71,6 +71,7 @@ import videoOrdersAdminRoutes from "./routes/videoOrdersAdmin";
 
 import { adminInfluencerProfiles, clientInfluencerProfiles, influencerProfiles } from "./routes/influencerProfiles";
 import { adminConnections, clientConnections, influencerConnections } from "./routes/connections";
+import { purchaseAdminDemandsRoutes, purchaseInfluencerDemandsRoutes, purchaseProductsRoutes, purchaseRecommendationsRoutes, purchaseAdminOrderRoutes, purchaseInfluencerOrderRoutes } from "./routes/purchase";
 
 import { initDb } from "./db";
 
@@ -199,6 +200,10 @@ app.use("/api/employee", videoOrdersEmployeeRoutes);
 /** 垂直达人建联 — 必须在 /api/admin 通配路由之前挂载 */
 app.use("/api/admin/influencer-profiles", adminInfluencerProfiles);
 app.use("/api/admin", adminConnections);
+app.use("/api/admin/purchase/demands", purchaseAdminDemandsRoutes);
+app.use("/api/admin/purchase/products", purchaseProductsRoutes);
+app.use("/api/admin/purchase/recommendations", purchaseRecommendationsRoutes);
+app.use("/api/admin/purchase/orders", purchaseAdminOrderRoutes);
 app.use("/api/admin", videoOrdersAdminRoutes);
 
 /** 达人端：任务大厅、领取、我的任务、投稿、积分 */
@@ -231,6 +236,8 @@ app.use("/api/client", clientConnections);
 app.use("/api/client", clientInfluencerProfiles);
 app.use("/api/influencer", influencerConnections);
 app.use("/api/influencer", influencerProfiles);
+app.use("/api/influencer/purchase/demands", purchaseInfluencerDemandsRoutes);
+app.use("/api/influencer/purchase/orders", purchaseInfluencerOrderRoutes);
 
 /**
 
