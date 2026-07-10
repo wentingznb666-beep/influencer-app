@@ -372,9 +372,19 @@ export default function PurchaseProductsPage() {
                             display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18,
                           }}>📦</div>
                         )}
-                        <span style={{ fontWeight: 600, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {p.product_name}
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+                          <span style={{ fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {p.product_name}
+                          </span>
+                          {p.product_link && (
+                            <a href={p.product_link} target="_blank" rel="noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              title="打开商品链接"
+                              style={{ color: "var(--xt-accent, #f97316)", textDecoration: "none", flexShrink: 0, fontSize: 14 }}>
+                              🔗
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td style={{ ...tdStyle, fontSize: 12 }}>{p.category}{p.sub_category ? ` / ${p.sub_category}` : ""}</td>
