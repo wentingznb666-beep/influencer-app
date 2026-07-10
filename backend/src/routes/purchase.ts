@@ -3,6 +3,55 @@ import bcrypt from "bcryptjs";
 import { query } from "../db";
 import { requireAuth, requireRole, type AuthRequest } from "../auth";
 
+// ========== COZE HELPERS ==========
+const COZE_CALLBACK_SECRET = process.env.COZE_CALLBACK_SECRET || "xiangtai-coze-callback-secret-2026";
+
+async function getCozeConfig(): Promise<{ url: string; key: string } | null> {
+  try {
+    const [r1, r2] = await Promise.all([
+      query("SELECT value FROM config WHERE key = 'coze_url'"),
+      query("SELECT value FROM config WHERE key = 'coze_key'"),
+    ]);
+    if (r1.rows[0] && r2.rows[0]) {
+      return { url: r1.rows[0].value, key: r2.rows[0].value };
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+async function triggerCozeSearch(demandId: number, category: string, description: string, budgetMin: number | null, budgetMax: number | null) {
+  try {
+    const config = await getCozeConfig();
+    if (!config || !config.url) return;
+    const payload = {
+      demand_id: demandId,
+      category,
+      description: description || "",
+      budget_min_thb: budgetMin,
+      budget_max_thb: budgetMax,
+    };
+    fetch(config.url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${config.key}` },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(10000),
+    }).catch(() => {});
+    await query(
+      "UPDATE purchase_demands SET coze_search_triggered = true, updated_at = now() WHERE id = $1",
+      [demandId]
+    );
+  } catch { /* fire-and-forget: don't block demand creation */ }
+}
+
+async function sendMsg(userId: number, category: string, title: string, content: string, link: string) {
+  try {
+    await query(
+      "INSERT INTO system_messages (user_id, category, title, content, link, is_read) VALUES ($1,$2,$3,$4,$5,0)",
+      [userId, category, title, content, link]
+    );
+  } catch { /* ignore */ }
+}
+
 // ========== INFLUENCER ROUTES ==========
 const influencerRouter = Router();
 influencerRouter.use(requireAuth);
@@ -44,7 +93,10 @@ influencerRouter.post("/", async (req: AuthRequest, res: Response) => {
         frequency || "one_time", influencer_note || null,
       ]
     );
-    res.status(201).json({ id: rows[0].id });
+    const newId = rows[0].id;
+    res.status(201).json({ id: newId });
+    // fire-and-forget: 自动触发 Coze 搜索
+    triggerCozeSearch(newId, category, description || "", budget_min_thb || null, budget_max_thb || null);
   } catch (e: any) {
     res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
   }
@@ -286,6 +338,7 @@ adminRouter.get("/stats", async (_req: AuthRequest, res: Response) => {
   }
 });
 
+
 /** 查看需求详情（含推荐商品 + 内部备注） */
 adminRouter.get("/:id", async (req: AuthRequest, res: Response) => {
   try {
@@ -419,7 +472,9 @@ adminRouter.post("/proxy", async (req: AuthRequest, res: Response) => {
         internal_note || null,
       ]
     );
-    res.status(201).json({ id: rows[0].id });
+    const newId = rows[0].id;
+    res.status(201).json({ id: newId });
+    triggerCozeSearch(newId, category, description || "", budget_min_thb || null, budget_max_thb || null);
   } catch (e: any) {
     res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
   }
@@ -1330,9 +1385,177 @@ adminOrderRouter.patch("/:id/payment", async (req: AuthRequest, res: Response) =
   }
 });
 
+// ========== COZE CONFIG ROUTER (管理员) ==========
+const cozeConfigRouter = Router();
+cozeConfigRouter.use(requireAuth);
+
+cozeConfigRouter.get("/", async (_req: AuthRequest, res: Response) => {
+  try {
+    const config = await getCozeConfig();
+    res.json({
+      url: config?.url || "",
+      key: config?.key ? config.key.substring(0, 8) + "***" : "",
+      configured: !!config?.url,
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
+cozeConfigRouter.put("/", async (req: AuthRequest, res: Response) => {
+  try {
+    const { url, key } = req.body || {};
+    if (!url || !key) {
+      return res.status(400).json({ error: "MISSING", message: "url 和 key 为必填项" });
+    }
+    await query(
+      "INSERT INTO config (key, value) VALUES ('coze_url', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+      [url]
+    );
+    await query(
+      "INSERT INTO config (key, value) VALUES ('coze_key', $1) ON CONFLICT (key) DO UPDATE SET value = $1",
+      [key]
+    );
+    res.json({ ok: true });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
+// ========== COZE CALLBACK ROUTER (公开接口) ==========
+const cozeCallbackRouter = Router();
+
+/** Coze 回调 — 接收搜索结果的公开接口，通过 secret token 验证 */
+cozeCallbackRouter.post("/", async (req, res: Response) => {
+  try {
+    // 验证 secret token（支持 query ?token=xxx 或 header x-coze-token）
+    const token = (req.query.token as string) || req.headers["x-coze-token"] as string || "";
+    if (token !== COZE_CALLBACK_SECRET) {
+      return res.status(403).json({ error: "FORBIDDEN", message: "无效的 token" });
+    }
+
+    const { demand_id, products } = req.body || {};
+    if (!demand_id) {
+      return res.status(400).json({ error: "MISSING", message: "demand_id 为必填项" });
+    }
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ error: "MISSING", message: "products 数组不能为空" });
+    }
+
+    // 验证需求存在
+    const demand = await query("SELECT * FROM purchase_demands WHERE id = $1", [demand_id]);
+    if (!demand.rows[0]) {
+      return res.status(404).json({ error: "NOT_FOUND", message: "需求不存在" });
+    }
+
+    let insertedProducts = 0;
+    let skippedProducts = 0;
+    let createdRecs = 0;
+
+    for (const p of products) {
+      try {
+        const productName = p.name || p.product_name || "未命名商品";
+        const productLink = p.url || p.product_link || p.source_url || "";
+
+        // 按 product_link 去重
+        let productId: number | null = null;
+        if (productLink) {
+          const existing = await query(
+            "SELECT id FROM purchase_products WHERE product_link = $1 LIMIT 1",
+            [productLink]
+          );
+          if (existing.rows[0]) {
+            productId = existing.rows[0].id;
+            skippedProducts++;
+          }
+        }
+
+        // 新商品入库
+        if (!productId) {
+          const images = p.image || p.images ? [p.image || p.images].flat() : [];
+          const supplier = p.supplier || p.supplier_name || "";
+          const priceCny = p.price ? parseFloat(String(p.price)) : null;
+          const priceThb = priceCny ? Math.round(priceCny * 5) : null; // 默认汇率 1:5
+
+          const { rows: newProd } = await query(
+            `INSERT INTO purchase_products
+              (source, product_link, product_name, image_urls, category,
+               price_cny, price_thb, supplier_name, status, coze_raw_data)
+             VALUES ('manual', $1, $2, $3, $4, $5, $6, $7, 'pending', $8)
+             RETURNING id`,
+            [
+              productLink,
+              productName,
+              JSON.stringify(images),
+              demand.rows[0].category || null,
+              priceCny,
+              priceThb,
+              supplier,
+              JSON.stringify(p),
+            ]
+          );
+          productId = newProd[0]!.id;
+          insertedProducts++;
+        }
+
+        // 创建推荐关联
+        if (productId) {
+          const dup = await query(
+            "SELECT id FROM purchase_recommendations WHERE demand_id = $1 AND product_id = $2",
+            [demand_id, productId]
+          );
+          if (!dup.rows[0]) {
+            await query(
+              `INSERT INTO purchase_recommendations (demand_id, product_id, method, status)
+               VALUES ($1, $2, 'auto_coze', 'pending')`,
+              [demand_id, productId]
+            );
+            await query(
+              "UPDATE purchase_products SET total_recommend_count = total_recommend_count + 1, last_recommended_at = now() WHERE id = $1",
+              [productId]
+            );
+            createdRecs++;
+          }
+        }
+      } catch { skippedProducts++; }
+    }
+
+    // 更新需求状态为 recommended
+    await query(
+      "UPDATE purchase_demands SET status = 'recommended', updated_at = now() WHERE id = $1 AND status = 'pending'",
+      [demand_id]
+    );
+
+    // 发送系统通知
+    const influencerId = demand.rows[0].influencer_id;
+    const influencerProfileId = demand.rows[0].influencer_profile_id;
+    if (influencerId) {
+      await sendMsg(
+        influencerId,
+        "purchase_recommendation",
+        "进货需求有新的推荐",
+        `你的需求「${demand.rows[0].title}」收到了 ${createdRecs} 件商品推荐`,
+        `/influencer/vertical-connections/purchase/demands`
+      );
+    }
+
+    res.json({
+      ok: true,
+      demand_id,
+      products_inserted: insertedProducts,
+      products_skipped: skippedProducts,
+      recommendations_created: createdRecs,
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: "INTERNAL_ERROR", message: e.message });
+  }
+});
+
 export const purchaseInfluencerDemandsRoutes = influencerRouter;
 export const purchaseAdminDemandsRoutes = adminRouter;
 export const purchaseProductsRoutes = productsRouter;
 export const purchaseRecommendationsRoutes = recommendationsRouter;
 export const purchaseInfluencerOrderRoutes = influencerOrderRouter;
 export const purchaseAdminOrderRoutes = adminOrderRouter;
+export const purchaseCozeCallbackRouter = cozeCallbackRouter;
+export const purchaseCozeConfigRouter = cozeConfigRouter;

@@ -71,7 +71,7 @@ import videoOrdersAdminRoutes from "./routes/videoOrdersAdmin";
 
 import { adminInfluencerProfiles, clientInfluencerProfiles, influencerProfiles } from "./routes/influencerProfiles";
 import { adminConnections, clientConnections, influencerConnections } from "./routes/connections";
-import { purchaseAdminDemandsRoutes, purchaseInfluencerDemandsRoutes, purchaseProductsRoutes, purchaseRecommendationsRoutes, purchaseAdminOrderRoutes, purchaseInfluencerOrderRoutes } from "./routes/purchase";
+import { purchaseAdminDemandsRoutes, purchaseInfluencerDemandsRoutes, purchaseProductsRoutes, purchaseRecommendationsRoutes, purchaseAdminOrderRoutes, purchaseInfluencerOrderRoutes, purchaseCozeCallbackRouter, purchaseCozeConfigRouter } from "./routes/purchase";
 
 import { initDb } from "./db";
 
@@ -132,6 +132,9 @@ app.use((_req: Request, res: Response, next: NextFunction) => {
 });
 
 
+
+/** 达人进货管理 — Coze 回调（公开接口，secret token 验证） */
+app.use("/api/purchase/coze-callback", purchaseCozeCallbackRouter);
 
 /** 达人分发 APP：鉴权与用户相关接口 */
 
@@ -201,6 +204,7 @@ app.use("/api/employee", videoOrdersEmployeeRoutes);
 app.use("/api/admin/influencer-profiles", adminInfluencerProfiles);
 app.use("/api/admin", adminConnections);
 app.use("/api/admin/purchase/demands", purchaseAdminDemandsRoutes);
+app.use("/api/admin/purchase/coze-config", purchaseCozeConfigRouter);
 app.use("/api/admin/purchase/products", purchaseProductsRoutes);
 app.use("/api/admin/purchase/recommendations", purchaseRecommendationsRoutes);
 app.use("/api/admin/purchase/orders", purchaseAdminOrderRoutes);
