@@ -187,12 +187,12 @@ export default function AdminVCProfilesPage() {
             <label>{t("粉丝")}</label>{i("followers")}
             <label>{t("类目")}*</label>{sel("category", CATEGORIES.map(c => c.th))}
             <label>{t("等级")}</label>{sel("grade", ["A+","B+","C+","A","B","C"])}
-            <label style={{color:"#b91c1c"}}>{t("报价")} *</label><input type="number" value={String(form.quoted_price || "")} onChange={e => setForm(f => ({ ...f, quoted_price: e.target.value }))} style={si} placeholder="THB，大于0" />
+            <label style={{color:"#b91c1c"}}>{t("报价")} *</label><input type="number" value={String(form.quoted_price || "")} onChange={e => setForm(f => ({ ...f, quoted_price: e.target.value }))} style={si} placeholder="10,000 - 20,000 THB" />
             <label style={{color:"#b91c1c"}}>{t("合作条件")} *</label><textarea value={String(form.cooperation_conditions || "")} onChange={e => setForm(f => ({ ...f, cooperation_conditions: e.target.value }))} style={si} rows={2} placeholder="填写合作要求和条件说明" />
             <label>{t("GMV销售额")}</label>{i("gmv_sales")}
             <label>{t("每月挂车视频")}</label>{i("monthly_cart_videos")}
             <label>{t("销售件数")}</label>{i("units_sold")}
-            <label>{t("可直播")}</label><input type="checkbox" checked={!!form.can_live} onChange={e => setForm(f => ({ ...f, can_live: e.target.checked }))} />
+            <label>{t("可直播")}</label><span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:40,height:32,border:"2px solid #dbe1ea",borderRadius:8,background:"#fff"}}><input type="checkbox" checked={!!form.can_live} onChange={e => setForm(f => ({ ...f, can_live: e.target.checked }))} style={{width:18,height:18,cursor:"pointer"}} /></span>
             <label>{t("直播销售额")}</label>{i("live_sales")}
             <label>{t("每周直播次数")}</label>{i("weekly_live_count")}
             <label>{t("平均直播时长")}</label>{i("avg_live_hours_per_week")}

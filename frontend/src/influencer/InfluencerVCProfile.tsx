@@ -164,7 +164,7 @@ export default function InfluencerVCProfile() {
           <label style={rLab}>GMV 销售额 *</label><input value={form.gmv_sales||""} onChange={e=>handleChange("gmv_sales",e.target.value)} style={si} />
           <label style={rLab}>每月挂车视频 *</label><input value={form.monthly_cart_videos||""} onChange={e=>handleChange("monthly_cart_videos",e.target.value)} style={si} />
           <label style={rLab}>销售件数 *</label><input value={form.units_sold||""} onChange={e=>handleChange("units_sold",e.target.value)} style={si} />
-          <label style={rLab}>可直播 *</label><input type="checkbox" checked={!!form.can_live} onChange={e=>handleChange("can_live",e.target.checked)} />
+          <label style={rLab}>可直播 *</label><span style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:40,height:32,border:"2px solid #dbe1ea",borderRadius:8,background:"#fff"}}><input type="checkbox" checked={!!form.can_live} onChange={e=>handleChange("can_live",e.target.checked)} style={{width:18,height:18,cursor:"pointer"}} /></span>
           <label style={rLab}>直播销售额 *</label><input value={form.live_sales||""} onChange={e=>handleChange("live_sales",e.target.value)} style={si} />
           <label style={rLab}>每周直播次数 *</label><input value={form.weekly_live_count||""} onChange={e=>handleChange("weekly_live_count",e.target.value)} style={si} />
           <label style={rLab}>平均直播时长 *</label><input value={form.avg_live_hours_per_week||""} onChange={e=>handleChange("avg_live_hours_per_week",e.target.value)} style={si} />
