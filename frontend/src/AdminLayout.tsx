@@ -50,7 +50,7 @@ export default function AdminLayout() {
   }, [setRole]);
 
   return (
-    <DashboardShell roleTitle="管理员端" navItems={BASE_ADMIN_NAV} tabItems={ADMIN_TAB_ITEMS} mainMaxWidth={1000}>
+    <DashboardShell roleTitle="管理员端" navItems={BASE_ADMIN_NAV} tabItems={ADMIN_TAB_ITEMS} mainMaxWidth={1400}>
       <Outlet />
     </DashboardShell>
   );

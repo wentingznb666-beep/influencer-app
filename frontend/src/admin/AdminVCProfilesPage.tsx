@@ -222,11 +222,13 @@ export default function AdminVCProfilesPage() {
                   <td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.gmv_sales||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.monthly_cart_videos||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.units_sold||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.can_live?t("是"):t("否")}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.live_sales||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.user_id ? <span style={{background:"#dbeafe",color:"#1d4ed8",padding:"1px 8px",borderRadius:999,fontSize:11,fontWeight:600}}>👤 自主</span> : <span style={{background:"#f1f5f9",color:"#64748b",padding:"1px 8px",borderRadius:999,fontSize:11,fontWeight:600}}>🛠 托管</span>}</td>
                   <td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.status}</td>
                   <td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>
+                    <div style={{ display: "flex", gap: 6 }}>
                     <button onClick={() => { setEditing(p); setForm({...p}); }} style={ssm}>{t("编辑")}</button>
-                    {(!p.user_id || p.user_disabled === 1) && <button onClick={()=>openLinkModal(p)} style={{...ssm, border:"1px dashed #6366f1",color:"#6366f1",marginLeft:4}}>🔗 关联</button>}
-                    {p.user_id && <button onClick={()=>nav("/admin/vertical-connections/records")} style={{...ssm, border:"1px dashed var(--xt-accent)",color:"var(--xt-accent)",marginLeft:4}}>📋 建联</button>}
-                    {p.user_id && <button onClick={()=>nav("/admin/vertical-connections/orders")} style={{...ssm, border:"1px dashed #f59e0b",color:"#92400e",marginLeft:4}}>📤 派单</button>}
-                    <button onClick={() => del(p.id)} style={{ ...ssm, color: "#b91c1c", marginLeft: 4 }}>{t("删除")}</button>
+                    {(!p.user_id || p.user_disabled === 1) && <button onClick={()=>openLinkModal(p)} style={{...ssm, border:"1px dashed #6366f1",color:"#6366f1",}}>🔗 关联</button>}
+                    {p.user_id && <button onClick={()=>nav("/admin/vertical-connections/records")} style={{...ssm, border:"1px dashed var(--xt-accent)",color:"var(--xt-accent)",}}>📋 建联</button>}
+                    {p.user_id && <button onClick={()=>nav("/admin/vertical-connections/orders")} style={{...ssm, border:"1px dashed #f59e0b",color:"#92400e",}}>📤 派单</button>}
+                    <button onClick={() => del(p.id)} style={{ ...ssm, color: "#b91c1c" }}>{t("删除")}</button>
+                    </div>
                   </td>
                 </tr>
               ))}

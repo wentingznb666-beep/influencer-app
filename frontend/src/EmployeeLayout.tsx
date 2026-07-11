@@ -47,7 +47,7 @@ export default function EmployeeLayout() {
   ];
 
   return (
-    <DashboardShell roleTitle="员工端" navItems={navItems} tabItems={tabItems} mainMaxWidth={1000}>
+    <DashboardShell roleTitle="员工端" navItems={navItems} tabItems={tabItems} mainMaxWidth={1400}>
       <Outlet />
     </DashboardShell>
   );
