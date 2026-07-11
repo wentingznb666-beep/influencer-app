@@ -162,9 +162,9 @@ export default function AdminVCProfilesPage() {
         <select value={filter.grade} onChange={e => setFilter(f => ({ ...f, grade: e.target.value }))} style={si}>
           <option value="">全部等级</option><option value="ungraded">{t("未达标")}</option>{["A+","B+","C+","A","B","C"].map(g => <option key={g} value={g}>{g}</option>)}
         </select>
-        <button onClick={load} style={sb}>{t("搜索")}</button>
+        <button onClick={load} style={{...sb,background:"#1d4ed8",color:"#fff",border:"none",fontWeight:700}}>{t("搜索")}</button>
         <button onClick={startNew} style={sp}>{t("新增达人")}</button>
-        <button onClick={autoGrade} style={sb}>{t("重新计算全部等级")}</button>
+        <button onClick={autoGrade} style={{...sb,color:"#6366f1",borderColor:"#6366f1"}}>{t("重新计算全部等级")}</button>
         {selected.size > 0 && (
           <div style={{display:"flex",gap:6,alignItems:"center",background:"#fef3c7",padding:"4px 12px",borderRadius:8}}>
             <span style={{fontSize:12,fontWeight:700}}>已选 {selected.size} 个</span>
@@ -210,18 +210,18 @@ export default function AdminVCProfilesPage() {
         <div style={{ overflow: "auto", maxHeight: "calc(100vh - 260px)", background: "#fff", borderRadius: 8, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", background: "#fff", fontSize: 12 }}>
             <thead><tr style={{ position: "sticky", top: 0, zIndex: 2, background: "#f8fafc" }}>
-                <th style={{padding:"6px 4px",width:30,background:"#f8fafc"}}><input type="checkbox" checked={selected.size===list.length&&list.length>0} onChange={toggleAll} style={{width:14,height:14}} /></th>
-                {["ID","编号","来源","粉丝","类目","等级","报价","合作条件","GMV","挂车","件数","直播","直播销售","类型","状态","操作"].map(h => <th key={h} style={{ padding: "6px 8px", textAlign: "left", borderBottom: "1px solid #e2e8f0", fontWeight: 700, whiteSpace: "nowrap", background: "#f8fafc" }}>{t(h)}</th>)}
+                <th style={{padding:"6px 4px",width:30,background:"#f8fafc",border:"1px solid #e2e8f0"}}><input type="checkbox" checked={selected.size===list.length&&list.length>0} onChange={toggleAll} style={{width:14,height:14}} /></th>
+                {["ID","编号","来源","粉丝","类目","等级","报价","合作条件","GMV","挂车","件数","直播","直播销售","类型","状态","操作"].map(h => <th key={h} style={{ padding: "6px 8px", textAlign: "left", border: "1px solid #e2e8f0", fontWeight: 700, whiteSpace: "nowrap", background: "#f8fafc" }}>{t(h)}</th>)}
               </tr></thead>
             <tbody>
               {list.map((p: any) => (
                 <tr key={p.id} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                  <td style={{padding:"6px 4px"}}><input type="checkbox" checked={selected.has(p.id)} onChange={()=>toggleSelect(p.id)} style={{width:14,height:14}} /></td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.id}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.influencer_code}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.source==="contact_us"?t("我方联系"):t("达人联系")}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.followers||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.category}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.grade||t("未达标")}</td>
-                  <td style={{ padding: "6px 8px", fontSize: 12, fontWeight: 700, color: "var(--xt-accent)" }}>{p.quoted_price ? `${p.quoted_price} THB` : "-"}</td>
-                  <td style={{ padding: "6px 8px", fontSize: 12, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={p.cooperation_conditions||""}>{p.cooperation_conditions||"-"}</td>
-                  <td style={{ padding: "6px 8px", fontSize: 12 }}>{p.gmv_sales||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.monthly_cart_videos||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.units_sold||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.can_live?t("是"):t("否")}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.live_sales||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12 }}>{p.user_id ? <span style={{background:"#dbeafe",color:"#1d4ed8",padding:"1px 8px",borderRadius:999,fontSize:11,fontWeight:600}}>👤 自主</span> : <span style={{background:"#f1f5f9",color:"#64748b",padding:"1px 8px",borderRadius:999,fontSize:11,fontWeight:600}}>🛠 托管</span>}</td>
-                  <td style={{ padding: "6px 8px", fontSize: 12 }}>{p.status}</td>
-                  <td style={{ padding: "6px 8px", fontSize: 12 }}>
+                  <td style={{padding:"6px 4px",border:"1px solid #e2e8f0"}}><input type="checkbox" checked={selected.has(p.id)} onChange={()=>toggleSelect(p.id)} style={{width:14,height:14}} /></td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.id}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.influencer_code}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.source==="contact_us"?t("我方联系"):t("达人联系")}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.followers||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.category}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.grade||t("未达标")}</td>
+                  <td style={{ padding: "6px 8px", fontSize: 12, fontWeight: 700, color: "var(--xt-accent)", border: "1px solid #e2e8f0" }}>{p.quoted_price ? `${p.quoted_price} THB` : "-"}</td>
+                  <td style={{ padding: "6px 8px", fontSize: 12, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", border: "1px solid #e2e8f0" }} title={p.cooperation_conditions||""}>{p.cooperation_conditions||"-"}</td>
+                  <td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.gmv_sales||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.monthly_cart_videos||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.units_sold||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.can_live?t("是"):t("否")}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.live_sales||"-"}</td><td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.user_id ? <span style={{background:"#dbeafe",color:"#1d4ed8",padding:"1px 8px",borderRadius:999,fontSize:11,fontWeight:600}}>👤 自主</span> : <span style={{background:"#f1f5f9",color:"#64748b",padding:"1px 8px",borderRadius:999,fontSize:11,fontWeight:600}}>🛠 托管</span>}</td>
+                  <td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>{p.status}</td>
+                  <td style={{ padding: "6px 8px", fontSize: 12, border: "1px solid #e2e8f0" }}>
                     <button onClick={() => { setEditing(p); setForm({...p}); }} style={ssm}>{t("编辑")}</button>
                     {(!p.user_id || p.user_disabled === 1) && <button onClick={()=>openLinkModal(p)} style={{...ssm, border:"1px dashed #6366f1",color:"#6366f1",marginLeft:4}}>🔗 关联</button>}
                     {p.user_id && <button onClick={()=>nav("/admin/vertical-connections/records")} style={{...ssm, border:"1px dashed var(--xt-accent)",color:"var(--xt-accent)",marginLeft:4}}>📋 建联</button>}
