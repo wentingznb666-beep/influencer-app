@@ -26,7 +26,7 @@ const fieldLabels: Record<string,string> = {
   monthly_cart_videos:"每月挂车视频数量",units_sold:"销售件数",
   live_sales:"直播销售额",weekly_live_count:"每周直播次数",avg_live_hours_per_week:"平均直播时长"
 };
-const numberFields = ["quoted_price","followers","gmv_sales","live_sales","weekly_live_count","avg_live_hours_per_week","units_sold","monthly_cart_videos"];
+const numberFields = ["followers","gmv_sales","live_sales","weekly_live_count","avg_live_hours_per_week","units_sold","monthly_cart_videos"];
 
 export default function InfluencerVCProfile() {
   const nav = useNavigate();
@@ -82,8 +82,7 @@ export default function InfluencerVCProfile() {
       const v = form[f];
       if (v !== undefined && v !== null && String(v).trim() !== "" && isNaN(Number(v))) errors.push(`${fieldLabels[f] || f} 必须为数字`);
     }
-    if (form.quoted_price && !isNaN(Number(form.quoted_price)) && Number(form.quoted_price) <= 0) errors.push("报价必须为大于 0 的数字");
-    return errors;
+        return errors;
   };
 
   const save = async () => {
@@ -159,7 +158,7 @@ export default function InfluencerVCProfile() {
           <label style={rLab}>达人来源 *</label><select value={form.source||"contact_them"} onChange={e=>handleChange("source",e.target.value)} style={si}><option value="contact_us">我方主动联系</option><option value="contact_them">达人主动联系</option></select>
           <label style={rLab}>达人粉丝 *</label><input value={form.followers||""} onChange={e=>handleChange("followers",e.target.value)} style={si} />
           <label style={rLab}>类目 * {categoryLocked?"(不可更改)":""}</label><select value={form.category||""} onChange={e=>handleChange("category",e.target.value)} style={si} disabled={categoryLocked}><option value="">-- 请选择 --</option>{CATEGORIES.map(c=><option key={c.th} value={c.th}>{c.zh} / {c.th}</option>)}</select>
-          <label style={rLab}>报价 (THB) *</label><input type="number" value={form.quoted_price||""} onChange={e=>handleChange("quoted_price",e.target.value)} style={si} placeholder="10,000 - 20,000 THB" />
+          <label style={rLab}>报价 (THB) *</label><input type="text" value={form.quoted_price||""} onChange={e=>handleChange("quoted_price",e.target.value)} style={si} placeholder="10,000 - 20,000 THB" />
           <label style={rLab}>合作条件 *</label><textarea value={form.cooperation_conditions||""} onChange={e=>handleChange("cooperation_conditions",e.target.value)} style={si} rows={3} placeholder="填写合作要求和条件说明" />
           <label style={rLab}>GMV 销售额 *</label><input value={form.gmv_sales||""} onChange={e=>handleChange("gmv_sales",e.target.value)} style={si} />
           <label style={rLab}>每月挂车视频 *</label><input value={form.monthly_cart_videos||""} onChange={e=>handleChange("monthly_cart_videos",e.target.value)} style={si} />
