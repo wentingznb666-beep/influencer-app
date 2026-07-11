@@ -2060,7 +2060,8 @@ async function applyOnlineSchemaPatches(): Promise<void> {
     )
   `);
   await query(`ALTER TABLE system_messages ADD COLUMN IF NOT EXISTS link VARCHAR(500)`);
-  await query(`ALTER TABLE influencer_profiles_full ADD COLUMN IF NOT EXISTS quoted_price DECIMAL(12,2)`);
+  await query(`ALTER TABLE influencer_profiles_full ADD COLUMN IF NOT EXISTS quoted_price VARCHAR(200)`);
+  await query(`ALTER TABLE influencer_profiles_full ALTER COLUMN quoted_price TYPE VARCHAR(200)`).catch(()=>{});
   await query(`ALTER TABLE influencer_profiles_full ADD COLUMN IF NOT EXISTS cooperation_conditions TEXT`);
   await query(`ALTER TABLE connection_orders ADD COLUMN IF NOT EXISTS payment_verified BOOLEAN DEFAULT FALSE`);
   await query(`ALTER TABLE connection_orders ADD COLUMN IF NOT EXISTS influencer_profile_id INTEGER REFERENCES influencer_profiles_full(id)`);
