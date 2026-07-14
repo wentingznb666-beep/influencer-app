@@ -196,6 +196,7 @@ export default function AdminVCProfilesPage() {
             <label>{t("直播销售额")}</label>{i("live_sales")}
             <label>{t("每周直播次数")}</label>{i("weekly_live_count")}
             <label>{t("平均直播时长")}</label>{i("avg_live_hours_per_week")}
+            <label>专业度评分</label><select value={form.professionalism_score ?? 3} onChange={e => setForm(f => ({ ...f, professionalism_score: parseInt(e.target.value) }))} style={si}><option value={1}>1 - 低</option><option value={2}>2</option><option value={3}>3 - 中等</option><option value={4}>4</option><option value={5}>5 - 高</option></select>
             <label>{t("备注")}</label><textarea value={String(form.remark || "")} onChange={e => setForm(f => ({ ...f, remark: e.target.value }))} style={si} rows={2} />
             <label style={{color:"#b91c1c"}}>{t("联系方式")} *</label><textarea value={String(form.contact_info || "")} onChange={e => setForm(f => ({ ...f, contact_info: e.target.value }))} style={si} rows={2} />
             <label>{t("收款方式")}</label><textarea value={String(form.payment_info || "")} onChange={e => setForm(f => ({ ...f, payment_info: e.target.value }))} style={si} rows={2} />

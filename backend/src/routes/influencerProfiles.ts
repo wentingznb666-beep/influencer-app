@@ -11,7 +11,7 @@ const router = Router();
 router.use(requireAuth);
 
 /** 等级自动计算 */
-function calcGrade(data: { gmv_sales?: string | null; units_sold?: string | null; live_sales?: string | null; weekly_live_count?: string | null; avg_live_hours_per_week?: string | null }): string | null {
+function calcGrade(data: { gmv_sales?: string | null; units_sold?: string | null; live_sales?: string | null; weekly_live_count?: string | null; avg_live_hours_per_week?: string | null; professionalism_score?: number | null }): string | null {
   const gmv = parseFloat(String(data.gmv_sales || "0")) || 0;
   const weekly = parseInt(String(data.weekly_live_count || "0"), 10) || 0;
   const avgHours = parseFloat(String(data.avg_live_hours_per_week || "0")) || 0;
@@ -38,8 +38,8 @@ function calcGrade(data: { gmv_sales?: string | null; units_sold?: string | null
   else if (weekly >= 3) freqScore = 11;
   else if (weekly >= 1) freqScore = 7;
 
-  // ④ Creator professionalism (5 points) — auto-calc defaults to 3 (medium)
-  const profScore = 3;
+  // ④ Creator professionalism (5 points) — read from DB, default 3
+  const profScore = data.professionalism_score ?? 3;
 
   const total = gmvScore + hourScore + freqScore + profScore;
 
@@ -115,7 +115,7 @@ adminRouter.get("/", async (req: AuthRequest, res: Response) => {
 
 adminRouter.get("/auto-grade", async (_req: AuthRequest, res: Response) => {
   try {
-    const { rows } = await query("SELECT id, gmv_sales, units_sold, live_sales, weekly_live_count, avg_live_hours_per_week FROM influencer_profiles_full WHERE status = 'active'");
+    const { rows } = await query("SELECT id, gmv_sales, units_sold, live_sales, weekly_live_count, avg_live_hours_per_week, professionalism_score FROM influencer_profiles_full WHERE status = 'active'");
     let updated = 0;
     for (const r of rows) {
       const grade = calcGrade(r);
@@ -144,12 +144,12 @@ adminRouter.get("/:id", async (req: AuthRequest, res: Response) => {
 
 adminRouter.post("/", async (req: AuthRequest, res: Response) => {
   try {
-    const { influencer_code, source, category, followers, gmv_sales, monthly_cart_videos, units_sold, can_live, live_sales, weekly_live_count, avg_live_hours_per_week, remark, contact_info, payment_info, quoted_price, cooperation_conditions, user_id } = req.body || {};
+    const { influencer_code, source, category, followers, gmv_sales, monthly_cart_videos, units_sold, can_live, live_sales, weekly_live_count, avg_live_hours_per_week, professionalism_score, remark, contact_info, payment_info, quoted_price, cooperation_conditions, user_id } = req.body || {};
     if (!influencer_code || !source || !category) return res.status(400).json({ error: "MISSING_FIELDS", message: "influencer_code, source, category 为必填" });
-    const grade = calcGrade({ gmv_sales, units_sold, live_sales, weekly_live_count });
+    const grade = calcGrade({ gmv_sales, units_sold, live_sales, weekly_live_count, avg_live_hours_per_week, professionalism_score });
     const { rows } = await query(
-      `INSERT INTO influencer_profiles_full (influencer_code, source, followers, category, grade, gmv_sales, monthly_cart_videos, units_sold, can_live, live_sales, weekly_live_count, avg_live_hours_per_week, remark, contact_info, payment_info, quoted_price, cooperation_conditions, user_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING id`,
-      [influencer_code, source, followers || null, category, grade, gmv_sales || null, monthly_cart_videos || null, units_sold || null, !!can_live, live_sales || null, weekly_live_count || null, avg_live_hours_per_week || null, remark || null, contact_info || null, payment_info || null, quoted_price || null, cooperation_conditions || null, user_id || null]
+      `INSERT INTO influencer_profiles_full (influencer_code, source, followers, category, grade, gmv_sales, monthly_cart_videos, units_sold, can_live, live_sales, weekly_live_count, avg_live_hours_per_week, professionalism_score, remark, contact_info, payment_info, quoted_price, cooperation_conditions, user_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id`,
+      [influencer_code, source, followers || null, category, grade, gmv_sales || null, monthly_cart_videos || null, units_sold || null, !!can_live, live_sales || null, weekly_live_count || null, avg_live_hours_per_week || null, professionalism_score ?? 3, remark || null, contact_info || null, payment_info || null, quoted_price || null, cooperation_conditions || null, user_id || null]
     );
     if (grade) await logGradeChange(rows[0].id, null, grade, 'manual_admin', req.user!.userId); res.status(201).json({ id: rows[0].id, grade });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
@@ -158,7 +158,7 @@ adminRouter.post("/", async (req: AuthRequest, res: Response) => {
 adminRouter.put("/:id", async (req: AuthRequest, res: Response) => {
   try {
     const id = parseInt(String(req.params.id));
-    const fields = ["influencer_code","source","followers","category","gmv_sales","monthly_cart_videos","units_sold","can_live","live_sales","weekly_live_count","avg_live_hours_per_week","remark","contact_info","payment_info","quoted_price","cooperation_conditions","user_id","status"];
+    const fields = ["influencer_code","source","followers","category","gmv_sales","monthly_cart_videos","units_sold","can_live","live_sales","weekly_live_count","avg_live_hours_per_week","professionalism_score","remark","contact_info","payment_info","quoted_price","cooperation_conditions","user_id","status"];
     const sets: string[] = [];
     const params: any[] = [];
     let idx = 1;
