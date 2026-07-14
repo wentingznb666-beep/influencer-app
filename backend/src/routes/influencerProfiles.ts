@@ -10,51 +10,6 @@ async function logGradeChange(profileId: number, oldGrade: string|null, newGrade
 const router = Router();
 router.use(requireAuth);
 
-/** 等级自动计算 */
-function calcGrade(data: { gmv_sales?: string | null; units_sold?: string | null; live_sales?: string | null; weekly_live_count?: string | null; avg_live_hours_per_week?: string | null; professionalism_score?: number | null }): string | null {
-  const gmv = parseFloat(String(data.gmv_sales || "0")) || 0;
-  const weekly = parseInt(String(data.weekly_live_count || "0"), 10) || 0;
-  const avgHours = parseFloat(String(data.avg_live_hours_per_week || "0")) || 0;
-
-  // ① GMV < 50,000 → direct C
-  if (gmv < 50000) return "C";
-
-  // ① GMV score (30 points)
-  let gmvScore = 0;
-  if (gmv >= 300000) gmvScore = 29;
-  else if (gmv >= 200000) gmvScore = 25;
-  else if (gmv >= 100000) gmvScore = 18;
-  else if (gmv >= 50000) gmvScore = 10;
-
-  // ② Avg live hours (15 points)
-  let hourScore = 5;
-  if (avgHours >= 3) hourScore = 14;
-  else if (avgHours >= 2) hourScore = 11;
-  else if (avgHours >= 1) hourScore = 7;
-
-  // ③ Live frequency (15 points)
-  let freqScore = 5;
-  if (weekly >= 5) freqScore = 14;
-  else if (weekly >= 3) freqScore = 11;
-  else if (weekly >= 1) freqScore = 7;
-
-  // ④ Creator professionalism (5 points) — read from DB, default 3
-  const profScore = data.professionalism_score ?? 3;
-
-  const total = gmvScore + hourScore + freqScore + profScore;
-
-  // Grade determination
-  let base: string;
-  if (total >= 50) base = "A";
-  else if (total >= 20) base = "B";
-  else base = "C";
-
-  // PLUS upgrade: live sales >= 50% of GMV
-  const live = parseFloat(String(data.live_sales || "0")) || 0;
-  if (live >= gmv * 0.5) return base + "+";
-  return base;
-}
-
 // Admin/Employee routes
 const adminRouter = Router();
 adminRouter.use(requireAuth);
@@ -114,16 +69,8 @@ adminRouter.get("/", async (req: AuthRequest, res: Response) => {
 });
 
 adminRouter.get("/auto-grade", async (_req: AuthRequest, res: Response) => {
-  try {
-    const { rows } = await query("SELECT id, gmv_sales, units_sold, live_sales, weekly_live_count, avg_live_hours_per_week, professionalism_score FROM influencer_profiles_full WHERE status = 'active'");
-    let updated = 0;
-    for (const r of rows) {
-      const grade = calcGrade(r);
-      const oldG = (await query("SELECT grade FROM influencer_profiles_full WHERE id=$1",[r.id])).rows[0]?.grade; await query("UPDATE influencer_profiles_full SET grade = $1, updated_at = now() WHERE id = $2", [grade, r.id]); await logGradeChange(r.id, oldG, grade, 'auto_calc');
-      updated++;
-    }
-    res.json({ ok: true, updated });
-  } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
+  // 等级已改为手动设置，此接口保留兼容但不再自动计算
+  res.json({ ok: true, updated: 0 });
 });
 
 // 必须放在 /:id 之前，否则 "linkable-users" 会被作为 :id 参数解析
@@ -144,12 +91,11 @@ adminRouter.get("/:id", async (req: AuthRequest, res: Response) => {
 
 adminRouter.post("/", async (req: AuthRequest, res: Response) => {
   try {
-    const { influencer_code, source, category, followers, gmv_sales, monthly_cart_videos, units_sold, can_live, live_sales, weekly_live_count, avg_live_hours_per_week, professionalism_score, remark, contact_info, payment_info, quoted_price, cooperation_conditions, user_id } = req.body || {};
+    const { influencer_code, source, category, grade, followers, gmv_sales, monthly_cart_videos, units_sold, can_live, live_sales, weekly_live_count, avg_live_hours_per_week, professionalism_score, remark, contact_info, payment_info, quoted_price, cooperation_conditions, user_id } = req.body || {};
     if (!influencer_code || !source || !category) return res.status(400).json({ error: "MISSING_FIELDS", message: "influencer_code, source, category 为必填" });
-    const grade = calcGrade({ gmv_sales, units_sold, live_sales, weekly_live_count, avg_live_hours_per_week, professionalism_score });
     const { rows } = await query(
       `INSERT INTO influencer_profiles_full (influencer_code, source, followers, category, grade, gmv_sales, monthly_cart_videos, units_sold, can_live, live_sales, weekly_live_count, avg_live_hours_per_week, professionalism_score, remark, contact_info, payment_info, quoted_price, cooperation_conditions, user_id) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING id`,
-      [influencer_code, source, followers || null, category, grade, gmv_sales || null, monthly_cart_videos || null, units_sold || null, !!can_live, live_sales || null, weekly_live_count || null, avg_live_hours_per_week || null, professionalism_score ?? 3, remark || null, contact_info || null, payment_info || null, quoted_price || null, cooperation_conditions || null, user_id || null]
+      [influencer_code, source, followers || null, category, grade || null, gmv_sales || null, monthly_cart_videos || null, units_sold || null, !!can_live, live_sales || null, weekly_live_count || null, avg_live_hours_per_week || null, professionalism_score ?? 3, remark || null, contact_info || null, payment_info || null, quoted_price || null, cooperation_conditions || null, user_id || null]
     );
     if (grade) await logGradeChange(rows[0].id, null, grade, 'manual_admin', req.user!.userId); res.status(201).json({ id: rows[0].id, grade });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
@@ -170,8 +116,7 @@ adminRouter.put("/:id", async (req: AuthRequest, res: Response) => {
     }
     if (sets.length === 0) return res.json({ ok: true });
     sets.push(`updated_at = now()`);
-    const grade = calcGrade(req.body);
-    if (grade !== undefined) { sets.push(`grade = $${idx++}`); params.push(grade); await logGradeChange(id, (await query("SELECT grade FROM influencer_profiles_full WHERE id=$1",[id])).rows[0]?.grade, grade, 'manual_admin', req.user!.userId); }
+    if (req.body.grade !== undefined) { const grade = req.body.grade; sets.push(`grade = $${idx++}`); params.push(grade); await logGradeChange(id, (await query("SELECT grade FROM influencer_profiles_full WHERE id=$1",[id])).rows[0]?.grade, grade, 'manual_admin', req.user!.userId); }
     params.push(id);
     // Log field changes
       for (const f of fields) {
@@ -180,7 +125,7 @@ adminRouter.put("/:id", async (req: AuthRequest, res: Response) => {
         }
       }
       await query(`UPDATE influencer_profiles_full SET ${sets.join(", ")} WHERE id = $${idx}`, params);
-    res.json({ ok: true, grade });
+    res.json({ ok: true });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
 
@@ -231,7 +176,7 @@ adminRouter.post("/:id/grade", async (req: AuthRequest, res: Response) => {
   try {
     const grade = req.body?.grade || null;
     await query("UPDATE influencer_profiles_full SET grade = $1, updated_at = now() WHERE id = $2", [grade, req.params.id]);
-    res.json({ ok: true, grade });
+    res.json({ ok: true });
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
 
@@ -313,13 +258,11 @@ influencerRouter.put("/profile", async (req: AuthRequest, res: Response) => {
       for (const f of insertFields) {
         if (req.body[f] !== undefined) { cols.push(f); vals.push(f === "can_live" ? !!req.body[f] : req.body[f]); }
       }
-      const grade = calcGrade(req.body);
-      if (grade !== undefined) { cols.push("grade"); vals.push(grade); }
-      // 显式设置 status 确保 GET 查询能匹配到
+      // 显式设置 status 确保 GET 查询能匹配到（等级由管理员手动设置）
       cols.push("status"); vals.push("active");
       const placeholders = vals.map((_,i) => `$${i+1}`).join(", ");
       await query(`INSERT INTO influencer_profiles_full (${cols.join(", ")}) VALUES (${placeholders})`, vals);
-      res.json({ ok: true, grade });
+      res.json({ ok: true });
     } else {
       // UPDATE existing（不更新 category，类目选后不可改）
       const sets: string[] = [];
@@ -334,18 +277,9 @@ influencerRouter.put("/profile", async (req: AuthRequest, res: Response) => {
       if (sets.length === 0) return res.json({ ok: true });
       sets.push(`updated_at = now()`);
       sets.push(`status = 'active'`);
-      const grade = calcGrade({
-        gmv_sales: req.body.gmv_sales ?? row.gmv_sales,
-        units_sold: req.body.units_sold ?? row.units_sold,
-        live_sales: req.body.live_sales ?? row.live_sales,
-        weekly_live_count: req.body.weekly_live_count ?? row.weekly_live_count,
-        avg_live_hours_per_week: req.body.avg_live_hours_per_week ?? row.avg_live_hours_per_week,
-        professionalism_score: req.body.professionalism_score ?? row.professionalism_score,
-      });
-      sets.push(`grade = $${idx++}`); params.push(grade);
       params.push(userId);
       await query(`UPDATE influencer_profiles_full SET ${sets.join(", ")} WHERE user_id = $${idx}`, params);
-      res.json({ ok: true, grade });
+      res.json({ ok: true });
     }
   } catch (e: any) { res.status(500).json({ error: "INTERNAL_ERROR", message: e.message }); }
 });
