@@ -339,6 +339,8 @@ influencerRouter.put("/profile", async (req: AuthRequest, res: Response) => {
         units_sold: req.body.units_sold ?? row.units_sold,
         live_sales: req.body.live_sales ?? row.live_sales,
         weekly_live_count: req.body.weekly_live_count ?? row.weekly_live_count,
+        avg_live_hours_per_week: req.body.avg_live_hours_per_week ?? row.avg_live_hours_per_week,
+        professionalism_score: req.body.professionalism_score ?? row.professionalism_score,
       });
       sets.push(`grade = $${idx++}`); params.push(grade);
       params.push(userId);
