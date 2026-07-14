@@ -11,19 +11,47 @@ const router = Router();
 router.use(requireAuth);
 
 /** 等级自动计算 */
-function calcGrade(data: { gmv_sales?: string | null; units_sold?: string | null; live_sales?: string | null; weekly_live_count?: string | null }): string | null {
+function calcGrade(data: { gmv_sales?: string | null; units_sold?: string | null; live_sales?: string | null; weekly_live_count?: string | null; avg_live_hours_per_week?: string | null }): string | null {
   const gmv = parseFloat(String(data.gmv_sales || "0")) || 0;
-  const units = parseInt(String(data.units_sold || "0"), 10) || 0;
-  // Step 1: base grade
-  let base: string | null = null;
-  if (gmv >= 100000 || units >= 1000) base = "A";
-  else if (gmv >= 10000 || units >= 100) base = "B";
-  else if (gmv >= 3000 || units >= 10) base = "C";
-  if (!base) return null;
-  // Step 2: PLUS upgrade
-  const live = parseFloat(String(data.live_sales || "0")) || 0;
   const weekly = parseInt(String(data.weekly_live_count || "0"), 10) || 0;
-  if (live >= gmv * 0.5 && weekly >= 7) return base + "+";
+  const avgHours = parseFloat(String(data.avg_live_hours_per_week || "0")) || 0;
+
+  // ① GMV < 50,000 → direct C
+  if (gmv < 50000) return "C";
+
+  // ① GMV score (30 points)
+  let gmvScore = 0;
+  if (gmv >= 300000) gmvScore = 29;
+  else if (gmv >= 200000) gmvScore = 25;
+  else if (gmv >= 100000) gmvScore = 18;
+  else if (gmv >= 50000) gmvScore = 10;
+
+  // ② Avg live hours (15 points)
+  let hourScore = 5;
+  if (avgHours >= 3) hourScore = 14;
+  else if (avgHours >= 2) hourScore = 11;
+  else if (avgHours >= 1) hourScore = 7;
+
+  // ③ Live frequency (15 points)
+  let freqScore = 5;
+  if (weekly >= 5) freqScore = 14;
+  else if (weekly >= 3) freqScore = 11;
+  else if (weekly >= 1) freqScore = 7;
+
+  // ④ Creator professionalism (5 points) — auto-calc defaults to 3 (medium)
+  const profScore = 3;
+
+  const total = gmvScore + hourScore + freqScore + profScore;
+
+  // Grade determination
+  let base: string;
+  if (total >= 50) base = "A";
+  else if (total >= 20) base = "B";
+  else base = "C";
+
+  // PLUS upgrade: live sales >= 50% of GMV
+  const live = parseFloat(String(data.live_sales || "0")) || 0;
+  if (live >= gmv * 0.5) return base + "+";
   return base;
 }
 
@@ -87,7 +115,7 @@ adminRouter.get("/", async (req: AuthRequest, res: Response) => {
 
 adminRouter.get("/auto-grade", async (_req: AuthRequest, res: Response) => {
   try {
-    const { rows } = await query("SELECT id, gmv_sales, units_sold, live_sales, weekly_live_count FROM influencer_profiles_full WHERE status = 'active'");
+    const { rows } = await query("SELECT id, gmv_sales, units_sold, live_sales, weekly_live_count, avg_live_hours_per_week FROM influencer_profiles_full WHERE status = 'active'");
     let updated = 0;
     for (const r of rows) {
       const grade = calcGrade(r);
